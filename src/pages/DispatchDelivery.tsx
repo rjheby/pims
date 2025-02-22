@@ -1,5 +1,5 @@
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -8,34 +8,121 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { format } from "date-fns";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { useState } from "react";
 
 export default function DispatchDelivery() {
+  const [date, setDate] = useState<Date>();
+  const [scheduleType, setScheduleType] = useState<"one-time" | "recurring" | "bi-weekly">("one-time");
+  const [recurringDay, setRecurringDay] = useState<string>();
+
+  const renderScheduleCell = () => (
+    <div className="flex items-center space-x-2">
+      <Select value={scheduleType} onValueChange={(value: "one-time" | "recurring" | "bi-weekly") => setScheduleType(value)}>
+        <SelectTrigger className="w-[120px]">
+          <SelectValue placeholder="Schedule type" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="one-time">One-time</SelectItem>
+          <SelectItem value="recurring">Weekly</SelectItem>
+          <SelectItem value="bi-weekly">Bi-weekly</SelectItem>
+        </SelectContent>
+      </Select>
+
+      {scheduleType === "one-time" ? (
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="w-[140px] justify-start text-left font-normal">
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {date ? format(date, "PPP") : <span>Pick a date</span>}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0">
+            <Calendar
+              mode="single"
+              selected={date}
+              onSelect={setDate}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
+      ) : (
+        <Select value={recurringDay} onValueChange={setRecurringDay}>
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="Select day" />
+          </SelectTrigger>
+          <SelectContent>
+            {scheduleType === "recurring" ? (
+              <>
+                <SelectItem value="monday">Every Monday</SelectItem>
+                <SelectItem value="tuesday">Every Tuesday</SelectItem>
+                <SelectItem value="wednesday">Every Wednesday</SelectItem>
+                <SelectItem value="thursday">Every Thursday</SelectItem>
+                <SelectItem value="friday">Every Friday</SelectItem>
+                <SelectItem value="saturday">Every Saturday</SelectItem>
+                <SelectItem value="sunday">Every Sunday</SelectItem>
+              </>
+            ) : (
+              <>
+                <SelectItem value="monday-biweekly">Every Other Monday</SelectItem>
+                <SelectItem value="tuesday-biweekly">Every Other Tuesday</SelectItem>
+                <SelectItem value="wednesday-biweekly">Every Other Wednesday</SelectItem>
+                <SelectItem value="thursday-biweekly">Every Other Thursday</SelectItem>
+                <SelectItem value="friday-biweekly">Every Other Friday</SelectItem>
+                <SelectItem value="saturday-biweekly">Every Other Saturday</SelectItem>
+                <SelectItem value="sunday-biweekly">Every Other Sunday</SelectItem>
+              </>
+            )}
+          </SelectContent>
+        </Select>
+      )}
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Dispatch & Delivery Schedule</h1>
       
       <Card>
         <CardHeader>
-          <CardTitle>Active Deliveries</CardTitle>
+          <CardTitle>Order Management</CardTitle>
+          <CardDescription>
+            Track and manage deliveries, drivers, and order details
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Order ID</TableHead>
                 <TableHead>Client</TableHead>
-                <TableHead>Delivery Date</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Delivery Schedule</TableHead>
+                <TableHead>Order</TableHead>
                 <TableHead>Driver</TableHead>
+                <TableHead>Items</TableHead>
+                <TableHead>Price</TableHead>
+                <TableHead>Notes</TableHead>
+                <TableHead>Address</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               <TableRow>
-                <TableCell>ORD-001</TableCell>
-                <TableCell>Acme Corp</TableCell>
-                <TableCell>2024-02-22</TableCell>
-                <TableCell>In Transit</TableCell>
-                <TableCell>John Doe</TableCell>
+                <TableCell className="font-medium">John Doe</TableCell>
+                <TableCell>(555) 123-4567</TableCell>
+                <TableCell>{renderScheduleCell()}</TableCell>
+                <TableCell>-</TableCell>
+                <TableCell>-</TableCell>
+                <TableCell>-</TableCell>
+                <TableCell>-</TableCell>
+                <TableCell>-</TableCell>
+                <TableCell>-</TableCell>
+                <TableCell className="text-right">-</TableCell>
               </TableRow>
             </TableBody>
           </Table>
