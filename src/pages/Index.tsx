@@ -7,26 +7,35 @@ const Index = () => {
     <div className="container mx-auto py-8 px-4">
       <Card>
         <CardHeader>
-          <CardTitle>Client & Inventory Management</CardTitle>
+          <CardTitle>Order Management</CardTitle>
           <CardDescription>
-            Manage your clients, inventory items, and custom pricing all in one place
+            Track and manage deliveries, drivers, and order details
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {/* Placeholder for tabs/navigation between clients, inventory, and pricing */}
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Contact</TableHead>
-                  <TableHead>Location</TableHead>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Order</TableHead>
+                  <TableHead>Driver</TableHead>
+                  <TableHead>Items</TableHead>
+                  <TableHead>Price</TableHead>
+                  <TableHead>Notes</TableHead>
+                  <TableHead>Address</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 <TableRow>
                   <TableCell className="font-medium">Loading...</TableCell>
+                  <TableCell>-</TableCell>
+                  <TableCell>-</TableCell>
+                  <TableCell>-</TableCell>
+                  <TableCell>-</TableCell>
+                  <TableCell>-</TableCell>
                   <TableCell>-</TableCell>
                   <TableCell>-</TableCell>
                   <TableCell className="text-right">-</TableCell>
@@ -41,4 +50,3 @@ const Index = () => {
 };
 
 export default Index;
-
