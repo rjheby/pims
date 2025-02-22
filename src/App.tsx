@@ -16,6 +16,7 @@ import Customers from "./pages/Customers";
 import Inventory from "./pages/Inventory";
 import TeamSettings from "./pages/TeamSettings";
 import Production from "./pages/Production";
+import DriverPayments from "./pages/DriverPayments";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/" element={<AppLayout><Index /></AppLayout>} />
             <Route path="/dashboard" element={<AppLayout><Dashboard /></AppLayout>} />
             <Route path="/dispatch" element={<AppLayout><DispatchDelivery /></AppLayout>} />
+            <Route path="/driver-payments" element={<AppLayout><DriverPayments /></AppLayout>} />
             <Route path="/client-order" element={<AppLayout><ClientOrder /></AppLayout>} />
             <Route path="/wholesale-order" element={<AppLayout><WholesaleOrder /></AppLayout>} />
             <Route path="/customers" element={<AppLayout><Customers /></AppLayout>} />

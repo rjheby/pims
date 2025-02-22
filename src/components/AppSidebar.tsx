@@ -19,6 +19,7 @@ import {
   Truck,
   ClipboardList,
   LayoutDashboard,
+  DollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +33,11 @@ const menuItems = [
     title: "Dispatch & Delivery",
     icon: Truck,
     path: "/dispatch",
+  },
+  {
+    title: "Driver Payments",
+    icon: DollarSign,
+    path: "/driver-payments",
   },
   {
     title: "Client Order Form",
