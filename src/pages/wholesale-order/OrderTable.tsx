@@ -16,9 +16,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Minus, Copy } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { Minus, Copy, MoreHorizontal, Plus, Trash, Edit, Check } from "lucide-react";
 import { OrderItem, DropdownOptions } from "./types";
-import { KeyboardEvent } from "react";
+import { KeyboardEvent, useState } from "react";
 
 interface OrderTableProps {
   items: OrderItem[];
@@ -49,6 +56,44 @@ export function OrderTable({
   onCopyRow,
   generateItemName,
 }: OrderTableProps) {
+  const [editingOption, setEditingOption] = useState<string | null>(null);
+  const [editedValue, setEditedValue] = useState("");
+
+  const handleStartEdit = (option: string) => {
+    setEditingOption(option);
+    setEditedValue(option);
+  };
+
+  const handleSaveEdit = (field: keyof DropdownOptions, oldValue: string) => {
+    if (editedValue && editedValue !== oldValue) {
+      const updatedOptions = {
+        ...options,
+        [field]: options[field].map(opt => opt === oldValue ? editedValue : opt)
+      };
+      setEditingOption(null);
+      // Update all items using this option
+      items.forEach(item => {
+        if (item[field as keyof OrderItem] === oldValue) {
+          onUpdateItem(item.id, field as keyof OrderItem, editedValue);
+        }
+      });
+    }
+    setEditingOption(null);
+  };
+
+  const handleDeleteOption = (field: keyof DropdownOptions, value: string) => {
+    const updatedOptions = {
+      ...options,
+      [field]: options[field].filter(opt => opt !== value)
+    };
+    // Update all items using this option to empty string
+    items.forEach(item => {
+      if (item[field as keyof OrderItem] === value) {
+        onUpdateItem(item.id, field as keyof OrderItem, "");
+      }
+    });
+  };
+
   return (
     <Table>
       <TableHeader>
@@ -56,7 +101,19 @@ export function OrderTable({
           <TableHead className="w-1/4">Name</TableHead>
           {Object.keys(options).map((field) => (
             <TableHead key={field}>
-              {field.charAt(0).toUpperCase() + field.slice(1)}
+              <div className="flex items-center justify-between">
+                <span>{field.charAt(0).toUpperCase() + field.slice(1)}</span>
+                {isAdmin && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onEditField(field as keyof DropdownOptions)}
+                    className="text-xs text-[#2A4131] hover:bg-[#F2E9D2]/50"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </TableHead>
           ))}
           <TableHead>Actions</TableHead>
@@ -73,36 +130,67 @@ export function OrderTable({
                     value={item[field as keyof OrderItem] as string} 
                     onValueChange={(value) => onUpdateItem(item.id, field as keyof OrderItem, value)}
                   >
-                    <SelectTrigger className="w-32">
+                    <SelectTrigger className="w-40">
                       <SelectValue placeholder="Select" />
                     </SelectTrigger>
                     <SelectContent>
                       {options[field as keyof DropdownOptions].map((option) => (
-                        <SelectItem key={option} value={option}>{option}</SelectItem>
+                        <div key={option} className="flex items-center justify-between">
+                          <SelectItem value={option}>
+                            {editingOption === option ? (
+                              <Input
+                                value={editedValue}
+                                onChange={(e) => setEditedValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    handleSaveEdit(field as keyof DropdownOptions, option);
+                                  }
+                                }}
+                                className="w-32"
+                                autoFocus
+                              />
+                            ) : (
+                              option
+                            )}
+                          </SelectItem>
+                          {isAdmin && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent>
+                                <DropdownMenuItem onClick={() => handleStartEdit(option)}>
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Rename
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  onClick={() => handleDeleteOption(field as keyof DropdownOptions, option)}
+                                  className="text-red-600"
+                                >
+                                  <Trash className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </div>
                       ))}
+                      {isAdmin && editingField === field && (
+                        <div className="p-2 border-t">
+                          <Input
+                            value={newOption}
+                            onChange={(e) => onNewOptionChange(e.target.value)}
+                            onKeyPress={(e) => onKeyPress(e, field as keyof DropdownOptions)}
+                            placeholder="Type and press Enter"
+                            className="w-full"
+                          />
+                        </div>
+                      )}
                     </SelectContent>
                   </Select>
-                  {isAdmin && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onEditField(field as keyof DropdownOptions)}
-                      className="absolute -top-6 right-0 text-xs bg-blue-50 hover:bg-blue-100 text-blue-600"
-                    >
-                      Edit Options
-                    </Button>
-                  )}
-                  {isAdmin && editingField === field && (
-                    <div className="absolute left-36 top-0 z-10 bg-white p-4 rounded-lg shadow-lg border border-gray-200 min-w-[200px]">
-                      <Input
-                        value={newOption}
-                        onChange={(e) => onNewOptionChange(e.target.value)}
-                        onKeyPress={(e) => onKeyPress(e, field as keyof DropdownOptions)}
-                        className="mb-2"
-                        placeholder="Press Enter to add"
-                      />
-                    </div>
-                  )}
                 </div>
               </TableCell>
             ))}
@@ -112,6 +200,7 @@ export function OrderTable({
                   variant="ghost"
                   size="sm"
                   onClick={() => onRemoveRow(item.id)}
+                  className="text-[#2A4131] hover:bg-[#F2E9D2]/50"
                 >
                   <Minus className="h-4 w-4" />
                 </Button>
@@ -119,6 +208,7 @@ export function OrderTable({
                   variant="ghost"
                   size="sm"
                   onClick={() => onCopyRow(item)}
+                  className="text-[#2A4131] hover:bg-[#F2E9D2]/50"
                 >
                   <Copy className="h-4 w-4" />
                 </Button>
