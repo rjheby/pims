@@ -11,7 +11,6 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import {
-  Calendar,
   FileText,
   Database,
   Settings,
@@ -75,8 +74,15 @@ export function AppSidebar() {
   const location = useLocation();
 
   return (
-    <Sidebar>
+    <Sidebar className="border-r border-[#2A4131]/10">
       <SidebarContent>
+        <div className="p-6">
+          <img 
+            src="/lovable-uploads/ac2a865c-fa71-490a-a544-ff3ecd59d4d5.png" 
+            alt="Woodbourne Logo" 
+            className="w-full h-auto mb-6"
+          />
+        </div>
         <SidebarGroup>
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -87,8 +93,8 @@ export function AppSidebar() {
                     <Link
                       to={item.path}
                       className={cn(
-                        "flex items-center gap-2",
-                        location.pathname === item.path && "text-primary"
+                        "flex items-center gap-2 text-[#2A4131]/80 hover:text-[#2A4131] hover:bg-[#F2E9D2]/20",
+                        location.pathname === item.path && "bg-[#2A4131] text-[#F2E9D2]"
                       )}
                     >
                       <item.icon className="h-4 w-4" />

@@ -227,15 +227,7 @@ export default function WholesaleOrder() {
   };
 
   const toggleFieldEditing = (field: keyof DropdownOptions) => {
-    setEditingField(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(field)) {
-        newSet.delete(field);
-      } else {
-        newSet.add(field);
-      }
-      return newSet;
-    });
+    setEditingField(editingField === field ? null : field);
   };
 
   const generateOrderNumber = (date: string) => {
