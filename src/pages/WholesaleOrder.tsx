@@ -1,53 +1,15 @@
 import { useState, useEffect, KeyboardEvent } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Plus, Minus, Copy, Undo, Save, X } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
-
-interface OrderItem {
-  id: number;
-  species: string;
-  length: string;
-  bundleType: string;
-  thickness: string;
-  packaging: string;
-  pallets: number;
-}
-
-interface DropdownOptions {
-  species: string[];
-  length: string[];
-  bundleType: string[];
-  thickness: string[];
-  packaging: string[];
-}
-
-const initialOptions: DropdownOptions = {
-  species: ["Mixed Hardwood", "Cherry", "Oak", "Hickory", "Ash"],
-  length: ["12\"", "16\""],
-  bundleType: ["Loose", "Bundled"],
-  thickness: ["Standard Split", "Thick Split"],
-  packaging: ["Pallets"],
-};
+import { OrderDetails } from "./wholesale-order/OrderDetails";
+import { AdminControls } from "./wholesale-order/AdminControls";
+import { OrderTable } from "./wholesale-order/OrderTable";
+import { OrderItem, DropdownOptions, initialOptions } from "./wholesale-order/types";
 
 export default function WholesaleOrder() {
   const { toast } = useToast();
@@ -216,31 +178,12 @@ export default function WholesaleOrder() {
     ));
   };
 
-  const addOptionToField = (field: keyof DropdownOptions) => {
-    if (newOption && !options[field].includes(newOption)) {
-      setOptions({
-        ...options,
-        [field]: [...options[field], newOption],
-      });
-      setNewOption("");
-    }
-  };
-
-  const toggleFieldEditing = (field: keyof DropdownOptions) => {
-    setEditingField(editingField === field ? null : field);
-  };
-
   const generateOrderNumber = (date: string) => {
     if (!date) return "";
-    
     const orderDate = new Date(date);
     const year = orderDate.getFullYear().toString().slice(-2);
     const month = (orderDate.getMonth() + 1).toString().padStart(2, '0');
-    
-    // In a real application, this would be fetched from the backend
-    // For now, we'll always use 01 as it's a new order
     const orderSequence = "01";
-    
     return `${year}${month}-${orderSequence}`;
   };
 
@@ -251,12 +194,10 @@ export default function WholesaleOrder() {
   };
 
   const handleSubmit = async () => {
-    // Create reference for PDF content
     const orderElement = document.getElementById('order-content');
     if (!orderElement) return;
 
     try {
-      // Generate PDF
       const canvas = await html2canvas(orderElement);
       const pdf = new jsPDF('p', 'mm', 'a4');
       const imgData = canvas.toDataURL('image/png');
@@ -271,9 +212,6 @@ export default function WholesaleOrder() {
         description: "Order has been processed and PDF has been downloaded.",
       });
 
-      // Here we would also implement email sending functionality
-      // This would typically be handled by a backend service
-      
     } catch (error) {
       toast({
         title: "Error",
@@ -284,52 +222,20 @@ export default function WholesaleOrder() {
   };
 
   const totalPallets = items.reduce((sum, item) => sum + (item.pallets || 0), 0);
-  const totalSummary = `${totalPallets} ${items[0]?.packaging || "Pallets"} in ${items[0]?.bundleType || "Loose"}`;
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Wholesale Order Form</h1>
-        <div className="flex gap-2">
-          {isAdmin && hasUnsavedChanges && (
-            <>
-              <Button 
-                variant="outline" 
-                onClick={undoLastChange}
-                disabled={optionsHistory.length <= 1}
-              >
-                <Undo className="mr-2 h-4 w-4" />
-                Undo
-              </Button>
-              <Button 
-                variant="default"
-                onClick={saveChanges}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                <Save className="mr-2 h-4 w-4" />
-                Save Changes
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={discardChanges}
-                className="text-red-600 hover:text-red-700"
-              >
-                <X className="mr-2 h-4 w-4" />
-                Discard
-              </Button>
-            </>
-          )}
-          <Button 
-            variant="ghost" 
-            onClick={handleAdminToggle}
-            className={cn(
-              "transition-all duration-1000",
-              isAdmin && "bg-red-50 text-red-600 border-red-200 border"
-            )}
-          >
-            {isAdmin ? "Exit Admin Mode" : "Admin Mode"}
-          </Button>
-        </div>
+        <AdminControls 
+          isAdmin={isAdmin}
+          hasUnsavedChanges={hasUnsavedChanges}
+          onSave={saveChanges}
+          onDiscard={discardChanges}
+          onUndo={undoLastChange}
+          onToggleAdmin={handleAdminToggle}
+          canUndo={optionsHistory.length > 1}
+        />
       </div>
       
       <Card className={cn(
@@ -341,123 +247,29 @@ export default function WholesaleOrder() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div id="order-content">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <label htmlFor="orderNumber" className="text-sm font-medium">Order #</label>
-                <Input
-                  id="orderNumber"
-                  value={orderNumber}
-                  readOnly
-                  className="bg-gray-50"
-                />
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="orderDate" className="text-sm font-medium">Order Date</label>
-                <Input
-                  id="orderDate"
-                  type="date"
-                  value={orderDate}
-                  onChange={handleOrderDateChange}
-                />
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="deliveryDate" className="text-sm font-medium">Delivery Date</label>
-                <Input
-                  id="deliveryDate"
-                  type="date"
-                  value={deliveryDate}
-                  onChange={(e) => setDeliveryDate(e.target.value)}
-                />
-              </div>
-            </div>
+            <OrderDetails 
+              orderNumber={orderNumber}
+              orderDate={orderDate}
+              deliveryDate={deliveryDate}
+              onOrderDateChange={handleOrderDateChange}
+              onDeliveryDateChange={(e) => setDeliveryDate(e.target.value)}
+            />
 
             <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-1/4">Name</TableHead>
-                    {Object.keys(options).map((field) => (
-                      <TableHead key={field}>
-                        {field.charAt(0).toUpperCase() + field.slice(1)}
-                      </TableHead>
-                    ))}
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {items.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="w-1/4 min-w-[200px]">{generateItemName(item)}</TableCell>
-                      {Object.keys(options).map((field) => (
-                        <TableCell key={field}>
-                          <div className="relative">
-                            <Select 
-                              value={item[field as keyof OrderItem] as string} 
-                              onValueChange={(value) => updateItem(item.id, field as keyof OrderItem, value)}
-                            >
-                              <SelectTrigger className="w-32">
-                                <SelectValue placeholder="Select" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {options[field as keyof DropdownOptions].map((option) => (
-                                  <SelectItem key={option} value={option}>{option}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            {isAdmin && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setEditingField(editingField === field as keyof DropdownOptions ? null : field as keyof DropdownOptions)}
-                                className="absolute -top-6 right-0 text-xs bg-blue-50 hover:bg-blue-100 text-blue-600"
-                              >
-                                Edit Options
-                              </Button>
-                            )}
-                            {isAdmin && editingField === field && (
-                              <div className="absolute left-36 top-0 z-10 bg-white p-4 rounded-lg shadow-lg border border-gray-200 min-w-[200px]">
-                                <Input
-                                  value={newOption}
-                                  onChange={(e) => setNewOption(e.target.value)}
-                                  onKeyPress={(e) => handleKeyPress(e, field as keyof DropdownOptions)}
-                                  className="mb-2"
-                                  placeholder="Press Enter to add"
-                                />
-                              </div>
-                            )}
-                          </div>
-                        </TableCell>
-                      ))}
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeRow(item.id)}
-                          >
-                            <Minus className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => copyRow(item)}
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-right font-medium">
-                      Total
-                    </TableCell>
-                    <TableCell colSpan={2}>
-                      {totalSummary}
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
+              <OrderTable 
+                items={items}
+                options={options}
+                isAdmin={isAdmin}
+                editingField={editingField}
+                newOption={newOption}
+                onNewOptionChange={setNewOption}
+                onKeyPress={handleKeyPress}
+                onEditField={setEditingField}
+                onUpdateItem={updateItem}
+                onRemoveRow={removeRow}
+                onCopyRow={copyRow}
+                generateItemName={generateItemName}
+              />
             </div>
 
             <div className="flex justify-between mt-4">
