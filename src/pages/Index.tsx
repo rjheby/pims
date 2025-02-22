@@ -19,6 +19,7 @@ const Index = () => {
                 <TableRow>
                   <TableHead>Client</TableHead>
                   <TableHead>Phone</TableHead>
+                  <TableHead>Delivery Schedule</TableHead>
                   <TableHead>Order</TableHead>
                   <TableHead>Driver</TableHead>
                   <TableHead>Items</TableHead>
@@ -31,6 +32,7 @@ const Index = () => {
               <TableBody>
                 <TableRow>
                   <TableCell className="font-medium">Loading...</TableCell>
+                  <TableCell>-</TableCell>
                   <TableCell>-</TableCell>
                   <TableCell>-</TableCell>
                   <TableCell>-</TableCell>
