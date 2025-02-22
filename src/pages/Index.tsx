@@ -6,13 +6,24 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, UserPlus, Settings } from "lucide-react";
 import { useState } from "react";
+import { useUser } from "@/context/UserContext";
+import { useToast } from "@/components/ui/use-toast";
 
 const Index = () => {
   const [date, setDate] = useState<Date>();
   const [scheduleType, setScheduleType] = useState<"one-time" | "recurring" | "bi-weekly">("one-time");
   const [recurringDay, setRecurringDay] = useState<string>();
+  const { user, hasPermission } = useUser();
+  const { toast } = useToast();
+
+  const handleAddUser = () => {
+    toast({
+      title: "Coming soon",
+      description: "User management functionality will be implemented next",
+    });
+  };
 
   const renderScheduleCell = () => (
     <div className="flex items-center space-x-2">
@@ -79,6 +90,25 @@ const Index = () => {
 
   return (
     <div className="container mx-auto py-8 px-4">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-bold">Welcome, {user?.name}</h1>
+          <p className="text-muted-foreground">Role: {user?.role}</p>
+        </div>
+        {hasPermission("superadmin") && (
+          <div className="flex gap-2">
+            <Button onClick={handleAddUser}>
+              <UserPlus className="mr-2 h-4 w-4" />
+              Add User
+            </Button>
+            <Button variant="outline">
+              <Settings className="mr-2 h-4 w-4" />
+              System Settings
+            </Button>
+          </div>
+        )}
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle>Order Management</CardTitle>
