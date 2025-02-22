@@ -223,13 +223,21 @@ export default function WholesaleOrder() {
         <Button 
           variant="ghost" 
           onClick={() => setIsAdmin(!isAdmin)}
-          className={isAdmin ? "bg-red-100 hover:bg-red-200 text-red-700" : ""}
+          className={cn(
+            "transition-all duration-500 ease-out transform",
+            isAdmin 
+              ? "bg-red-100 hover:bg-red-200 text-red-700 shadow-lg scale-110 rotate-6 hover:rotate-0" 
+              : "hover:bg-amber-100 hover:text-amber-700 hover:scale-105"
+          )}
         >
           {isAdmin ? "Exit Admin Mode" : "Admin Mode"}
         </Button>
       </div>
       
-      <Card>
+      <Card className={cn(
+        "transition-all duration-500",
+        isAdmin && "bg-amber-50/50 shadow-xl"
+      )}>
         <CardHeader>
           <CardTitle>New Wholesale Order</CardTitle>
         </CardHeader>
@@ -454,14 +462,14 @@ export default function WholesaleOrder() {
             <div className="flex justify-between">
               <Button 
                 onClick={addRow} 
-                className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-6 py-2 rounded-lg shadow-md hover:shadow-lg transition-all"
+                className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-6 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 active:scale-95"
               >
-                <Plus className="mr-2 h-5 w-5" />
+                <Plus className="mr-2 h-5 w-5 animate-in" />
                 Add Row
               </Button>
               <Button 
                 onClick={handleSubmit}
-                className="bg-green-500 hover:bg-green-600"
+                className="bg-green-500 hover:bg-green-600 transition-all duration-300 hover:scale-105 active:scale-95"
                 disabled={totalPallets === 0}
               >
                 Submit Order
@@ -470,6 +478,13 @@ export default function WholesaleOrder() {
           </div>
         </CardContent>
       </Card>
+
+      <div className={cn(
+        "fixed inset-0 pointer-events-none transition-all duration-700",
+        isAdmin 
+          ? "bg-amber-500/10 backdrop-blur-[1px]" 
+          : "bg-transparent backdrop-blur-0"
+      )} />
     </div>
   );
 }
