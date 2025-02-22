@@ -56,7 +56,7 @@ export default function WholesaleOrder() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [options, setOptions] = useState<DropdownOptions>(initialOptions);
   const [newOption, setNewOption] = useState("");
-  const [editingField, setEditingField] = useState<keyof DropdownOptions | null>(null);
+  const [editingFields, setEditingFields] = useState<Set<keyof DropdownOptions>>(new Set());
   const [items, setItems] = useState<OrderItem[]>([
     {
       id: 1,
@@ -146,6 +146,18 @@ export default function WholesaleOrder() {
       });
       setNewOption("");
     }
+  };
+
+  const toggleFieldEditing = (field: keyof DropdownOptions) => {
+    setEditingFields(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(field)) {
+        newSet.delete(field);
+      } else {
+        newSet.add(field);
+      }
+      return newSet;
+    });
   };
 
   const generateOrderNumber = (date: string) => {
@@ -283,40 +295,85 @@ export default function WholesaleOrder() {
                               ))}
                             </SelectContent>
                           </Select>
-                          {isAdmin && editingField === "species" && (
-                            <div className="mt-2">
+                          {isAdmin && editingFields.has("species") && (
+                            <div className="absolute left-36 top-0 z-10 bg-white p-4 rounded-lg shadow-lg border border-gray-200 min-w-[200px]">
                               <Input
                                 value={newOption}
                                 onChange={(e) => setNewOption(e.target.value)}
-                                className="w-32 mb-1"
+                                className="mb-2"
                                 placeholder="New option"
                               />
-                              <Button size="sm" onClick={() => addOptionToField("species")}>Add</Button>
+                              <div className="flex gap-2">
+                                <Button size="sm" onClick={() => addOptionToField("species")}>
+                                  Add Option
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  onClick={() => toggleFieldEditing("species")}
+                                >
+                                  Close
+                                </Button>
+                              </div>
                             </div>
                           )}
                           {isAdmin && (
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => setEditingField(editingField === "species" ? null : "species")}
-                              className="absolute -top-6 right-0 text-red-600 text-xs"
+                              onClick={() => toggleFieldEditing("species")}
+                              className="absolute -top-6 right-0 text-xs bg-blue-50 hover:bg-blue-100 text-blue-600"
                             >
-                              Edit
+                              Edit Options
                             </Button>
                           )}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Select value={item.length} onValueChange={(value) => updateItem(item.id, "length", value)}>
-                          <SelectTrigger className="w-24">
-                            <SelectValue placeholder="Select" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {options.length.map((option) => (
-                              <SelectItem key={option} value={option}>{option}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <div className="relative">
+                          <Select value={item.length} onValueChange={(value) => updateItem(item.id, "length", value)}>
+                            <SelectTrigger className="w-24">
+                              <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {options.length.map((option) => (
+                                <SelectItem key={option} value={option}>{option}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {isAdmin && editingFields.has("length") && (
+                            <div className="absolute left-28 top-0 z-10 bg-white p-4 rounded-lg shadow-lg border border-gray-200 min-w-[200px]">
+                              <Input
+                                value={newOption}
+                                onChange={(e) => setNewOption(e.target.value)}
+                                className="mb-2"
+                                placeholder="New option"
+                              />
+                              <div className="flex gap-2">
+                                <Button size="sm" onClick={() => addOptionToField("length")}>
+                                  Add Option
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  onClick={() => toggleFieldEditing("length")}
+                                >
+                                  Close
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                          {isAdmin && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toggleFieldEditing("length")}
+                              className="absolute -top-6 right-0 text-xs bg-blue-50 hover:bg-blue-100 text-blue-600"
+                            >
+                              Edit Options
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <Select value={item.bundleType} onValueChange={(value) => updateItem(item.id, "bundleType", value)}>
