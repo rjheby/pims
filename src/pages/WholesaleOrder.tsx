@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -122,6 +121,26 @@ export default function WholesaleOrder() {
   const totalPallets = items.reduce((sum, item) => sum + (item.pallets || 0), 0);
   const totalSummary = `${totalPallets} ${items[0]?.packaging || "Pallets"} in ${items[0]?.bundleType || "Loose"}`;
 
+  const generateOrderNumber = (date: string) => {
+    if (!date) return "";
+    
+    const orderDate = new Date(date);
+    const year = orderDate.getFullYear().toString().slice(-2);
+    const month = (orderDate.getMonth() + 1).toString().padStart(2, '0');
+    
+    // In a real application, you would fetch the last order number for this month from the backend
+    // For now, we'll simulate it with a random number between 1 and 99
+    const orderSequence = Math.floor(Math.random() * 99) + 1;
+    
+    return `${year}${month}-${orderSequence}`;
+  };
+
+  const handleOrderDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newDate = e.target.value;
+    setOrderDate(newDate);
+    setOrderNumber(generateOrderNumber(newDate));
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -146,8 +165,8 @@ export default function WholesaleOrder() {
               <Input
                 id="orderNumber"
                 value={orderNumber}
-                onChange={(e) => setOrderNumber(e.target.value)}
-                placeholder="2502-1"
+                readOnly
+                className="bg-gray-50"
               />
             </div>
             <div className="space-y-2">
@@ -156,7 +175,7 @@ export default function WholesaleOrder() {
                 id="orderDate"
                 type="date"
                 value={orderDate}
-                onChange={(e) => setOrderDate(e.target.value)}
+                onChange={handleOrderDateChange}
               />
             </div>
             <div className="space-y-2">
@@ -223,7 +242,6 @@ export default function WholesaleOrder() {
                         )}
                       </div>
                     </TableCell>
-                    {/* Similar pattern for other dropdowns */}
                     <TableCell>
                       <Select value={item.length} onValueChange={(value) => updateItem(item.id, "length", value)}>
                         <SelectTrigger className="w-24">
