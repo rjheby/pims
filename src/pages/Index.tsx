@@ -11,18 +11,19 @@ import { useState } from "react";
 
 const Index = () => {
   const [date, setDate] = useState<Date>();
-  const [scheduleType, setScheduleType] = useState<"one-time" | "recurring">("one-time");
+  const [scheduleType, setScheduleType] = useState<"one-time" | "recurring" | "bi-weekly">("one-time");
   const [recurringDay, setRecurringDay] = useState<string>();
 
   const renderScheduleCell = () => (
     <div className="flex items-center space-x-2">
-      <Select value={scheduleType} onValueChange={(value: "one-time" | "recurring") => setScheduleType(value)}>
+      <Select value={scheduleType} onValueChange={(value: "one-time" | "recurring" | "bi-weekly") => setScheduleType(value)}>
         <SelectTrigger className="w-[120px]">
           <SelectValue placeholder="Schedule type" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="one-time">One-time</SelectItem>
-          <SelectItem value="recurring">Recurring</SelectItem>
+          <SelectItem value="recurring">Weekly</SelectItem>
+          <SelectItem value="bi-weekly">Bi-weekly</SelectItem>
         </SelectContent>
       </Select>
 
@@ -49,13 +50,27 @@ const Index = () => {
             <SelectValue placeholder="Select day" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="monday">Every Monday</SelectItem>
-            <SelectItem value="tuesday">Every Tuesday</SelectItem>
-            <SelectItem value="wednesday">Every Wednesday</SelectItem>
-            <SelectItem value="thursday">Every Thursday</SelectItem>
-            <SelectItem value="friday">Every Friday</SelectItem>
-            <SelectItem value="saturday">Every Saturday</SelectItem>
-            <SelectItem value="sunday">Every Sunday</SelectItem>
+            {scheduleType === "recurring" ? (
+              <>
+                <SelectItem value="monday">Every Monday</SelectItem>
+                <SelectItem value="tuesday">Every Tuesday</SelectItem>
+                <SelectItem value="wednesday">Every Wednesday</SelectItem>
+                <SelectItem value="thursday">Every Thursday</SelectItem>
+                <SelectItem value="friday">Every Friday</SelectItem>
+                <SelectItem value="saturday">Every Saturday</SelectItem>
+                <SelectItem value="sunday">Every Sunday</SelectItem>
+              </>
+            ) : (
+              <>
+                <SelectItem value="monday-biweekly">Every Other Monday</SelectItem>
+                <SelectItem value="tuesday-biweekly">Every Other Tuesday</SelectItem>
+                <SelectItem value="wednesday-biweekly">Every Other Wednesday</SelectItem>
+                <SelectItem value="thursday-biweekly">Every Other Thursday</SelectItem>
+                <SelectItem value="friday-biweekly">Every Other Friday</SelectItem>
+                <SelectItem value="saturday-biweekly">Every Other Saturday</SelectItem>
+                <SelectItem value="sunday-biweekly">Every Other Sunday</SelectItem>
+              </>
+            )}
           </SelectContent>
         </Select>
       )}
