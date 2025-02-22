@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect, KeyboardEvent } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -18,9 +17,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Minus, Copy } from "lucide-react";
+import { Plus, Minus, Copy, Undo, Save, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";  // Add this import
+import { cn } from "@/lib/utils";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
@@ -56,9 +55,11 @@ export default function WholesaleOrder() {
   const [orderDate, setOrderDate] = useState("");
   const [deliveryDate, setDeliveryDate] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [options, setOptions] = useState<DropdownOptions>(initialOptions);
+  const [optionsHistory, setOptionsHistory] = useState<DropdownOptions[]>([initialOptions]);
+  const [editingField, setEditingField] = useState<keyof DropdownOptions | null>(null);
   const [newOption, setNewOption] = useState("");
-  const [editingFields, setEditingFields] = useState<Set<keyof DropdownOptions>>(new Set());
   const [items, setItems] = useState<OrderItem[]>([
     {
       id: 1,
@@ -70,6 +71,81 @@ export default function WholesaleOrder() {
       pallets: 0,
     },
   ]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  const handleAdminToggle = () => {
+    if (isAdmin && hasUnsavedChanges) {
+      if (window.confirm('You have unsaved changes. Do you want to save them before exiting admin mode?')) {
+        saveChanges();
+      } else {
+        discardChanges();
+      }
+    } else {
+      setIsAdmin(!isAdmin);
+    }
+  };
+
+  const saveChanges = () => {
+    setOptionsHistory([...optionsHistory, options]);
+    setHasUnsavedChanges(false);
+    setIsAdmin(false);
+    toast({
+      title: "Changes saved",
+      description: "Your changes have been saved successfully.",
+    });
+  };
+
+  const discardChanges = () => {
+    setOptions(optionsHistory[optionsHistory.length - 1]);
+    setHasUnsavedChanges(false);
+    setIsAdmin(false);
+    setEditingField(null);
+    toast({
+      title: "Changes discarded",
+      description: "Your changes have been discarded.",
+    });
+  };
+
+  const undoLastChange = () => {
+    if (optionsHistory.length > 1) {
+      const previousOptions = optionsHistory[optionsHistory.length - 2];
+      setOptions(previousOptions);
+      setOptionsHistory(optionsHistory.slice(0, -1));
+      toast({
+        title: "Change undone",
+        description: "The last change has been undone.",
+      });
+    }
+  };
+
+  const handleKeyPress = (e: KeyboardEvent<HTMLInputElement>, field: keyof DropdownOptions) => {
+    if (e.key === 'Enter' && newOption.trim()) {
+      if (!options[field].includes(newOption.trim())) {
+        const updatedOptions = {
+          ...options,
+          [field]: [...options[field], newOption.trim()],
+        };
+        setOptions(updatedOptions);
+        setHasUnsavedChanges(true);
+        setNewOption("");
+        toast({
+          title: "Option added",
+          description: `Added "${newOption}" to ${field}`,
+        });
+      }
+    }
+  };
 
   const generateItemName = (item: OrderItem) => {
     if (!item.length || !item.species || !item.thickness) return "";
@@ -151,7 +227,7 @@ export default function WholesaleOrder() {
   };
 
   const toggleFieldEditing = (field: keyof DropdownOptions) => {
-    setEditingFields(prev => {
+    setEditingField(prev => {
       const newSet = new Set(prev);
       if (newSet.has(field)) {
         newSet.delete(field);
@@ -222,23 +298,51 @@ export default function WholesaleOrder() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Wholesale Order Form</h1>
-        <Button 
-          variant="ghost" 
-          onClick={() => setIsAdmin(!isAdmin)}
-          className={cn(
-            "transition-all duration-500 ease-out transform",
-            isAdmin 
-              ? "bg-red-100 hover:bg-red-200 text-red-700 shadow-lg scale-110 rotate-6 hover:rotate-0" 
-              : "hover:bg-amber-100 hover:text-amber-700 hover:scale-105"
+        <div className="flex gap-2">
+          {isAdmin && hasUnsavedChanges && (
+            <>
+              <Button 
+                variant="outline" 
+                onClick={undoLastChange}
+                disabled={optionsHistory.length <= 1}
+              >
+                <Undo className="mr-2 h-4 w-4" />
+                Undo
+              </Button>
+              <Button 
+                variant="default"
+                onClick={saveChanges}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <Save className="mr-2 h-4 w-4" />
+                Save Changes
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={discardChanges}
+                className="text-red-600 hover:text-red-700"
+              >
+                <X className="mr-2 h-4 w-4" />
+                Discard
+              </Button>
+            </>
           )}
-        >
-          {isAdmin ? "Exit Admin Mode" : "Admin Mode"}
-        </Button>
+          <Button 
+            variant="ghost" 
+            onClick={handleAdminToggle}
+            className={cn(
+              "transition-all duration-1000",
+              isAdmin && "bg-red-50 text-red-600 border-red-200 border"
+            )}
+          >
+            {isAdmin ? "Exit Admin Mode" : "Admin Mode"}
+          </Button>
+        </div>
       </div>
       
       <Card className={cn(
-        "transition-all duration-500",
-        isAdmin && "bg-amber-50/50 shadow-xl"
+        "transition-all duration-1000",
+        isAdmin && "bg-red-50/5"
       )}>
         <CardHeader>
           <CardTitle>New Wholesale Order</CardTitle>
@@ -280,12 +384,11 @@ export default function WholesaleOrder() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-1/4">Name</TableHead>
-                    <TableHead>Species</TableHead>
-                    <TableHead>Length</TableHead>
-                    <TableHead>Bundled or Loose</TableHead>
-                    <TableHead>Thickness</TableHead>
-                    <TableHead>Packaging</TableHead>
-                    <TableHead># of Units</TableHead>
+                    {Object.keys(options).map((field) => (
+                      <TableHead key={field}>
+                        {field.charAt(0).toUpperCase() + field.slice(1)}
+                      </TableHead>
+                    ))}
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -293,142 +396,46 @@ export default function WholesaleOrder() {
                   {items.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell className="w-1/4 min-w-[200px]">{generateItemName(item)}</TableCell>
-                      <TableCell>
-                        <div className="relative">
-                          <Select value={item.species} onValueChange={(value) => updateItem(item.id, "species", value)}>
-                            <SelectTrigger className="w-32">
-                              <SelectValue placeholder="Select" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {options.species.map((option) => (
-                                <SelectItem key={option} value={option}>{option}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          {isAdmin && editingFields.has("species") && (
-                            <div className="absolute left-36 top-0 z-10 bg-white p-4 rounded-lg shadow-lg border border-gray-200 min-w-[200px]">
-                              <Input
-                                value={newOption}
-                                onChange={(e) => setNewOption(e.target.value)}
-                                className="mb-2"
-                                placeholder="New option"
-                              />
-                              <div className="flex gap-2">
-                                <Button size="sm" onClick={() => addOptionToField("species")}>
-                                  Add Option
-                                </Button>
-                                <Button 
-                                  size="sm" 
-                                  variant="ghost" 
-                                  onClick={() => toggleFieldEditing("species")}
-                                >
-                                  Close
-                                </Button>
-                              </div>
-                            </div>
-                          )}
-                          {isAdmin && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => toggleFieldEditing("species")}
-                              className="absolute -top-6 right-0 text-xs bg-blue-50 hover:bg-blue-100 text-blue-600"
+                      {Object.keys(options).map((field) => (
+                        <TableCell key={field}>
+                          <div className="relative">
+                            <Select 
+                              value={item[field as keyof OrderItem] as string} 
+                              onValueChange={(value) => updateItem(item.id, field as keyof OrderItem, value)}
                             >
-                              Edit Options
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="relative">
-                          <Select value={item.length} onValueChange={(value) => updateItem(item.id, "length", value)}>
-                            <SelectTrigger className="w-24">
-                              <SelectValue placeholder="Select" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {options.length.map((option) => (
-                                <SelectItem key={option} value={option}>{option}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          {isAdmin && editingFields.has("length") && (
-                            <div className="absolute left-28 top-0 z-10 bg-white p-4 rounded-lg shadow-lg border border-gray-200 min-w-[200px]">
-                              <Input
-                                value={newOption}
-                                onChange={(e) => setNewOption(e.target.value)}
-                                className="mb-2"
-                                placeholder="New option"
-                              />
-                              <div className="flex gap-2">
-                                <Button size="sm" onClick={() => addOptionToField("length")}>
-                                  Add Option
-                                </Button>
-                                <Button 
-                                  size="sm" 
-                                  variant="ghost" 
-                                  onClick={() => toggleFieldEditing("length")}
-                                >
-                                  Close
-                                </Button>
+                              <SelectTrigger className="w-32">
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {options[field as keyof DropdownOptions].map((option) => (
+                                  <SelectItem key={option} value={option}>{option}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {isAdmin && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setEditingField(editingField === field as keyof DropdownOptions ? null : field as keyof DropdownOptions)}
+                                className="absolute -top-6 right-0 text-xs bg-blue-50 hover:bg-blue-100 text-blue-600"
+                              >
+                                Edit Options
+                              </Button>
+                            )}
+                            {isAdmin && editingField === field && (
+                              <div className="absolute left-36 top-0 z-10 bg-white p-4 rounded-lg shadow-lg border border-gray-200 min-w-[200px]">
+                                <Input
+                                  value={newOption}
+                                  onChange={(e) => setNewOption(e.target.value)}
+                                  onKeyPress={(e) => handleKeyPress(e, field as keyof DropdownOptions)}
+                                  className="mb-2"
+                                  placeholder="Press Enter to add"
+                                />
                               </div>
-                            </div>
-                          )}
-                          {isAdmin && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => toggleFieldEditing("length")}
-                              className="absolute -top-6 right-0 text-xs bg-blue-50 hover:bg-blue-100 text-blue-600"
-                            >
-                              Edit Options
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Select value={item.bundleType} onValueChange={(value) => updateItem(item.id, "bundleType", value)}>
-                          <SelectTrigger className="w-32">
-                            <SelectValue placeholder="Select" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {options.bundleType.map((option) => (
-                              <SelectItem key={option} value={option}>{option}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell>
-                        <Select value={item.thickness} onValueChange={(value) => updateItem(item.id, "thickness", value)}>
-                          <SelectTrigger className="w-36">
-                            <SelectValue placeholder="Select" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {options.thickness.map((option) => (
-                              <SelectItem key={option} value={option}>{option}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell>
-                        <Select value={item.packaging} onValueChange={(value) => updateItem(item.id, "packaging", value)}>
-                          <SelectTrigger className="w-32">
-                            <SelectValue placeholder="Select" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {options.packaging.map((option) => (
-                              <SelectItem key={option} value={option}>{option}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          type="number"
-                          value={item.pallets || ""}
-                          onChange={(e) => updateItem(item.id, "pallets", parseInt(e.target.value) || 0)}
-                          className="w-24"
-                        />
-                      </TableCell>
+                            )}
+                          </div>
+                        </TableCell>
+                      ))}
                       <TableCell>
                         <div className="flex gap-1">
                           <Button
@@ -461,17 +468,17 @@ export default function WholesaleOrder() {
               </Table>
             </div>
 
-            <div className="flex justify-between">
+            <div className="flex justify-between mt-4">
               <Button 
                 onClick={addRow} 
-                className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-6 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 active:scale-95"
+                className="bg-blue-500 hover:bg-blue-600 transition-all duration-300"
               >
-                <Plus className="mr-2 h-5 w-5 animate-in" />
+                <Plus className="mr-2 h-5 w-5" />
                 Add Row
               </Button>
               <Button 
                 onClick={handleSubmit}
-                className="bg-green-500 hover:bg-green-600 transition-all duration-300 hover:scale-105 active:scale-95"
+                className="bg-green-500 hover:bg-green-600 transition-all duration-300"
                 disabled={totalPallets === 0}
               >
                 Submit Order
@@ -482,10 +489,10 @@ export default function WholesaleOrder() {
       </Card>
 
       <div className={cn(
-        "fixed inset-0 pointer-events-none transition-all duration-700",
+        "fixed inset-0 pointer-events-none transition-all duration-1000",
         isAdmin 
-          ? "bg-amber-500/10 backdrop-blur-[1px]" 
-          : "bg-transparent backdrop-blur-0"
+          ? "bg-red-500/5" 
+          : "bg-transparent"
       )} />
     </div>
   );
