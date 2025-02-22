@@ -11,9 +11,10 @@ interface UserContextType {
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 const roleHierarchy: Record<UserRole, number> = {
-  superadmin: 3,
-  admin: 2,
-  staff: 1,
+  superadmin: 4,
+  admin: 3,
+  staff: 2,
+  client: 1,
   customer: 0,
 };
 
