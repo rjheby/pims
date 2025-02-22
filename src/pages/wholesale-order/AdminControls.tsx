@@ -30,6 +30,7 @@ export function AdminControls({
             variant="outline" 
             onClick={onUndo}
             disabled={!canUndo}
+            className="border-[#2A4131] text-[#2A4131] hover:bg-[#F2E9D2]"
           >
             <Undo className="mr-2 h-4 w-4" />
             Undo
@@ -37,7 +38,7 @@ export function AdminControls({
           <Button 
             variant="default"
             onClick={onSave}
-            className="bg-green-600 hover:bg-green-700"
+            className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white"
           >
             <Save className="mr-2 h-4 w-4" />
             Save Changes
@@ -45,7 +46,7 @@ export function AdminControls({
           <Button 
             variant="outline"
             onClick={onDiscard}
-            className="text-red-600 hover:text-red-700"
+            className="border-red-600 text-red-600 hover:bg-red-50"
           >
             <X className="mr-2 h-4 w-4" />
             Discard
@@ -53,11 +54,13 @@ export function AdminControls({
         </>
       )}
       <Button 
-        variant="ghost" 
+        variant="outline" 
         onClick={onToggleAdmin}
         className={cn(
-          "transition-all duration-1000",
-          isAdmin && "bg-red-50 text-red-600 border-red-200 border"
+          "transition-all duration-300",
+          isAdmin 
+            ? "border-red-600 text-red-600 hover:bg-red-50"
+            : "border-[#2A4131] text-[#2A4131] hover:bg-[#F2E9D2]"
         )}
       >
         {isAdmin ? "Exit Admin Mode" : "Admin Mode"}

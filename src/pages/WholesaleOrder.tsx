@@ -275,14 +275,14 @@ export default function WholesaleOrder() {
             <div className="flex justify-between mt-4">
               <Button 
                 onClick={addRow} 
-                className="bg-blue-500 hover:bg-blue-600 transition-all duration-300"
+                className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white transition-all duration-300"
               >
                 <Plus className="mr-2 h-5 w-5" />
                 Add Row
               </Button>
               <Button 
                 onClick={handleSubmit}
-                className="bg-green-500 hover:bg-green-600 transition-all duration-300"
+                className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white transition-all duration-300"
                 disabled={totalPallets === 0}
               >
                 Submit Order

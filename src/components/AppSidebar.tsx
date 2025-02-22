@@ -19,7 +19,8 @@ import {
   ClipboardList,
   LayoutDashboard,
   DollarSign,
-  Menu,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -92,7 +93,11 @@ export function AppSidebar({ isCollapsed, onToggleCollapse }: AppSidebarProps) {
           onClick={onToggleCollapse}
           className="hover:bg-[#F2E9D2]/50"
         >
-          <Menu className="h-5 w-5 text-[#2A4131]" />
+          {isCollapsed ? (
+            <ChevronRight className="h-5 w-5 text-[#2A4131]" />
+          ) : (
+            <ChevronLeft className="h-5 w-5 text-[#2A4131]" />
+          )}
         </Button>
       </div>
       <SidebarContent className="mt-16">
@@ -102,9 +107,9 @@ export function AppSidebar({ isCollapsed, onToggleCollapse }: AppSidebarProps) {
         )}>
           {isCollapsed ? (
             <img 
-              src="/lovable-uploads/ac2a865c-fa71-490a-a544-ff3ecd59d4d5.png"
-              alt="Woodbourne Logo"
-              className="w-10 h-10 object-contain mx-auto"
+              src="/lovable-uploads/2928b0a2-c7b1-43a0-8d17-f9230de4d3b5.png"
+              alt="Woodbourne Icon"
+              className="w-12 h-12 object-contain mx-auto"
             />
           ) : (
             <img 
