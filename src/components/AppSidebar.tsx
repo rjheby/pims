@@ -113,6 +113,14 @@ export function AppSidebar({
     }
   };
 
+  const Logo = () => (
+    <img 
+      src="/lovable-uploads/21d56fd9-ffa2-4b0c-9d82-b10f7d03a546.png"
+      alt="Woodbourne Logo"
+      className="h-10 w-auto object-contain"
+    />
+  );
+
   const SidebarComponent = () => (
     <>
       <div className="flex h-[72px] items-center justify-between px-4 border-b border-[#2A4131]/10">
@@ -125,11 +133,7 @@ export function AppSidebar({
           >
             <X className="h-5 w-5 text-[#2A4131]" />
           </Button>
-          <img 
-            src="/lovable-uploads/21d56fd9-ffa2-4b0c-9d82-b10f7d03a546.png"
-            alt="Woodbourne Logo"
-            className="h-10 w-auto object-contain"
-          />
+          <Logo />
         </div>
       </div>
       
@@ -205,19 +209,15 @@ export function AppSidebar({
       <div className="hidden md:block fixed top-0 left-0 right-0 h-[72px] bg-white border-b border-[#2A4131]/10 z-40">
         <div className="flex items-center justify-between h-full px-4 max-w-[95rem] mx-auto">
           <div className="flex items-center gap-4">
-            <img 
-              src="/lovable-uploads/21d56fd9-ffa2-4b0c-9d82-b10f7d03a546.png"
-              alt="Woodbourne Logo"
-              className="h-10 w-auto object-contain"
-            />
+            <Logo />
           </div>
-          <div className="flex items-center gap-4">
+          <nav className="flex items-center gap-4 overflow-x-auto hide-scrollbar">
             {menuItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "flex items-center gap-2 px-3 py-2 text-[15px] transition-colors rounded-md",
+                  "flex items-center gap-2 px-3 py-2 text-[15px] transition-colors rounded-md whitespace-nowrap",
                   location.pathname === item.path 
                     ? "bg-[#2A4131] text-white" 
                     : "text-[#2A4131] hover:bg-[#F2E9D2]/50"
@@ -227,7 +227,7 @@ export function AppSidebar({
                 <span>{item.title}</span>
               </Link>
             ))}
-          </div>
+          </nav>
         </div>
       </div>
     </>
