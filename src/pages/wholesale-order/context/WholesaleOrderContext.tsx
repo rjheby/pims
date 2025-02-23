@@ -2,6 +2,7 @@
 import { createContext, useContext, useState, ReactNode } from "react";
 import { OrderItem, DropdownOptions, initialOptions } from "../types";
 import { useToast } from "@/hooks/use-toast";
+import { useAdmin } from "@/context/AdminContext";
 
 interface WholesaleOrderContextType {
   orderNumber: string;
@@ -35,6 +36,7 @@ const WholesaleOrderContext = createContext<WholesaleOrderContextType | undefine
 
 export function WholesaleOrderProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
+  const { setHasUnsavedChanges: setGlobalUnsavedChanges } = useAdmin();
   const [orderNumber, setOrderNumber] = useState("");
   const [orderDate, setOrderDate] = useState("");
   const [deliveryDate, setDeliveryDate] = useState("");
@@ -72,24 +74,27 @@ export function WholesaleOrderProvider({ children }: { children: ReactNode }) {
   };
 
   const saveChanges = () => {
-    setOptionsHistory([...optionsHistory, options]);
-    setHasUnsavedChanges(false);
-    setIsAdmin(false);
-    toast({
-      title: "Changes saved",
-      description: "Your changes have been saved successfully.",
-    });
+    if (hasUnsavedChanges) {
+      setOptionsHistory([...optionsHistory, options]);
+      setHasUnsavedChanges(false);
+      setGlobalUnsavedChanges(false);
+      toast({
+        title: "Changes saved",
+        description: "Your changes have been saved successfully.",
+      });
+    }
   };
 
   const discardChanges = () => {
-    setOptions(optionsHistory[optionsHistory.length - 1]);
-    setHasUnsavedChanges(false);
-    setIsAdmin(false);
-    setEditingField(null);
-    toast({
-      title: "Changes discarded",
-      description: "Your changes have been discarded.",
-    });
+    if (hasUnsavedChanges) {
+      setOptions(optionsHistory[optionsHistory.length - 1]);
+      setHasUnsavedChanges(false);
+      setGlobalUnsavedChanges(false);
+      toast({
+        title: "Changes discarded",
+        description: "Your changes have been discarded.",
+      });
+    }
   };
 
   const undoLastChange = () => {
@@ -97,6 +102,8 @@ export function WholesaleOrderProvider({ children }: { children: ReactNode }) {
       const previousOptions = optionsHistory[optionsHistory.length - 2];
       setOptions(previousOptions);
       setOptionsHistory(optionsHistory.slice(0, -1));
+      setHasUnsavedChanges(true);
+      setGlobalUnsavedChanges(true);
       toast({
         title: "Change undone",
         description: "The last change has been undone.",

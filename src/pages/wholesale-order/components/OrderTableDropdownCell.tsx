@@ -78,6 +78,14 @@ export function OrderTableDropdownCell({
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+      onKeyPress(e, field);
+    }
+  };
+
   return (
     <div className="flex items-center gap-2">
       <Select 
@@ -143,9 +151,10 @@ export function OrderTableDropdownCell({
               <Input
                 value={newOption}
                 onChange={(e) => onNewOptionChange(e.target.value)}
-                onKeyPress={(e) => onKeyPress(e, field)}
+                onKeyDown={handleKeyDown}
                 placeholder="Type and press Enter to add"
                 className="w-full"
+                onClick={(e) => e.stopPropagation()}
               />
             </div>
           )}
