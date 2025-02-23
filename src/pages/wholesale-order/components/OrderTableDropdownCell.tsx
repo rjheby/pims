@@ -52,6 +52,7 @@ export function OrderTableDropdownCell({
 
   const handleSaveEdit = (oldValue: string) => {
     if (editedValue && editedValue !== oldValue) {
+      // Update all items using this option
       onUpdateItem(item.id, field as keyof OrderItem, editedValue);
     }
     setEditingOption(null);
@@ -75,46 +76,51 @@ export function OrderTableDropdownCell({
             <span className="text-sm font-medium">{field.charAt(0).toUpperCase() + field.slice(1)}</span>
           </div>
           {options[field].map((option) => (
-            <div key={option} className="flex items-center justify-between">
-              <SelectItem value={option}>
-                {editingOption === option ? (
-                  <Input
-                    value={editedValue}
-                    onChange={(e) => setEditedValue(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        handleSaveEdit(option);
-                      }
-                    }}
-                    className="w-32"
-                    autoFocus
-                  />
-                ) : (
-                  option
-                )}
-              </SelectItem>
-              {isAdmin && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuItem onClick={() => handleStartEdit(option)}>
-                      <Edit className="h-4 w-4 mr-2" />
-                      Rename
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem 
-                      onClick={() => handleDeleteOption(option)}
-                      className="text-red-600"
-                    >
-                      <Trash className="h-4 w-4 mr-2" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+            <div key={option} className="flex items-center justify-between px-2">
+              {editingOption === option ? (
+                <Input
+                  value={editedValue}
+                  onChange={(e) => setEditedValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSaveEdit(option);
+                    } else if (e.key === 'Escape') {
+                      setEditingOption(null);
+                    }
+                  }}
+                  onBlur={() => handleSaveEdit(option)}
+                  className="w-32 my-1"
+                  autoFocus
+                />
+              ) : (
+                <>
+                  <SelectItem value={option}>
+                    {option}
+                  </SelectItem>
+                  {isAdmin && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem onClick={() => handleStartEdit(option)}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Rename
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          onClick={() => handleDeleteOption(option)}
+                          className="text-red-600"
+                        >
+                          <Trash className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </>
               )}
             </div>
           ))}
