@@ -4,7 +4,7 @@ import { AdminProvider } from "./context/AdminContext";
 import AppLayout from "./components/layouts/AppLayout";
 import "./App.css";
 
-import { WholesaleOrder } from "./pages/WholesaleOrder";
+import WholesaleOrder from "./pages/WholesaleOrder";
 
 function App() {
   return (

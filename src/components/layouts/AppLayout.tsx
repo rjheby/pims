@@ -5,7 +5,11 @@ import { cn } from "@/lib/utils";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { useAdmin } from "@/context/AdminContext";
 
-export default function AppLayout() {
+interface AppLayoutProps {
+  children: React.ReactNode;
+}
+
+export default function AppLayout({ children }: AppLayoutProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { isAdmin } = useAdmin();
@@ -28,7 +32,7 @@ export default function AppLayout() {
           isCollapsed ? "md:ml-16" : "md:ml-64"
         )}>
           <div className="py-4">
-            {/* Routes will be rendered here */}
+            {children}
           </div>
         </main>
       </div>
