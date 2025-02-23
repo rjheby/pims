@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { UserProvider } from "@/context/UserContext";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import AppLayout from "./components/layouts/AppLayout";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -24,23 +25,25 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <UserProvider>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<AppLayout><Index /></AppLayout>} />
-            <Route path="/dashboard" element={<AppLayout><Dashboard /></AppLayout>} />
-            <Route path="/dispatch" element={<AppLayout><DispatchDelivery /></AppLayout>} />
-            <Route path="/driver-payments" element={<AppLayout><DriverPayments /></AppLayout>} />
-            <Route path="/client-order" element={<AppLayout><ClientOrder /></AppLayout>} />
-            <Route path="/wholesale-order" element={<AppLayout><WholesaleOrder /></AppLayout>} />
-            <Route path="/customers" element={<AppLayout><Customers /></AppLayout>} />
-            <Route path="/inventory" element={<AppLayout><Inventory /></AppLayout>} />
-            <Route path="/team-settings" element={<AppLayout><TeamSettings /></AppLayout>} />
-            <Route path="/production" element={<AppLayout><Production /></AppLayout>} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+        <SidebarProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<AppLayout><Index /></AppLayout>} />
+              <Route path="/dashboard" element={<AppLayout><Dashboard /></AppLayout>} />
+              <Route path="/dispatch" element={<AppLayout><DispatchDelivery /></AppLayout>} />
+              <Route path="/driver-payments" element={<AppLayout><DriverPayments /></AppLayout>} />
+              <Route path="/client-order" element={<AppLayout><ClientOrder /></AppLayout>} />
+              <Route path="/wholesale-order" element={<AppLayout><WholesaleOrder /></AppLayout>} />
+              <Route path="/customers" element={<AppLayout><Customers /></AppLayout>} />
+              <Route path="/inventory" element={<AppLayout><Inventory /></AppLayout>} />
+              <Route path="/team-settings" element={<AppLayout><TeamSettings /></AppLayout>} />
+              <Route path="/production" element={<AppLayout><Production /></AppLayout>} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </SidebarProvider>
       </TooltipProvider>
     </UserProvider>
   </QueryClientProvider>
