@@ -9,7 +9,6 @@ import { WholesaleOrderProvider, useWholesaleOrder } from "./wholesale-order/con
 import { useWindowEvents } from "./wholesale-order/hooks/useWindowEvents";
 import { useToast } from "@/hooks/use-toast";
 import { OrderItem } from "./wholesale-order/types";
-import { useState } from "react";
 
 function WholesaleOrderContent() {
   const { toast } = useToast();
@@ -38,9 +37,6 @@ function WholesaleOrderContent() {
   } = useWholesaleOrder();
 
   useWindowEvents();
-
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleAdminToggle = () => {
     if (isAdmin && hasUnsavedChanges) {
@@ -156,9 +152,7 @@ function WholesaleOrderContent() {
 export default function WholesaleOrder() {
   return (
     <WholesaleOrderProvider>
-      <AppLayout>
-        <WholesaleOrderContent />
-      </AppLayout>
+      <WholesaleOrderContent />
     </WholesaleOrderProvider>
   );
 }
