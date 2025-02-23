@@ -20,40 +20,12 @@ export function OrderTableActions({
 }: OrderTableActionsProps) {
   const { items, setItems } = useWholesaleOrder();
   
-  const handleAddPallet = () => {
-    const newPalletCount = (item.pallets || 0) + 1;
-    
-    // Calculate total pallets across all items
-    const totalPallets = items.reduce((sum, item) => sum + (item.pallets || 0), 0);
-
-    if (totalPallets + 1 > 24) {
-      toast({
-        title: "Warning",
-        description: "Adding more pallets would exceed the 24-pallet limit for a tractor trailer.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    onUpdateItem(item.id, "pallets", newPalletCount);
-  };
-
   const handleAddRow = () => {
-    const totalPallets = items.reduce((sum, item) => sum + (item.pallets || 0), 0);
-
-    if (totalPallets + 0 > 24) {
-      toast({
-        title: "Warning",
-        description: "Adding more pallets would exceed the 24-pallet limit for a tractor trailer.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+    const maxId = Math.max(...items.map(item => item.id), 0);
     setItems([
       ...items,
       {
-        id: items.length + 1,
+        id: maxId + 1,
         species: "",
         length: "",
         bundleType: "",
