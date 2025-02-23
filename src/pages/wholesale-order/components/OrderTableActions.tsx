@@ -1,7 +1,6 @@
 
 import { Button } from "@/components/ui/button";
 import { Copy, Plus, X } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
 import { OrderItem } from "../types";
 import { useWholesaleOrder } from "../context/WholesaleOrderContext";
 
@@ -20,7 +19,7 @@ export function OrderTableActions({
 }: OrderTableActionsProps) {
   const { items, setItems } = useWholesaleOrder();
   
-  const handleAddRow = () => {
+  const handleAddItem = () => {
     const maxId = Math.max(...items.map(item => item.id), 0);
     setItems([
       ...items,
@@ -57,8 +56,9 @@ export function OrderTableActions({
       <Button
         variant="ghost"
         size="sm"
-        onClick={handleAddRow}
+        onClick={handleAddItem}
         className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white rounded-full w-8 h-8 p-0"
+        aria-label="Add Item"
       >
         <Plus className="h-4 w-4" />
       </Button>

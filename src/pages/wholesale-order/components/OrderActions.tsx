@@ -12,7 +12,7 @@ export function OrderActions() {
   
   const totalPallets = items.reduce((sum, item) => sum + (item.pallets || 0), 0);
 
-  const addRow = () => {
+  const addItem = () => {
     if (totalPallets + 0 > 24) {
       toast({
         title: "Warning",
@@ -67,11 +67,11 @@ export function OrderActions() {
   return (
     <div className="flex flex-col sm:flex-row justify-between gap-4 mt-4">
       <Button 
-        onClick={addRow} 
+        onClick={addItem} 
         className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white transition-all duration-300 w-full sm:w-auto"
       >
         <Plus className="mr-2 h-5 w-5" />
-        Add Row
+        Add Item
       </Button>
       <Button 
         onClick={handleSubmit}
