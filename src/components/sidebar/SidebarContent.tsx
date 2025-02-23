@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
@@ -15,7 +14,7 @@ interface SidebarContentProps extends HTMLAttributes<HTMLDivElement> {
   onMobileMenuToggle: () => void;
 }
 
-export function SidebarContent({ onMobileMenuToggle, className, ...props }: SidebarContentProps) {
+export function SidebarContent({ onMobileMenuToggle, ...props }: SidebarContentProps) {
   const location = useLocation();
 
   const handleMenuItemClick = () => {
@@ -25,7 +24,7 @@ export function SidebarContent({ onMobileMenuToggle, className, ...props }: Side
   };
 
   return (
-    <div>
+    <div {...props}>
       <SidebarContentBase>
         <SidebarGroup>
           <SidebarGroupContent>
