@@ -18,7 +18,8 @@ export default function AppLayout({
     <SidebarProvider defaultOpen={!isCollapsed}>
       <div className={cn(
         "min-h-screen flex w-full transition-colors duration-300",
-        isAdminMode ? "bg-[#FEE2E2]/20" : "bg-[#F2E9D2]/10"
+        isAdminMode ? "bg-[#FEE2E2]/20" : "bg-[#F2E9D2]/10",
+        "[&_[data-sidebar=sidebar]~div]:hidden" // This hides the spacing div
       )}>
         <AppSidebar 
           isCollapsed={isCollapsed}
