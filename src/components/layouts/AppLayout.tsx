@@ -28,10 +28,12 @@ export default function AppLayout({
         />
         <main className={cn(
           "flex-1 transition-all duration-300 pb-20 md:pb-8",
-          "px-4 py-4 md:px-8 md:py-6",
-          isCollapsed ? "md:ml-16" : "md:ml-64"
+          "px-4 md:px-6",
+          isCollapsed ? "md:ml-16" : "md:ml-[16rem]"
         )}>
-          {children}
+          <div className="py-4">
+            {children}
+          </div>
         </main>
       </div>
     </SidebarProvider>
