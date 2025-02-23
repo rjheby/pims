@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -66,8 +65,10 @@ export function DesktopNavigation({ className, ...props }: DesktopNavigationProp
                     <ChevronDown className="h-4 w-4 opacity-50" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <div className="bg-white shadow-md rounded-md w-full p-1">
+
+                {/* 🛠️ FIXED: Wrap DropdownMenuContent in a div and move className there */}
+                <div className="bg-white shadow-md rounded-md w-full p-1">
+                  <DropdownMenuContent>
                     {group.items.map((item) => (
                       <Link
                         key={item.path}
@@ -84,8 +85,9 @@ export function DesktopNavigation({ className, ...props }: DesktopNavigationProp
                         <span>{item.title}</span>
                       </Link>
                     ))}
-                  </div>
-                </DropdownMenuContent>
+                  </DropdownMenuContent>
+                </div>
+
               </DropdownMenu>
             ))}
           </nav>
