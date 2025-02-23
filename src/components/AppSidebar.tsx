@@ -229,7 +229,7 @@ export function AppSidebar({
       {/* Desktop sidebar */}
       <Sidebar className={cn(
         "border-r border-[#2A4131]/10 fixed left-0 top-0 h-screen transition-all duration-300 hidden md:block bg-white",
-        isCollapsed ? "w-0 overflow-hidden" : "w-48"
+        isCollapsed ? "w-16" : "w-48"
       )}>
         <SidebarComponent />
       </Sidebar>
