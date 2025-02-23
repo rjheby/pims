@@ -40,9 +40,7 @@ export function OrderTable({
           <TableHead className="w-1/4">Name</TableHead>
           {Object.keys(options).map((field) => (
             <TableHead key={field}>
-              <div className="flex items-center justify-between">
-                <span>{field.charAt(0).toUpperCase() + field.slice(1)}</span>
-              </div>
+              {field.charAt(0).toUpperCase() + field.slice(1)}
             </TableHead>
           ))}
           <TableHead>Actions</TableHead>
