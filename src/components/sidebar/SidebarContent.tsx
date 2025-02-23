@@ -6,7 +6,6 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { menuGroups } from "./constants";
@@ -26,7 +25,7 @@ export function SidebarContent({ onMobileMenuToggle, className, ...props }: Side
   };
 
   return (
-    <SidebarContentBase {...props}>
+    <SidebarContentBase className={className} {...props}>
       <SidebarGroup>
         <SidebarGroupContent>
           <SidebarMenu>
@@ -36,23 +35,21 @@ export function SidebarContent({ onMobileMenuToggle, className, ...props }: Side
                   {group.title}
                 </div>
                 {group.items.map((item) => (
-                  <div key={item.path}>
-                    <div className="px-2">
-                      <Link
-                        to={item.path}
-                        onClick={handleMenuItemClick}
-                        className={cn(
-                          "flex items-center gap-2 px-3 py-2 text-[15px] rounded-md",
-                          "transition-all duration-200 ease-in-out",
-                          location.pathname === item.path 
-                            ? "bg-[#2A4131] text-white font-medium" 
-                            : "text-[#2A4131] hover:bg-[#F2E9D2]/50"
-                        )}
-                      >
-                        <item.icon className="h-5 w-5" />
-                        <span>{item.title}</span>
-                      </Link>
-                    </div>
+                  <div key={item.path} className="px-2">
+                    <Link
+                      to={item.path}
+                      onClick={handleMenuItemClick}
+                      className={cn(
+                        "flex items-center gap-2 px-3 py-2 text-[15px] rounded-md",
+                        "transition-all duration-200 ease-in-out",
+                        location.pathname === item.path 
+                          ? "bg-[#2A4131] text-white font-medium" 
+                          : "text-[#2A4131] hover:bg-[#F2E9D2]/50"
+                      )}
+                    >
+                      <item.icon className="h-5 w-5" />
+                      <span>{item.title}</span>
+                    </Link>
                   </div>
                 ))}
               </SidebarMenuItem>

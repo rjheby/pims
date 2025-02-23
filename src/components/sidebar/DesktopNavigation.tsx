@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown, Home, Truck } from "lucide-react";
@@ -69,11 +70,11 @@ export function DesktopNavigation({ className, ...props }: DesktopNavigationProp
                 <DropdownMenuContent align="start">
                   <div className="w-[180px] p-1">
                     {group.items.map((item) => (
-                      <div key={item.path}>
+                      <DropdownMenuItem key={item.path} asChild>
                         <Link
                           to={item.path}
                           className={cn(
-                            "flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer w-full",
+                            "flex w-full items-center gap-2 rounded-md",
                             "transition-all duration-200 ease-in-out",
                             location.pathname === item.path
                               ? "bg-[#2A4131] text-white"
@@ -83,7 +84,7 @@ export function DesktopNavigation({ className, ...props }: DesktopNavigationProp
                           <item.icon className="h-4 w-4" />
                           <span>{item.title}</span>
                         </Link>
-                      </div>
+                      </DropdownMenuItem>
                     ))}
                   </div>
                 </DropdownMenuContent>
