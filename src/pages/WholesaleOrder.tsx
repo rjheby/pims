@@ -94,7 +94,7 @@ function WholesaleOrderContent() {
 
   return (
     <AppLayout isAdminMode={isAdmin}>
-      <div className="container py-4 md:py-6">
+      <div className="py-4 md:py-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
           <h1 className="text-2xl md:text-3xl font-bold">
             {orderNumber ? `New Wholesale Order ${orderNumber}` : 'New Wholesale Order'}
@@ -157,3 +157,4 @@ export default function WholesaleOrder() {
     </WholesaleOrderProvider>
   );
 }
+
