@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Pencil } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -57,7 +57,7 @@ export function OrderTable({
                     onClick={() => onEditField(field as keyof DropdownOptions)}
                     className="text-xs text-[#2A4131] hover:bg-[#F2E9D2]/50"
                   >
-                    <Plus className="h-4 w-4" />
+                    <Pencil className="h-4 w-4" />
                   </Button>
                 )}
               </div>
