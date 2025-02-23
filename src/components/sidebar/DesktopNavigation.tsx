@@ -66,27 +66,25 @@ export function DesktopNavigation({ className, ...props }: DesktopNavigationProp
                   </Button>
                 </DropdownMenuTrigger>
 
-                {/* 🛠️ FIXED: Wrap DropdownMenuContent in a div and move className there */}
-                <div className="bg-white shadow-md rounded-md w-full p-1">
-                  <DropdownMenuContent>
-                    {group.items.map((item) => (
-                      <Link
-                        key={item.path}
-                        to={item.path}
-                        className={cn(
-                          "flex items-center gap-2 w-full px-3 py-2 rounded-md",
-                          "transition-all duration-200 ease-in-out",
-                          location.pathname === item.path
-                            ? "bg-[#2A4131] text-white"
-                            : "text-[#2A4131] hover:bg-[#F2E9D2]/50"
-                        )}
-                      >
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.title}</span>
-                      </Link>
-                    ))}
-                  </DropdownMenuContent>
-                </div>
+                {/* 🛠️ FIX: Removed the wrapper div and applied styling directly to DropdownMenuContent items */}
+                <DropdownMenuContent>
+                  {group.items.map((item) => (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      className={cn(
+                        "flex items-center gap-2 w-full px-3 py-2 rounded-md",
+                        "transition-all duration-200 ease-in-out",
+                        location.pathname === item.path
+                          ? "bg-[#2A4131] text-white"
+                          : "text-[#2A4131] hover:bg-[#F2E9D2]/50"
+                      )}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </Link>
+                  ))}
+                </DropdownMenuContent>
 
               </DropdownMenu>
             ))}
