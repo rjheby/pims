@@ -1,5 +1,5 @@
 
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "./UserContext";
 
@@ -9,7 +9,12 @@ interface AdminContextType {
   enterAdminMode: () => void;
   exitAdminMode: () => void;
   setHasUnsavedChanges: (value: boolean) => void;
-  handleAdminToggle: (onSave?: () => void, onDiscard?: () => void) => void;
+  handleAdminToggle: (options?: {
+    onSave?: () => void;
+    onDiscard?: () => void;
+    confirmMessage?: string;
+  }) => void;
+  markContentChanged: () => void;
 }
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
@@ -20,7 +25,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const { hasPermission } = useUser();
   const { toast } = useToast();
 
-  const enterAdminMode = () => {
+  const enterAdminMode = useCallback(() => {
     if (!hasPermission("admin")) {
       toast({
         title: "Access Denied",
@@ -34,30 +39,44 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       title: "Admin Mode",
       description: "You are now in admin mode.",
     });
-  };
+  }, [hasPermission, toast]);
 
-  const exitAdminMode = () => {
+  const exitAdminMode = useCallback(() => {
     setIsAdmin(false);
     setHasUnsavedChanges(false);
     toast({
       title: "Admin Mode",
       description: "You have exited admin mode.",
     });
-  };
+  }, [toast]);
 
-  const handleAdminToggle = (onSave?: () => void, onDiscard?: () => void) => {
-    if (isAdmin && hasUnsavedChanges) {
-      if (window.confirm('You have unsaved changes. Do you want to save them before exiting admin mode?')) {
-        onSave?.();
-        exitAdminMode();
-      } else {
-        onDiscard?.();
-        exitAdminMode();
-      }
-    } else {
-      isAdmin ? exitAdminMode() : enterAdminMode();
+  const markContentChanged = useCallback(() => {
+    if (isAdmin) {
+      setHasUnsavedChanges(true);
     }
-  };
+  }, [isAdmin]);
+
+  const handleAdminToggle = useCallback(
+    (options?: {
+      onSave?: () => void;
+      onDiscard?: () => void;
+      confirmMessage?: string;
+    }) => {
+      if (isAdmin && hasUnsavedChanges) {
+        const message = options?.confirmMessage || 'You have unsaved changes. Do you want to save them before exiting admin mode?';
+        if (window.confirm(message)) {
+          options?.onSave?.();
+          exitAdminMode();
+        } else {
+          options?.onDiscard?.();
+          exitAdminMode();
+        }
+      } else {
+        isAdmin ? exitAdminMode() : enterAdminMode();
+      }
+    },
+    [isAdmin, hasUnsavedChanges, exitAdminMode, enterAdminMode]
+  );
 
   return (
     <AdminContext.Provider 
@@ -67,7 +86,8 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         enterAdminMode, 
         exitAdminMode, 
         setHasUnsavedChanges,
-        handleAdminToggle 
+        handleAdminToggle,
+        markContentChanged
       }}
     >
       {children}
