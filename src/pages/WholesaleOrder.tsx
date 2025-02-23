@@ -90,9 +90,9 @@ function WholesaleOrderContent() {
   };
 
   return (
-    <div className="relative min-h-screen">
-      <div className="space-y-6 px-4 md:px-6">
-        <Card>
+    <div className="flex-1 min-h-screen overflow-hidden">
+      <div className="max-w-[95rem] mx-auto p-2.5">
+        <Card className="shadow-sm">
           <CardHeader>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
@@ -114,7 +114,7 @@ function WholesaleOrderContent() {
             </div>
           </CardHeader>
           <CardContent>
-            <div id="order-content" className="space-y-6">
+            <div className="space-y-6">
               <OrderDetails
                 orderNumber={orderNumber}
                 orderDate={orderDate}
@@ -123,22 +123,24 @@ function WholesaleOrderContent() {
                 onDeliveryDateChange={(e) => setDeliveryDate(e.target.value)}
               />
 
-              <div className="overflow-x-auto">
-                <OrderTable
-                  items={items}
-                  options={options}
-                  isAdmin={isAdmin}
-                  editingField={editingField}
-                  newOption={newOption}
-                  onNewOptionChange={setNewOption}
-                  onKeyPress={handleKeyPress}
-                  onEditField={setEditingField}
-                  onUpdateItem={updateItem}
-                  onRemoveRow={removeRow}
-                  onCopyRow={copyRow}
-                  generateItemName={generateItemName}
-                  onUpdateOptions={handleUpdateOptions}
-                />
+              <div className="w-full overflow-x-auto md:overflow-x-visible">
+                <div className="min-w-full inline-block align-middle">
+                  <OrderTable
+                    items={items}
+                    options={options}
+                    isAdmin={isAdmin}
+                    editingField={editingField}
+                    newOption={newOption}
+                    onNewOptionChange={setNewOption}
+                    onKeyPress={handleKeyPress}
+                    onEditField={setEditingField}
+                    onUpdateItem={updateItem}
+                    onRemoveRow={removeRow}
+                    onCopyRow={copyRow}
+                    generateItemName={generateItemName}
+                    onUpdateOptions={handleUpdateOptions}
+                  />
+                </div>
               </div>
 
               <OrderActions />
