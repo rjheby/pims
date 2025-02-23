@@ -34,6 +34,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const menuGroups = {
+  dispatch: {
+    title: "Dispatch",
+    items: [
+      {
+        title: "Dispatch",
+        icon: Truck,
+        path: "/dispatch",
+      },
+    ],
+  },
   reports: {
     title: "Reports",
     items: [
@@ -54,14 +64,9 @@ const menuGroups = {
       },
     ],
   },
-  operations: {
-    title: "Operations",
+  orders: {
+    title: "Orders",
     items: [
-      {
-        title: "Dispatch",
-        icon: Truck,
-        path: "/dispatch",
-      },
       {
         title: "Client Orders",
         icon: FileText,
