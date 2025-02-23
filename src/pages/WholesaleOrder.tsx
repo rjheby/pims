@@ -8,14 +8,13 @@ import { WholesaleOrderProvider, useWholesaleOrder } from "./wholesale-order/con
 import { useWindowEvents } from "./wholesale-order/hooks/useWindowEvents";
 import { useToast } from "@/hooks/use-toast";
 import { OrderItem, DropdownOptions } from "./wholesale-order/types";
-import { cn } from "@/lib/utils";
+import { useAdmin } from "@/context/AdminContext";
 
 function WholesaleOrderContent() {
   const { toast } = useToast();
+  const { isAdmin, hasUnsavedChanges, handleAdminToggle, setHasUnsavedChanges } = useAdmin();
   const { 
     orderNumber, 
-    isAdmin, 
-    hasUnsavedChanges,
     items,
     options,
     editingField,
@@ -30,25 +29,11 @@ function WholesaleOrderContent() {
     setDeliveryDate,
     setEditingField,
     optionsHistory,
-    setIsAdmin,
     setOptions,
-    setHasUnsavedChanges,
     setItems
   } = useWholesaleOrder();
 
   useWindowEvents();
-
-  const handleAdminToggle = () => {
-    if (isAdmin && hasUnsavedChanges) {
-      if (window.confirm('You have unsaved changes. Do you want to save them before exiting admin mode?')) {
-        saveChanges();
-      } else {
-        discardChanges();
-      }
-    } else {
-      setIsAdmin(!isAdmin);
-    }
-  };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>, field: keyof typeof options) => {
     if (e.key === 'Enter' && newOption.trim()) {
@@ -106,22 +91,6 @@ function WholesaleOrderContent() {
 
   return (
     <div className="relative min-h-screen">
-      {/* Admin Mode Overlay */}
-      <div
-        className={cn(
-          "fixed inset-0 bg-red-500 bg-opacity-10 transition-opacity duration-500 pointer-events-none",
-          isAdmin ? "opacity-100" : "opacity-0"
-        )}
-      />
-
-      {/* Animated Admin Mode Indicator */}
-      {isAdmin && (
-        <div className="fixed top-2 right-4 z-50 animate-pulse text-sm px-4 py-2 bg-red-600 text-white rounded-lg shadow-lg">
-          Admin Mode Active
-        </div>
-      )}
-
-      {/* Main Content */}
       <div className="space-y-6 px-4 md:px-6">
         <Card>
           <CardHeader>
@@ -136,7 +105,7 @@ function WholesaleOrderContent() {
                 onSave={saveChanges}
                 onDiscard={discardChanges}
                 onUndo={undoLastChange}
-                onToggleAdmin={handleAdminToggle}
+                onToggleAdmin={() => handleAdminToggle(saveChanges, discardChanges)}
                 canUndo={optionsHistory.length > 1}
               />
             </div>
