@@ -15,7 +15,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
         />
         <main className={cn(
-          "flex-1 p-6 transition-all duration-300",
+          "flex-1 p-4 transition-all duration-300",
           isCollapsed ? "ml-16" : "ml-64"
         )}>
           {children}

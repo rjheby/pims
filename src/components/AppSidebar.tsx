@@ -85,7 +85,7 @@ export function AppSidebar({ isCollapsed, onToggleCollapse }: AppSidebarProps) {
       "border-r border-[#2A4131]/10 fixed left-0 top-0 h-screen transition-all duration-300",
       isCollapsed ? "w-16" : "w-64"
     )}>
-      <div className="flex h-16 items-center border-b border-[#2A4131]/10">
+      <div className="flex h-20 items-center border-b border-[#2A4131]/10">
         <Button
           variant="ghost"
           size="sm"
@@ -99,7 +99,7 @@ export function AppSidebar({ isCollapsed, onToggleCollapse }: AppSidebarProps) {
             <img 
               src="/lovable-uploads/ac2a865c-fa71-490a-a544-ff3ecd59d4d5.png"
               alt="Woodbourne Logo"
-              className="h-8 w-auto"
+              className="h-12 w-auto"
             />
           </div>
         )}

@@ -224,9 +224,9 @@ export default function WholesaleOrder() {
   const totalPallets = items.reduce((sum, item) => sum + (item.pallets || 0), 0);
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Wholesale Order Form</h1>
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <h1 className="text-2xl md:text-3xl font-bold">Wholesale Order Form</h1>
         <AdminControls 
           isAdmin={isAdmin}
           hasUnsavedChanges={hasUnsavedChanges}
@@ -245,7 +245,7 @@ export default function WholesaleOrder() {
         <CardHeader>
           <CardTitle>New Wholesale Order</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4 md:space-y-6">
           <div id="order-content">
             <OrderDetails 
               orderNumber={orderNumber}
@@ -255,7 +255,7 @@ export default function WholesaleOrder() {
               onDeliveryDateChange={(e) => setDeliveryDate(e.target.value)}
             />
 
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto mt-4">
               <OrderTable 
                 items={items}
                 options={options}
@@ -272,17 +272,17 @@ export default function WholesaleOrder() {
               />
             </div>
 
-            <div className="flex justify-between mt-4">
+            <div className="flex flex-col sm:flex-row justify-between gap-4 mt-4">
               <Button 
                 onClick={addRow} 
-                className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white transition-all duration-300"
+                className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white transition-all duration-300 w-full sm:w-auto"
               >
                 <Plus className="mr-2 h-5 w-5" />
                 Add Row
               </Button>
               <Button 
                 onClick={handleSubmit}
-                className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white transition-all duration-300"
+                className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white transition-all duration-300 w-full sm:w-auto"
                 disabled={totalPallets === 0}
               >
                 Submit Order
@@ -291,13 +291,6 @@ export default function WholesaleOrder() {
           </div>
         </CardContent>
       </Card>
-
-      <div className={cn(
-        "fixed inset-0 pointer-events-none transition-all duration-1000",
-        isAdmin 
-          ? "bg-red-500/5" 
-          : "bg-transparent"
-      )} />
     </div>
   );
 }
