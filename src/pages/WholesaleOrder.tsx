@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import AppLayout from "@/components/layouts/AppLayout";
 import { OrderDetails } from "./wholesale-order/OrderDetails";
@@ -95,17 +94,15 @@ function WholesaleOrderContent() {
   return (
     <AppLayout isAdminMode={isAdmin}>
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold">Wholesale Orders</h1>
-        
         <Card>
           <CardHeader>
-            <CardTitle>New Wholesale Order {orderNumber}</CardTitle>
-            <CardDescription>
-              Create and manage wholesale orders
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col md:flex-row justify-end mb-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <CardTitle>New Wholesale Order {orderNumber}</CardTitle>
+                <CardDescription>
+                  Create and manage wholesale orders
+                </CardDescription>
+              </div>
               <AdminControls 
                 isAdmin={isAdmin}
                 hasUnsavedChanges={hasUnsavedChanges}
@@ -116,7 +113,8 @@ function WholesaleOrderContent() {
                 canUndo={optionsHistory.length > 1}
               />
             </div>
-
+          </CardHeader>
+          <CardContent>
             <div id="order-content" className="space-y-6">
               <OrderDetails 
                 orderNumber={orderNumber}
