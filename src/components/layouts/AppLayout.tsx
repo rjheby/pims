@@ -38,11 +38,17 @@ export default function AppLayout({
           isMobileMenuOpen={isMobileMenuOpen}
           onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         />
-        <main className={cn(
-          "flex-1 transition-all duration-300",
-          "px-2 md:px-3 pb-20 md:pb-8",
-          isCollapsed ? "md:ml-[4rem]" : "md:ml-[12rem]"
-        )}>
+        <main 
+          style={{
+            '--sidebar-width': isCollapsed ? '4rem' : '12rem'
+          } as React.CSSProperties}
+          className={cn(
+            "flex-1 transition-all duration-300",
+            "px-2 md:px-3 pb-20 md:pb-8",
+            "md:ml-[var(--sidebar-width)]",
+            "w-[calc(100%-var(--sidebar-width))]"
+          )}
+        >
           <div className="py-4">
             {children}
           </div>

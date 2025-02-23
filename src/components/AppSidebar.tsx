@@ -227,10 +227,15 @@ export function AppSidebar({
       </Sheet>
 
       {/* Desktop sidebar */}
-      <Sidebar className={cn(
-        "border-r border-[#2A4131]/10 fixed left-0 top-0 h-screen transition-all duration-300 hidden md:block bg-white",
-        isCollapsed ? "w-[4rem]" : "w-[12rem]"
-      )}>
+      <Sidebar 
+        style={{
+          '--sidebar-width': isCollapsed ? '4rem' : '12rem'
+        } as React.CSSProperties}
+        className={cn(
+          "border-r border-[#2A4131]/10 fixed left-0 top-0 h-screen transition-all duration-300 hidden md:block bg-white",
+          "w-[var(--sidebar-width)]"
+        )}
+      >
         <SidebarComponent />
       </Sidebar>
     </>
