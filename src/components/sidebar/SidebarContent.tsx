@@ -31,13 +31,13 @@ export function SidebarContent({ onMobileMenuToggle, ...props }: SidebarContentP
           <SidebarGroupContent>
             <SidebarMenu>
               {Object.values(menuGroups).map((group) => (
-                <SidebarMenuItem key={group.title}>
+                <div key={group.title}>
                   <div className="px-3 py-2 text-sm font-medium text-[#2A4131]/60">
                     {group.title}
                   </div>
                   {group.items.map((item) => (
                     <div key={item.path}>
-                      <div className="px-2">
+                      <SidebarMenuItem>
                         <Link
                           to={item.path}
                           onClick={handleMenuItemClick}
@@ -52,10 +52,10 @@ export function SidebarContent({ onMobileMenuToggle, ...props }: SidebarContentP
                           <item.icon className="h-5 w-5" />
                           <span>{item.title}</span>
                         </Link>
-                      </div>
+                      </SidebarMenuItem>
                     </div>
                   ))}
-                </SidebarMenuItem>
+                </div>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
