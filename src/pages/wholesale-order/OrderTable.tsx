@@ -22,9 +22,10 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Minus, Copy, MoreHorizontal, Plus, Trash, Edit, Check, X } from "lucide-react";
+import { Copy, MoreHorizontal, Plus, Trash, Edit, X } from "lucide-react";
 import { OrderItem, DropdownOptions } from "./types";
 import { KeyboardEvent, useState } from "react";
+import { toast } from "@/hooks/use-toast";
 
 interface OrderTableProps {
   items: OrderItem[];
@@ -70,7 +71,6 @@ export function OrderTable({
         [field]: options[field].map(opt => opt === oldValue ? editedValue : opt)
       };
       setEditingOption(null);
-      // Update all items using this option
       items.forEach(item => {
         if (item[field as keyof OrderItem] === oldValue) {
           onUpdateItem(item.id, field as keyof OrderItem, editedValue);
@@ -85,7 +85,6 @@ export function OrderTable({
       ...options,
       [field]: options[field].filter(opt => opt !== value)
     };
-    // Update all items using this option to empty string
     items.forEach(item => {
       if (item[field as keyof OrderItem] === value) {
         onUpdateItem(item.id, field as keyof OrderItem, "");

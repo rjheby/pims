@@ -2,7 +2,7 @@
 import { OrderItem } from "./types";
 import { toast } from "@/hooks/use-toast";
 
-export const addRow = () => {
+export const addRow = (items: OrderItem[]) => {
   const totalPallets = items.reduce((sum, item) => sum + (item.pallets || 0), 0);
   const newPallets = 0; // Default for new row
 
@@ -12,7 +12,7 @@ export const addRow = () => {
       description: "Adding more pallets would exceed the 24-pallet limit for a tractor trailer.",
       variant: "destructive",
     });
-    return;
+    return null;
   }
 
   return {
