@@ -12,7 +12,7 @@ import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
 import DispatchDelivery from "./pages/DispatchDelivery";
 import ClientOrder from "./pages/ClientOrder";
-import WholesaleOrder from "./pages/WholesaleOrder";
+import { WholesaleOrder } from "./pages/WholesaleOrder";
 import Customers from "./pages/Customers";
 import Inventory from "./pages/Inventory";
 import TeamSettings from "./pages/TeamSettings";
