@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 export default function AppLayout({ 
   children,
-  isAdminMode = false, // Add this prop
+  isAdminMode = false,
 }: { 
   children: React.ReactNode;
   isAdminMode?: boolean;
@@ -27,9 +27,9 @@ export default function AppLayout({
           onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         />
         <main className={cn(
-          "flex-1 transition-all duration-300 pb-20 md:pb-4 overflow-x-hidden",
-          "p-2 sm:p-3",
-          isCollapsed ? "md:ml-16" : "md:ml-[16.5rem]" // Adjusted for tighter spacing
+          "flex-1 transition-all duration-300 pb-20 md:pb-8",
+          "px-4 py-4 md:px-8 md:py-6",
+          isCollapsed ? "md:ml-16" : "md:ml-64"
         )}>
           {children}
         </main>
