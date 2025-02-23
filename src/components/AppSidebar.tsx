@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -22,11 +21,17 @@ import {
   X,
   ArrowLeft,
   Warehouse,
-  LineChart,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const menuGroups = {
   reports: {
@@ -233,37 +238,52 @@ export function AppSidebar({
       </Sheet>
 
       {/* Desktop top navigation */}
-      <div className="hidden md:block bg-white border-b border-[#2A4131]/10 z-40">
+      <div className="hidden md:block bg-white border-b border-[#2A4131]/10">
         <div className="flex items-center justify-between h-[72px] px-4 max-w-[95rem] mx-auto">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-8">
             <Logo />
-          </div>
-          <nav className="flex items-center gap-6 overflow-x-auto hide-scrollbar">
-            {Object.values(menuGroups).map((group) => (
-              <div key={group.title} className="flex flex-col items-start min-w-[120px]">
-                <span className="text-xs font-medium text-[#2A4131]/60 mb-1">
-                  {group.title}
-                </span>
-                <div className="flex gap-2">
-                  {group.items.map((item) => (
-                    <Link
-                      key={item.path}
-                      to={item.path}
+            <nav className="flex items-center gap-6">
+              {Object.entries(menuGroups).map(([key, group]) => (
+                <DropdownMenu key={key}>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
                       className={cn(
-                        "flex items-center gap-1 px-2 py-1 text-sm transition-colors rounded-md",
-                        location.pathname === item.path 
-                          ? "bg-[#2A4131] text-white" 
-                          : "text-[#2A4131] hover:bg-[#F2E9D2]/50"
+                        "flex items-center gap-1 px-3 py-2 text-sm font-medium transition-colors",
+                        group.items.some(item => location.pathname === item.path)
+                          ? "text-[#2A4131]"
+                          : "text-[#2A4131]/70 hover:text-[#2A4131]"
                       )}
                     >
-                      <item.icon className="h-4 w-4" />
-                      <span className="whitespace-nowrap">{item.title}</span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </nav>
+                      {group.title}
+                      <ChevronDown className="h-4 w-4 opacity-50" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="start"
+                    className="w-[180px] bg-white"
+                  >
+                    {group.items.map((item) => (
+                      <DropdownMenuItem key={item.path} asChild>
+                        <Link
+                          to={item.path}
+                          className={cn(
+                            "flex items-center gap-2 cursor-pointer",
+                            location.pathname === item.path
+                              ? "bg-[#2A4131] text-white"
+                              : "text-[#2A4131] hover:bg-[#F2E9D2]/50"
+                          )}
+                        >
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.title}</span>
+                        </Link>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ))}
+            </nav>
+          </div>
         </div>
       </div>
     </>
