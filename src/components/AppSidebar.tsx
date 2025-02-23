@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -178,9 +177,9 @@ export function AppSidebar({
                         to={item.path}
                         onClick={handleMenuItemClick}
                         className={cn(
-                          "flex items-center gap-2 px-3 py-2 text-[15px] transition-colors",
+                          "flex items-center gap-2 px-3 py-2 text-[15px] transition-colors rounded-md",
                           location.pathname === item.path 
-                            ? "bg-[#2A4131] text-white" 
+                            ? "bg-[#2A4131] text-white font-medium" 
                             : "text-[#2A4131] hover:bg-[#F2E9D2]/50"
                         )}
                       >
@@ -208,8 +207,10 @@ export function AppSidebar({
               key={item.path}
               to={item.path}
               className={cn(
-                "flex flex-col items-center justify-center w-16 h-16 text-[#2A4131] transition-colors",
-                location.pathname === item.path && "text-[#2A4131] font-medium"
+                "flex flex-col items-center justify-center w-16 h-16 transition-colors",
+                location.pathname === item.path 
+                  ? "text-[#2A4131] font-medium bg-[#F2E9D2]" 
+                  : "text-[#2A4131] hover:bg-[#F2E9D2]/50"
               )}
             >
               <item.icon className="h-6 w-6" />
@@ -245,10 +246,10 @@ export function AppSidebar({
               <Link
                 to="/"
                 className={cn(
-                  "flex items-center gap-1 px-3 py-2 text-sm font-medium transition-colors",
+                  "flex items-center gap-1 px-3 py-2 text-sm font-medium transition-colors rounded-md",
                   location.pathname === "/" 
-                    ? "text-[#2A4131]"
-                    : "text-[#2A4131]/70 hover:text-[#2A4131]"
+                    ? "bg-[#2A4131] text-white"
+                    : "text-[#2A4131]/70 hover:bg-[#F2E9D2]/50"
                 )}
               >
                 <Home className="h-4 w-4" />
@@ -257,10 +258,10 @@ export function AppSidebar({
               <Link
                 to="/dispatch"
                 className={cn(
-                  "flex items-center gap-1 px-3 py-2 text-sm font-medium transition-colors",
+                  "flex items-center gap-1 px-3 py-2 text-sm font-medium transition-colors rounded-md",
                   location.pathname === "/dispatch"
-                    ? "text-[#2A4131]"
-                    : "text-[#2A4131]/70 hover:text-[#2A4131]"
+                    ? "bg-[#2A4131] text-white"
+                    : "text-[#2A4131]/70 hover:bg-[#F2E9D2]/50"
                 )}
               >
                 <Truck className="h-4 w-4" />
@@ -274,8 +275,8 @@ export function AppSidebar({
                       className={cn(
                         "flex items-center gap-1 px-3 py-2 text-sm font-medium transition-colors",
                         group.items.some(item => location.pathname === item.path)
-                          ? "text-[#2A4131]"
-                          : "text-[#2A4131]/70 hover:text-[#2A4131]"
+                          ? "text-[#2A4131] bg-[#F2E9D2]"
+                          : "text-[#2A4131]/70 hover:bg-[#F2E9D2]/50"
                       )}
                     >
                       {group.title}
