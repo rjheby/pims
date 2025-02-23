@@ -67,7 +67,7 @@ export function DesktopNavigation({ className, ...props }: DesktopNavigationProp
                   </Button>
                 </DropdownMenuTrigger>
                 <div className="bg-white shadow-md rounded-md">
-                  <DropdownMenuContent align="start">
+                  <DropdownMenuContent>
                     {group.items.map((item) => (
                       <div key={item.path} className="w-full p-1">
                         <Link
