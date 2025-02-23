@@ -25,8 +25,8 @@ export function SidebarContent({ onMobileMenuToggle, className, ...props }: Side
   };
 
   return (
-    <div {...props}>
-      <SidebarContentBase className={className}>
+    <div className={cn(className)} {...props}>
+      <SidebarContentBase>
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
