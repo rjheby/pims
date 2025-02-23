@@ -20,7 +20,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <main className={cn(
           "flex-1 transition-all duration-300 pb-20 md:pb-4 overflow-x-hidden",
           "p-2 sm:p-3",
-          isCollapsed ? "md:ml-16" : "md:ml-[17rem]" // Changed to match sidebar width (16rem) plus 1rem padding
+          isCollapsed ? "md:ml-16" : "md:ml-[16.5rem]" // Adjusted for tighter spacing
         )}>
           {children}
         </main>

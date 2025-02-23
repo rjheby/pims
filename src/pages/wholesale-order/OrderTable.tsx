@@ -195,12 +195,12 @@ export function OrderTable({
               </TableCell>
             ))}
             <TableCell>
-              <div className="flex gap-1">
+              <div className="flex gap-2 items-center">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => onRemoveRow(item.id)}
-                  className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                  className="bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-700 rounded-full w-8 h-8 p-0"
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -208,7 +208,7 @@ export function OrderTable({
                   variant="ghost"
                   size="sm"
                   onClick={() => onCopyRow(item)}
-                  className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                  className="bg-blue-50 hover:bg-blue-100 text-blue-500 hover:text-blue-700 rounded-full w-8 h-8 p-0"
                 >
                   <Copy className="h-4 w-4" />
                 </Button>
@@ -217,7 +217,7 @@ export function OrderTable({
                   size="sm"
                   onClick={() => {
                     const totalPallets = items.reduce((sum, item) => sum + (item.pallets || 0), 0);
-                    const newPallets = 0; // Default for new row
+                    const newPallets = 0;
 
                     if (totalPallets + newPallets > 24) {
                       toast({
@@ -230,7 +230,7 @@ export function OrderTable({
 
                     onUpdateItem(item.id, "pallets", newPallets);
                   }}
-                  className="text-orange-500 hover:text-orange-700 hover:bg-orange-50"
+                  className="bg-[#F2FCE2] hover:bg-[#E5F5D5] text-[#2A4131] hover:text-[#1F3025] rounded-full w-8 h-8 p-0"
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
