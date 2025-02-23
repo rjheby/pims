@@ -7,7 +7,7 @@ import { OrderActions } from "./wholesale-order/components/OrderActions";
 import { WholesaleOrderProvider, useWholesaleOrder } from "./wholesale-order/context/WholesaleOrderContext";
 import { useWindowEvents } from "./wholesale-order/hooks/useWindowEvents";
 import { useToast } from "@/hooks/use-toast";
-import { OrderItem } from "./wholesale-order/types";
+import { OrderItem, DropdownOptions } from "./wholesale-order/types";
 import { cn } from "@/lib/utils";
 
 function WholesaleOrderContent() {
@@ -66,6 +66,18 @@ function WholesaleOrderContent() {
         });
       }
     }
+  };
+
+  const handleUpdateOptions = (field: keyof DropdownOptions, newOptions: string[]) => {
+    setOptions({
+      ...options,
+      [field]: newOptions
+    });
+    setHasUnsavedChanges(true);
+    toast({
+      title: "Options updated",
+      description: `Updated options for ${field}`,
+    });
   };
 
   const generateItemName = (item: OrderItem) => {
@@ -153,6 +165,7 @@ function WholesaleOrderContent() {
                   onRemoveRow={removeRow}
                   onCopyRow={copyRow}
                   generateItemName={generateItemName}
+                  onUpdateOptions={handleUpdateOptions}
                 />
               </div>
 
