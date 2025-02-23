@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Copy, Plus, X } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { OrderItem } from "../types";
+import { useWholesaleOrder } from "../context/WholesaleOrderContext";
 
 interface OrderTableActionsProps {
   item: OrderItem;
@@ -17,16 +18,15 @@ export function OrderTableActions({
   onCopyRow,
   onUpdateItem,
 }: OrderTableActionsProps) {
+  const { items, setItems } = useWholesaleOrder();
+  
   const handleAddPallet = () => {
     const newPalletCount = (item.pallets || 0) + 1;
     
     // Calculate total pallets across all items
-    const items = document.querySelectorAll('[data-pallet-count]');
-    const totalPallets = Array.from(items).reduce((sum, el) => {
-      return sum + (parseInt(el.getAttribute('data-pallet-count') || '0', 10));
-    }, 0) + 1; // Add 1 for the new pallet we're adding
+    const totalPallets = items.reduce((sum, item) => sum + (item.pallets || 0), 0);
 
-    if (totalPallets > 24) {
+    if (totalPallets + 1 > 24) {
       toast({
         title: "Warning",
         description: "Adding more pallets would exceed the 24-pallet limit for a tractor trailer.",
@@ -36,6 +36,32 @@ export function OrderTableActions({
     }
 
     onUpdateItem(item.id, "pallets", newPalletCount);
+  };
+
+  const handleAddRow = () => {
+    const totalPallets = items.reduce((sum, item) => sum + (item.pallets || 0), 0);
+
+    if (totalPallets + 0 > 24) {
+      toast({
+        title: "Warning",
+        description: "Adding more pallets would exceed the 24-pallet limit for a tractor trailer.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setItems([
+      ...items,
+      {
+        id: items.length + 1,
+        species: "",
+        length: "",
+        bundleType: "",
+        thickness: "",
+        packaging: "Pallets",
+        pallets: 0,
+      },
+    ]);
   };
 
   return (
@@ -59,7 +85,7 @@ export function OrderTableActions({
       <Button
         variant="ghost"
         size="sm"
-        onClick={handleAddPallet}
+        onClick={handleAddRow}
         className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white rounded-full w-8 h-8 p-0"
       >
         <Plus className="h-4 w-4" />
