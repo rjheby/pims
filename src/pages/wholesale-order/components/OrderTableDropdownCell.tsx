@@ -29,6 +29,7 @@ interface OrderTableDropdownCellProps {
   onNewOptionChange: (value: string) => void;
   onKeyPress: (e: React.KeyboardEvent<HTMLInputElement>, field: keyof DropdownOptions) => void;
   onUpdateItem: (id: number, field: keyof OrderItem, value: string | number) => void;
+  onUpdateOptions: (field: keyof DropdownOptions, options: string[]) => void;
 }
 
 export function OrderTableDropdownCell({
@@ -41,6 +42,7 @@ export function OrderTableDropdownCell({
   onNewOptionChange,
   onKeyPress,
   onUpdateItem,
+  onUpdateOptions,
 }: OrderTableDropdownCellProps) {
   const [editingOptionValue, setEditingOptionValue] = useState<string | null>(null);
   const [editedValue, setEditedValue] = useState("");
@@ -52,24 +54,25 @@ export function OrderTableDropdownCell({
 
   const handleSave = (oldValue: string) => {
     if (editedValue && editedValue !== oldValue) {
-      // First update all items that use the old value
-      const updatedOptions = { ...options };
-      const index = updatedOptions[field].indexOf(oldValue);
+      const updatedOptions = [...options[field]];
+      const index = updatedOptions.indexOf(oldValue);
       if (index !== -1) {
-        updatedOptions[field][index] = editedValue;
+        updatedOptions[index] = editedValue;
+        onUpdateOptions(field, updatedOptions);
       }
-      // Then update the current item
-      onUpdateItem(item.id, field as keyof OrderItem, editedValue);
+      // Update the current item if it was using the old value
+      if (item[field as keyof OrderItem] === oldValue) {
+        onUpdateItem(item.id, field as keyof OrderItem, editedValue);
+      }
     }
     setEditingOptionValue(null);
   };
 
   const handleDeleteOption = (option: string) => {
-    // First update the options list
-    const updatedOptions = { ...options };
-    updatedOptions[field] = options[field].filter(o => o !== option);
+    const updatedOptions = options[field].filter(o => o !== option);
+    onUpdateOptions(field, updatedOptions);
     
-    // Then clear the value for this item if it was using the deleted option
+    // Clear the value for this item if it was using the deleted option
     if (item[field as keyof OrderItem] === option) {
       onUpdateItem(item.id, field as keyof OrderItem, "");
     }

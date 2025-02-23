@@ -16,6 +16,7 @@ interface OrderTableRowProps {
   onRemoveRow: (id: number) => void;
   onCopyRow: (item: OrderItem) => void;
   generateItemName: (item: OrderItem) => string;
+  onUpdateOptions: (field: keyof DropdownOptions, options: string[]) => void;
 }
 
 export function OrderTableRow({
@@ -30,6 +31,7 @@ export function OrderTableRow({
   onRemoveRow,
   onCopyRow,
   generateItemName,
+  onUpdateOptions,
 }: OrderTableRowProps) {
   return (
     <TableRow>
@@ -50,6 +52,7 @@ export function OrderTableRow({
             onNewOptionChange={onNewOptionChange}
             onKeyPress={onKeyPress}
             onUpdateItem={onUpdateItem}
+            onUpdateOptions={onUpdateOptions}
           />
         </TableCell>
       ))}
