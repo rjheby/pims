@@ -105,7 +105,10 @@ function WholesaleOrderContent() {
                 onSave={saveChanges}
                 onDiscard={discardChanges}
                 onUndo={undoLastChange}
-                onToggleAdmin={() => handleAdminToggle(saveChanges, discardChanges)}
+                onToggleAdmin={() => handleAdminToggle({
+                  onSave: saveChanges,
+                  onDiscard: discardChanges
+                })}
                 canUndo={optionsHistory.length > 1}
               />
             </div>
