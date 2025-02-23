@@ -66,27 +66,32 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     }) => {
       const isWholesaleOrder = location.pathname === "/wholesale-order";
       
-      if (isAdmin && hasUnsavedChanges) {
-        const message = options?.confirmMessage || 'You have unsaved changes. Do you want to save them before exiting admin mode?';
-        if (window.confirm(message)) {
-          if (isWholesaleOrder) {
-            options?.onSave?.();
+      if (isAdmin) {
+        if (hasUnsavedChanges) {
+          const message = options?.confirmMessage || 'You have unsaved changes. Do you want to save them before exiting admin mode?';
+          if (window.confirm(message)) {
+            if (isWholesaleOrder) {
+              options?.onSave?.();
+            } else {
+              // Generic save logic for other pages
+              toast({
+                title: "Changes saved",
+                description: "Your changes have been saved successfully.",
+              });
+            }
+            exitAdminMode();
           } else {
-            // Generic save logic for other pages
-            toast({
-              title: "Changes saved",
-              description: "Your changes have been saved successfully.",
-            });
+            if (isWholesaleOrder) {
+              options?.onDiscard?.();
+            }
+            exitAdminMode();
           }
-          exitAdminMode();
         } else {
-          if (isWholesaleOrder) {
-            options?.onDiscard?.();
-          }
+          // No unsaved changes, just exit admin mode
           exitAdminMode();
         }
       } else {
-        isAdmin ? exitAdminMode() : enterAdminMode();
+        enterAdminMode();
       }
     },
     [isAdmin, hasUnsavedChanges, exitAdminMode, enterAdminMode, location.pathname, toast]

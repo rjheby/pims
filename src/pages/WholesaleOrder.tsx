@@ -1,6 +1,6 @@
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { OrderDetails } from "./wholesale-order/OrderDetails";
-import { AdminControls } from "./wholesale-order/AdminControls";
 import { OrderTable } from "./wholesale-order/OrderTable";
 import { OrderActions } from "./wholesale-order/components/OrderActions";
 import { WholesaleOrderProvider, useWholesaleOrder } from "./wholesale-order/context/WholesaleOrderContext";
@@ -11,7 +11,7 @@ import { useAdmin } from "@/context/AdminContext";
 
 function WholesaleOrderContent() {
   const { toast } = useToast();
-  const { isAdmin, hasUnsavedChanges, handleAdminToggle, setHasUnsavedChanges } = useAdmin();
+  const { isAdmin, hasUnsavedChanges, setHasUnsavedChanges } = useAdmin();
   const { 
     orderNumber, 
     items,
@@ -98,18 +98,6 @@ function WholesaleOrderContent() {
                 <CardTitle>New Wholesale Order {orderNumber}</CardTitle>
                 <CardDescription>Create and manage wholesale orders</CardDescription>
               </div>
-              <AdminControls
-                isAdmin={isAdmin}
-                hasUnsavedChanges={hasUnsavedChanges}
-                onSave={saveChanges}
-                onDiscard={discardChanges}
-                onUndo={undoLastChange}
-                onToggleAdmin={() => handleAdminToggle({
-                  onSave: saveChanges,
-                  onDiscard: discardChanges
-                })}
-                canUndo={optionsHistory.length > 1}
-              />
             </div>
           </CardHeader>
           <CardContent>
