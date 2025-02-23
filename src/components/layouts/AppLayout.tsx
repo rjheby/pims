@@ -41,7 +41,7 @@ export default function AppLayout({
         <main className={cn(
           "flex-1 transition-all duration-300",
           "px-2 md:px-3 pb-20 md:pb-8",
-          isCollapsed ? "md:ml-16" : "md:ml-48"
+          isCollapsed ? "md:ml-[4rem]" : "md:ml-[12rem]"
         )}>
           <div className="py-4">
             {children}
