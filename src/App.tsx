@@ -6,7 +6,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { UserProvider } from "@/context/UserContext";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import AppLayout from "./components/layouts/AppLayout";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
@@ -26,23 +25,25 @@ const App = () => (
     <UserProvider>
       <TooltipProvider>
         <SidebarProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<AppLayout><Index /></AppLayout>} />
-              <Route path="/dashboard" element={<AppLayout><Dashboard /></AppLayout>} />
-              <Route path="/dispatch" element={<AppLayout><DispatchDelivery /></AppLayout>} />
-              <Route path="/driver-payments" element={<AppLayout><DriverPayments /></AppLayout>} />
-              <Route path="/client-order" element={<AppLayout><ClientOrder /></AppLayout>} />
-              <Route path="/wholesale-order" element={<AppLayout><WholesaleOrder /></AppLayout>} />
-              <Route path="/customers" element={<AppLayout><Customers /></AppLayout>} />
-              <Route path="/inventory" element={<AppLayout><Inventory /></AppLayout>} />
-              <Route path="/team-settings" element={<AppLayout><TeamSettings /></AppLayout>} />
-              <Route path="/production" element={<AppLayout><Production /></AppLayout>} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
+          <div className="min-h-screen flex w-full">
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/dispatch" element={<DispatchDelivery />} />
+                <Route path="/driver-payments" element={<DriverPayments />} />
+                <Route path="/client-order" element={<ClientOrder />} />
+                <Route path="/wholesale-order" element={<WholesaleOrder />} />
+                <Route path="/customers" element={<Customers />} />
+                <Route path="/inventory" element={<Inventory />} />
+                <Route path="/team-settings" element={<TeamSettings />} />
+                <Route path="/production" element={<Production />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </div>
         </SidebarProvider>
       </TooltipProvider>
     </UserProvider>
