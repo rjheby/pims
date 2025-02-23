@@ -1,3 +1,4 @@
+
 import { Link, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -81,7 +82,7 @@ export function AppSidebar({ isCollapsed, onToggleCollapse }: AppSidebarProps) {
 
   return (
     <Sidebar className={cn(
-      "border-r border-[#2A4131]/10 relative transition-all duration-300",
+      "border-r border-[#2A4131]/10 fixed left-0 top-0 h-screen transition-all duration-300",
       isCollapsed ? "w-16" : "w-64"
     )}>
       <div className="flex h-16 items-center border-b border-[#2A4131]/10">
