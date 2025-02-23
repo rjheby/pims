@@ -19,7 +19,7 @@ export default function AppLayout({
 
   const isWholesaleOrder = location.pathname === "/wholesale-order";
 
-  const content = (
+  return (
     <div className="relative min-h-screen">
       {/* Admin Mode Overlay */}
       <div
@@ -45,16 +45,14 @@ export default function AppLayout({
         
         <main className="w-full min-h-screen px-2 md:px-4 pb-20 md:pb-8 pt-[72px]">
           <div className="py-4">
-            {children}
+            {isWholesaleOrder ? (
+              <WholesaleOrderProvider>
+                {children}
+              </WholesaleOrderProvider>
+            ) : children}
           </div>
         </main>
       </div>
     </div>
   );
-
-  return isWholesaleOrder ? (
-    <WholesaleOrderProvider>
-      {content}
-    </WholesaleOrderProvider>
-  ) : content;
 }
