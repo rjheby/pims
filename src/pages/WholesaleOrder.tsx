@@ -7,8 +7,11 @@ import { OrderTable } from "./wholesale-order/OrderTable";
 import { OrderActions } from "./wholesale-order/components/OrderActions";
 import { WholesaleOrderProvider, useWholesaleOrder } from "./wholesale-order/context/WholesaleOrderContext";
 import { useWindowEvents } from "./wholesale-order/hooks/useWindowEvents";
+import { useToast } from "@/hooks/use-toast";
+import { OrderItem } from "./wholesale-order/types";
 
 function WholesaleOrderContent() {
+  const { toast } = useToast();
   const { 
     orderNumber, 
     isAdmin, 
@@ -27,7 +30,10 @@ function WholesaleOrderContent() {
     setDeliveryDate,
     setEditingField,
     optionsHistory,
-    setIsAdmin
+    setIsAdmin,
+    setOptions,
+    setHasUnsavedChanges,
+    setItems
   } = useWholesaleOrder();
 
   useWindowEvents();
@@ -66,6 +72,24 @@ function WholesaleOrderContent() {
     if (!item.length || !item.species || !item.thickness) return "";
     const lengthPrefix = item.length === "12\"" ? "12\" " : "16\" ";
     return `${item.thickness} ${item.bundleType} ${lengthPrefix}${item.species}`;
+  };
+
+  const updateItem = (id: number, field: keyof OrderItem, value: string | number) => {
+    setItems(items.map(item => 
+      item.id === id ? { ...item, [field]: value } : item
+    ));
+  };
+
+  const removeRow = (id: number) => {
+    setItems(items.filter(item => item.id !== id));
+  };
+
+  const copyRow = (itemToCopy: OrderItem) => {
+    const newItem = {
+      ...itemToCopy,
+      id: Math.max(...items.map(item => item.id)) + 1,
+    };
+    setItems([...items, newItem]);
   };
 
   return (
