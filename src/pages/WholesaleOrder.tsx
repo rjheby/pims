@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { OrderDetails } from "./wholesale-order/OrderDetails";
 import { AdminControls } from "./wholesale-order/AdminControls";
@@ -90,7 +89,7 @@ function WholesaleOrderContent() {
   };
 
   return (
-    <div className="flex-1 min-h-screen overflow-hidden">
+    <div className="flex-1 min-h-screen">
       <div className="max-w-[95rem] mx-auto p-2.5">
         <Card className="shadow-sm">
           <CardHeader>
@@ -123,25 +122,21 @@ function WholesaleOrderContent() {
                 onDeliveryDateChange={(e) => setDeliveryDate(e.target.value)}
               />
 
-              <div className="w-full overflow-x-auto md:overflow-x-visible">
-                <div className="min-w-full inline-block align-middle">
-                  <OrderTable
-                    items={items}
-                    options={options}
-                    isAdmin={isAdmin}
-                    editingField={editingField}
-                    newOption={newOption}
-                    onNewOptionChange={setNewOption}
-                    onKeyPress={handleKeyPress}
-                    onEditField={setEditingField}
-                    onUpdateItem={updateItem}
-                    onRemoveRow={removeRow}
-                    onCopyRow={copyRow}
-                    generateItemName={generateItemName}
-                    onUpdateOptions={handleUpdateOptions}
-                  />
-                </div>
-              </div>
+              <OrderTable
+                items={items}
+                options={options}
+                isAdmin={isAdmin}
+                editingField={editingField}
+                newOption={newOption}
+                onNewOptionChange={setNewOption}
+                onKeyPress={handleKeyPress}
+                onEditField={setEditingField}
+                onUpdateItem={updateItem}
+                onRemoveRow={removeRow}
+                onCopyRow={copyRow}
+                generateItemName={generateItemName}
+                onUpdateOptions={handleUpdateOptions}
+              />
 
               <OrderActions />
             </div>
