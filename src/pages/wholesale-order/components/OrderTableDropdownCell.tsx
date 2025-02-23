@@ -42,28 +42,34 @@ export function OrderTableDropdownCell({
   onKeyPress,
   onUpdateItem,
 }: OrderTableDropdownCellProps) {
-  const [editingOption, setEditingOption] = useState<string | null>(null);
-  const [editedValue, setEditedValue] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedValue, setEditedValue] = useState(item[field as keyof OrderItem] as string);
 
-  const handleStartEdit = (option: string) => {
-    setEditingOption(option);
-    setEditedValue(option);
-  };
-
-  const handleSaveEdit = (oldValue: string) => {
-    if (editedValue && editedValue !== oldValue) {
-      // Update all items using this option
+  const handleSave = () => {
+    if (editedValue && editedValue !== item[field as keyof OrderItem]) {
       onUpdateItem(item.id, field as keyof OrderItem, editedValue);
     }
-    setEditingOption(null);
+    setIsEditing(false);
   };
 
-  const handleDeleteOption = (value: string) => {
-    onUpdateItem(item.id, field as keyof OrderItem, "");
-  };
+  if (isEditing) {
+    return (
+      <Input
+        value={editedValue}
+        onChange={(e) => setEditedValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') handleSave();
+          if (e.key === 'Escape') setIsEditing(false);
+        }}
+        onBlur={handleSave}
+        className="w-full"
+        autoFocus
+      />
+    );
+  }
 
   return (
-    <div className="relative">
+    <div className="flex items-center gap-2">
       <Select 
         value={item[field as keyof OrderItem] as string} 
         onValueChange={(value) => onUpdateItem(item.id, field as keyof OrderItem, value)}
@@ -72,57 +78,10 @@ export function OrderTableDropdownCell({
           <SelectValue placeholder="Select" />
         </SelectTrigger>
         <SelectContent>
-          <div className="flex items-center justify-between p-2 border-b">
-            <span className="text-sm font-medium">{field.charAt(0).toUpperCase() + field.slice(1)}</span>
-          </div>
           {options[field].map((option) => (
-            <div key={option} className="flex items-center justify-between px-2">
-              {editingOption === option ? (
-                <Input
-                  value={editedValue}
-                  onChange={(e) => setEditedValue(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      handleSaveEdit(option);
-                    } else if (e.key === 'Escape') {
-                      setEditingOption(null);
-                    }
-                  }}
-                  onBlur={() => handleSaveEdit(option)}
-                  className="w-32 my-1"
-                  autoFocus
-                />
-              ) : (
-                <>
-                  <SelectItem value={option}>
-                    {option}
-                  </SelectItem>
-                  {isAdmin && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuItem onClick={() => handleStartEdit(option)}>
-                          <Edit className="h-4 w-4 mr-2" />
-                          Rename
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          onClick={() => handleDeleteOption(option)}
-                          className="text-red-600"
-                        >
-                          <Trash className="h-4 w-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                </>
-              )}
-            </div>
+            <SelectItem key={option} value={option}>
+              {option}
+            </SelectItem>
           ))}
           {isAdmin && (
             <div className="p-2 border-t">
@@ -137,6 +96,30 @@ export function OrderTableDropdownCell({
           )}
         </SelectContent>
       </Select>
+      
+      {isAdmin && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem onClick={() => setIsEditing(true)}>
+              <Edit className="h-4 w-4 mr-2" />
+              Rename
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={() => onUpdateItem(item.id, field as keyof OrderItem, "")}
+              className="text-red-600"
+            >
+              <Trash className="h-4 w-4 mr-2" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
     </div>
   );
 }
