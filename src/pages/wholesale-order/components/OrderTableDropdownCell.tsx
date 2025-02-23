@@ -58,6 +58,13 @@ export function OrderTableDropdownCell({
     setEditingOptionValue(null);
   };
 
+  const handleDeleteOption = (option: string) => {
+    // If the current item uses this option, clear its value
+    if (item[field as keyof OrderItem] === option) {
+      onUpdateItem(item.id, field as keyof OrderItem, "");
+    }
+  };
+
   return (
     <div className="flex items-center gap-2">
       <Select 
@@ -83,24 +90,38 @@ export function OrderTableDropdownCell({
                   autoFocus
                 />
               ) : (
-                <>
+                <div className="flex items-center justify-between w-full">
                   <SelectItem value={option}>
                     {option}
                   </SelectItem>
                   {isAdmin && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleStartEdit(option);
-                      }}
-                    >
-                      <Edit className="h-3 w-3" />
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleStartEdit(option);
+                        }}
+                      >
+                        <Edit className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleDeleteOption(option);
+                        }}
+                        className="text-red-600"
+                      >
+                        <Trash className="h-3 w-3" />
+                      </Button>
+                    </div>
                   )}
-                </>
+                </div>
               )}
             </div>
           ))}
