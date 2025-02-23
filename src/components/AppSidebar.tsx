@@ -177,7 +177,8 @@ export function AppSidebar({
                         to={item.path}
                         onClick={handleMenuItemClick}
                         className={cn(
-                          "flex items-center gap-2 px-3 py-2 text-[15px] transition-colors rounded-md",
+                          "flex items-center gap-2 px-3 py-2 text-[15px] rounded-md",
+                          "transition-all duration-200 ease-in-out",
                           location.pathname === item.path 
                             ? "bg-[#2A4131] text-white font-medium" 
                             : "text-[#2A4131] hover:bg-[#F2E9D2]/50"
@@ -207,7 +208,8 @@ export function AppSidebar({
               key={item.path}
               to={item.path}
               className={cn(
-                "flex flex-col items-center justify-center w-16 h-16 transition-colors",
+                "flex flex-col items-center justify-center w-16 h-16",
+                "transition-all duration-200 ease-in-out",
                 location.pathname === item.path 
                   ? "text-[#2A4131] font-medium bg-[#F2E9D2]" 
                   : "text-[#2A4131] hover:bg-[#F2E9D2]/50"
@@ -219,7 +221,7 @@ export function AppSidebar({
           ))}
           <button
             onClick={onMobileMenuToggle}
-            className="flex flex-col items-center justify-center w-16 h-16 text-[#2A4131]"
+            className="flex flex-col items-center justify-center w-16 h-16 text-[#2A4131] transition-colors duration-200"
           >
             <Menu className="h-6 w-6" />
             <span className="text-xs mt-1">Menu</span>
@@ -231,7 +233,7 @@ export function AppSidebar({
       <Sheet open={isMobileMenuOpen} onOpenChange={onMobileMenuToggle}>
         <SheetContent 
           side="left" 
-          className="p-0 w-full sm:w-[300px] h-[100dvh] overflow-y-auto"
+          className="p-0 w-full sm:w-[300px] h-[100dvh] overflow-y-auto transition-transform duration-300 ease-in-out"
         >
           <SidebarComponent />
         </SheetContent>
@@ -246,7 +248,8 @@ export function AppSidebar({
               <Link
                 to="/"
                 className={cn(
-                  "flex items-center gap-1 px-3 py-2 text-sm font-medium transition-colors rounded-md",
+                  "flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md",
+                  "transition-all duration-200 ease-in-out",
                   location.pathname === "/" 
                     ? "bg-[#2A4131] text-white"
                     : "text-[#2A4131]/70 hover:bg-[#F2E9D2]/50"
@@ -258,7 +261,8 @@ export function AppSidebar({
               <Link
                 to="/dispatch"
                 className={cn(
-                  "flex items-center gap-1 px-3 py-2 text-sm font-medium transition-colors rounded-md",
+                  "flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md",
+                  "transition-all duration-200 ease-in-out",
                   location.pathname === "/dispatch"
                     ? "bg-[#2A4131] text-white"
                     : "text-[#2A4131]/70 hover:bg-[#F2E9D2]/50"
@@ -273,7 +277,8 @@ export function AppSidebar({
                     <Button
                       variant="ghost"
                       className={cn(
-                        "flex items-center gap-1 px-3 py-2 text-sm font-medium transition-colors",
+                        "flex items-center gap-1 px-3 py-2 text-sm font-medium",
+                        "transition-all duration-200 ease-in-out",
                         group.items.some(item => location.pathname === item.path)
                           ? "text-[#2A4131] bg-[#F2E9D2]"
                           : "text-[#2A4131]/70 hover:bg-[#F2E9D2]/50"
@@ -293,6 +298,7 @@ export function AppSidebar({
                           to={item.path}
                           className={cn(
                             "flex items-center gap-2 cursor-pointer",
+                            "transition-all duration-200 ease-in-out",
                             location.pathname === item.path
                               ? "bg-[#2A4131] text-white"
                               : "text-[#2A4131] hover:bg-[#F2E9D2]/50"
