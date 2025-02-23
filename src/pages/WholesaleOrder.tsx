@@ -1,51 +1,36 @@
-import { useState, useEffect, KeyboardEvent } from "react";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
 import AppLayout from "@/components/layouts/AppLayout";
 import { OrderDetails } from "./wholesale-order/OrderDetails";
 import { AdminControls } from "./wholesale-order/AdminControls";
 import { OrderTable } from "./wholesale-order/OrderTable";
-import { OrderItem, DropdownOptions, initialOptions } from "./wholesale-order/types";
+import { OrderActions } from "./wholesale-order/components/OrderActions";
+import { WholesaleOrderProvider, useWholesaleOrder } from "./wholesale-order/context/WholesaleOrderContext";
+import { useWindowEvents } from "./wholesale-order/hooks/useWindowEvents";
 
-export default function WholesaleOrder() {
-  const { toast } = useToast();
-  const [orderNumber, setOrderNumber] = useState("");
-  const [orderDate, setOrderDate] = useState("");
-  const [deliveryDate, setDeliveryDate] = useState("");
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [options, setOptions] = useState<DropdownOptions>(initialOptions);
-  const [optionsHistory, setOptionsHistory] = useState<DropdownOptions[]>([initialOptions]);
-  const [editingField, setEditingField] = useState<keyof DropdownOptions | null>(null);
-  const [newOption, setNewOption] = useState("");
-  const [items, setItems] = useState<OrderItem[]>([
-    {
-      id: 1,
-      species: "",
-      length: "",
-      bundleType: "",
-      thickness: "",
-      packaging: "Pallets",
-      pallets: 0,
-    },
-  ]);
+function WholesaleOrderContent() {
+  const { 
+    orderNumber, 
+    isAdmin, 
+    hasUnsavedChanges,
+    items,
+    options,
+    editingField,
+    newOption,
+    setNewOption,
+    orderDate,
+    deliveryDate,
+    saveChanges,
+    discardChanges,
+    undoLastChange,
+    handleOrderDateChange,
+    setDeliveryDate,
+    setEditingField,
+    optionsHistory,
+    setIsAdmin
+  } = useWholesaleOrder();
 
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges) {
-        e.preventDefault();
-        e.returnValue = '';
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [hasUnsavedChanges]);
+  useWindowEvents();
 
   const handleAdminToggle = () => {
     if (isAdmin && hasUnsavedChanges) {
@@ -59,40 +44,7 @@ export default function WholesaleOrder() {
     }
   };
 
-  const saveChanges = () => {
-    setOptionsHistory([...optionsHistory, options]);
-    setHasUnsavedChanges(false);
-    setIsAdmin(false);
-    toast({
-      title: "Changes saved",
-      description: "Your changes have been saved successfully.",
-    });
-  };
-
-  const discardChanges = () => {
-    setOptions(optionsHistory[optionsHistory.length - 1]);
-    setHasUnsavedChanges(false);
-    setIsAdmin(false);
-    setEditingField(null);
-    toast({
-      title: "Changes discarded",
-      description: "Your changes have been discarded.",
-    });
-  };
-
-  const undoLastChange = () => {
-    if (optionsHistory.length > 1) {
-      const previousOptions = optionsHistory[optionsHistory.length - 2];
-      setOptions(previousOptions);
-      setOptionsHistory(optionsHistory.slice(0, -1));
-      toast({
-        title: "Change undone",
-        description: "The last change has been undone.",
-      });
-    }
-  };
-
-  const handleKeyPress = (e: KeyboardEvent<HTMLInputElement>, field: keyof DropdownOptions) => {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>, field: keyof typeof options) => {
     if (e.key === 'Enter' && newOption.trim()) {
       if (!options[field].includes(newOption.trim())) {
         const updatedOptions = {
@@ -115,114 +67,6 @@ export default function WholesaleOrder() {
     const lengthPrefix = item.length === "12\"" ? "12\" " : "16\" ";
     return `${item.thickness} ${item.bundleType} ${lengthPrefix}${item.species}`;
   };
-
-  const addRow = () => {
-    const totalPallets = items.reduce((sum, item) => sum + (item.pallets || 0), 0);
-    const newPallets = 0;
-
-    if (totalPallets + newPallets > 24) {
-      toast({
-        title: "Warning",
-        description: "Adding more pallets would exceed the 24-pallet limit for a tractor trailer.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setItems([
-      ...items,
-      {
-        id: items.length + 1,
-        species: "",
-        length: "",
-        bundleType: "",
-        thickness: "",
-        packaging: "Pallets",
-        pallets: 0,
-      },
-    ]);
-  };
-
-  const copyRow = (item: OrderItem) => {
-    setItems([
-      ...items,
-      {
-        ...item,
-        id: items.length + 1,
-      },
-    ]);
-  };
-
-  const removeRow = (id: number) => {
-    if (items.length > 1) {
-      setItems(items.filter(item => item.id !== id));
-    }
-  };
-
-  const updateItem = (id: number, field: keyof OrderItem, value: string | number) => {
-    if (field === "pallets") {
-      const currentTotal = items.reduce((sum, item) => sum + (item.id === id ? 0 : (item.pallets || 0)), 0);
-      const newValue = parseInt(value as string) || 0;
-      
-      if (currentTotal + newValue > 24) {
-        toast({
-          title: "Warning",
-          description: "This would exceed the 24-pallet limit for a tractor trailer.",
-          variant: "destructive",
-        });
-        return;
-      }
-    }
-
-    setItems(items.map(item => 
-      item.id === id ? { ...item, [field]: value } : item
-    ));
-  };
-
-  const generateOrderNumber = (date: string) => {
-    if (!date) return "";
-    const orderDate = new Date(date);
-    const year = orderDate.getFullYear().toString().slice(-2);
-    const month = (orderDate.getMonth() + 1).toString().padStart(2, '0');
-    const orderSequence = "01";
-    return `${year}${month}-${orderSequence}`;
-  };
-
-  const handleOrderDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newDate = e.target.value;
-    setOrderDate(newDate);
-    setOrderNumber(generateOrderNumber(newDate));
-  };
-
-  const handleSubmit = async () => {
-    const orderElement = document.getElementById('order-content');
-    if (!orderElement) return;
-
-    try {
-      const canvas = await html2canvas(orderElement);
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgData = canvas.toDataURL('image/png');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`WholesaleOrder-${orderNumber}.pdf`);
-
-      toast({
-        title: "Success",
-        description: "Order has been processed and PDF has been downloaded.",
-      });
-
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to process the order. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const totalPallets = items.reduce((sum, item) => sum + (item.pallets || 0), 0);
 
   return (
     <AppLayout isAdminMode={isAdmin}>
@@ -273,26 +117,19 @@ export default function WholesaleOrder() {
                 />
               </div>
 
-              <div className="flex flex-col sm:flex-row justify-between gap-4 mt-4">
-                <Button 
-                  onClick={addRow} 
-                  className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white transition-all duration-300 w-full sm:w-auto"
-                >
-                  <Plus className="mr-2 h-5 w-5" />
-                  Add Row
-                </Button>
-                <Button 
-                  onClick={handleSubmit}
-                  className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white transition-all duration-300 w-full sm:w-auto"
-                  disabled={totalPallets === 0}
-                >
-                  Submit Order
-                </Button>
-              </div>
+              <OrderActions />
             </div>
           </CardContent>
         </Card>
       </div>
     </AppLayout>
+  );
+}
+
+export default function WholesaleOrder() {
+  return (
+    <WholesaleOrderProvider>
+      <WholesaleOrderContent />
+    </WholesaleOrderProvider>
   );
 }
