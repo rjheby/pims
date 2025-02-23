@@ -5,6 +5,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
+  DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown, Home, Truck } from "lucide-react";
 import { menuGroups } from "./constants";
@@ -66,23 +67,24 @@ export function DesktopNavigation({ className, ...props }: DesktopNavigationProp
                   </Button>
                 </DropdownMenuTrigger>
 
-                {/* 🛠️ FIX: Removed the wrapper div and applied styling directly to DropdownMenuContent items */}
-                <DropdownMenuContent>
+                {/* 🛠️ FIX: Removed extra div, correctly used DropdownMenuItem */}
+                <DropdownMenuContent align="start">
                   {group.items.map((item) => (
-                    <Link
-                      key={item.path}
-                      to={item.path}
-                      className={cn(
-                        "flex items-center gap-2 w-full px-3 py-2 rounded-md",
-                        "transition-all duration-200 ease-in-out",
-                        location.pathname === item.path
-                          ? "bg-[#2A4131] text-white"
-                          : "text-[#2A4131] hover:bg-[#F2E9D2]/50"
-                      )}
-                    >
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </Link>
+                    <DropdownMenuItem key={item.path} asChild>
+                      <Link
+                        to={item.path}
+                        className={cn(
+                          "flex items-center gap-2 w-full px-3 py-2 rounded-md",
+                          "transition-all duration-200 ease-in-out",
+                          location.pathname === item.path
+                            ? "bg-[#2A4131] text-white"
+                            : "text-[#2A4131] hover:bg-[#F2E9D2]/50"
+                        )}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
 
