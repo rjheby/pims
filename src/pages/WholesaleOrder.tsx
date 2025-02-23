@@ -89,8 +89,8 @@ function WholesaleOrderContent() {
   };
 
   return (
-    <div className="flex-1 min-h-screen">
-      <div className="max-w-[95rem] mx-auto p-2.5">
+    <div className="flex-1">
+      <div className="w-full max-w-[95rem] mx-auto">
         <Card className="shadow-sm">
           <CardHeader>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">

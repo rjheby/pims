@@ -30,25 +30,15 @@ export default function AppLayout({
         </div>
       )}
 
-      {/* Main Content with Sidebar */}
-      <div className="relative flex">
+      {/* Main Content with Top Navigation */}
+      <div className="relative flex flex-col">
         <AppSidebar 
           isCollapsed={isCollapsed}
           onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
           isMobileMenuOpen={isMobileMenuOpen}
           onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         />
-        <main 
-          style={{
-            '--sidebar-width': isCollapsed ? '4rem' : '12rem'
-          } as React.CSSProperties}
-          className={cn(
-            "flex-1 transition-all duration-300",
-            "px-2 md:px-3 pb-20 md:pb-8",
-            "md:ml-[var(--sidebar-width)]",
-            "w-[calc(100%-var(--sidebar-width))]"
-          )}
-        >
+        <main className="w-full min-h-screen px-2 md:px-4 pb-20 md:pb-8 pt-[72px]">
           <div className="py-4">
             {children}
           </div>

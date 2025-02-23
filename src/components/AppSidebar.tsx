@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -116,48 +115,25 @@ export function AppSidebar({
 
   const SidebarComponent = () => (
     <>
-      <div className="flex h-[72px] items-center justify-between border-b border-[#2A4131]/10 px-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onToggleCollapse}
-          className="hover:bg-[#F2E9D2]/50 md:flex hidden"
-        >
-          {isCollapsed ? (
-            <Menu className="h-5 w-5 text-[#2A4131]" />
-          ) : (
-            <ArrowLeft className="h-5 w-5 text-[#2A4131]" />
-          )}
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onMobileMenuToggle}
-          className="hover:bg-[#F2E9D2]/50 md:hidden"
-        >
-          <X className="h-5 w-5 text-[#2A4131]" />
-        </Button>
-        {(!isCollapsed || isMobileMenuOpen) && (
-          <div className="flex-1 flex justify-center items-center">
-            <img 
-              src="/lovable-uploads/21d56fd9-ffa2-4b0c-9d82-b10f7d03a546.png"
-              alt="Woodbourne Logo"
-              className="h-10 w-auto object-contain"
-            />
-          </div>
-        )}
+      <div className="flex h-[72px] items-center justify-between px-4 border-b border-[#2A4131]/10">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onMobileMenuToggle}
+            className="hover:bg-[#F2E9D2]/50 md:hidden"
+          >
+            <X className="h-5 w-5 text-[#2A4131]" />
+          </Button>
+          <img 
+            src="/lovable-uploads/21d56fd9-ffa2-4b0c-9d82-b10f7d03a546.png"
+            alt="Woodbourne Logo"
+            className="h-10 w-auto object-contain"
+          />
+        </div>
       </div>
       
       <SidebarContent>
-        {isCollapsed && !isMobileMenuOpen && (
-          <div className="px-2 py-4">
-            <img 
-              src="/lovable-uploads/2928b0a2-c7b1-43a0-8d17-f9230de4d3b5.png"
-              alt="Woodbourne Icon"
-              className="w-8 h-8 object-contain mx-auto"
-            />
-          </div>
-        )}
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -169,14 +145,13 @@ export function AppSidebar({
                       onClick={handleMenuItemClick}
                       className={cn(
                         "flex items-center gap-2 px-3 py-2 text-[15px] transition-colors",
-                        isCollapsed && !isMobileMenuOpen && "justify-center",
                         location.pathname === item.path 
                           ? "bg-[#2A4131] text-white" 
                           : "text-[#2A4131] hover:bg-[#F2E9D2]/50"
                       )}
                     >
                       <item.icon className="h-5 w-5" />
-                      {(!isCollapsed || isMobileMenuOpen) && <span>{item.title}</span>}
+                      <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -226,18 +201,35 @@ export function AppSidebar({
         </SheetContent>
       </Sheet>
 
-      {/* Desktop sidebar */}
-      <Sidebar 
-        style={{
-          '--sidebar-width': isCollapsed ? '4rem' : '12rem'
-        } as React.CSSProperties}
-        className={cn(
-          "border-r border-[#2A4131]/10 fixed left-0 top-0 h-screen transition-all duration-300 hidden md:block bg-white",
-          "w-[var(--sidebar-width)]"
-        )}
-      >
-        <SidebarComponent />
-      </Sidebar>
+      {/* Desktop top navigation */}
+      <div className="hidden md:block fixed top-0 left-0 right-0 h-[72px] bg-white border-b border-[#2A4131]/10 z-40">
+        <div className="flex items-center justify-between h-full px-4 max-w-[95rem] mx-auto">
+          <div className="flex items-center gap-4">
+            <img 
+              src="/lovable-uploads/21d56fd9-ffa2-4b0c-9d82-b10f7d03a546.png"
+              alt="Woodbourne Logo"
+              className="h-10 w-auto object-contain"
+            />
+          </div>
+          <div className="flex items-center gap-4">
+            {menuItems.map((item) => (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-2 text-[15px] transition-colors rounded-md",
+                  location.pathname === item.path 
+                    ? "bg-[#2A4131] text-white" 
+                    : "text-[#2A4131] hover:bg-[#F2E9D2]/50"
+                )}
+              >
+                <item.icon className="h-5 w-5" />
+                <span>{item.title}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </div>
     </>
   );
 }
