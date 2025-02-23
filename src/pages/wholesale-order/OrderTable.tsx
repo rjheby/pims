@@ -25,7 +25,6 @@ import {
 import { Minus, Copy, MoreHorizontal, Plus, Trash, Edit, Check, X } from "lucide-react";
 import { OrderItem, DropdownOptions } from "./types";
 import { KeyboardEvent, useState } from "react";
-import { addRow } from "./utils";
 
 interface OrderTableProps {
   items: OrderItem[];
@@ -217,7 +216,21 @@ export function OrderTable({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => addRow()}
+                  onClick={() => {
+                    const totalPallets = items.reduce((sum, item) => sum + (item.pallets || 0), 0);
+                    const newPallets = 0; // Default for new row
+
+                    if (totalPallets + newPallets > 24) {
+                      toast({
+                        title: "Warning",
+                        description: "Adding more pallets would exceed the 24-pallet limit for a tractor trailer.",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+
+                    onUpdateItem(item.id, "pallets", newPallets);
+                  }}
                   className="text-orange-500 hover:text-orange-700 hover:bg-orange-50"
                 >
                   <Plus className="h-4 w-4" />

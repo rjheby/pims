@@ -117,7 +117,7 @@ export default function WholesaleOrder() {
 
   const addRow = () => {
     const totalPallets = items.reduce((sum, item) => sum + (item.pallets || 0), 0);
-    const newPallets = 0; // Default for new row
+    const newPallets = 0;
 
     if (totalPallets + newPallets > 24) {
       toast({
