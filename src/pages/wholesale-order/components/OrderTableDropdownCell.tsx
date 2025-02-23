@@ -52,14 +52,24 @@ export function OrderTableDropdownCell({
 
   const handleSave = (oldValue: string) => {
     if (editedValue && editedValue !== oldValue) {
-      // Update this item and any other items using the old value
+      // First update all items that use the old value
+      const updatedOptions = { ...options };
+      const index = updatedOptions[field].indexOf(oldValue);
+      if (index !== -1) {
+        updatedOptions[field][index] = editedValue;
+      }
+      // Then update the current item
       onUpdateItem(item.id, field as keyof OrderItem, editedValue);
     }
     setEditingOptionValue(null);
   };
 
   const handleDeleteOption = (option: string) => {
-    // If the current item uses this option, clear its value
+    // First update the options list
+    const updatedOptions = { ...options };
+    updatedOptions[field] = options[field].filter(o => o !== option);
+    
+    // Then clear the value for this item if it was using the deleted option
     if (item[field as keyof OrderItem] === option) {
       onUpdateItem(item.id, field as keyof OrderItem, "");
     }
