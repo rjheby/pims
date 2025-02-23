@@ -67,7 +67,7 @@ export function DesktopNavigation({ className, ...props }: DesktopNavigationProp
                   </Button>
                 </DropdownMenuTrigger>
 
-                {/* 🛠️ FIX: Removed extra div, correctly used DropdownMenuItem */}
+                {/* 🛠️ FIX: Correctly using DropdownMenuItem inside DropdownMenuContent */}
                 <DropdownMenuContent align="start">
                   {group.items.map((item) => (
                     <DropdownMenuItem key={item.path} asChild>
