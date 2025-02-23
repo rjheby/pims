@@ -68,13 +68,12 @@ export function DesktopNavigation({ className, ...props }: DesktopNavigationProp
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">
-                  <div className="w-[180px] p-1">
-                    {group.items.map((item) => (
+                  {group.items.map((item) => (
+                    <DropdownMenuItem key={item.path} asChild>
                       <Link
-                        key={item.path}
                         to={item.path}
                         className={cn(
-                          "flex w-full items-center gap-2 px-2 py-1.5 rounded-md",
+                          "flex w-full items-center gap-2",
                           "transition-all duration-200 ease-in-out",
                           location.pathname === item.path
                             ? "bg-[#2A4131] text-white"
@@ -84,8 +83,8 @@ export function DesktopNavigation({ className, ...props }: DesktopNavigationProp
                         <item.icon className="h-4 w-4" />
                         <span>{item.title}</span>
                       </Link>
-                    ))}
-                  </div>
+                    </DropdownMenuItem>
+                  ))}
                 </DropdownMenuContent>
               </DropdownMenu>
             ))}
