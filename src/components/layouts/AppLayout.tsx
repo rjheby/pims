@@ -3,6 +3,8 @@ import { useState } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { cn } from "@/lib/utils";
 import { GlobalAdminControls } from "@/components/GlobalAdminControls";
+import { WholesaleOrderProvider } from "@/pages/wholesale-order/context/WholesaleOrderContext";
+import { useLocation } from "react-router-dom";
 
 export default function AppLayout({ 
   children,
@@ -13,6 +15,15 @@ export default function AppLayout({
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const location = useLocation();
+
+  const isWholesaleOrder = location.pathname === "/wholesale-order";
+
+  const adminControls = (
+    <div className="fixed top-0 right-0 z-50 px-4 py-2 bg-white border-b border-l border-[#2A4131]/10">
+      <GlobalAdminControls />
+    </div>
+  );
 
   return (
     <div className="relative min-h-screen">
@@ -32,14 +43,25 @@ export default function AppLayout({
           isMobileMenuOpen={isMobileMenuOpen}
           onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         />
-        <div className="fixed top-0 right-0 z-50 px-4 py-2 bg-white border-b border-l border-[#2A4131]/10">
-          <GlobalAdminControls />
-        </div>
-        <main className="w-full min-h-screen px-2 md:px-4 pb-20 md:pb-8 pt-[72px]">
-          <div className="py-4">
-            {children}
-          </div>
-        </main>
+        {isWholesaleOrder ? (
+          <WholesaleOrderProvider>
+            {adminControls}
+            <main className="w-full min-h-screen px-2 md:px-4 pb-20 md:pb-8 pt-[72px]">
+              <div className="py-4">
+                {children}
+              </div>
+            </main>
+          </WholesaleOrderProvider>
+        ) : (
+          <>
+            {adminControls}
+            <main className="w-full min-h-screen px-2 md:px-4 pb-20 md:pb-8 pt-[72px]">
+              <div className="py-4">
+                {children}
+              </div>
+            </main>
+          </>
+        )}
       </div>
     </div>
   );
