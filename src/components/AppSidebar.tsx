@@ -1,3 +1,4 @@
+
 import { Link, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -21,58 +22,79 @@ import {
   X,
   ArrowLeft,
   Warehouse,
+  LineChart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 
-const menuItems = [
-  {
-    title: "Dashboard",
-    icon: LayoutDashboard,
-    path: "/dashboard",
+const menuGroups = {
+  reports: {
+    title: "Reports",
+    items: [
+      {
+        title: "Dashboard",
+        icon: LayoutDashboard,
+        path: "/dashboard",
+      },
+      {
+        title: "Production Tracker",
+        icon: BarChart,
+        path: "/production",
+      },
+      {
+        title: "Payments",
+        icon: DollarSign,
+        path: "/driver-payments",
+      },
+    ],
   },
-  {
-    title: "Dispatch",
-    icon: Truck,
-    path: "/dispatch",
+  operations: {
+    title: "Operations",
+    items: [
+      {
+        title: "Dispatch",
+        icon: Truck,
+        path: "/dispatch",
+      },
+      {
+        title: "Client Orders",
+        icon: FileText,
+        path: "/client-order",
+      },
+      {
+        title: "Wholesale Orders",
+        icon: ClipboardList,
+        path: "/wholesale-order",
+      },
+    ],
   },
-  {
-    title: "Client Orders",
-    icon: FileText,
-    path: "/client-order",
+  databases: {
+    title: "Databases",
+    items: [
+      {
+        title: "Customers",
+        icon: Users,
+        path: "/customers",
+      },
+      {
+        title: "Inventory",
+        icon: Warehouse,
+        path: "/inventory",
+      },
+    ],
   },
-  {
-    title: "Wholesale Orders",
-    icon: ClipboardList,
-    path: "/wholesale-order",
-  },
-  {
-    title: "Customers",
-    icon: Users,
-    path: "/customers",
-  },
-  {
-    title: "Inventory",
-    icon: Warehouse,
-    path: "/inventory",
-  },
-  {
-    title: "Production Tracker",
-    icon: BarChart,
-    path: "/production",
-  },
-  {
-    title: "Payments",
-    icon: DollarSign,
-    path: "/driver-payments",
-  },
-  {
+  settings: {
     title: "Settings",
-    icon: Settings,
-    path: "/team-settings",
+    items: [
+      {
+        title: "Settings",
+        icon: Settings,
+        path: "/team-settings",
+      },
+    ],
   },
-];
+};
 
 const mobileNavItems = [
   {
@@ -141,23 +163,28 @@ export function AppSidebar({
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.path}>
-                  <SidebarMenuButton asChild>
-                    <Link
-                      to={item.path}
-                      onClick={handleMenuItemClick}
-                      className={cn(
-                        "flex items-center gap-2 px-3 py-2 text-[15px] transition-colors",
-                        location.pathname === item.path 
-                          ? "bg-[#2A4131] text-white" 
-                          : "text-[#2A4131] hover:bg-[#F2E9D2]/50"
-                      )}
-                    >
-                      <item.icon className="h-5 w-5" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
+              {Object.values(menuGroups).map((group) => (
+                <SidebarMenuItem key={group.title}>
+                  <div className="px-3 py-2 text-sm font-medium text-[#2A4131]/60">
+                    {group.title}
+                  </div>
+                  {group.items.map((item) => (
+                    <SidebarMenuButton key={item.path} asChild>
+                      <Link
+                        to={item.path}
+                        onClick={handleMenuItemClick}
+                        className={cn(
+                          "flex items-center gap-2 px-3 py-2 text-[15px] transition-colors",
+                          location.pathname === item.path 
+                            ? "bg-[#2A4131] text-white" 
+                            : "text-[#2A4131] hover:bg-[#F2E9D2]/50"
+                        )}
+                      >
+                        <item.icon className="h-5 w-5" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  ))}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
@@ -206,26 +233,35 @@ export function AppSidebar({
       </Sheet>
 
       {/* Desktop top navigation */}
-      <div className="hidden md:block fixed top-0 left-0 right-0 h-[72px] bg-white border-b border-[#2A4131]/10 z-40">
-        <div className="flex items-center justify-between h-full px-4 max-w-[95rem] mx-auto">
+      <div className="hidden md:block bg-white border-b border-[#2A4131]/10 z-40">
+        <div className="flex items-center justify-between h-[72px] px-4 max-w-[95rem] mx-auto">
           <div className="flex items-center gap-4">
             <Logo />
           </div>
-          <nav className="flex items-center gap-4 overflow-x-auto hide-scrollbar">
-            {menuItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-2 text-[15px] transition-colors rounded-md whitespace-nowrap",
-                  location.pathname === item.path 
-                    ? "bg-[#2A4131] text-white" 
-                    : "text-[#2A4131] hover:bg-[#F2E9D2]/50"
-                )}
-              >
-                <item.icon className="h-5 w-5" />
-                <span>{item.title}</span>
-              </Link>
+          <nav className="flex items-center gap-6 overflow-x-auto hide-scrollbar">
+            {Object.values(menuGroups).map((group) => (
+              <div key={group.title} className="flex flex-col items-start min-w-[120px]">
+                <span className="text-xs font-medium text-[#2A4131]/60 mb-1">
+                  {group.title}
+                </span>
+                <div className="flex gap-2">
+                  {group.items.map((item) => (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      className={cn(
+                        "flex items-center gap-1 px-2 py-1 text-sm transition-colors rounded-md",
+                        location.pathname === item.path 
+                          ? "bg-[#2A4131] text-white" 
+                          : "text-[#2A4131] hover:bg-[#F2E9D2]/50"
+                      )}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span className="whitespace-nowrap">{item.title}</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
             ))}
           </nav>
         </div>
