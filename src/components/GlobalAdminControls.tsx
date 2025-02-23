@@ -19,8 +19,13 @@ export function GlobalAdminControls() {
 
   const isWholesaleOrder = location.pathname === "/wholesale-order";
   
-  // Only get wholesale order context if we're on that page
-  const wholesaleOrder = isWholesaleOrder ? useWholesaleOrder() : null;
+  // Only try to use wholesale order context if we're on that page
+  let wholesaleOrder = null;
+  try {
+    wholesaleOrder = isWholesaleOrder ? useWholesaleOrder() : null;
+  } catch (error) {
+    // If we're not in the WholesaleOrderProvider context, this will fail gracefully
+  }
 
   const handleSave = () => {
     if (isWholesaleOrder && wholesaleOrder) {
