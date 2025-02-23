@@ -18,8 +18,7 @@ export default function AppLayout({
     <SidebarProvider defaultOpen={!isCollapsed}>
       <div className={cn(
         "min-h-screen flex w-full transition-colors duration-300",
-        isAdminMode ? "bg-[#FEE2E2]/20" : "bg-[#F2E9D2]/10",
-        "[&_[data-sidebar=sidebar]~div]:hidden" // This hides the spacing div
+        isAdminMode ? "bg-[#FEE2E2]/20" : "bg-[#F2E9D2]/10"
       )}>
         <AppSidebar 
           isCollapsed={isCollapsed}
@@ -28,9 +27,9 @@ export default function AppLayout({
           onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         />
         <main className={cn(
-          "flex-1 transition-all duration-300 pb-20 md:pb-8",
-          "px-4 md:px-6",
-          isCollapsed ? "md:ml-16" : "md:ml-[16rem]"
+          "flex-1 transition-all duration-300",
+          "px-4 md:px-6 pb-20 md:pb-8",
+          isCollapsed ? "md:ml-16" : "md:ml-64"
         )}>
           <div className="py-4">
             {children}
