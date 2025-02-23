@@ -1,3 +1,4 @@
+
 import { useState, useEffect, KeyboardEvent } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import AppLayout from "@/components/layouts/AppLayout";
 import { OrderDetails } from "./wholesale-order/OrderDetails";
 import { AdminControls } from "./wholesale-order/AdminControls";
 import { OrderTable } from "./wholesale-order/OrderTable";
@@ -224,75 +226,74 @@ export default function WholesaleOrder() {
   const totalPallets = items.reduce((sum, item) => sum + (item.pallets || 0), 0);
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h1 className="text-2xl md:text-3xl font-bold">
-          {orderNumber ? `New Wholesale Order ${orderNumber}` : 'New Wholesale Order'}
-        </h1>
-        <AdminControls 
-          isAdmin={isAdmin}
-          hasUnsavedChanges={hasUnsavedChanges}
-          onSave={saveChanges}
-          onDiscard={discardChanges}
-          onUndo={undoLastChange}
-          onToggleAdmin={handleAdminToggle}
-          canUndo={optionsHistory.length > 1}
-        />
-      </div>
-      
-      <Card className={cn(
-        "transition-all duration-1000",
-        isAdmin && "bg-[#D6BCFA] bg-opacity-5"
-      )}>
-        <CardHeader>
-          <CardTitle>New Wholesale Order</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4 md:space-y-6">
-          <div id="order-content">
-            <OrderDetails 
-              orderNumber={orderNumber}
-              orderDate={orderDate}
-              deliveryDate={deliveryDate}
-              onOrderDateChange={handleOrderDateChange}
-              onDeliveryDateChange={(e) => setDeliveryDate(e.target.value)}
-            />
-
-            <div className="overflow-x-auto mt-4">
-              <OrderTable 
-                items={items}
-                options={options}
-                isAdmin={isAdmin}
-                editingField={editingField}
-                newOption={newOption}
-                onNewOptionChange={setNewOption}
-                onKeyPress={handleKeyPress}
-                onEditField={setEditingField}
-                onUpdateItem={updateItem}
-                onRemoveRow={removeRow}
-                onCopyRow={copyRow}
-                generateItemName={generateItemName}
+    <AppLayout isAdminMode={isAdmin}>
+      <div className="space-y-4 md:space-y-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <h1 className="text-2xl md:text-3xl font-bold">
+            {orderNumber ? `New Wholesale Order ${orderNumber}` : 'New Wholesale Order'}
+          </h1>
+          <AdminControls 
+            isAdmin={isAdmin}
+            hasUnsavedChanges={hasUnsavedChanges}
+            onSave={saveChanges}
+            onDiscard={discardChanges}
+            onUndo={undoLastChange}
+            onToggleAdmin={handleAdminToggle}
+            canUndo={optionsHistory.length > 1}
+          />
+        </div>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>New Wholesale Order</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 md:space-y-6">
+            <div id="order-content">
+              <OrderDetails 
+                orderNumber={orderNumber}
+                orderDate={orderDate}
+                deliveryDate={deliveryDate}
+                onOrderDateChange={handleOrderDateChange}
+                onDeliveryDateChange={(e) => setDeliveryDate(e.target.value)}
               />
-            </div>
 
-            <div className="flex flex-col sm:flex-row justify-between gap-4 mt-4">
-              <Button 
-                onClick={addRow} 
-                className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white transition-all duration-300 w-full sm:w-auto"
-              >
-                <Plus className="mr-2 h-5 w-5" />
-                Add Row
-              </Button>
-              <Button 
-                onClick={handleSubmit}
-                className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white transition-all duration-300 w-full sm:w-auto"
-                disabled={totalPallets === 0}
-              >
-                Submit Order
-              </Button>
+              <div className="overflow-x-auto mt-4">
+                <OrderTable 
+                  items={items}
+                  options={options}
+                  isAdmin={isAdmin}
+                  editingField={editingField}
+                  newOption={newOption}
+                  onNewOptionChange={setNewOption}
+                  onKeyPress={handleKeyPress}
+                  onEditField={setEditingField}
+                  onUpdateItem={updateItem}
+                  onRemoveRow={removeRow}
+                  onCopyRow={copyRow}
+                  generateItemName={generateItemName}
+                />
+              </div>
+
+              <div className="flex flex-col sm:flex-row justify-between gap-4 mt-4">
+                <Button 
+                  onClick={addRow} 
+                  className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white transition-all duration-300 w-full sm:w-auto"
+                >
+                  <Plus className="mr-2 h-5 w-5" />
+                  Add Row
+                </Button>
+                <Button 
+                  onClick={handleSubmit}
+                  className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white transition-all duration-300 w-full sm:w-auto"
+                  disabled={totalPallets === 0}
+                >
+                  Submit Order
+                </Button>
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+          </CardContent>
+        </Card>
+      </div>
+    </AppLayout>
   );
 }

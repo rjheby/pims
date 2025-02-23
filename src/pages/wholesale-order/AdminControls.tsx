@@ -23,10 +23,7 @@ export function AdminControls({
   canUndo,
 }: AdminControlsProps) {
   return (
-    <div className={cn(
-      "flex gap-2",
-      isAdmin && "bg-[#FEE2E280] p-4 rounded-lg"
-    )}>
+    <div className="flex gap-2">
       {isAdmin && hasUnsavedChanges && (
         <>
           <Button 
