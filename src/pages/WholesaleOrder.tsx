@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import AppLayout from "@/components/layouts/AppLayout";
 import { OrderDetails } from "./wholesale-order/OrderDetails";
@@ -8,6 +9,7 @@ import { WholesaleOrderProvider, useWholesaleOrder } from "./wholesale-order/con
 import { useWindowEvents } from "./wholesale-order/hooks/useWindowEvents";
 import { useToast } from "@/hooks/use-toast";
 import { OrderItem } from "./wholesale-order/types";
+import { useState } from "react";
 
 function WholesaleOrderContent() {
   const { toast } = useToast();
@@ -36,6 +38,9 @@ function WholesaleOrderContent() {
   } = useWholesaleOrder();
 
   useWindowEvents();
+
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleAdminToggle = () => {
     if (isAdmin && hasUnsavedChanges) {
@@ -92,68 +97,68 @@ function WholesaleOrderContent() {
   };
 
   return (
-    <AppLayout isAdminMode={isAdmin}>
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-              <div>
-                <CardTitle>New Wholesale Order {orderNumber}</CardTitle>
-                <CardDescription>
-                  Create and manage wholesale orders
-                </CardDescription>
-              </div>
-              <AdminControls 
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <CardTitle>New Wholesale Order {orderNumber}</CardTitle>
+              <CardDescription>
+                Create and manage wholesale orders
+              </CardDescription>
+            </div>
+            <AdminControls 
+              isAdmin={isAdmin}
+              hasUnsavedChanges={hasUnsavedChanges}
+              onSave={saveChanges}
+              onDiscard={discardChanges}
+              onUndo={undoLastChange}
+              onToggleAdmin={handleAdminToggle}
+              canUndo={optionsHistory.length > 1}
+            />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div id="order-content" className="space-y-6">
+            <OrderDetails 
+              orderNumber={orderNumber}
+              orderDate={orderDate}
+              deliveryDate={deliveryDate}
+              onOrderDateChange={handleOrderDateChange}
+              onDeliveryDateChange={(e) => setDeliveryDate(e.target.value)}
+            />
+
+            <div className="overflow-x-auto">
+              <OrderTable 
+                items={items}
+                options={options}
                 isAdmin={isAdmin}
-                hasUnsavedChanges={hasUnsavedChanges}
-                onSave={saveChanges}
-                onDiscard={discardChanges}
-                onUndo={undoLastChange}
-                onToggleAdmin={handleAdminToggle}
-                canUndo={optionsHistory.length > 1}
+                editingField={editingField}
+                newOption={newOption}
+                onNewOptionChange={setNewOption}
+                onKeyPress={handleKeyPress}
+                onEditField={setEditingField}
+                onUpdateItem={updateItem}
+                onRemoveRow={removeRow}
+                onCopyRow={copyRow}
+                generateItemName={generateItemName}
               />
             </div>
-          </CardHeader>
-          <CardContent>
-            <div id="order-content" className="space-y-6">
-              <OrderDetails 
-                orderNumber={orderNumber}
-                orderDate={orderDate}
-                deliveryDate={deliveryDate}
-                onOrderDateChange={handleOrderDateChange}
-                onDeliveryDateChange={(e) => setDeliveryDate(e.target.value)}
-              />
 
-              <div className="overflow-x-auto">
-                <OrderTable 
-                  items={items}
-                  options={options}
-                  isAdmin={isAdmin}
-                  editingField={editingField}
-                  newOption={newOption}
-                  onNewOptionChange={setNewOption}
-                  onKeyPress={handleKeyPress}
-                  onEditField={setEditingField}
-                  onUpdateItem={updateItem}
-                  onRemoveRow={removeRow}
-                  onCopyRow={copyRow}
-                  generateItemName={generateItemName}
-                />
-              </div>
-
-              <OrderActions />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </AppLayout>
+            <OrderActions />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
 export default function WholesaleOrder() {
   return (
     <WholesaleOrderProvider>
-      <WholesaleOrderContent />
+      <AppLayout>
+        <WholesaleOrderContent />
+      </AppLayout>
     </WholesaleOrderProvider>
   );
 }
