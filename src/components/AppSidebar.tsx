@@ -1,10 +1,11 @@
+
 import { Link, useLocation } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
-  SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarGroupContent,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -109,12 +110,12 @@ export function AppSidebar({
 
   const SidebarComponent = () => (
     <>
-      <div className="flex h-20 items-center border-b border-[#2A4131]/10">
+      <div className="flex h-24 items-center justify-between border-b border-[#2A4131]/10 px-3">
         <Button
           variant="ghost"
           size="sm"
           onClick={onToggleCollapse}
-          className="ml-3 hover:bg-[#F2E9D2]/50 md:flex hidden"
+          className="hover:bg-[#F2E9D2]/50 md:flex hidden"
         >
           {isCollapsed ? (
             <Menu className="h-5 w-5 text-[#2A4131]" />
@@ -126,16 +127,16 @@ export function AppSidebar({
           variant="ghost"
           size="sm"
           onClick={onMobileMenuToggle}
-          className="ml-3 hover:bg-[#F2E9D2]/50 md:hidden"
+          className="hover:bg-[#F2E9D2]/50 md:hidden"
         >
           <X className="h-5 w-5 text-[#2A4131]" />
         </Button>
         {(!isCollapsed || isMobileMenuOpen) && (
-          <div className="ml-3">
+          <div className="flex-1 flex justify-center">
             <img 
-              src="/lovable-uploads/ac2a865c-fa71-490a-a544-ff3ecd59d4d5.png"
+              src="/lovable-uploads/21d56fd9-ffa2-4b0c-9d82-b10f7d03a546.png"
               alt="Woodbourne Logo"
-              className="h-12 w-auto"
+              className="h-16 w-auto"
             />
           </div>
         )}
