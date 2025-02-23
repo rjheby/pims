@@ -1,4 +1,6 @@
 
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -9,8 +11,6 @@ import {
 import { OrderItem, DropdownOptions } from "./types";
 import { OrderTableRow } from "./components/OrderTableRow";
 import { KeyboardEvent } from "react";
-import { DndContext, DragEndEvent, closestCenter } from "@dnd-kit/core";
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 
 interface OrderTableProps {
   items: OrderItem[];
@@ -25,7 +25,6 @@ interface OrderTableProps {
   onRemoveRow: (id: number) => void;
   onCopyRow: (item: OrderItem) => void;
   generateItemName: (item: OrderItem) => string;
-  onReorderItems?: (items: OrderItem[]) => void;
 }
 
 export function OrderTable({
@@ -41,61 +40,50 @@ export function OrderTable({
   onRemoveRow,
   onCopyRow,
   generateItemName,
-  onReorderItems,
 }: OrderTableProps) {
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    
-    if (over && active.id !== over.id) {
-      const oldIndex = items.findIndex(item => item.id.toString() === active.id);
-      const newIndex = items.findIndex(item => item.id.toString() === over.id);
-      
-      const newItems = [...items];
-      const [movedItem] = newItems.splice(oldIndex, 1);
-      newItems.splice(newIndex, 0, movedItem);
-      
-      onReorderItems?.(newItems);
-    }
-  };
-
   return (
-    <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            {isAdmin && <TableHead className="w-[50px]" />}
-            <TableHead className="w-1/4">Name</TableHead>
-            {Object.keys(options).map((field) => (
-              <TableHead key={field}>
-                <div className="flex items-center justify-between">
-                  <span>{field.charAt(0).toUpperCase() + field.slice(1)}</span>
-                </div>
-              </TableHead>
-            ))}
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          <SortableContext items={items.map(item => item.id.toString())} strategy={verticalListSortingStrategy}>
-            {items.map((item) => (
-              <OrderTableRow
-                key={item.id}
-                item={item}
-                options={options}
-                isAdmin={isAdmin}
-                editingField={editingField}
-                newOption={newOption}
-                onNewOptionChange={onNewOptionChange}
-                onKeyPress={onKeyPress}
-                onUpdateItem={onUpdateItem}
-                onRemoveRow={onRemoveRow}
-                onCopyRow={onCopyRow}
-                generateItemName={generateItemName}
-              />
-            ))}
-          </SortableContext>
-        </TableBody>
-      </Table>
-    </DndContext>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead className="w-1/4">Name</TableHead>
+          {Object.keys(options).map((field) => (
+            <TableHead key={field}>
+              <div className="flex items-center justify-between">
+                <span>{field.charAt(0).toUpperCase() + field.slice(1)}</span>
+                {isAdmin && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onEditField(field as keyof DropdownOptions)}
+                    className="text-xs text-[#2A4131] hover:bg-[#F2E9D2]/50"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </TableHead>
+          ))}
+          <TableHead>Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {items.map((item) => (
+          <OrderTableRow
+            key={item.id}
+            item={item}
+            options={options}
+            isAdmin={isAdmin}
+            editingField={editingField}
+            newOption={newOption}
+            onNewOptionChange={onNewOptionChange}
+            onKeyPress={onKeyPress}
+            onUpdateItem={onUpdateItem}
+            onRemoveRow={onRemoveRow}
+            onCopyRow={onCopyRow}
+            generateItemName={generateItemName}
+          />
+        ))}
+      </TableBody>
+    </Table>
   );
 }
