@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/sidebar";
 import {
   FileText,
-  Database,
+  Users,
   Settings,
   BarChart,
   Truck,
@@ -21,6 +21,7 @@ import {
   Menu,
   X,
   ArrowLeft,
+  Warehouse,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -38,34 +39,24 @@ const menuItems = [
     path: "/dispatch",
   },
   {
-    group: "Order Forms",
-    items: [
-      {
-        title: "Client Order Form",
-        icon: FileText,
-        path: "/client-order",
-      },
-      {
-        title: "Wholesale Order Form",
-        icon: ClipboardList,
-        path: "/wholesale-order",
-      },
-    ],
+    title: "Client Orders",
+    icon: FileText,
+    path: "/client-order",
   },
   {
-    group: "Databases",
-    items: [
-      {
-        title: "Customers",
-        icon: Database,
-        path: "/customers",
-      },
-      {
-        title: "Inventory",
-        icon: FileText,
-        path: "/inventory",
-      },
-    ],
+    title: "Wholesale Orders",
+    icon: ClipboardList,
+    path: "/wholesale-order",
+  },
+  {
+    title: "Customers",
+    icon: Users,
+    path: "/customers",
+  },
+  {
+    title: "Inventory",
+    icon: Warehouse,
+    path: "/inventory",
   },
   {
     title: "Production Tracker",
