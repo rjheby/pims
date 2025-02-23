@@ -15,7 +15,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Edit, MoreHorizontal, Trash } from "lucide-react";
+import { Edit, MoreHorizontal, Trash, Pencil } from "lucide-react";
 import { OrderItem, DropdownOptions } from "../types";
 import { useState } from "react";
 
@@ -44,6 +44,7 @@ export function OrderTableDropdownCell({
 }: OrderTableDropdownCellProps) {
   const [editingOption, setEditingOption] = useState<string | null>(null);
   const [editedValue, setEditedValue] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
 
   const handleStartEdit = (option: string) => {
     setEditingOption(option);
@@ -66,11 +67,30 @@ export function OrderTableDropdownCell({
       <Select 
         value={item[field as keyof OrderItem] as string} 
         onValueChange={(value) => onUpdateItem(item.id, field as keyof OrderItem, value)}
+        open={isOpen}
+        onOpenChange={setIsOpen}
       >
         <SelectTrigger className="w-full">
           <SelectValue placeholder="Select" />
+          {isAdmin && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="ml-2 p-0 h-4 hover:bg-transparent"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsOpen(true);
+              }}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+          )}
         </SelectTrigger>
         <SelectContent>
+          <div className="flex items-center justify-between p-2 border-b">
+            <span className="text-sm font-medium">{field.charAt(0).toUpperCase() + field.slice(1)}</span>
+          </div>
           {options[field].map((option) => (
             <div key={option} className="flex items-center justify-between">
               <SelectItem value={option}>
@@ -115,13 +135,13 @@ export function OrderTableDropdownCell({
               )}
             </div>
           ))}
-          {isAdmin && editingField === field && (
+          {isAdmin && (
             <div className="p-2 border-t">
               <Input
                 value={newOption}
                 onChange={(e) => onNewOptionChange(e.target.value)}
                 onKeyPress={(e) => onKeyPress(e, field)}
-                placeholder="Type and press Enter"
+                placeholder="Type and press Enter to add"
                 className="w-full"
               />
             </div>
