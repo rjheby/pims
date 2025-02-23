@@ -5,70 +5,77 @@ import { cn } from "@/lib/utils";
 import { useAdmin } from "@/context/AdminContext";
 import { useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useWholesaleOrder } from "@/pages/wholesale-order/context/WholesaleOrderContext";
 
 export function GlobalAdminControls() {
   const { 
     isAdmin, 
     hasUnsavedChanges, 
     handleAdminToggle,
-    markContentChanged
+    setHasUnsavedChanges
   } = useAdmin();
   const location = useLocation();
   const { toast } = useToast();
 
   const isWholesaleOrder = location.pathname === "/wholesale-order";
+  
+  // Only get wholesale order context if we're on that page
+  const wholesaleOrder = isWholesaleOrder ? useWholesaleOrder() : null;
 
   const handleSave = () => {
-    if (isWholesaleOrder) {
-      // Let WholesaleOrder handle its own save logic
-      return;
+    if (isWholesaleOrder && wholesaleOrder) {
+      wholesaleOrder.saveChanges();
+      setHasUnsavedChanges(false);
+    } else {
+      // Generic save logic for other pages
+      toast({
+        title: "Changes saved",
+        description: "Your changes have been saved successfully.",
+      });
+      setHasUnsavedChanges(false);
     }
-    
-    // Generic save logic for other pages
-    toast({
-      title: "Changes saved",
-      description: "Your changes have been saved successfully.",
-    });
   };
 
   const handleDiscard = () => {
-    if (isWholesaleOrder) {
-      // Let WholesaleOrder handle its own discard logic
-      return;
+    if (isWholesaleOrder && wholesaleOrder) {
+      wholesaleOrder.discardChanges();
+      setHasUnsavedChanges(false);
+    } else {
+      // Generic discard logic for other pages
+      toast({
+        title: "Changes discarded",
+        description: "Your changes have been discarded.",
+      });
+      setHasUnsavedChanges(false);
     }
-
-    // Generic discard logic for other pages
-    toast({
-      title: "Changes discarded",
-      description: "Your changes have been discarded.",
-    });
   };
 
   const handleUndo = () => {
-    if (isWholesaleOrder) {
-      // Let WholesaleOrder handle its own undo logic
-      return;
+    if (isWholesaleOrder && wholesaleOrder) {
+      wholesaleOrder.undoLastChange();
+    } else {
+      // Generic undo logic for other pages
+      toast({
+        title: "Action undone",
+        description: "Your last change has been undone.",
+      });
     }
-
-    // Generic undo logic for other pages
-    toast({
-      title: "Action undone",
-      description: "Your last change has been undone.",
-    });
   };
 
   return (
     <div className="flex gap-2">
       {isAdmin && hasUnsavedChanges && (
         <>
-          <Button 
-            variant="outline" 
-            onClick={handleUndo}
-            className="border-[#2A4131] text-[#2A4131] hover:bg-[#F2E9D2]"
-          >
-            <Undo className="mr-2 h-4 w-4" />
-            Undo
-          </Button>
+          {isWholesaleOrder && wholesaleOrder?.optionsHistory.length > 1 && (
+            <Button 
+              variant="outline" 
+              onClick={handleUndo}
+              className="border-[#2A4131] text-[#2A4131] hover:bg-[#F2E9D2]"
+            >
+              <Undo className="mr-2 h-4 w-4" />
+              Undo
+            </Button>
+          )}
           <Button 
             variant="default"
             onClick={handleSave}
@@ -89,7 +96,10 @@ export function GlobalAdminControls() {
       )}
       <Button 
         variant="outline" 
-        onClick={() => handleAdminToggle()}
+        onClick={() => handleAdminToggle({
+          onSave: handleSave,
+          onDiscard: handleDiscard,
+        })}
         className={cn(
           "transition-all duration-300",
           isAdmin 
