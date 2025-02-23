@@ -152,7 +152,9 @@ function WholesaleOrderContent() {
 export default function WholesaleOrder() {
   return (
     <WholesaleOrderProvider>
-      <WholesaleOrderContent />
+      <AppLayout>
+        <WholesaleOrderContent />
+      </AppLayout>
     </WholesaleOrderProvider>
   );
 }
