@@ -20,7 +20,7 @@ export default function AppLayout({
   const isWholesaleOrder = location.pathname === "/wholesale-order";
 
   const adminControls = (
-    <div className="fixed top-0 right-0 z-50 px-4 py-2 bg-white border-b border-l border-[#2A4131]/10">
+    <div className="fixed top-0 right-0 z-50 px-4 py-2 bg-white">
       <GlobalAdminControls />
     </div>
   );
