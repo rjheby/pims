@@ -1,6 +1,4 @@
-
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import AppLayout from "@/components/layouts/AppLayout";
 import { OrderDetails } from "./wholesale-order/OrderDetails";
 import { AdminControls } from "./wholesale-order/AdminControls";
 import { OrderTable } from "./wholesale-order/OrderTable";
@@ -152,9 +150,7 @@ function WholesaleOrderContent() {
 export default function WholesaleOrder() {
   return (
     <WholesaleOrderProvider>
-      <AppLayout>
-        <WholesaleOrderContent />
-      </AppLayout>
+      <WholesaleOrderContent />
     </WholesaleOrderProvider>
   );
 }
