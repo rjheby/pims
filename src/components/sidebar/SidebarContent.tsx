@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
@@ -36,7 +35,7 @@ export function SidebarContent({ onMobileMenuToggle, ...props }: SidebarContentP
                     {group.title}
                   </div>
                   {group.items.map((item) => (
-                    <div key={item.path} className="bg-white">
+                    <SidebarMenuItem key={item.path} asChild>
                       <Link
                         to={item.path}
                         onClick={handleMenuItemClick}
@@ -51,7 +50,7 @@ export function SidebarContent({ onMobileMenuToggle, ...props }: SidebarContentP
                         <item.icon className="h-5 w-5" />
                         <span>{item.title}</span>
                       </Link>
-                    </div>
+                    </SidebarMenuItem>
                   ))}
                 </SidebarMenuItem>
               ))}
