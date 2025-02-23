@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { OrderDetails } from "./wholesale-order/OrderDetails";
 import { AdminControls } from "./wholesale-order/AdminControls";
@@ -7,6 +8,7 @@ import { WholesaleOrderProvider, useWholesaleOrder } from "./wholesale-order/con
 import { useWindowEvents } from "./wholesale-order/hooks/useWindowEvents";
 import { useToast } from "@/hooks/use-toast";
 import { OrderItem } from "./wholesale-order/types";
+import AppLayout from "@/components/layouts/AppLayout";
 
 function WholesaleOrderContent() {
   const { toast } = useToast();
@@ -150,7 +152,17 @@ function WholesaleOrderContent() {
 export default function WholesaleOrder() {
   return (
     <WholesaleOrderProvider>
-      <WholesaleOrderContent />
+      <WholesaleOrderWrapper />
     </WholesaleOrderProvider>
+  );
+}
+
+function WholesaleOrderWrapper() {
+  const { isAdmin } = useWholesaleOrder();
+  
+  return (
+    <AppLayout isAdminMode={isAdmin}>
+      <WholesaleOrderContent />
+    </AppLayout>
   );
 }
