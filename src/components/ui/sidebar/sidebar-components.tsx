@@ -10,6 +10,85 @@ import { TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { SIDEBAR_WIDTH_MOBILE, useSidebar } from "./sidebar-context"
 
+export interface SidebarContentProps extends React.HTMLAttributes<HTMLDivElement> {}
+
+export const SidebarContent = React.forwardRef<HTMLDivElement, SidebarContentProps>(
+  ({ className, ...props }, ref) => {
+    return (
+      <div
+        ref={ref}
+        data-sidebar="content"
+        className={cn(
+          "flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden",
+          className
+        )}
+        {...props}
+      />
+    )
+  }
+)
+SidebarContent.displayName = "SidebarContent"
+
+export interface SidebarGroupProps extends React.HTMLAttributes<HTMLDivElement> {}
+
+export const SidebarGroup = React.forwardRef<HTMLDivElement, SidebarGroupProps>(
+  ({ className, ...props }, ref) => {
+    return (
+      <div
+        ref={ref}
+        data-sidebar="group"
+        className={cn("relative flex w-full min-w-0 flex-col p-2", className)}
+        {...props}
+      />
+    )
+  }
+)
+SidebarGroup.displayName = "SidebarGroup"
+
+export interface SidebarGroupContentProps extends React.HTMLAttributes<HTMLDivElement> {}
+
+export const SidebarGroupContent = React.forwardRef<HTMLDivElement, SidebarGroupContentProps>(
+  ({ className, ...props }, ref) => {
+    return (
+      <div
+        ref={ref}
+        data-sidebar="group-content"
+        className={cn("w-full text-sm", className)}
+        {...props}
+      />
+    )
+  }
+)
+SidebarGroupContent.displayName = "SidebarGroupContent"
+
+export interface SidebarMenuProps extends React.HTMLAttributes<HTMLUListElement> {}
+
+export const SidebarMenu = React.forwardRef<HTMLUListElement, SidebarMenuProps>(
+  ({ className, ...props }, ref) => (
+    <ul
+      ref={ref}
+      data-sidebar="menu"
+      className={cn("flex w-full min-w-0 flex-col gap-1", className)}
+      {...props}
+    />
+  )
+)
+SidebarMenu.displayName = "SidebarMenu"
+
+export interface SidebarMenuItemProps extends React.HTMLAttributes<HTMLLIElement> {}
+
+export const SidebarMenuItem = React.forwardRef<HTMLLIElement, SidebarMenuItemProps>(
+  ({ className, ...props }, ref) => (
+    <li
+      ref={ref}
+      data-sidebar="menu-item"
+      className={cn("group/menu-item relative", className)}
+      {...props}
+    />
+  )
+)
+SidebarMenuItem.displayName = "SidebarMenuItem"
+
 export const Sidebar = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
@@ -236,39 +315,6 @@ export const SidebarSeparator = React.forwardRef<
   )
 })
 SidebarSeparator.displayName = "SidebarSeparator"
-
-export const SidebarContent = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => {
-  return (
-    <div
-      ref={ref}
-      data-sidebar="content"
-      className={cn(
-        "flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden",
-        className
-      )}
-      {...props}
-    />
-  )
-})
-SidebarContent.displayName = "SidebarContent"
-
-export const SidebarGroup = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => {
-  return (
-    <div
-      ref={ref}
-      data-sidebar="group"
-      className={cn("relative flex w-full min-w-0 flex-col p-2", className)}
-      {...props}
-    />
-  )
-})
-SidebarGroup.displayName = "SidebarGroup"
 
 export const SidebarGroupLabel = React.forwardRef<
   HTMLDivElement,
