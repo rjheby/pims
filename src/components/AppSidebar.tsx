@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -29,49 +28,59 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 const menuItems = [
   {
-    title: "Main Dashboard",
+    title: "Dashboard",
     icon: LayoutDashboard,
     path: "/dashboard",
   },
   {
-    title: "Dispatch & Delivery",
+    title: "Dispatch",
     icon: Truck,
     path: "/dispatch",
   },
   {
-    title: "Driver Payments",
-    icon: DollarSign,
-    path: "/driver-payments",
+    group: "Order Forms",
+    items: [
+      {
+        title: "Client Order Form",
+        icon: FileText,
+        path: "/client-order",
+      },
+      {
+        title: "Wholesale Order Form",
+        icon: ClipboardList,
+        path: "/wholesale-order",
+      },
+    ],
   },
   {
-    title: "Client Order Form",
-    icon: FileText,
-    path: "/client-order",
-  },
-  {
-    title: "Wholesale Order Form",
-    icon: ClipboardList,
-    path: "/wholesale-order",
-  },
-  {
-    title: "Customer Database",
-    icon: Database,
-    path: "/customers",
-  },
-  {
-    title: "Inventory Master List",
-    icon: FileText,
-    path: "/inventory",
-  },
-  {
-    title: "Team Settings",
-    icon: Settings,
-    path: "/team-settings",
+    group: "Databases",
+    items: [
+      {
+        title: "Customers",
+        icon: Database,
+        path: "/customers",
+      },
+      {
+        title: "Inventory",
+        icon: FileText,
+        path: "/inventory",
+      },
+    ],
   },
   {
     title: "Production Tracker",
     icon: BarChart,
     path: "/production",
+  },
+  {
+    title: "Payments",
+    icon: DollarSign,
+    path: "/driver-payments",
+  },
+  {
+    title: "Settings",
+    icon: Settings,
+    path: "/team-settings",
   },
 ];
 
@@ -132,11 +141,11 @@ export function AppSidebar({
           <X className="h-5 w-5 text-[#2A4131]" />
         </Button>
         {(!isCollapsed || isMobileMenuOpen) && (
-          <div className="flex-1 flex justify-center">
+          <div className="flex-1 flex justify-center items-center">
             <img 
               src="/lovable-uploads/21d56fd9-ffa2-4b0c-9d82-b10f7d03a546.png"
               alt="Woodbourne Logo"
-              className="h-16 w-auto"
+              className="h-12 w-auto object-contain"
             />
           </div>
         )}
@@ -148,39 +157,71 @@ export function AppSidebar({
             <img 
               src="/lovable-uploads/2928b0a2-c7b1-43a0-8d17-f9230de4d3b5.png"
               alt="Woodbourne Icon"
-              className="w-12 h-12 object-contain mx-auto"
+              className="w-10 h-10 object-contain mx-auto"
             />
           </div>
         )}
         <SidebarGroup>
-          <SidebarGroupLabel className={cn(
-            "px-6 text-base font-medium text-[#2A4131]",
-            isCollapsed && !isMobileMenuOpen && "sr-only"
-          )}>
-            Menu
-          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.path}>
-                  <SidebarMenuButton asChild>
-                    <Link
-                      to={item.path}
-                      onClick={() => onMobileMenuToggle()}
-                      className={cn(
-                        "flex items-center gap-2 px-6 py-2 text-[15px] transition-colors",
-                        isCollapsed && !isMobileMenuOpen && "px-3 justify-center",
-                        location.pathname === item.path 
-                          ? "bg-[#2A4131] text-white" 
-                          : "text-[#2A4131] hover:bg-[#F2E9D2]/50"
-                      )}
-                    >
-                      <item.icon className="h-5 w-5" />
-                      {(!isCollapsed || isMobileMenuOpen) && <span>{item.title}</span>}
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {menuItems.map((item) => {
+                if ('group' in item) {
+                  return (
+                    <SidebarGroup key={item.group}>
+                      <SidebarGroupLabel className={cn(
+                        "px-6 text-base font-medium text-[#2A4131]",
+                        isCollapsed && !isMobileMenuOpen && "sr-only"
+                      )}>
+                        {item.group}
+                      </SidebarGroupLabel>
+                      <SidebarGroupContent>
+                        <SidebarMenu>
+                          {item.items.map((subItem) => (
+                            <SidebarMenuItem key={subItem.path}>
+                              <SidebarMenuButton asChild>
+                                <Link
+                                  to={subItem.path}
+                                  onClick={() => onMobileMenuToggle()}
+                                  className={cn(
+                                    "flex items-center gap-2 px-6 py-2 text-[15px] transition-colors",
+                                    isCollapsed && !isMobileMenuOpen && "px-3 justify-center",
+                                    location.pathname === subItem.path 
+                                      ? "bg-[#2A4131] text-white" 
+                                      : "text-[#2A4131] hover:bg-[#F2E9D2]/50"
+                                  )}
+                                >
+                                  <subItem.icon className="h-5 w-5" />
+                                  {(!isCollapsed || isMobileMenuOpen) && <span>{subItem.title}</span>}
+                                </Link>
+                              </SidebarMenuButton>
+                            </SidebarMenuItem>
+                          ))}
+                        </SidebarMenu>
+                      </SidebarGroupContent>
+                    </SidebarGroup>
+                  );
+                }
+                return (
+                  <SidebarMenuItem key={item.path}>
+                    <SidebarMenuButton asChild>
+                      <Link
+                        to={item.path}
+                        onClick={() => onMobileMenuToggle()}
+                        className={cn(
+                          "flex items-center gap-2 px-6 py-2 text-[15px] transition-colors",
+                          isCollapsed && !isMobileMenuOpen && "px-3 justify-center",
+                          location.pathname === item.path 
+                            ? "bg-[#2A4131] text-white" 
+                            : "text-[#2A4131] hover:bg-[#F2E9D2]/50"
+                        )}
+                      >
+                        <item.icon className="h-5 w-5" />
+                        {(!isCollapsed || isMobileMenuOpen) && <span>{item.title}</span>}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

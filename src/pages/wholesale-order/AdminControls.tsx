@@ -23,7 +23,10 @@ export function AdminControls({
   canUndo,
 }: AdminControlsProps) {
   return (
-    <div className="flex gap-2">
+    <div className={cn(
+      "flex gap-2",
+      isAdmin && "bg-[#FEE2E280] p-4 rounded-lg"
+    )}>
       {isAdmin && hasUnsavedChanges && (
         <>
           <Button 
@@ -59,8 +62,8 @@ export function AdminControls({
         className={cn(
           "transition-all duration-300",
           isAdmin 
-            ? "border-red-600 text-red-600 hover:bg-red-50"
-            : "border-[#2A4131] text-[#2A4131] hover:bg-[#F2E9D2]"
+            ? "border-red-700 bg-red-600 text-white hover:bg-red-700"
+            : "border-red-600 text-red-600 hover:bg-red-50"
         )}
       >
         {isAdmin ? "Exit Admin Mode" : "Admin Mode"}
