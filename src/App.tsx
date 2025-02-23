@@ -8,6 +8,7 @@ import { AdminProvider } from "./context/AdminContext";
 import { AdminOverlay } from "./components/AdminOverlay";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import Dashboard from "@/pages/Dashboard";
+import Index from "@/pages/Index";
 import { WholesaleOrder } from "@/pages/WholesaleOrder";
 import Production from "@/pages/Production";
 import DispatchDelivery from "@/pages/DispatchDelivery";
@@ -28,7 +29,8 @@ function App() {
               <AdminOverlay />
               <AppLayout>
                 <Routes>
-                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/" element={<Index />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/wholesale-order" element={<WholesaleOrder />} />
                   <Route path="/production" element={<Production />} />
                   <Route path="/dispatch" element={<DispatchDelivery />} />
