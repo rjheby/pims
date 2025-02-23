@@ -64,25 +64,25 @@ export function DesktopNavigation() {
                     <ChevronDown className="h-4 w-4 opacity-50" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="start"
-                >
+                <DropdownMenuContent align="start">
                   {group.items.map((item) => (
-                    <DropdownMenuItem key={item.path} asChild>
-                      <Link
-                        to={item.path}
-                        className={cn(
-                          "flex items-center gap-2 cursor-pointer w-[180px] bg-white",
-                          "transition-all duration-200 ease-in-out",
-                          location.pathname === item.path
-                            ? "bg-[#2A4131] text-white"
-                            : "text-[#2A4131] hover:bg-[#F2E9D2]/50"
-                        )}
-                      >
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.title}</span>
-                      </Link>
-                    </DropdownMenuItem>
+                    <div key={item.path} className="w-[180px]">
+                      <DropdownMenuItem asChild>
+                        <Link
+                          to={item.path}
+                          className={cn(
+                            "flex items-center gap-2 cursor-pointer bg-white w-full",
+                            "transition-all duration-200 ease-in-out",
+                            location.pathname === item.path
+                              ? "bg-[#2A4131] text-white"
+                              : "text-[#2A4131] hover:bg-[#F2E9D2]/50"
+                          )}
+                        >
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.title}</span>
+                        </Link>
+                      </DropdownMenuItem>
+                    </div>
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>

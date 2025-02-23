@@ -35,22 +35,24 @@ export function SidebarContent({ onMobileMenuToggle }: SidebarContentProps) {
                   {group.title}
                 </div>
                 {group.items.map((item) => (
-                  <SidebarMenuButton key={item.path}>
-                    <Link
-                      to={item.path}
-                      onClick={handleMenuItemClick}
-                      className={cn(
-                        "flex items-center gap-2 px-3 py-2 text-[15px] rounded-md",
-                        "transition-all duration-200 ease-in-out",
-                        location.pathname === item.path 
-                          ? "bg-[#2A4131] text-white font-medium" 
-                          : "text-[#2A4131] hover:bg-[#F2E9D2]/50"
-                      )}
-                    >
-                      <item.icon className="h-5 w-5" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
+                  <div key={item.path}>
+                    <SidebarMenuButton>
+                      <Link
+                        to={item.path}
+                        onClick={handleMenuItemClick}
+                        className={cn(
+                          "flex items-center gap-2 px-3 py-2 text-[15px] rounded-md",
+                          "transition-all duration-200 ease-in-out",
+                          location.pathname === item.path 
+                            ? "bg-[#2A4131] text-white font-medium" 
+                            : "text-[#2A4131] hover:bg-[#F2E9D2]/50"
+                        )}
+                      >
+                        <item.icon className="h-5 w-5" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </div>
                 ))}
               </SidebarMenuItem>
             ))}
