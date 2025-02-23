@@ -65,13 +65,13 @@ export function DesktopNavigation() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">
-                  {group.items.map((item) => (
-                    <div key={item.path} className="w-[180px]">
-                      <DropdownMenuItem asChild>
+                  <div className="w-[180px]">
+                    {group.items.map((item) => (
+                      <DropdownMenuItem key={item.path} asChild>
                         <Link
                           to={item.path}
                           className={cn(
-                            "flex items-center gap-2 cursor-pointer bg-white w-full",
+                            "flex items-center gap-2 cursor-pointer w-full",
                             "transition-all duration-200 ease-in-out",
                             location.pathname === item.path
                               ? "bg-[#2A4131] text-white"
@@ -82,8 +82,8 @@ export function DesktopNavigation() {
                           <span>{item.title}</span>
                         </Link>
                       </DropdownMenuItem>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </DropdownMenuContent>
               </DropdownMenu>
             ))}
