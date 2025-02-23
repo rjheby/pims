@@ -3,6 +3,9 @@ import { TableCell, TableRow } from "@/components/ui/table";
 import { OrderItem, DropdownOptions } from "../types";
 import { OrderTableDropdownCell } from "./OrderTableDropdownCell";
 import { OrderTableActions } from "./OrderTableActions";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { GripVertical } from "lucide-react";
 
 interface OrderTableRowProps {
   item: OrderItem;
@@ -31,8 +34,34 @@ export function OrderTableRow({
   onCopyRow,
   generateItemName,
 }: OrderTableRowProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id.toString() });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
   return (
-    <TableRow>
+    <TableRow ref={setNodeRef} style={style}>
+      {isAdmin && (
+        <TableCell>
+          <div
+            {...attributes}
+            {...listeners}
+            className="cursor-grab hover:cursor-grabbing"
+          >
+            <GripVertical className="h-4 w-4 text-gray-400" />
+          </div>
+        </TableCell>
+      )}
       <TableCell className="w-full md:w-1/4 min-w-[200px] text-base md:text-sm">
         {generateItemName(item) || (
           <div className="h-6 bg-muted/20 rounded animate-pulse" />
