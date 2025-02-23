@@ -74,6 +74,24 @@ const menuItems = [
   },
 ];
 
+const mobileNavItems = [
+  {
+    title: "Dashboard",
+    icon: LayoutDashboard,
+    path: "/dashboard",
+  },
+  {
+    title: "Dispatch",
+    icon: Truck,
+    path: "/dispatch",
+  },
+  {
+    title: "Settings",
+    icon: Settings,
+    path: "/team-settings",
+  },
+];
+
 interface AppSidebarProps {
   isCollapsed: boolean;
   onToggleCollapse: () => void;
@@ -89,7 +107,7 @@ export function AppSidebar({
 }: AppSidebarProps) {
   const location = useLocation();
 
-  const SidebarContent = () => (
+  const SidebarComponent = () => (
     <>
       <div className="flex h-20 items-center border-b border-[#2A4131]/10">
         <Button
@@ -165,23 +183,38 @@ export function AppSidebar({
     </>
   );
 
-  // Mobile menu
   return (
     <>
-      {/* Mobile menu trigger */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={onMobileMenuToggle}
-        className="fixed top-4 left-4 z-50 md:hidden hover:bg-[#F2E9D2]/50"
-      >
-        <Menu className="h-5 w-5 text-[#2A4131]" />
-      </Button>
+      {/* Mobile bottom navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#2A4131]/10 md:hidden z-50">
+        <div className="flex items-center justify-around h-16">
+          {mobileNavItems.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={cn(
+                "flex flex-col items-center justify-center w-16 h-16 text-[#2A4131] transition-colors",
+                location.pathname === item.path && "text-[#2A4131] font-medium"
+              )}
+            >
+              <item.icon className="h-6 w-6" />
+              <span className="text-xs mt-1">{item.title}</span>
+            </Link>
+          ))}
+          <button
+            onClick={onMobileMenuToggle}
+            className="flex flex-col items-center justify-center w-16 h-16 text-[#2A4131]"
+          >
+            <Menu className="h-6 w-6" />
+            <span className="text-xs mt-1">Menu</span>
+          </button>
+        </div>
+      </div>
 
       {/* Mobile slide-out menu */}
       <Sheet open={isMobileMenuOpen} onOpenChange={onMobileMenuToggle}>
         <SheetContent side="left" className="p-0 w-64">
-          <SidebarContent />
+          <SidebarComponent />
         </SheetContent>
       </Sheet>
 
@@ -190,7 +223,7 @@ export function AppSidebar({
         "border-r border-[#2A4131]/10 fixed left-0 top-0 h-screen transition-all duration-300 hidden md:block",
         isCollapsed ? "w-16" : "w-64"
       )}>
-        <SidebarContent />
+        <SidebarComponent />
       </Sidebar>
     </>
   );

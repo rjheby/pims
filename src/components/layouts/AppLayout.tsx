@@ -18,7 +18,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         />
         <main className={cn(
-          "flex-1 p-4 transition-all duration-300",
+          "flex-1 p-4 transition-all duration-300 pb-20 md:pb-4",
           isCollapsed ? "md:ml-16" : "md:ml-64"
         )}>
           {children}
