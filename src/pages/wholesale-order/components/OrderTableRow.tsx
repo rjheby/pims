@@ -34,7 +34,9 @@ export function OrderTableRow({
   return (
     <TableRow>
       <TableCell className="w-full md:w-1/4 min-w-[200px] text-base md:text-sm">
-        {generateItemName(item)}
+        {generateItemName(item) || (
+          <div className="h-6 bg-muted/20 rounded animate-pulse" />
+        )}
       </TableCell>
       {(Object.keys(options) as Array<keyof DropdownOptions>).map((field) => (
         <TableCell key={field} className="min-w-[120px] md:min-w-[160px]">
