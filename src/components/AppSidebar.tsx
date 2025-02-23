@@ -22,6 +22,7 @@ import {
   ArrowLeft,
   Warehouse,
   ChevronDown,
+  Home,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -34,16 +35,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const menuGroups = {
-  dispatch: {
-    title: "Dispatch",
-    items: [
-      {
-        title: "Dispatch",
-        icon: Truck,
-        path: "/dispatch",
-      },
-    ],
-  },
   reports: {
     title: "Reports",
     items: [
@@ -146,11 +137,13 @@ export function AppSidebar({
   };
 
   const Logo = () => (
-    <img 
-      src="/lovable-uploads/21d56fd9-ffa2-4b0c-9d82-b10f7d03a546.png"
-      alt="Woodbourne Logo"
-      className="h-10 w-auto object-contain"
-    />
+    <Link to="/">
+      <img 
+        src="/lovable-uploads/21d56fd9-ffa2-4b0c-9d82-b10f7d03a546.png"
+        alt="Woodbourne Logo"
+        className="h-10 w-auto object-contain"
+      />
+    </Link>
   );
 
   const SidebarComponent = () => (
@@ -248,6 +241,30 @@ export function AppSidebar({
           <div className="flex items-center gap-8">
             <Logo />
             <nav className="flex items-center gap-6">
+              <Link
+                to="/"
+                className={cn(
+                  "flex items-center gap-1 px-3 py-2 text-sm font-medium transition-colors",
+                  location.pathname === "/" 
+                    ? "text-[#2A4131]"
+                    : "text-[#2A4131]/70 hover:text-[#2A4131]"
+                )}
+              >
+                <Home className="h-4 w-4" />
+                <span>Home</span>
+              </Link>
+              <Link
+                to="/dispatch"
+                className={cn(
+                  "flex items-center gap-1 px-3 py-2 text-sm font-medium transition-colors",
+                  location.pathname === "/dispatch"
+                    ? "text-[#2A4131]"
+                    : "text-[#2A4131]/70 hover:text-[#2A4131]"
+                )}
+              >
+                <Truck className="h-4 w-4" />
+                <span>Dispatch</span>
+              </Link>
               {Object.entries(menuGroups).map(([key, group]) => (
                 <DropdownMenu key={key}>
                   <DropdownMenuTrigger asChild>
