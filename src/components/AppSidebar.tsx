@@ -1,3 +1,4 @@
+
 import { Link, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -108,7 +109,7 @@ export function AppSidebar({
   const location = useLocation();
 
   const handleMenuItemClick = () => {
-    if (window.innerWidth < 768) { // Only close menu on mobile
+    if (window.innerWidth < 768) {
       onMobileMenuToggle();
     }
   };
@@ -167,8 +168,8 @@ export function AppSidebar({
                       to={item.path}
                       onClick={handleMenuItemClick}
                       className={cn(
-                        "flex items-center gap-2 px-4 py-2 text-[15px] transition-colors",
-                        isCollapsed && !isMobileMenuOpen && "px-3 justify-center",
+                        "flex items-center gap-2 px-3 py-2 text-[15px] transition-colors",
+                        isCollapsed && !isMobileMenuOpen && "justify-center",
                         location.pathname === item.path 
                           ? "bg-[#2A4131] text-white" 
                           : "text-[#2A4131] hover:bg-[#F2E9D2]/50"
@@ -219,7 +220,7 @@ export function AppSidebar({
       <Sheet open={isMobileMenuOpen} onOpenChange={onMobileMenuToggle}>
         <SheetContent 
           side="left" 
-          className="p-0 w-full sm:w-[380px] h-[100dvh] overflow-y-auto"
+          className="p-0 w-full sm:w-[300px] h-[100dvh] overflow-y-auto"
         >
           <SidebarComponent />
         </SheetContent>
@@ -228,7 +229,7 @@ export function AppSidebar({
       {/* Desktop sidebar */}
       <Sidebar className={cn(
         "border-r border-[#2A4131]/10 fixed left-0 top-0 h-screen transition-all duration-300 hidden md:block bg-white",
-        isCollapsed ? "w-16" : "w-64"
+        isCollapsed ? "w-0 overflow-hidden" : "w-48"
       )}>
         <SidebarComponent />
       </Sidebar>

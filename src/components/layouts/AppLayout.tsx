@@ -32,7 +32,7 @@ export default function AppLayout({
 
       {/* Main Content with Sidebar */}
       <div className={cn(
-        "relative flex w-full transition-colors duration-300",
+        "relative flex transition-colors duration-300",
         isAdminMode ? "bg-[#FEE2E2]/20" : "bg-[#F2E9D2]/10"
       )}>
         <AppSidebar 
@@ -43,8 +43,8 @@ export default function AppLayout({
         />
         <main className={cn(
           "flex-1 transition-all duration-300",
-          "px-4 md:px-6 pb-20 md:pb-8",
-          isCollapsed ? "md:ml-16" : "md:ml-64"
+          "px-2 md:px-3 pb-20 md:pb-8",
+          isCollapsed ? "md:ml-0" : "md:ml-2"
         )}>
           <div className="py-4">
             {children}
