@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -21,6 +20,7 @@ import {
   DollarSign,
   Menu,
   X,
+  ArrowLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -116,7 +116,11 @@ export function AppSidebar({
           onClick={onToggleCollapse}
           className="ml-3 hover:bg-[#F2E9D2]/50 md:flex hidden"
         >
-          <Menu className="h-5 w-5 text-[#2A4131]" />
+          {isCollapsed ? (
+            <Menu className="h-5 w-5 text-[#2A4131]" />
+          ) : (
+            <ArrowLeft className="h-5 w-5 text-[#2A4131]" />
+          )}
         </Button>
         <Button
           variant="ghost"
@@ -213,7 +217,10 @@ export function AppSidebar({
 
       {/* Mobile slide-out menu */}
       <Sheet open={isMobileMenuOpen} onOpenChange={onMobileMenuToggle}>
-        <SheetContent side="left" className="p-0 w-64">
+        <SheetContent 
+          side="left" 
+          className="p-0 w-full sm:w-[380px] h-[100dvh] overflow-y-auto"
+        >
           <SidebarComponent />
         </SheetContent>
       </Sheet>

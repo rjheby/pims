@@ -226,7 +226,9 @@ export default function WholesaleOrder() {
   return (
     <div className="space-y-4 md:space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h1 className="text-2xl md:text-3xl font-bold">Wholesale Order Form</h1>
+        <h1 className="text-2xl md:text-3xl font-bold">
+          {orderNumber ? `New Wholesale Order ${orderNumber}` : 'New Wholesale Order'}
+        </h1>
         <AdminControls 
           isAdmin={isAdmin}
           hasUnsavedChanges={hasUnsavedChanges}
@@ -240,7 +242,7 @@ export default function WholesaleOrder() {
       
       <Card className={cn(
         "transition-all duration-1000",
-        isAdmin && "bg-red-50/5"
+        isAdmin && "bg-[#D6BCFA] bg-opacity-5"
       )}>
         <CardHeader>
           <CardTitle>New Wholesale Order</CardTitle>

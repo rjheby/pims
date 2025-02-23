@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -23,9 +22,10 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Minus, Copy, MoreHorizontal, Plus, Trash, Edit, Check } from "lucide-react";
+import { Minus, Copy, MoreHorizontal, Plus, Trash, Edit, Check, X } from "lucide-react";
 import { OrderItem, DropdownOptions } from "./types";
 import { KeyboardEvent, useState } from "react";
+import { addRow } from "./utils";
 
 interface OrderTableProps {
   items: OrderItem[];
@@ -122,15 +122,17 @@ export function OrderTable({
       <TableBody>
         {items.map((item) => (
           <TableRow key={item.id}>
-            <TableCell className="w-1/4 min-w-[200px]">{generateItemName(item)}</TableCell>
+            <TableCell className="w-full md:w-1/4 min-w-[200px] text-base md:text-sm">
+              {generateItemName(item)}
+            </TableCell>
             {Object.keys(options).map((field) => (
-              <TableCell key={field}>
+              <TableCell key={field} className="min-w-[120px] md:min-w-[160px]">
                 <div className="relative">
                   <Select 
                     value={item[field as keyof OrderItem] as string} 
                     onValueChange={(value) => onUpdateItem(item.id, field as keyof OrderItem, value)}
                   >
-                    <SelectTrigger className="w-40">
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select" />
                     </SelectTrigger>
                     <SelectContent>
@@ -200,17 +202,25 @@ export function OrderTable({
                   variant="ghost"
                   size="sm"
                   onClick={() => onRemoveRow(item.id)}
-                  className="text-[#2A4131] hover:bg-[#F2E9D2]/50"
+                  className="text-red-500 hover:text-red-700 hover:bg-red-50"
                 >
-                  <Minus className="h-4 w-4" />
+                  <X className="h-4 w-4" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => onCopyRow(item)}
-                  className="text-[#2A4131] hover:bg-[#F2E9D2]/50"
+                  className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
                 >
                   <Copy className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => addRow()}
+                  className="text-orange-500 hover:text-orange-700 hover:bg-orange-50"
+                >
+                  <Plus className="h-4 w-4" />
                 </Button>
               </div>
             </TableCell>
