@@ -66,14 +66,13 @@ export function DesktopNavigation() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="start"
-                  className="w-[180px] bg-white"
                 >
                   {group.items.map((item) => (
                     <DropdownMenuItem key={item.path} asChild>
                       <Link
                         to={item.path}
                         className={cn(
-                          "flex items-center gap-2 cursor-pointer",
+                          "flex items-center gap-2 cursor-pointer w-[180px] bg-white",
                           "transition-all duration-200 ease-in-out",
                           location.pathname === item.path
                             ? "bg-[#2A4131] text-white"

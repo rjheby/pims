@@ -35,7 +35,7 @@ export function SidebarContent({ onMobileMenuToggle }: SidebarContentProps) {
                   {group.title}
                 </div>
                 {group.items.map((item) => (
-                  <SidebarMenuButton key={item.path} asChild>
+                  <SidebarMenuButton key={item.path}>
                     <Link
                       to={item.path}
                       onClick={handleMenuItemClick}
