@@ -19,8 +19,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         />
         <main className={cn(
           "flex-1 transition-all duration-300 pb-20 md:pb-4 overflow-x-hidden",
-          "p-2 sm:p-3", // Reduced padding from p-4 to p-2/p-3
-          isCollapsed ? "md:ml-16" : "md:ml-64"
+          "p-2 sm:p-3",
+          isCollapsed ? "md:ml-16" : "md:ml-48" // Changed from md:ml-64 to md:ml-48
         )}>
           {children}
         </main>
