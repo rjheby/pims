@@ -42,31 +42,21 @@ export function OrderTableDropdownCell({
   onKeyPress,
   onUpdateItem,
 }: OrderTableDropdownCellProps) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedValue, setEditedValue] = useState(item[field as keyof OrderItem] as string);
+  const [editingOptionValue, setEditingOptionValue] = useState<string | null>(null);
+  const [editedValue, setEditedValue] = useState("");
 
-  const handleSave = () => {
-    if (editedValue && editedValue !== item[field as keyof OrderItem]) {
-      onUpdateItem(item.id, field as keyof OrderItem, editedValue);
-    }
-    setIsEditing(false);
+  const handleStartEdit = (option: string) => {
+    setEditingOptionValue(option);
+    setEditedValue(option);
   };
 
-  if (isEditing) {
-    return (
-      <Input
-        value={editedValue}
-        onChange={(e) => setEditedValue(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') handleSave();
-          if (e.key === 'Escape') setIsEditing(false);
-        }}
-        onBlur={handleSave}
-        className="w-full"
-        autoFocus
-      />
-    );
-  }
+  const handleSave = (oldValue: string) => {
+    if (editedValue && editedValue !== oldValue) {
+      // Update this item and any other items using the old value
+      onUpdateItem(item.id, field as keyof OrderItem, editedValue);
+    }
+    setEditingOptionValue(null);
+  };
 
   return (
     <div className="flex items-center gap-2">
@@ -79,9 +69,40 @@ export function OrderTableDropdownCell({
         </SelectTrigger>
         <SelectContent>
           {options[field].map((option) => (
-            <SelectItem key={option} value={option}>
-              {option}
-            </SelectItem>
+            <div key={option} className="flex items-center justify-between px-2 py-1">
+              {editingOptionValue === option ? (
+                <Input
+                  value={editedValue}
+                  onChange={(e) => setEditedValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSave(option);
+                    if (e.key === 'Escape') setEditingOptionValue(null);
+                  }}
+                  onBlur={() => handleSave(option)}
+                  className="w-[calc(100%-40px)]"
+                  autoFocus
+                />
+              ) : (
+                <>
+                  <SelectItem value={option}>
+                    {option}
+                  </SelectItem>
+                  {isAdmin && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleStartEdit(option);
+                      }}
+                    >
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
           ))}
           {isAdmin && (
             <div className="p-2 border-t">
@@ -105,17 +126,12 @@ export function OrderTableDropdownCell({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            <DropdownMenuItem onClick={() => setIsEditing(true)}>
-              <Edit className="h-4 w-4 mr-2" />
-              Rename
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
             <DropdownMenuItem 
               onClick={() => onUpdateItem(item.id, field as keyof OrderItem, "")}
               className="text-red-600"
             >
               <Trash className="h-4 w-4 mr-2" />
-              Delete
+              Clear Selection
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
