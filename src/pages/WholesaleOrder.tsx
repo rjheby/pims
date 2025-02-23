@@ -1,5 +1,5 @@
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import AppLayout from "@/components/layouts/AppLayout";
 import { OrderDetails } from "./wholesale-order/OrderDetails";
 import { AdminControls } from "./wholesale-order/AdminControls";
@@ -94,28 +94,30 @@ function WholesaleOrderContent() {
 
   return (
     <AppLayout isAdminMode={isAdmin}>
-      <div className="py-4 md:py-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold">
-            {orderNumber ? `New Wholesale Order ${orderNumber}` : 'New Wholesale Order'}
-          </h1>
-          <AdminControls 
-            isAdmin={isAdmin}
-            hasUnsavedChanges={hasUnsavedChanges}
-            onSave={saveChanges}
-            onDiscard={discardChanges}
-            onUndo={undoLastChange}
-            onToggleAdmin={handleAdminToggle}
-            canUndo={optionsHistory.length > 1}
-          />
-        </div>
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold">Wholesale Orders</h1>
         
         <Card>
           <CardHeader>
-            <CardTitle>New Wholesale Order</CardTitle>
+            <CardTitle>New Wholesale Order {orderNumber}</CardTitle>
+            <CardDescription>
+              Create and manage wholesale orders
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4 md:space-y-6">
-            <div id="order-content">
+          <CardContent>
+            <div className="flex flex-col md:flex-row justify-end mb-6">
+              <AdminControls 
+                isAdmin={isAdmin}
+                hasUnsavedChanges={hasUnsavedChanges}
+                onSave={saveChanges}
+                onDiscard={discardChanges}
+                onUndo={undoLastChange}
+                onToggleAdmin={handleAdminToggle}
+                canUndo={optionsHistory.length > 1}
+              />
+            </div>
+
+            <div id="order-content" className="space-y-6">
               <OrderDetails 
                 orderNumber={orderNumber}
                 orderDate={orderDate}
@@ -124,7 +126,7 @@ function WholesaleOrderContent() {
                 onDeliveryDateChange={(e) => setDeliveryDate(e.target.value)}
               />
 
-              <div className="overflow-x-auto mt-4">
+              <div className="overflow-x-auto">
                 <OrderTable 
                   items={items}
                   options={options}
@@ -157,4 +159,3 @@ export default function WholesaleOrder() {
     </WholesaleOrderProvider>
   );
 }
-
