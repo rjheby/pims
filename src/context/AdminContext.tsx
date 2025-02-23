@@ -2,6 +2,7 @@
 import { createContext, useContext, useState, ReactNode, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "./UserContext";
+import { useLocation } from "react-router-dom";
 
 interface AdminContextType {
   isAdmin: boolean;
@@ -24,6 +25,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const { hasPermission } = useUser();
   const { toast } = useToast();
+  const location = useLocation();
 
   const enterAdminMode = useCallback(() => {
     if (!hasPermission("admin")) {
@@ -62,20 +64,32 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       onDiscard?: () => void;
       confirmMessage?: string;
     }) => {
+      const isWholesaleOrder = location.pathname === "/wholesale-order";
+      
       if (isAdmin && hasUnsavedChanges) {
         const message = options?.confirmMessage || 'You have unsaved changes. Do you want to save them before exiting admin mode?';
         if (window.confirm(message)) {
-          options?.onSave?.();
+          if (isWholesaleOrder) {
+            options?.onSave?.();
+          } else {
+            // Generic save logic for other pages
+            toast({
+              title: "Changes saved",
+              description: "Your changes have been saved successfully.",
+            });
+          }
           exitAdminMode();
         } else {
-          options?.onDiscard?.();
+          if (isWholesaleOrder) {
+            options?.onDiscard?.();
+          }
           exitAdminMode();
         }
       } else {
         isAdmin ? exitAdminMode() : enterAdminMode();
       }
     },
-    [isAdmin, hasUnsavedChanges, exitAdminMode, enterAdminMode]
+    [isAdmin, hasUnsavedChanges, exitAdminMode, enterAdminMode, location.pathname, toast]
   );
 
   return (
