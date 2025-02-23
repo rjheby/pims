@@ -11,12 +11,15 @@ import {
 import { ChevronDown, Home, Truck } from "lucide-react";
 import { menuGroups } from "./constants";
 import { Logo } from "./Logo";
+import { HTMLAttributes } from "react";
 
-export function DesktopNavigation() {
+interface DesktopNavigationProps extends HTMLAttributes<HTMLDivElement> {}
+
+export function DesktopNavigation({ className, ...props }: DesktopNavigationProps) {
   const location = useLocation();
 
   return (
-    <div className="hidden md:block bg-white border-b border-[#2A4131]/10">
+    <div className={cn("hidden md:block bg-white border-b border-[#2A4131]/10", className)} {...props}>
       <div className="flex items-center justify-between h-[72px] px-4 max-w-[95rem] mx-auto">
         <div className="flex items-center gap-8">
           <Logo />
@@ -67,21 +70,20 @@ export function DesktopNavigation() {
                 <DropdownMenuContent align="start">
                   <div className="w-[180px]">
                     {group.items.map((item) => (
-                      <DropdownMenuItem key={item.path} asChild>
-                        <Link
-                          to={item.path}
-                          className={cn(
-                            "flex items-center gap-2 cursor-pointer w-full",
-                            "transition-all duration-200 ease-in-out",
-                            location.pathname === item.path
-                              ? "bg-[#2A4131] text-white"
-                              : "text-[#2A4131] hover:bg-[#F2E9D2]/50"
-                          )}
-                        >
-                          <item.icon className="h-4 w-4" />
-                          <span>{item.title}</span>
-                        </Link>
-                      </DropdownMenuItem>
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        className={cn(
+                          "flex items-center gap-2 px-2 py-1.5 cursor-pointer w-full",
+                          "transition-all duration-200 ease-in-out",
+                          location.pathname === item.path
+                            ? "bg-[#2A4131] text-white"
+                            : "text-[#2A4131] hover:bg-[#F2E9D2]/50"
+                        )}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </Link>
                     ))}
                   </div>
                 </DropdownMenuContent>
