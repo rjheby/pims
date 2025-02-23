@@ -15,7 +15,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Edit, MoreHorizontal, Trash, Pencil } from "lucide-react";
+import { Edit, MoreHorizontal, Trash } from "lucide-react";
 import { OrderItem, DropdownOptions } from "../types";
 import { useState } from "react";
 
@@ -73,19 +73,6 @@ export function OrderTableDropdownCell({
         <SelectContent>
           <div className="flex items-center justify-between p-2 border-b">
             <span className="text-sm font-medium">{field.charAt(0).toUpperCase() + field.slice(1)}</span>
-            {isAdmin && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onKeyPress({ key: 'Enter' } as React.KeyboardEvent<HTMLInputElement>, field);
-                }}
-                className="text-xs text-[#2A4131] hover:bg-[#F2E9D2]/50"
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-            )}
           </div>
           {options[field].map((option) => (
             <div key={option} className="flex items-center justify-between">
