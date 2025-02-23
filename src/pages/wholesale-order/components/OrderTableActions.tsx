@@ -17,6 +17,27 @@ export function OrderTableActions({
   onCopyRow,
   onUpdateItem,
 }: OrderTableActionsProps) {
+  const handleAddPallet = () => {
+    const newPalletCount = (item.pallets || 0) + 1;
+    
+    // Calculate total pallets across all items
+    const items = document.querySelectorAll('[data-pallet-count]');
+    const totalPallets = Array.from(items).reduce((sum, el) => {
+      return sum + (parseInt(el.getAttribute('data-pallet-count') || '0', 10));
+    }, 0) + 1; // Add 1 for the new pallet we're adding
+
+    if (totalPallets > 24) {
+      toast({
+        title: "Warning",
+        description: "Adding more pallets would exceed the 24-pallet limit for a tractor trailer.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    onUpdateItem(item.id, "pallets", newPalletCount);
+  };
+
   return (
     <div className="flex gap-2 items-center">
       <Button
@@ -38,21 +59,7 @@ export function OrderTableActions({
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => {
-          const totalPallets = 0;
-          const newPallets = 0;
-
-          if (totalPallets + newPallets > 24) {
-            toast({
-              title: "Warning",
-              description: "Adding more pallets would exceed the 24-pallet limit for a tractor trailer.",
-              variant: "destructive",
-            });
-            return;
-          }
-
-          onUpdateItem(item.id, "pallets", newPallets);
-        }}
+        onClick={handleAddPallet}
         className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white rounded-full w-8 h-8 p-0"
       >
         <Plus className="h-4 w-4" />
