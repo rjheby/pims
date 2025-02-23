@@ -1,4 +1,3 @@
-
 import { useState, useEffect, KeyboardEvent } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -227,8 +226,8 @@ export default function WholesaleOrder() {
 
   return (
     <AppLayout isAdminMode={isAdmin}>
-      <div className="space-y-4 md:space-y-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="container py-4 md:py-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
           <h1 className="text-2xl md:text-3xl font-bold">
             {orderNumber ? `New Wholesale Order ${orderNumber}` : 'New Wholesale Order'}
           </h1>

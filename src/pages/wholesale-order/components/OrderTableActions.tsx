@@ -53,7 +53,7 @@ export function OrderTableActions({
 
           onUpdateItem(item.id, "pallets", newPallets);
         }}
-        className="text-xs text-[#2A4131] hover:bg-[#F2E9D2]/50 rounded-full w-8 h-8 p-0"
+        className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white rounded-full w-8 h-8 p-0"
       >
         <Plus className="h-4 w-4" />
       </Button>

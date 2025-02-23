@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -108,6 +107,12 @@ export function AppSidebar({
 }: AppSidebarProps) {
   const location = useLocation();
 
+  const handleMenuItemClick = () => {
+    if (window.innerWidth < 768) { // Only close menu on mobile
+      onMobileMenuToggle();
+    }
+  };
+
   const SidebarComponent = () => (
     <>
       <div className="flex h-[72px] items-center justify-between border-b border-[#2A4131]/10 px-4">
@@ -160,7 +165,7 @@ export function AppSidebar({
                   <SidebarMenuButton asChild>
                     <Link
                       to={item.path}
-                      onClick={() => onMobileMenuToggle()}
+                      onClick={handleMenuItemClick}
                       className={cn(
                         "flex items-center gap-2 px-4 py-2 text-[15px] transition-colors",
                         isCollapsed && !isMobileMenuOpen && "px-3 justify-center",
