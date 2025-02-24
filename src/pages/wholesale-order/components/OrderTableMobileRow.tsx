@@ -1,0 +1,122 @@
+
+import { OrderItem, DropdownOptions } from "../types";
+import { OrderTableDropdownCell } from "./OrderTableDropdownCell";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Plus, Copy, X, Maximize2, Minimize2 } from "lucide-react";
+
+interface OrderTableMobileRowProps {
+  item: OrderItem;
+  options: DropdownOptions;
+  isAdmin: boolean;
+  editingField: keyof DropdownOptions | null;
+  newOption: string;
+  isCompressed: boolean;
+  optionFields: Array<keyof DropdownOptions>;
+  onNewOptionChange: (value: string) => void;
+  onKeyPress: (e: React.KeyboardEvent<HTMLInputElement>, field: keyof DropdownOptions) => void;
+  onUpdateItem: (id: number, field: keyof OrderItem, value: string | number) => void;
+  onUpdateOptions: (field: keyof DropdownOptions, options: string[]) => void;
+  onRemoveRow: (id: number) => void;
+  onCopyRow: (item: OrderItem) => void;
+  onAddItem: () => void;
+  onToggleCompressed: (id: number) => void;
+  generateItemName: (item: OrderItem) => string;
+}
+
+export function OrderTableMobileRow({
+  item,
+  options,
+  isAdmin,
+  editingField,
+  newOption,
+  isCompressed,
+  optionFields,
+  onNewOptionChange,
+  onKeyPress,
+  onUpdateItem,
+  onUpdateOptions,
+  onRemoveRow,
+  onCopyRow,
+  onAddItem,
+  onToggleCompressed,
+  generateItemName,
+}: OrderTableMobileRowProps) {
+  return (
+    <div className="bg-white rounded-lg border p-4 space-y-3">
+      <div className="font-medium">{generateItemName(item)}</div>
+      {!isCompressed && (
+        <div className="grid gap-4">
+          {optionFields.map((field) => (
+            <div key={field} className="space-y-2">
+              <div className="text-sm font-medium text-muted-foreground">
+                {field.charAt(0).toUpperCase() + field.slice(1)}
+              </div>
+              <OrderTableDropdownCell
+                field={field}
+                item={item}
+                options={options}
+                isAdmin={isAdmin}
+                editingField={editingField}
+                newOption={newOption}
+                onNewOptionChange={onNewOptionChange}
+                onKeyPress={onKeyPress}
+                onUpdateItem={onUpdateItem}
+                onUpdateOptions={onUpdateOptions}
+              />
+            </div>
+          ))}
+          <div className="space-y-2">
+            <div className="text-sm font-medium text-muted-foreground">
+              Quantity
+            </div>
+            <Input
+              type="number"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              min="0"
+              value={item.quantity}
+              onChange={(e) => onUpdateItem(item.id, "quantity", parseInt(e.target.value) || 0)}
+              className="w-full"
+              placeholder="Enter quantity"
+            />
+          </div>
+        </div>
+      )}
+      <div className="flex gap-2 justify-center pt-2 border-t">
+        <Button 
+          variant="customAction"
+          size="sm" 
+          onClick={() => onRemoveRow(item.id)} 
+          className="rounded-full w-8 h-8 p-0 text-pink-100 bg-red-800 hover:bg-pink-100 hover:text-red-800"
+        >
+          <X className="h-4 w-4" />
+        </Button>
+        <Button 
+          variant="customAction"
+          size="sm" 
+          onClick={() => onCopyRow(item)} 
+          className="rounded-full w-8 h-8 p-0 text-sky-100 bg-blue-700 hover:bg-sky-100 hover:text-blue-700"
+        >
+          <Copy className="h-4 w-4" />
+        </Button>
+        <Button 
+          variant="customAction"
+          size="sm" 
+          onClick={onAddItem} 
+          className="rounded-full w-8 h-8 p-0 bg-[#2A4131] hover:bg-slate-50 text-slate-50 hover:text-[#2A4131]"
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
+        <Button 
+          variant="customAction"
+          size="sm" 
+          onClick={() => onToggleCompressed(item.id)} 
+          className="rounded-full w-8 h-8 p-0 bg-black hover:bg-slate-50 text-slate-50 hover:text-black"
+        >
+          {isCompressed ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
+        </Button>
+      </div>
+    </div>
+  );
+}
