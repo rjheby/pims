@@ -92,7 +92,7 @@ const Index = () => {
     <div className="container mx-auto py-8 px-4">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Welcome, {user?.name}</h1>
+          <h1 className="text-2xl font-bold">Howdy, {user?.name}</h1>
           <p className="text-muted-foreground">Role: {user?.role}</p>
         </div>
         {hasPermission("superadmin") && (
