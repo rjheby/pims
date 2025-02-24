@@ -2,39 +2,66 @@
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { OrderItem, DropdownOptions } from "./types";
 import { OrderTableRow } from "./components/OrderTableRow";
-import { KeyboardEvent } from "react";
+import { useWholesaleOrder } from "./context/WholesaleOrderContext";
 
-interface OrderTableProps {
-  items: OrderItem[];
-  options: DropdownOptions;
-  isAdmin: boolean;
-  editingField: keyof DropdownOptions | null;
-  newOption: string;
-  onNewOptionChange: (value: string) => void;
-  onKeyPress: (e: KeyboardEvent<HTMLInputElement>, field: keyof DropdownOptions) => void;
-  onEditField: (field: keyof DropdownOptions | null) => void;
-  onUpdateItem: (id: number, field: keyof OrderItem, value: string | number) => void;
-  onRemoveRow: (id: number) => void;
-  onCopyRow: (item: OrderItem) => void;
-  generateItemName: (item: OrderItem) => string;
-  onUpdateOptions: (field: keyof DropdownOptions, options: string[]) => void;
-}
+export function OrderTable() {
+  const { 
+    items, 
+    options, 
+    isAdmin, 
+    editingField, 
+    newOption, 
+    setNewOption, 
+    setEditingField,
+    setItems,
+    setOptions 
+  } = useWholesaleOrder();
 
-export function OrderTable({
-  items,
-  options,
-  isAdmin,
-  editingField,
-  newOption,
-  onNewOptionChange,
-  onKeyPress,
-  onEditField,
-  onUpdateItem,
-  onRemoveRow,
-  onCopyRow,
-  generateItemName,
-  onUpdateOptions,
-}: OrderTableProps) {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>, field: keyof DropdownOptions) => {
+    if (e.key === "Enter" && newOption.trim()) {
+      const updatedOptions = [...options[field], newOption.trim()];
+      setOptions({
+        ...options,
+        [field]: updatedOptions,
+      });
+      setNewOption("");
+      setEditingField(null);
+    }
+  };
+
+  const handleUpdateItem = (id: number, field: keyof OrderItem, value: string | number) => {
+    setItems(
+      items.map((item) =>
+        item.id === id ? { ...item, [field]: value } : item
+      )
+    );
+  };
+
+  const handleRemoveRow = (id: number) => {
+    setItems(items.filter((item) => item.id !== id));
+  };
+
+  const handleCopyRow = (item: OrderItem) => {
+    const maxId = Math.max(...items.map((item) => item.id), 0);
+    setItems([...items, { ...item, id: maxId + 1 }]);
+  };
+
+  const generateItemName = (item: OrderItem) => {
+    const parts = [];
+    if (item.species) parts.push(item.species);
+    if (item.length) parts.push(item.length);
+    if (item.bundleType) parts.push(item.bundleType);
+    if (item.thickness) parts.push(item.thickness);
+    return parts.join(" - ");
+  };
+
+  const handleUpdateOptions = (field: keyof DropdownOptions, newOptions: string[]) => {
+    setOptions({
+      ...options,
+      [field]: newOptions,
+    });
+  };
+
   return (
     <div className="grid gap-4">
       {/* Desktop View */}
@@ -43,11 +70,12 @@ export function OrderTable({
           <TableHeader>
             <TableRow>
               <TableHead className="w-1/4">Name</TableHead>
-              {Object.keys(options).map((field) => (
+              {Object.keys(options || {}).map((field) => (
                 <TableHead key={field}>
                   {field.charAt(0).toUpperCase() + field.slice(1)}
                 </TableHead>
               ))}
+              <TableHead>Quantity</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -60,13 +88,13 @@ export function OrderTable({
                 isAdmin={isAdmin}
                 editingField={editingField}
                 newOption={newOption}
-                onNewOptionChange={onNewOptionChange}
-                onKeyPress={onKeyPress}
-                onUpdateItem={onUpdateItem}
-                onRemoveRow={onRemoveRow}
-                onCopyRow={onCopyRow}
+                onNewOptionChange={setNewOption}
+                onKeyPress={handleKeyPress}
+                onUpdateItem={handleUpdateItem}
+                onRemoveRow={handleRemoveRow}
+                onCopyRow={handleCopyRow}
                 generateItemName={generateItemName}
-                onUpdateOptions={onUpdateOptions}
+                onUpdateOptions={handleUpdateOptions}
               />
             ))}
           </TableBody>
@@ -79,7 +107,7 @@ export function OrderTable({
           <div key={item.id} className="bg-white rounded-lg border p-4 space-y-3">
             <div className="font-medium">{generateItemName(item) || "New Item"}</div>
             <div className="grid gap-2">
-              {Object.entries(options).map(([field, fieldOptions]) => (
+              {Object.entries(options || {}).map(([field, fieldOptions]) => (
                 <div key={field} className="grid grid-cols-2 gap-2">
                   <div className="text-sm text-muted-foreground">
                     {field.charAt(0).toUpperCase() + field.slice(1)}:
@@ -89,18 +117,22 @@ export function OrderTable({
                   </div>
                 </div>
               ))}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="text-sm text-muted-foreground">Quantity:</div>
+                <div className="text-sm">{item.quantity || "-"}</div>
+              </div>
             </div>
             <div className="flex justify-end gap-2">
               {isAdmin && (
                 <>
                   <button
-                    onClick={() => onRemoveRow(item.id)}
+                    onClick={() => handleRemoveRow(item.id)}
                     className="text-sm text-red-600 hover:text-red-800"
                   >
                     Remove
                   </button>
                   <button
-                    onClick={() => onCopyRow(item)}
+                    onClick={() => handleCopyRow(item)}
                     className="text-sm text-blue-600 hover:text-blue-800"
                   >
                     Copy
