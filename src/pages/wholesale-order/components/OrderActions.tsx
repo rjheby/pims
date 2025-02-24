@@ -21,7 +21,11 @@ export function OrderActions() {
   const navigate = useNavigate();
   const [generatedOrders, setGeneratedOrders] = useState<GeneratedOrder[]>([]);
   
-  const totalPallets = items.reduce((sum, item) => sum + (item.pallets || 0), 0);
+  // Fix totalPallets calculation to handle undefined values
+  const totalPallets = items.reduce((sum, item) => {
+    const pallets = item.pallets || 0;
+    return sum + pallets;
+  }, 0);
 
   // Check if there's at least one valid item with detailed logging
   const hasValidItems = items.some(item => {
@@ -32,30 +36,12 @@ export function OrderActions() {
                    item.pallets > 0 && 
                    item.quantity > 0;
     
-    console.log('Item validation:', {
-      id: item.id,
-      species: item.species,
-      length: item.length,
-      bundleType: item.bundleType,
-      thickness: item.thickness,
-      pallets: item.pallets,
-      quantity: item.quantity,
-      isValid: isValid
-    });
-    
     return isValid;
   });
 
-  // Log the overall state
-  console.log('Form state:', {
-    hasValidItems,
-    orderNumber,
-    orderDate,
-    items
-  });
-
   const addItem = () => {
-    if (totalPallets + 1 > 24) {
+    // Check if adding a pallet would exceed the limit
+    if (totalPallets >= 24) {
       toast({
         title: "Warning",
         description: "Adding more pallets would exceed the 24-pallet limit for a tractor trailer.",
