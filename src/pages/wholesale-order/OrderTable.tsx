@@ -1,4 +1,5 @@
-import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
 import { OrderItem, DropdownOptions, initialOptions } from "./types";
 import { OrderTableRow } from "./components/OrderTableRow";
 import { useWholesaleOrder } from "./context/WholesaleOrderContext";
@@ -115,12 +116,12 @@ export function OrderTable() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[300px]">Name</TableHead>
-                  {!compressedStates[item.id] && optionFields.map((field) => (
+                  {optionFields.map((field) => (
                     <TableHead key={field} className="w-[160px]">
                       {field.charAt(0).toUpperCase() + field.slice(1)}
                     </TableHead>
                   ))}
-                  {!compressedStates[item.id] && <TableHead className="w-[100px]">Quantity</TableHead>}
+                  <TableHead className="w-[100px]">Quantity</TableHead>
                   <TableHead className="w-[160px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
