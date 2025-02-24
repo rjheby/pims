@@ -1,29 +1,24 @@
-
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { OrderItem, DropdownOptions } from "./types";
+import { OrderItem, DropdownOptions, initialOptions } from "./types";
 import { OrderTableRow } from "./components/OrderTableRow";
 import { useWholesaleOrder } from "./context/WholesaleOrderContext";
 
 export function OrderTable() {
   const { 
-    items = [], // Provide default empty array
-    options, 
-    isAdmin, 
+    items = [], 
+    options = initialOptions,
+    isAdmin = false, 
     editingField, 
-    newOption, 
+    newOption = "", 
     setNewOption, 
     setEditingField,
     setItems,
     setOptions 
   } = useWholesaleOrder();
 
-  // Ensure options is initialized
-  const safeOptions = options || {
-    species: [],
-    length: [],
-    bundleType: [],
-    thickness: [],
-    packaging: ["Pallets"]
+  const safeOptions: DropdownOptions = {
+    ...initialOptions,
+    ...options
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>, field: keyof DropdownOptions) => {
@@ -62,7 +57,7 @@ export function OrderTable() {
     if (item.length) parts.push(item.length);
     if (item.bundleType) parts.push(item.bundleType);
     if (item.thickness) parts.push(item.thickness);
-    return parts.join(" - ");
+    return parts.join(" - ") || "New Item";
   };
 
   const handleUpdateOptions = (field: keyof DropdownOptions, newOptions: string[]) => {
@@ -76,7 +71,6 @@ export function OrderTable() {
 
   return (
     <div className="grid gap-4">
-      {/* Desktop View */}
       <div className="hidden md:block">
         <Table>
           <TableHeader>
@@ -92,7 +86,7 @@ export function OrderTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {(items || []).map((item) => (
+            {items.map((item) => (
               <OrderTableRow
                 key={item.id}
                 item={item}
@@ -113,11 +107,10 @@ export function OrderTable() {
         </Table>
       </div>
 
-      {/* Mobile View */}
       <div className="grid gap-4 md:hidden">
-        {(items || []).map((item) => (
+        {items.map((item) => (
           <div key={item.id} className="bg-white rounded-lg border p-4 space-y-3">
-            <div className="font-medium">{generateItemName(item) || "New Item"}</div>
+            <div className="font-medium">{generateItemName(item)}</div>
             <div className="grid gap-2">
               {optionFields.map((field) => (
                 <div key={field} className="grid grid-cols-2 gap-2">
