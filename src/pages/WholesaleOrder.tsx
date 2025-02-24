@@ -32,7 +32,7 @@ function WholesaleOrderContent() {
 
   return (
     <div className="flex-1">
-      <div className="w-full max-w-[95rem] mx-auto">
+      <div className="w-full max-w-[95rem] mx-auto px-4">
         {/* Logo/Icon Section */}
         <div className="flex justify-center md:justify-start mb-4">
           <div className="hidden md:block">
