@@ -41,8 +41,8 @@ export function useOrderTable() {
         item.id === id ? { 
           ...item, 
           [field]: value,
-          // Set default cost when species is updated
-          ...(field === 'species' ? { cost: 250 } : {})
+          // Set default unit cost when species is updated
+          ...(field === 'species' ? { unitCost: 250 } : {})
         } : item
       )
     );
@@ -69,8 +69,7 @@ export function useOrderTable() {
         thickness: "",
         packaging: "Pallets",
         pallets: 0,
-        quantity: 0,
-        cost: 250, // Default cost
+        unitCost: 250, // Default unit cost
       },
     ]);
   };
@@ -80,15 +79,15 @@ export function useOrderTable() {
   };
 
   const calculateTotalCost = () => {
-    return items.reduce((sum, item) => sum + (Number(item.cost) || 0), 0);
+    return items.reduce((sum, item) => sum + ((Number(item.pallets) || 0) * (Number(item.unitCost) || 0)), 0);
   };
 
   const generateItemName = (item: OrderItem) => {
     if (!item) return "New Item";
     const parts = [];
 
-    if (item.quantity && item.packaging) {
-      parts.push(`${item.quantity} ${item.packaging} of`);
+    if (item.pallets && item.packaging) {
+      parts.push(`${item.pallets} ${item.packaging} of`);
     }
 
     if (item.species) parts.push(item.species);
@@ -118,8 +117,7 @@ export function useOrderTable() {
            item.length && 
            item.bundleType && 
            item.thickness && 
-           item.pallets > 0 && 
-           item.quantity > 0;
+           item.pallets > 0;
   });
 
   return {

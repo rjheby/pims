@@ -41,8 +41,8 @@ export function OrderTable() {
                     </TableHead>
                   ))}
                   <TableHead className="w-[100px]">Quantity</TableHead>
-                  <TableHead className="w-[100px]">Pallets</TableHead>
-                  <TableHead className="w-[100px]">Cost</TableHead>
+                  <TableHead className="w-[100px]">Unit Cost</TableHead>
+                  <TableHead className="w-[100px]">Total Cost</TableHead>
                   <TableHead className="w-[160px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>

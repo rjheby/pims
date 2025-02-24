@@ -7,8 +7,7 @@ export interface OrderItem {
   thickness: string;
   packaging: string;
   pallets: number;
-  quantity: number;
-  cost: number;  // Added cost property
+  unitCost: number;  // Renamed from cost to unitCost
 }
 
 export interface DropdownOptions {

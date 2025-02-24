@@ -41,6 +41,8 @@ export function OrderTableRow({
   onToggleCompressed,
   onAddItem,
 }: OrderTableRowProps) {
+  const totalCost = (item.pallets || 0) * (item.unitCost || 0);
+
   return (
     <TableRow>
       <TableCell className="w-full md:w-1/4 min-w-[200px] text-base md:text-sm">
@@ -70,31 +72,26 @@ export function OrderTableRow({
             <Input
               type="number"
               min="0"
-              value={item.quantity || ""}
-              onChange={(e) => onUpdateItem(item.id, "quantity", parseInt(e.target.value) || 0)}
-              className="w-24"
-              placeholder="Qty"
-            />
-          </TableCell>
-          <TableCell>
-            <Input
-              type="number"
-              min="0"
               value={item.pallets || ""}
               onChange={(e) => onUpdateItem(item.id, "pallets", parseInt(e.target.value) || 0)}
               className="w-24"
-              placeholder="Pallets"
+              placeholder="Quantity"
             />
           </TableCell>
           <TableCell>
             <Input
               type="number"
               min="0"
-              value={item.cost || ""}
-              onChange={(e) => onUpdateItem(item.id, "cost", parseFloat(e.target.value) || 0)}
+              value={item.unitCost || ""}
+              onChange={(e) => onUpdateItem(item.id, "unitCost", parseFloat(e.target.value) || 0)}
               className="w-24"
-              placeholder="Cost"
+              placeholder="Unit Cost"
             />
+          </TableCell>
+          <TableCell>
+            <div className="w-24 text-right">
+              ${totalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
           </TableCell>
         </>
       )}
