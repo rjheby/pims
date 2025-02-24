@@ -71,14 +71,6 @@ export function OrderTable() {
       </div>
 
       <div className="md:hidden">
-        <Button
-          onClick={handleAddItem}
-          className="w-full mb-4 bg-[#2A4131] hover:bg-[#2A4131]/90 text-white"
-        >
-          <Plus className="mr-2 h-5 w-5" />
-          Add New Item
-        </Button>
-        
         <div className="grid gap-4">
           {items.map((item) => (
             <OrderTableMobileRow
