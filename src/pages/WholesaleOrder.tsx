@@ -35,14 +35,7 @@ function WholesaleOrderContent() {
       <div className="w-full max-w-[95rem] mx-auto">
         {/* Logo/Icon Section */}
         <div className="flex justify-center md:justify-start mb-4">
-          <div className="hidden md:block">
-            <img 
-              src="/woodbourne-logo.png" 
-              alt="Woodbourne Logo" 
-              className="h-12 w-auto"
-            />
-          </div>
-          <div className="md:hidden flex items-center">
+          <div>
             <img 
               src="/lovable-uploads/15ce6f77-4e90-42f1-bc95-4ecf39833616.png"
               alt="Woodbourne Icon"
