@@ -152,35 +152,7 @@ export function OrderTable() {
         <div className="grid gap-4">
           {items.map((item) => (
             <div key={item.id} className="bg-white rounded-lg border p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="font-medium">{generateItemName(item)}</div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleRemoveRow(item.id)}
-                    className="bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-700 rounded-full w-8 h-8 p-0"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleCopyRow(item)}
-                    className="bg-blue-50 hover:bg-blue-100 text-blue-500 hover:text-blue-700 rounded-full w-8 h-8 p-0"
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleAddItem}
-                    className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white rounded-full w-8 h-8 p-0"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+              <div className="font-medium">{generateItemName(item)}</div>
               <div className="grid gap-4">
                 {optionFields.map((field) => (
                   <div key={field} className="space-y-2">
@@ -216,6 +188,32 @@ export function OrderTable() {
                     placeholder="Enter quantity"
                   />
                 </div>
+              </div>
+              <div className="flex gap-2 justify-end pt-2 border-t">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleRemoveRow(item.id)}
+                  className="bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-700 rounded-full w-8 h-8 p-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleCopyRow(item)}
+                  className="bg-blue-50 hover:bg-blue-100 text-blue-500 hover:text-blue-700 rounded-full w-8 h-8 p-0"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleAddItem}
+                  className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white rounded-full w-8 h-8 p-0"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
               </div>
             </div>
           ))}
