@@ -1,3 +1,4 @@
+
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { OrderItem, DropdownOptions, initialOptions } from "./types";
 import { OrderTableRow } from "./components/OrderTableRow";
@@ -20,6 +21,9 @@ export function OrderTable() {
     setItems,
     setOptions 
   } = useWholesaleOrder();
+
+  // Move the useState outside of the map function
+  const [compressedStates, setCompressedStates] = useState<Record<number, boolean>>({});
 
   const safeOptions: DropdownOptions = {
     ...initialOptions,
@@ -76,12 +80,10 @@ export function OrderTable() {
     if (!item) return "New Item";
     const parts = [];
 
-    // Add quantity and packaging if they exist
     if (item.quantity && item.packaging) {
       parts.push(`${item.quantity} ${item.packaging} of`);
     }
 
-    // Add other specifications
     if (item.species) parts.push(item.species);
     if (item.length) parts.push(item.length);
     if (item.bundleType) parts.push(item.bundleType);
@@ -95,6 +97,13 @@ export function OrderTable() {
       ...safeOptions,
       [field]: newOptions,
     });
+  };
+
+  const toggleCompressed = (itemId: number) => {
+    setCompressedStates(prev => ({
+      ...prev,
+      [itemId]: !prev[itemId]
+    }));
   };
 
   const optionFields = Object.keys(safeOptions) as Array<keyof DropdownOptions>;
@@ -151,86 +160,83 @@ export function OrderTable() {
         </Button>
         
         <div className="grid gap-4">
-          {items.map((item) => {
-            const [isCompressed, setIsCompressed] = useState(false);
-            return (
-              <div key={item.id} className="bg-white rounded-lg border p-4 space-y-3">
-                <div className="font-medium">{generateItemName(item)}</div>
-                {!isCompressed && (
-                  <div className="grid gap-4">
-                    {optionFields.map((field) => (
-                      <div key={field} className="space-y-2">
-                        <div className="text-sm font-medium text-muted-foreground">
-                          {field.charAt(0).toUpperCase() + field.slice(1)}
-                        </div>
-                        <OrderTableDropdownCell
-                          field={field}
-                          item={item}
-                          options={safeOptions}
-                          isAdmin={isAdmin}
-                          editingField={editingField}
-                          newOption={newOption}
-                          onNewOptionChange={setNewOption}
-                          onKeyPress={handleKeyPress}
-                          onUpdateItem={handleUpdateItem}
-                          onUpdateOptions={handleUpdateOptions}
-                        />
-                      </div>
-                    ))}
-                    <div className="space-y-2">
+          {items.map((item) => (
+            <div key={item.id} className="bg-white rounded-lg border p-4 space-y-3">
+              <div className="font-medium">{generateItemName(item)}</div>
+              {!compressedStates[item.id] && (
+                <div className="grid gap-4">
+                  {optionFields.map((field) => (
+                    <div key={field} className="space-y-2">
                       <div className="text-sm font-medium text-muted-foreground">
-                        Quantity
+                        {field.charAt(0).toUpperCase() + field.slice(1)}
                       </div>
-                      <Input
-                        type="number"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        min="0"
-                        value={item.quantity}
-                        onChange={(e) => handleUpdateItem(item.id, "quantity", parseInt(e.target.value) || 0)}
-                        className="w-full"
-                        placeholder="Enter quantity"
+                      <OrderTableDropdownCell
+                        field={field}
+                        item={item}
+                        options={safeOptions}
+                        isAdmin={isAdmin}
+                        editingField={editingField}
+                        newOption={newOption}
+                        onNewOptionChange={setNewOption}
+                        onKeyPress={handleKeyPress}
+                        onUpdateItem={handleUpdateItem}
+                        onUpdateOptions={handleUpdateOptions}
                       />
                     </div>
+                  ))}
+                  <div className="space-y-2">
+                    <div className="text-sm font-medium text-muted-foreground">
+                      Quantity
+                    </div>
+                    <Input
+                      type="number"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      min="0"
+                      value={item.quantity}
+                      onChange={(e) => handleUpdateItem(item.id, "quantity", parseInt(e.target.value) || 0)}
+                      className="w-full"
+                      placeholder="Enter quantity"
+                    />
                   </div>
-                )}
-                <div className="flex gap-2 justify-center pt-2 border-t">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleRemoveRow(item.id)}
-                    className="bg-red-100 hover:bg-red-200 text-red-700 hover:text-red-800 rounded-full w-8 h-8 p-0"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleCopyRow(item)}
-                    className="bg-blue-100 hover:bg-blue-200 text-blue-700 hover:text-blue-800 rounded-full w-8 h-8 p-0"
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleAddItem}
-                    className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white rounded-full w-8 h-8 p-0"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsCompressed(!isCompressed)}
-                    className="bg-black hover:bg-black/90 text-white rounded-full w-8 h-8 p-0"
-                  >
-                    {isCompressed ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
-                  </Button>
                 </div>
+              )}
+              <div className="flex gap-2 justify-center pt-2 border-t">
+                <Button
+                  variant="customAction"
+                  size="sm"
+                  onClick={() => handleRemoveRow(item.id)}
+                  className="bg-red-100 hover:bg-red-200 text-red-700 hover:text-red-800 rounded-full w-8 h-8 p-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="customAction"
+                  size="sm"
+                  onClick={() => handleCopyRow(item)}
+                  className="bg-blue-100 hover:bg-blue-200 text-blue-700 hover:text-blue-800 rounded-full w-8 h-8 p-0"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="customAction"
+                  size="sm"
+                  onClick={handleAddItem}
+                  className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white rounded-full w-8 h-8 p-0"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="customAction"
+                  size="sm"
+                  onClick={() => toggleCompressed(item.id)}
+                  className="bg-black hover:bg-black/90 text-white rounded-full w-8 h-8 p-0"
+                >
+                  {compressedStates[item.id] ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
+                </Button>
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       </div>
     </div>
