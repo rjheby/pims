@@ -17,11 +17,20 @@ export function OrderTable() {
     setOptions 
   } = useWholesaleOrder();
 
+  // Ensure options is initialized
+  const safeOptions = options || {
+    species: [],
+    length: [],
+    bundleType: [],
+    thickness: [],
+    packaging: ["Pallets"]
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>, field: keyof DropdownOptions) => {
     if (e.key === "Enter" && newOption.trim()) {
-      const updatedOptions = [...options[field], newOption.trim()];
+      const updatedOptions = [...safeOptions[field], newOption.trim()];
       setOptions({
-        ...options,
+        ...safeOptions,
         [field]: updatedOptions,
       });
       setNewOption("");
@@ -57,10 +66,12 @@ export function OrderTable() {
 
   const handleUpdateOptions = (field: keyof DropdownOptions, newOptions: string[]) => {
     setOptions({
-      ...options,
+      ...safeOptions,
       [field]: newOptions,
     });
   };
+
+  const optionFields = Object.keys(safeOptions) as Array<keyof DropdownOptions>;
 
   return (
     <div className="grid gap-4">
@@ -70,7 +81,7 @@ export function OrderTable() {
           <TableHeader>
             <TableRow>
               <TableHead className="w-1/4">Name</TableHead>
-              {Object.keys(options || {}).map((field) => (
+              {optionFields.map((field) => (
                 <TableHead key={field}>
                   {field.charAt(0).toUpperCase() + field.slice(1)}
                 </TableHead>
@@ -84,7 +95,7 @@ export function OrderTable() {
               <OrderTableRow
                 key={item.id}
                 item={item}
-                options={options}
+                options={safeOptions}
                 isAdmin={isAdmin}
                 editingField={editingField}
                 newOption={newOption}
@@ -107,7 +118,7 @@ export function OrderTable() {
           <div key={item.id} className="bg-white rounded-lg border p-4 space-y-3">
             <div className="font-medium">{generateItemName(item) || "New Item"}</div>
             <div className="grid gap-2">
-              {Object.entries(options || {}).map(([field, fieldOptions]) => (
+              {optionFields.map((field) => (
                 <div key={field} className="grid grid-cols-2 gap-2">
                   <div className="text-sm text-muted-foreground">
                     {field.charAt(0).toUpperCase() + field.slice(1)}:
