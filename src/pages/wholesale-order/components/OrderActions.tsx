@@ -1,15 +1,11 @@
+
 import { Button } from "@/components/ui/button";
 import { Plus, FileText } from "lucide-react";
 import { useWholesaleOrder } from "../context/WholesaleOrderContext";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL, 
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
+import { supabase } from "@/integrations/supabase/client";
 
 interface GeneratedOrder {
   id: string;
@@ -81,7 +77,7 @@ export function OrderActions() {
         .insert([
           {
             order_number: orderNumber,
-            order_date: new Date(orderDate),
+            order_date: new Date(orderDate).toISOString(),
             items: validItems,
             admin_editable: true
           }
