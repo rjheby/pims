@@ -37,7 +37,7 @@ export function OrderTableActions({
       <Button variant="ghost" size="sm" onClick={() => onRemoveRow(item.id)} className="rounded-full w-8 h-8 p-0 text-pink-100 bg-red-800 hover:bg-red-700">
         <X className="h-4 w-4" />
       </Button>
-      <Button variant="ghost" size="sm" onClick={() => onCopyRow(item)} className="bg-blue-50 hover:bg-blue-100 text-blue-500 hover:text-blue-700 rounded-full w-8 h-8 p-0">
+      <Button variant="ghost" size="sm" onClick={() => onCopyRow(item)} className="rounded-full w-8 h-8 p-0 text-sky-100 bg-blue-700 hover:bg-blue-600">
         <Copy className="h-4 w-4" />
       </Button>
       <Button variant="ghost" size="sm" onClick={handleAddItem} className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white rounded-full w-8 h-8 p-0" aria-label="Add Item">
