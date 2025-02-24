@@ -23,34 +23,36 @@ import { GeneratedOrder } from "@/pages/GeneratedOrder";
 
 function App() {
   return (
-    <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
-      <UserProvider>
-        <AdminProvider>
-          <SidebarProvider>
-            <div className="min-h-screen flex w-full">
-              <AdminOverlay />
-              <AppLayout>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/wholesale-order" element={<WholesaleOrder />} />
-                  <Route path="/generated-order/:encodedContent" element={<GeneratedOrder />} />
-                  <Route path="/production" element={<Production />} />
-                  <Route path="/dispatch" element={<DispatchDelivery />} />
-                  <Route path="/driver-payments" element={<DriverPayments />} />
-                  <Route path="/inventory" element={<Inventory />} />
-                  <Route path="/customers" element={<Customers />} />
-                  <Route path="/team-settings" element={<TeamSettings />} />
-                  <Route path="/client-order" element={<ClientOrder />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </AppLayout>
-              <Toaster />
-            </div>
-          </SidebarProvider>
-        </AdminProvider>
-      </UserProvider>
-    </ThemeProvider>
+    <Router>
+      <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
+        <UserProvider>
+          <AdminProvider>
+            <SidebarProvider>
+              <div className="min-h-screen flex w-full">
+                <AdminOverlay />
+                <AppLayout>
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/wholesale-order" element={<WholesaleOrder />} />
+                    <Route path="/generated-order/:encodedContent" element={<GeneratedOrder />} />
+                    <Route path="/production" element={<Production />} />
+                    <Route path="/dispatch" element={<DispatchDelivery />} />
+                    <Route path="/driver-payments" element={<DriverPayments />} />
+                    <Route path="/inventory" element={<Inventory />} />
+                    <Route path="/customers" element={<Customers />} />
+                    <Route path="/team-settings" element={<TeamSettings />} />
+                    <Route path="/client-order" element={<ClientOrder />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </AppLayout>
+                <Toaster />
+              </div>
+            </SidebarProvider>
+          </AdminProvider>
+        </UserProvider>
+      </ThemeProvider>
+    </Router>
   );
 }
 
