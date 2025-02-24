@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Plus, FileText } from "lucide-react";
 import { useWholesaleOrder } from "../context/WholesaleOrderContext";
@@ -5,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { OrderItem } from "../types";
 
 interface GeneratedOrder {
   id: string;
@@ -22,7 +24,7 @@ export function OrderActions() {
   const totalPallets = items.reduce((sum, item) => sum + (item.pallets || 0), 0);
 
   const addItem = () => {
-    if (totalPallets + 0 > 24) {
+    if (totalPallets + 1 > 24) {
       toast({
         title: "Warning",
         description: "Adding more pallets would exceed the 24-pallet limit for a tractor trailer.",
@@ -40,7 +42,7 @@ export function OrderActions() {
         bundleType: "",
         thickness: "",
         packaging: "Pallets",
-        pallets: 0,
+        pallets: 1,
         quantity: 0,
       },
     ]);
@@ -73,14 +75,12 @@ export function OrderActions() {
     try {
       const { data, error } = await supabase
         .from("wholesale_orders")
-        .insert([
-          {
-            order_number: orderNumber,
-            order_date: new Date(orderDate).toISOString(), // Ensure correct date format
-            items: JSON.stringify(validItems), // Convert items to a JSON string
-            admin_editable: true
-          }
-        ])
+        .insert({
+          order_number: orderNumber,
+          order_date: new Date(orderDate).toISOString(),
+          items: JSON.stringify(validItems),
+          admin_editable: true
+        })
         .select("id")
         .single();
 
@@ -138,7 +138,7 @@ export function OrderActions() {
         <Button 
           onClick={handleSubmit}
           className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white transition-all duration-300 w-full sm:w-auto"
-          disabled={totalPallets === 0}
+          disabled={items.length === 0 || !orderNumber || !orderDate}
         >
           Submit Order
         </Button>
@@ -146,3 +146,26 @@ export function OrderActions() {
 
       {generatedOrders.length > 0 && (
         <div className="border-t pt-6">
+          <h3 className="text-lg font-medium mb-4">Generated Orders</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {generatedOrders.map((order) => (
+              <a
+                key={order.id}
+                href={order.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center p-4 border rounded-lg hover:bg-gray-50 transition-colors duration-200"
+              >
+                <FileText className="h-6 w-6 mr-3 text-[#2A4131]" />
+                <div>
+                  <div className="font-medium">{order.orderNumber}</div>
+                  <div className="text-sm text-gray-500">{order.orderDate}</div>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
