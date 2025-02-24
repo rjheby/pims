@@ -5,7 +5,6 @@ import { OrderTable } from "./wholesale-order/OrderTable";
 import { OrderActions } from "./wholesale-order/components/OrderActions";
 import { WholesaleOrderProvider } from "./wholesale-order/context/WholesaleOrderContext";
 import { useWholesaleOrder } from "./wholesale-order/context/WholesaleOrderContext";
-import { Leaf } from "lucide-react";
 
 function WholesaleOrderContent() {
   const { 
@@ -44,7 +43,11 @@ function WholesaleOrderContent() {
             />
           </div>
           <div className="md:hidden flex items-center">
-            <Leaf className="h-8 w-8 text-[#2A4131]" />
+            <img 
+              src="/lovable-uploads/15ce6f77-4e90-42f1-bc95-4ecf39833616.png"
+              alt="Woodbourne Icon"
+              className="h-8 w-8"
+            />
           </div>
         </div>
 
