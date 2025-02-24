@@ -21,9 +21,10 @@ export function OrderActions() {
   const navigate = useNavigate();
   const [generatedOrders, setGeneratedOrders] = useState<GeneratedOrder[]>([]);
   
-  // Fix totalPallets calculation to handle undefined values
+  // Recalculate total pallets more safely
   const totalPallets = items.reduce((sum, item) => {
-    const pallets = item.pallets || 0;
+    // Convert to number and handle NaN
+    const pallets = Number(item.pallets) || 0;
     return sum + pallets;
   }, 0);
 
@@ -40,8 +41,10 @@ export function OrderActions() {
   });
 
   const addItem = () => {
-    // Check if adding a pallet would exceed the limit
-    if (totalPallets >= 24) {
+    const newTotalPallets = totalPallets + 1; // Account for the new item's pallet
+    console.log('Current total pallets:', totalPallets, 'New total would be:', newTotalPallets);
+    
+    if (newTotalPallets > 24) {
       toast({
         title: "Warning",
         description: "Adding more pallets would exceed the 24-pallet limit for a tractor trailer.",
@@ -50,10 +53,11 @@ export function OrderActions() {
       return;
     }
 
+    const newId = Math.max(...items.map(item => item.id), 0) + 1;
     setItems([
       ...items,
       {
-        id: items.length + 1,
+        id: newId,
         species: "",
         length: "",
         bundleType: "",
@@ -172,6 +176,7 @@ export function OrderActions() {
         <Button 
           onClick={addItem} 
           className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white transition-all duration-300 w-full sm:w-auto"
+          disabled={totalPallets >= 24}
         >
           <Plus className="mr-2 h-5 w-5" />
           Add Item
