@@ -23,25 +23,23 @@ export function OrderActions() {
   
   // Recalculate total pallets more safely
   const totalPallets = items.reduce((sum, item) => {
-    // Convert to number and handle NaN
     const pallets = Number(item.pallets) || 0;
     return sum + pallets;
   }, 0);
 
-  // Calculate total cost
+  // Calculate total cost from all items (Quantity * Unit Cost for each item)
   const totalCost = items.reduce((sum, item) => {
-    const cost = Number(item.cost) || 0;
-    return sum + cost;
+    const itemTotal = (Number(item.pallets) || 0) * (Number(item.unitCost) || 0);
+    return sum + itemTotal;
   }, 0);
 
-  // Check if there's at least one valid item with detailed logging
+  // Check if there's at least one valid item
   const hasValidItems = items.some(item => {
     const isValid = item.species && 
                    item.length && 
                    item.bundleType && 
                    item.thickness && 
-                   item.pallets > 0 && 
-                   item.quantity > 0;
+                   item.pallets > 0;
     
     return isValid;
   });
@@ -76,8 +74,7 @@ export function OrderActions() {
         thickness: "",
         packaging: "Pallets",
         pallets: 1,
-        quantity: 0,
-        cost: 0,
+        unitCost: 250,
       },
     ]);
   };
@@ -92,7 +89,6 @@ export function OrderActions() {
       return;
     }
 
-    // Log items before validation
     console.log('Items before validation:', items);
 
     const validItems = items.filter(item => {
@@ -100,10 +96,8 @@ export function OrderActions() {
                      item.length && 
                      item.bundleType && 
                      item.thickness && 
-                     item.pallets > 0 && 
-                     item.quantity > 0;
+                     item.pallets > 0;
       
-      // Log validation details for each item
       if (!isValid) {
         console.log('Invalid item:', {
           id: item.id,
@@ -111,8 +105,7 @@ export function OrderActions() {
           length: !!item.length,
           bundleType: !!item.bundleType,
           thickness: !!item.thickness,
-          pallets: item.pallets > 0,
-          quantity: item.quantity > 0
+          pallets: item.pallets > 0
         });
       }
       
@@ -227,30 +220,26 @@ export function OrderActions() {
 
       {/* Order Summary Section */}
       <div className="border-t pt-6">
-        <h3 className="text-lg font-medium mb-4">Order Summary</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-slate-50 rounded-lg">
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Total Pallets:</span>
-              <span className="font-medium">{totalPallets}</span>
-            </div>
+        <h3 className="text-xl font-semibold mb-6 text-center">Order Summary</h3>
+        <div className="flex flex-col gap-4 p-6 bg-slate-50 rounded-lg">
+          <div className="text-center">
+            <div className="text-gray-600 text-lg mb-1">Total Pallets</div>
+            <div className="text-2xl font-semibold">{totalPallets}</div>
             {totalPallets < 24 && (
-              <div className="text-sm text-amber-600">
+              <div className="text-sm text-amber-600 mt-1">
                 {24 - totalPallets} pallets remaining before full load
               </div>
             )}
             {totalPallets > 24 && (
-              <div className="text-sm text-red-600">
+              <div className="text-sm text-red-600 mt-1">
                 Exceeds maximum load by {totalPallets - 24} pallets
               </div>
             )}
           </div>
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Total Cost:</span>
-              <span className="font-medium">
-                ${totalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </span>
+          <div className="text-center">
+            <div className="text-gray-600 text-lg mb-1">Total Order Value</div>
+            <div className="text-2xl font-semibold">
+              ${totalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
           </div>
         </div>
