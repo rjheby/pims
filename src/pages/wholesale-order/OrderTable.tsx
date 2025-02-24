@@ -6,7 +6,7 @@ import { useWholesaleOrder } from "./context/WholesaleOrderContext";
 
 export function OrderTable() {
   const { 
-    items, 
+    items = [], // Provide default empty array
     options, 
     isAdmin, 
     editingField, 
@@ -27,8 +27,8 @@ export function OrderTable() {
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>, field: keyof DropdownOptions) => {
-    if (e.key === "Enter" && newOption.trim()) {
-      const updatedOptions = [...safeOptions[field], newOption.trim()];
+    if (e.key === "Enter" && newOption?.trim()) {
+      const updatedOptions = [...(safeOptions[field] || []), newOption.trim()];
       setOptions({
         ...safeOptions,
         [field]: updatedOptions,
@@ -56,6 +56,7 @@ export function OrderTable() {
   };
 
   const generateItemName = (item: OrderItem) => {
+    if (!item) return "New Item";
     const parts = [];
     if (item.species) parts.push(item.species);
     if (item.length) parts.push(item.length);
@@ -91,7 +92,7 @@ export function OrderTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {items.map((item) => (
+            {(items || []).map((item) => (
               <OrderTableRow
                 key={item.id}
                 item={item}
@@ -114,7 +115,7 @@ export function OrderTable() {
 
       {/* Mobile View */}
       <div className="grid gap-4 md:hidden">
-        {items.map((item) => (
+        {(items || []).map((item) => (
           <div key={item.id} className="bg-white rounded-lg border p-4 space-y-3">
             <div className="font-medium">{generateItemName(item) || "New Item"}</div>
             <div className="grid gap-2">
