@@ -31,6 +31,7 @@ export function OrderTableActions({
         thickness: "",
         packaging: "Pallets",
         pallets: 0,
+        quantity: 0,
       },
     ]);
   };

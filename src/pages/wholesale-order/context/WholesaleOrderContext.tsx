@@ -55,6 +55,7 @@ export function WholesaleOrderProvider({ children }: { children: ReactNode }) {
       thickness: "",
       packaging: "Pallets",
       pallets: 0,
+      quantity: 0,
     },
   ]);
 
