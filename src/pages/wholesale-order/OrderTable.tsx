@@ -199,7 +199,7 @@ export function OrderTable() {
                     variant="ghost"
                     size="sm"
                     onClick={() => handleRemoveRow(item.id)}
-                    className="bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-700 rounded-full w-8 h-8 p-0"
+                    className="bg-red-100 hover:bg-red-200 text-red-700 hover:text-red-800 rounded-full w-8 h-8 p-0"
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -207,7 +207,7 @@ export function OrderTable() {
                     variant="ghost"
                     size="sm"
                     onClick={() => handleCopyRow(item)}
-                    className="bg-blue-50 hover:bg-blue-100 text-blue-500 hover:text-blue-700 rounded-full w-8 h-8 p-0"
+                    className="bg-blue-100 hover:bg-blue-200 text-blue-700 hover:text-blue-800 rounded-full w-8 h-8 p-0"
                   >
                     <Copy className="h-4 w-4" />
                   </Button>
@@ -223,7 +223,7 @@ export function OrderTable() {
                     variant="ghost"
                     size="sm"
                     onClick={() => setIsCompressed(!isCompressed)}
-                    className="bg-zinc-50 hover:bg-zinc-100 text-zinc-600 hover:text-zinc-800 rounded-full w-8 h-8 p-0"
+                    className="bg-black hover:bg-black/90 text-white rounded-full w-8 h-8 p-0"
                   >
                     {isCompressed ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
                   </Button>
