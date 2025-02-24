@@ -25,7 +25,6 @@ function WholesaleOrderContent() {
   };
 
   const headerDetails = [
-    orderNumber && `Order #${orderNumber}`,
     orderDate && `Order Date: ${formatDate(orderDate)}`,
     deliveryDate && `Delivery: ${formatDate(deliveryDate)}`
   ].filter(Boolean).join(' • ');
@@ -55,7 +54,7 @@ function WholesaleOrderContent() {
           <CardHeader>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
-                <CardTitle>New Wholesale Order</CardTitle>
+                <CardTitle>{orderNumber ? `Wholesale Order #${orderNumber}` : 'New Wholesale Order'}</CardTitle>
                 {headerDetails && (
                   <CardDescription className="mt-1">
                     {headerDetails}
