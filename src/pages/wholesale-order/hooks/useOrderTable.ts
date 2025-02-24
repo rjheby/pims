@@ -36,7 +36,7 @@ export function useOrderTable() {
   };
 
   const handleUpdateItem = (id: number, field: keyof OrderItem, value: string | number) => {
-    setItems((prev: OrderItem[]) => 
+    setItems(prev => 
       prev.map((item) =>
         item.id === id ? { ...item, [field]: value } : item
       )
@@ -44,18 +44,18 @@ export function useOrderTable() {
   };
 
   const handleRemoveRow = (id: number) => {
-    setItems((prev: OrderItem[]) => prev.filter((item) => item.id !== id));
+    setItems(prev => prev.filter((item) => item.id !== id));
   };
 
   const handleCopyRow = (item: OrderItem) => {
-    setItems((prev: OrderItem[]) => {
+    setItems(prev => {
       const maxId = Math.max(...prev.map((item) => item.id), 0);
       return [...prev, { ...item, id: maxId + 1 }];
     });
   };
 
   const handleAddItem = () => {
-    setItems((prev: OrderItem[]) => {
+    setItems(prev => {
       const maxId = Math.max(...prev.map((item) => item.id), 0);
       return [
         ...prev,

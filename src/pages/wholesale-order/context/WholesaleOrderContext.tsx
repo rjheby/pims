@@ -1,5 +1,5 @@
 
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode, Dispatch, SetStateAction } from "react";
 import { OrderItem, DropdownOptions, initialOptions } from "../types";
 import { useToast } from "@/hooks/use-toast";
 import { useAdmin } from "@/context/AdminContext";
@@ -24,7 +24,7 @@ interface WholesaleOrderContextType {
   newOption: string;
   setNewOption: (value: string) => void;
   items: OrderItem[];
-  setItems: (value: OrderItem[]) => void;
+  setItems: Dispatch<SetStateAction<OrderItem[]>>;
   saveChanges: () => void;
   discardChanges: () => void;
   undoLastChange: () => void;
