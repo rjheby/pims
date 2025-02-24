@@ -23,15 +23,36 @@ export function OrderActions() {
   
   const totalPallets = items.reduce((sum, item) => sum + (item.pallets || 0), 0);
 
-  // Check if there's at least one valid item
-  const hasValidItems = items.some(item => 
-    item.species && 
-    item.length && 
-    item.bundleType && 
-    item.thickness && 
-    item.pallets > 0 && 
-    item.quantity > 0
-  );
+  // Check if there's at least one valid item with detailed logging
+  const hasValidItems = items.some(item => {
+    const isValid = item.species && 
+                   item.length && 
+                   item.bundleType && 
+                   item.thickness && 
+                   item.pallets > 0 && 
+                   item.quantity > 0;
+    
+    console.log('Item validation:', {
+      id: item.id,
+      species: item.species,
+      length: item.length,
+      bundleType: item.bundleType,
+      thickness: item.thickness,
+      pallets: item.pallets,
+      quantity: item.quantity,
+      isValid: isValid
+    });
+    
+    return isValid;
+  });
+
+  // Log the overall state
+  console.log('Form state:', {
+    hasValidItems,
+    orderNumber,
+    orderDate,
+    items
+  });
 
   const addItem = () => {
     if (totalPallets + 1 > 24) {
