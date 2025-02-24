@@ -75,10 +75,18 @@ export function OrderTable() {
   const generateItemName = (item: OrderItem) => {
     if (!item) return "New Item";
     const parts = [];
+
+    // Add quantity and packaging if they exist
+    if (item.quantity && item.packaging) {
+      parts.push(`${item.quantity} ${item.packaging} of`);
+    }
+
+    // Add other specifications
     if (item.species) parts.push(item.species);
     if (item.length) parts.push(item.length);
     if (item.bundleType) parts.push(item.bundleType);
     if (item.thickness) parts.push(item.thickness);
+
     return parts.join(" - ") || "New Item";
   };
 
