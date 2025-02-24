@@ -4,6 +4,7 @@ import { Plus, FileText } from "lucide-react";
 import { useWholesaleOrder } from "../context/WholesaleOrderContext";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface GeneratedOrder {
   id: string;
@@ -15,6 +16,7 @@ interface GeneratedOrder {
 export function OrderActions() {
   const { items, setItems, orderNumber, orderDate } = useWholesaleOrder();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [generatedOrders, setGeneratedOrders] = useState<GeneratedOrder[]>([]);
   
   const totalPallets = items.reduce((sum, item) => sum + (item.pallets || 0), 0);
@@ -39,6 +41,7 @@ export function OrderActions() {
         thickness: "",
         packaging: "Pallets",
         pallets: 0,
+        quantity: 0,
       },
     ]);
   };
@@ -64,7 +67,8 @@ export function OrderActions() {
           item.length && 
           item.bundleType && 
           item.thickness && 
-          item.pallets > 0
+          item.pallets > 0 &&
+          item.quantity > 0
         ),
       };
       
@@ -87,12 +91,12 @@ export function OrderActions() {
       
       setGeneratedOrders(prev => [newOrder, ...prev]);
 
-      // Open in new tab
-      window.open(url, '_blank');
+      // Navigate using React Router
+      navigate(url);
 
       toast({
         title: "Success",
-        description: "Order has been generated and opened in a new tab.",
+        description: "Order has been generated successfully.",
       });
 
     } catch (error) {

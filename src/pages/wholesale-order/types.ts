@@ -7,6 +7,7 @@ export interface OrderItem {
   thickness: string;
   packaging: string;
   pallets: number;
+  quantity: number;
 }
 
 export interface DropdownOptions {

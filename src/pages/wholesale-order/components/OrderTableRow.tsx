@@ -3,6 +3,7 @@ import { TableCell, TableRow } from "@/components/ui/table";
 import { OrderItem, DropdownOptions } from "../types";
 import { OrderTableDropdownCell } from "./OrderTableDropdownCell";
 import { OrderTableActions } from "./OrderTableActions";
+import { Input } from "@/components/ui/input";
 
 interface OrderTableRowProps {
   item: OrderItem;
@@ -56,6 +57,16 @@ export function OrderTableRow({
           />
         </TableCell>
       ))}
+      <TableCell>
+        <Input
+          type="number"
+          min="0"
+          value={item.quantity || ""}
+          onChange={(e) => onUpdateItem(item.id, "quantity", parseInt(e.target.value) || 0)}
+          className="w-24"
+          placeholder="Qty"
+        />
+      </TableCell>
       <TableCell>
         <OrderTableActions
           item={item}
