@@ -56,6 +56,7 @@ export function WholesaleOrderProvider({ children }: { children: ReactNode }) {
       packaging: "Pallets",
       pallets: 0,
       quantity: 0,
+      cost: 0,  // Added cost property
     },
   ]);
 

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useWholesaleOrder } from "../context/WholesaleOrderContext";
 import { OrderItem, DropdownOptions, initialOptions } from "../types";
@@ -68,6 +67,7 @@ export function useOrderTable() {
           packaging: "Pallets",
           pallets: 0,
           quantity: 0,
+          cost: 0,
         },
       ];
     });
