@@ -38,7 +38,12 @@ export function useOrderTable() {
   const handleUpdateItem = (id: number, field: keyof OrderItem, value: string | number) => {
     setItems(prev => 
       prev.map((item) =>
-        item.id === id ? { ...item, [field]: value } : item
+        item.id === id ? { 
+          ...item, 
+          [field]: value,
+          // Set default cost when species is updated
+          ...(field === 'species' ? { cost: 250 } : {})
+        } : item
       )
     );
   };
@@ -65,7 +70,7 @@ export function useOrderTable() {
         packaging: "Pallets",
         pallets: 0,
         quantity: 0,
-        cost: 0,
+        cost: 250, // Default cost
       },
     ]);
   };

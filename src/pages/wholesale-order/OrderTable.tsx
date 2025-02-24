@@ -1,7 +1,5 @@
 
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import { OrderTableRow } from "./components/OrderTableRow";
 import { OrderTableMobileRow } from "./components/OrderTableMobileRow";
 import { useOrderTable } from "./hooks/useOrderTable";
@@ -24,6 +22,8 @@ export function OrderTable() {
     handleUpdateOptions,
     toggleCompressed,
     setNewOption,
+    calculateTotalPallets,
+    calculateTotalCost,
   } = useOrderTable();
 
   return (
@@ -41,6 +41,8 @@ export function OrderTable() {
                     </TableHead>
                   ))}
                   <TableHead className="w-[100px]">Quantity</TableHead>
+                  <TableHead className="w-[100px]">Pallets</TableHead>
+                  <TableHead className="w-[100px]">Cost</TableHead>
                   <TableHead className="w-[160px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -58,6 +60,7 @@ export function OrderTable() {
                     onUpdateItem={handleUpdateItem}
                     onRemoveRow={handleRemoveRow}
                     onCopyRow={handleCopyRow}
+                    onAddItem={handleAddItem}
                     generateItemName={generateItemName}
                     onUpdateOptions={handleUpdateOptions}
                     isCompressed={!!compressedStates[item.id]}
