@@ -26,7 +26,7 @@ export function OrderTableActions({
 
   const handleAddItem = () => {
     const maxId = Math.max(...items.map(item => item.id), 0);
-    setItems([...items, {
+    const newItem: OrderItem = {
       id: maxId + 1,
       species: "",
       length: "",
@@ -34,8 +34,10 @@ export function OrderTableActions({
       thickness: "",
       packaging: "Pallets",
       pallets: 0,
-      quantity: 0
-    }]);
+      quantity: 0,
+      cost: 0  // Added the required cost property
+    };
+    setItems([...items, newItem]);
   };
 
   return <div className="flex gap-2 items-center">
