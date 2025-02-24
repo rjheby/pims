@@ -28,6 +28,12 @@ export function OrderActions() {
     return sum + pallets;
   }, 0);
 
+  // Calculate total cost
+  const totalCost = items.reduce((sum, item) => {
+    const cost = Number(item.cost) || 0;
+    return sum + cost;
+  }, 0);
+
   // Check if there's at least one valid item with detailed logging
   const hasValidItems = items.some(item => {
     const isValid = item.species && 
@@ -41,16 +47,22 @@ export function OrderActions() {
   });
 
   const addItem = () => {
-    const newTotalPallets = totalPallets + 1; // Account for the new item's pallet
+    const newTotalPallets = totalPallets + 1;
     console.log('Current total pallets:', totalPallets, 'New total would be:', newTotalPallets);
     
+    // Show appropriate warning based on pallet count
     if (newTotalPallets > 24) {
       toast({
         title: "Warning",
-        description: "Adding more pallets would exceed the 24-pallet limit for a tractor trailer.",
-        variant: "destructive",
+        description: "Shipment may already be full.",
+        variant: "warning",
       });
-      return;
+    } else if (newTotalPallets < 24) {
+      toast({
+        title: "Notice",
+        description: "Shipment is not quite full. Consider adding more product to this order.",
+        variant: "warning",
+      });
     }
 
     const newId = Math.max(...items.map(item => item.id), 0) + 1;
@@ -65,6 +77,7 @@ export function OrderActions() {
         packaging: "Pallets",
         pallets: 1,
         quantity: 0,
+        cost: 0,
       },
     ]);
   };
@@ -176,7 +189,6 @@ export function OrderActions() {
         <Button 
           onClick={addItem} 
           className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white transition-all duration-300 w-full sm:w-auto"
-          disabled={totalPallets >= 24}
         >
           <Plus className="mr-2 h-5 w-5" />
           Add Item
@@ -212,6 +224,37 @@ export function OrderActions() {
           </div>
         </div>
       )}
+
+      {/* Order Summary Section */}
+      <div className="border-t pt-6">
+        <h3 className="text-lg font-medium mb-4">Order Summary</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-slate-50 rounded-lg">
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Total Pallets:</span>
+              <span className="font-medium">{totalPallets}</span>
+            </div>
+            {totalPallets < 24 && (
+              <div className="text-sm text-amber-600">
+                {24 - totalPallets} pallets remaining before full load
+              </div>
+            )}
+            {totalPallets > 24 && (
+              <div className="text-sm text-red-600">
+                Exceeds maximum load by {totalPallets - 24} pallets
+              </div>
+            )}
+          </div>
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Total Cost:</span>
+              <span className="font-medium">
+                ${totalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
