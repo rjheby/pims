@@ -26,8 +26,7 @@ export function WholesaleOrderSheet() {
       thickness: "",
       packaging: "Pallets",
       pallets: 0,
-      quantity: 0,
-      cost: 0
+      unitCost: 250
     }]);
   };
 
@@ -50,7 +49,6 @@ export function WholesaleOrderSheet() {
         </Select>
       )
     },
-    // ... Add other columns similarly
   ];
 
   const summaries = [
@@ -60,7 +58,7 @@ export function WholesaleOrderSheet() {
     },
     {
       label: 'Total Cost',
-      calculate: (items: OrderItem[]) => items.reduce((sum, item) => sum + (Number(item.cost) || 0), 0),
+      calculate: (items: OrderItem[]) => items.reduce((sum, item) => sum + ((Number(item.pallets) || 0) * (Number(item.unitCost) || 0)), 0),
       format: (value: number) => `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
     }
   ];
