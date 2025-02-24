@@ -40,8 +40,8 @@ export function OrderTableRow({
   onToggleCompressed,
 }: OrderTableRowProps) {
   return (
-    <TableRow>
-      <TableCell className={`w-full ${isCompressed ? 'md:w-3/4' : 'md:w-1/4'} min-w-[200px] text-base md:text-sm`}>
+    <TableRow className={isCompressed ? 'md:grid md:grid-cols-[1fr,auto]' : ''}>
+      <TableCell className={`w-full ${isCompressed ? 'md:pr-8' : 'md:w-1/4'} min-w-[200px] text-base md:text-sm`}>
         {generateItemName(item) || (
           <div className="h-6 bg-muted/20 rounded animate-pulse" />
         )}
