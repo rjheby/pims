@@ -168,8 +168,10 @@ export function OrderTable() {
                   </div>
                   <Input
                     type="number"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     min="0"
-                    value={item.quantity || ""}
+                    value={item.quantity}
                     onChange={(e) => handleUpdateItem(item.id, "quantity", parseInt(e.target.value) || 0)}
                     className="w-full"
                     placeholder="Enter quantity"
