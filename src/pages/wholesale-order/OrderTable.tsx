@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Copy, X, Maximize2, Minimize2 } from "lucide-react";
 import { OrderTableDropdownCell } from "./components/OrderTableDropdownCell";
 import { Input } from "@/components/ui/input";
+import { useState } from "react";
 
 export function OrderTable() {
   const { 
