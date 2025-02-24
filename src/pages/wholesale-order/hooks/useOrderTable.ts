@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useWholesaleOrder } from "../context/WholesaleOrderContext";
 import { OrderItem, DropdownOptions, initialOptions } from "../types";
@@ -47,30 +48,34 @@ export function useOrderTable() {
   };
 
   const handleCopyRow = (item: OrderItem) => {
-    setItems(prev => {
-      const maxId = Math.max(...prev.map((item) => item.id), 0);
-      return [...prev, { ...item, id: maxId + 1 }];
-    });
+    const maxId = Math.max(...items.map((item) => item.id), 0);
+    setItems(prev => [...prev, { ...item, id: maxId + 1 }]);
   };
 
   const handleAddItem = () => {
-    setItems(prev => {
-      const maxId = Math.max(...prev.map((item) => item.id), 0);
-      return [
-        ...prev,
-        {
-          id: maxId + 1,
-          species: "",
-          length: "",
-          bundleType: "",
-          thickness: "",
-          packaging: "Pallets",
-          pallets: 0,
-          quantity: 0,
-          cost: 0,
-        },
-      ];
-    });
+    const maxId = Math.max(...items.map((item) => item.id), 0);
+    setItems(prev => [
+      ...prev,
+      {
+        id: maxId + 1,
+        species: "",
+        length: "",
+        bundleType: "",
+        thickness: "",
+        packaging: "Pallets",
+        pallets: 0,
+        quantity: 0,
+        cost: 0,
+      },
+    ]);
+  };
+
+  const calculateTotalPallets = () => {
+    return items.reduce((sum, item) => sum + (Number(item.pallets) || 0), 0);
+  };
+
+  const calculateTotalCost = () => {
+    return items.reduce((sum, item) => sum + (Number(item.cost) || 0), 0);
   };
 
   const generateItemName = (item: OrderItem) => {
@@ -103,6 +108,15 @@ export function useOrderTable() {
     }));
   };
 
+  const hasValidItems = items.some(item => {
+    return item.species && 
+           item.length && 
+           item.bundleType && 
+           item.thickness && 
+           item.pallets > 0 && 
+           item.quantity > 0;
+  });
+
   return {
     items,
     options: safeOptions,
@@ -120,5 +134,8 @@ export function useOrderTable() {
     handleUpdateOptions,
     toggleCompressed,
     setNewOption,
+    hasValidItems,
+    calculateTotalPallets,
+    calculateTotalCost,
   };
 }

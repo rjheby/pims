@@ -21,6 +21,7 @@ interface OrderTableRowProps {
   onUpdateOptions: (field: keyof DropdownOptions, options: string[]) => void;
   onToggleCompressed: (id: number) => void;
   generateItemName: (item: OrderItem) => string;
+  onAddItem: () => void;
 }
 
 export function OrderTableRow({
@@ -38,6 +39,7 @@ export function OrderTableRow({
   generateItemName,
   onUpdateOptions,
   onToggleCompressed,
+  onAddItem,
 }: OrderTableRowProps) {
   return (
     <TableRow>
@@ -63,16 +65,38 @@ export function OrderTableRow({
         </TableCell>
       ))}
       {!isCompressed && (
-        <TableCell>
-          <Input
-            type="number"
-            min="0"
-            value={item.quantity || ""}
-            onChange={(e) => onUpdateItem(item.id, "quantity", parseInt(e.target.value) || 0)}
-            className="w-24"
-            placeholder="Qty"
-          />
-        </TableCell>
+        <>
+          <TableCell>
+            <Input
+              type="number"
+              min="0"
+              value={item.quantity || ""}
+              onChange={(e) => onUpdateItem(item.id, "quantity", parseInt(e.target.value) || 0)}
+              className="w-24"
+              placeholder="Qty"
+            />
+          </TableCell>
+          <TableCell>
+            <Input
+              type="number"
+              min="0"
+              value={item.pallets || ""}
+              onChange={(e) => onUpdateItem(item.id, "pallets", parseInt(e.target.value) || 0)}
+              className="w-24"
+              placeholder="Pallets"
+            />
+          </TableCell>
+          <TableCell>
+            <Input
+              type="number"
+              min="0"
+              value={item.cost || ""}
+              onChange={(e) => onUpdateItem(item.id, "cost", parseFloat(e.target.value) || 0)}
+              className="w-24"
+              placeholder="Cost"
+            />
+          </TableCell>
+        </>
       )}
       <TableCell>
         <div className="flex gap-2 items-center">
@@ -95,7 +119,7 @@ export function OrderTableRow({
           <Button 
             variant="customAction"
             size="sm" 
-            onClick={() => onUpdateOptions("species", [...options.species])} 
+            onClick={onAddItem}
             className="rounded-full w-8 h-8 p-0 bg-[#2A4131] hover:bg-slate-50 text-slate-50 hover:text-[#2A4131]"
           >
             <Plus className="h-4 w-4" />
