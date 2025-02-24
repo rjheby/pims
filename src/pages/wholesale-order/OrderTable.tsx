@@ -189,7 +189,7 @@ export function OrderTable() {
                   />
                 </div>
               </div>
-              <div className="flex gap-2 justify-end pt-2 border-t">
+              <div className="flex gap-2 justify-center pt-2 border-t">
                 <Button
                   variant="ghost"
                   size="sm"
