@@ -3,6 +3,10 @@ import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components
 import { OrderItem, DropdownOptions, initialOptions } from "./types";
 import { OrderTableRow } from "./components/OrderTableRow";
 import { useWholesaleOrder } from "./context/WholesaleOrderContext";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import { OrderTableDropdownCell } from "./components/OrderTableDropdownCell";
+import { Input } from "@/components/ui/input";
 
 export function OrderTable() {
   const { 
@@ -49,6 +53,23 @@ export function OrderTable() {
   const handleCopyRow = (item: OrderItem) => {
     const maxId = Math.max(...items.map((item) => item.id), 0);
     setItems([...items, { ...item, id: maxId + 1 }]);
+  };
+
+  const handleAddItem = () => {
+    const maxId = Math.max(...items.map((item) => item.id), 0);
+    setItems([
+      ...items,
+      {
+        id: maxId + 1,
+        species: "",
+        length: "",
+        bundleType: "",
+        thickness: "",
+        packaging: "Pallets",
+        pallets: 0,
+        quantity: 0,
+      },
+    ]);
   };
 
   const generateItemName = (item: OrderItem) => {
@@ -108,46 +129,76 @@ export function OrderTable() {
         </Table>
       </div>
 
-      <div className="grid gap-4 md:hidden">
-        {items.map((item) => (
-          <div key={item.id} className="bg-white rounded-lg border p-4 space-y-3">
-            <div className="font-medium">{generateItemName(item)}</div>
-            <div className="grid gap-2">
-              {optionFields.map((field) => (
-                <div key={field} className="grid grid-cols-2 gap-2">
-                  <div className="text-sm text-muted-foreground">
-                    {field.charAt(0).toUpperCase() + field.slice(1)}:
+      <div className="md:hidden">
+        <Button
+          onClick={handleAddItem}
+          className="w-full mb-4 bg-[#2A4131] hover:bg-[#2A4131]/90 text-white"
+        >
+          <Plus className="mr-2 h-5 w-5" />
+          Add New Item
+        </Button>
+        
+        <div className="grid gap-4">
+          {items.map((item) => (
+            <div key={item.id} className="bg-white rounded-lg border p-4 space-y-3">
+              <div className="font-medium">{generateItemName(item)}</div>
+              <div className="grid gap-4">
+                {optionFields.map((field) => (
+                  <div key={field} className="space-y-2">
+                    <div className="text-sm font-medium text-muted-foreground">
+                      {field.charAt(0).toUpperCase() + field.slice(1)}
+                    </div>
+                    <OrderTableDropdownCell
+                      field={field}
+                      item={item}
+                      options={safeOptions}
+                      isAdmin={isAdmin}
+                      editingField={editingField}
+                      newOption={newOption}
+                      onNewOptionChange={setNewOption}
+                      onKeyPress={handleKeyPress}
+                      onUpdateItem={handleUpdateItem}
+                      onUpdateOptions={handleUpdateOptions}
+                    />
                   </div>
-                  <div className="text-sm">
-                    {item[field as keyof OrderItem] || "-"}
+                ))}
+                <div className="space-y-2">
+                  <div className="text-sm font-medium text-muted-foreground">
+                    Quantity
                   </div>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={item.quantity || ""}
+                    onChange={(e) => handleUpdateItem(item.id, "quantity", parseInt(e.target.value) || 0)}
+                    className="w-full"
+                    placeholder="Enter quantity"
+                  />
                 </div>
-              ))}
-              <div className="grid grid-cols-2 gap-2">
-                <div className="text-sm text-muted-foreground">Quantity:</div>
-                <div className="text-sm">{item.quantity || "-"}</div>
+              </div>
+              <div className="flex justify-end gap-2">
+                {isAdmin && (
+                  <>
+                    <Button
+                      onClick={() => handleRemoveRow(item.id)}
+                      variant="destructive"
+                      size="sm"
+                    >
+                      Remove
+                    </Button>
+                    <Button
+                      onClick={() => handleCopyRow(item)}
+                      variant="secondary"
+                      size="sm"
+                    >
+                      Copy
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
-            <div className="flex justify-end gap-2">
-              {isAdmin && (
-                <>
-                  <button
-                    onClick={() => handleRemoveRow(item.id)}
-                    className="text-sm text-red-600 hover:text-red-800"
-                  >
-                    Remove
-                  </button>
-                  <button
-                    onClick={() => handleCopyRow(item)}
-                    className="text-sm text-blue-600 hover:text-blue-800"
-                  >
-                    Copy
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );
