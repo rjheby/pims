@@ -45,16 +45,37 @@ export function OrderActions() {
 
   const handleSubmit = () => {
     try {
+      // Validate required fields
+      if (!orderNumber || !orderDate) {
+        toast({
+          title: "Error",
+          description: "Order number and date are required.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Create URL parameters from current state
       const orderContent = {
         orderNumber,
         orderDate,
-        items,
+        items: items.filter(item => 
+          item.species && 
+          item.length && 
+          item.bundleType && 
+          item.thickness && 
+          item.pallets > 0
+        ),
       };
       
-      // Create a Base64 encoded string of the order content
-      const encodedContent = btoa(JSON.stringify(orderContent));
-      const url = `/generated-order/${encodedContent}`;
+      // First stringify the content
+      const jsonString = JSON.stringify(orderContent);
+      // Then base64 encode it
+      const base64String = btoa(jsonString);
+      // Finally, make it URL safe
+      const urlSafeBase64 = encodeURIComponent(base64String);
+      
+      const url = `/generated-order/${urlSafeBase64}`;
       
       // Add to generated orders list
       const newOrder: GeneratedOrder = {
@@ -75,6 +96,7 @@ export function OrderActions() {
       });
 
     } catch (error) {
+      console.error('Submit error:', error);
       toast({
         title: "Error",
         description: "Failed to generate the order. Please try again.",
