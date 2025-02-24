@@ -23,6 +23,16 @@ export function OrderActions() {
   
   const totalPallets = items.reduce((sum, item) => sum + (item.pallets || 0), 0);
 
+  // Check if there's at least one valid item
+  const hasValidItems = items.some(item => 
+    item.species && 
+    item.length && 
+    item.bundleType && 
+    item.thickness && 
+    item.pallets > 0 && 
+    item.quantity > 0
+  );
+
   const addItem = () => {
     if (totalPallets + 1 > 24) {
       toast({
@@ -42,7 +52,7 @@ export function OrderActions() {
         bundleType: "",
         thickness: "",
         packaging: "Pallets",
-        pallets: 1, // Ensure pallets starts at 1 instead of 0
+        pallets: 1,
         quantity: 0,
       },
     ]);
@@ -162,7 +172,7 @@ export function OrderActions() {
         <Button 
           onClick={handleSubmit}
           className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white transition-all duration-300 w-full sm:w-auto"
-          disabled={items.length === 0 || !orderNumber || !orderDate}
+          disabled={!hasValidItems || !orderNumber || !orderDate}
         >
           Submit Order
         </Button>
