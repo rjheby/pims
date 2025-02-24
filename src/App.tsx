@@ -1,10 +1,10 @@
-
 import "./App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
-import AppLayout from "./components/layouts/AppLayout";
-import { UserProvider } from "./context/UserContext";
-import { AdminProvider } from "./context/AdminContext";
+import { AppLayout } from "@/components/layouts/AppLayout";
+import { UserProvider } from "@/context/UserContext";
+import { AdminProvider } from "@/context/AdminContext";
+import { ThemeProvider } from "@/components/theme-provider";
 import { AdminOverlay } from "./components/AdminOverlay";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import Dashboard from "@/pages/Dashboard";
@@ -18,10 +18,11 @@ import Customers from "@/pages/Customers";
 import TeamSettings from "@/pages/TeamSettings";
 import ClientOrder from "@/pages/ClientOrder";
 import NotFound from "@/pages/NotFound";
+import { GeneratedOrder } from "@/pages/GeneratedOrder";
 
 function App() {
   return (
-    <BrowserRouter>
+    <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
       <UserProvider>
         <AdminProvider>
           <SidebarProvider>
@@ -32,6 +33,7 @@ function App() {
                   <Route path="/" element={<Index />} />
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/wholesale-order" element={<WholesaleOrder />} />
+                  <Route path="/generated-order/:encodedContent" element={<GeneratedOrder />} />
                   <Route path="/production" element={<Production />} />
                   <Route path="/dispatch" element={<DispatchDelivery />} />
                   <Route path="/driver-payments" element={<DriverPayments />} />
@@ -47,7 +49,7 @@ function App() {
           </SidebarProvider>
         </AdminProvider>
       </UserProvider>
-    </BrowserRouter>
+    </ThemeProvider>
   );
 }
 
