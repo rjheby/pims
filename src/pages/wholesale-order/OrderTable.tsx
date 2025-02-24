@@ -100,41 +100,45 @@ export function OrderTable() {
   const optionFields = Object.keys(safeOptions) as Array<keyof DropdownOptions>;
 
   return (
-    <div className="grid gap-4">
-      <div className="hidden md:block">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-1/4">Name</TableHead>
-              {optionFields.map((field) => (
-                <TableHead key={field}>
-                  {field.charAt(0).toUpperCase() + field.slice(1)}
-                </TableHead>
-              ))}
-              <TableHead>Quantity</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((item) => (
-              <OrderTableRow
-                key={item.id}
-                item={item}
-                options={safeOptions}
-                isAdmin={isAdmin}
-                editingField={editingField}
-                newOption={newOption}
-                onNewOptionChange={setNewOption}
-                onKeyPress={handleKeyPress}
-                onUpdateItem={handleUpdateItem}
-                onRemoveRow={handleRemoveRow}
-                onCopyRow={handleCopyRow}
-                generateItemName={generateItemName}
-                onUpdateOptions={handleUpdateOptions}
-              />
-            ))}
-          </TableBody>
-        </Table>
+    <div className="grid gap-4 overflow-x-auto">
+      <div className="hidden md:block overflow-x-auto">
+        <div className="min-w-full inline-block align-middle">
+          <div className="overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[300px]">Name</TableHead>
+                  {optionFields.map((field) => (
+                    <TableHead key={field} className="w-[160px]">
+                      {field.charAt(0).toUpperCase() + field.slice(1)}
+                    </TableHead>
+                  ))}
+                  <TableHead className="w-[100px]">Quantity</TableHead>
+                  <TableHead className="w-[160px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {items.map((item) => (
+                  <OrderTableRow
+                    key={item.id}
+                    item={item}
+                    options={safeOptions}
+                    isAdmin={isAdmin}
+                    editingField={editingField}
+                    newOption={newOption}
+                    onNewOptionChange={setNewOption}
+                    onKeyPress={handleKeyPress}
+                    onUpdateItem={handleUpdateItem}
+                    onRemoveRow={handleRemoveRow}
+                    onCopyRow={handleCopyRow}
+                    generateItemName={generateItemName}
+                    onUpdateOptions={handleUpdateOptions}
+                  />
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
       </div>
 
       <div className="md:hidden">
