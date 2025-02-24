@@ -58,15 +58,39 @@ export function OrderActions() {
       return;
     }
 
-    const validItems = items.filter(item =>
-      item.species && item.length && item.bundleType && 
-      item.thickness && item.pallets > 0 && item.quantity > 0
-    );
+    // Log items before validation
+    console.log('Items before validation:', items);
+
+    const validItems = items.filter(item => {
+      const isValid = item.species && 
+                     item.length && 
+                     item.bundleType && 
+                     item.thickness && 
+                     item.pallets > 0 && 
+                     item.quantity > 0;
+      
+      // Log validation details for each item
+      if (!isValid) {
+        console.log('Invalid item:', {
+          id: item.id,
+          species: !!item.species,
+          length: !!item.length,
+          bundleType: !!item.bundleType,
+          thickness: !!item.thickness,
+          pallets: item.pallets > 0,
+          quantity: item.quantity > 0
+        });
+      }
+      
+      return isValid;
+    });
+
+    console.log('Valid items:', validItems);
 
     if (validItems.length === 0) {
       toast({
         title: "Error",
-        description: "At least one valid item is required.",
+        description: "At least one valid item is required. All fields must be filled and quantities must be greater than 0.",
         variant: "destructive",
       });
       return;
