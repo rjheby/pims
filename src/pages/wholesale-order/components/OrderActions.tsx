@@ -1,10 +1,15 @@
-
 import { Button } from "@/components/ui/button";
 import { Plus, FileText } from "lucide-react";
 import { useWholesaleOrder } from "../context/WholesaleOrderContext";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL, 
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
 
 interface GeneratedOrder {
   id: string;
@@ -46,57 +51,73 @@ export function OrderActions() {
     ]);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (!orderNumber || !orderDate) {
+      toast({
+        title: "Error",
+        description: "Order number and date are required.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const validItems = items.filter(item =>
+      item.species && item.length && item.bundleType && 
+      item.thickness && item.pallets > 0 && item.quantity > 0
+    );
+
+    if (validItems.length === 0) {
+      toast({
+        title: "Error",
+        description: "At least one valid item is required.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      // Validate required fields
-      if (!orderNumber || !orderDate) {
+      const { data, error } = await supabase
+        .from("wholesale_orders")
+        .insert([
+          {
+            order_number: orderNumber,
+            order_date: new Date(orderDate),
+            items: validItems,
+            admin_editable: true
+          }
+        ])
+        .select("id")
+        .single();
+
+      if (error) {
+        console.error("Error saving wholesale order:", error);
         toast({
           title: "Error",
-          description: "Order number and date are required.",
+          description: "Failed to generate wholesale order.",
           variant: "destructive",
         });
         return;
       }
 
-      // Create URL parameters from current state
-      const orderContent = {
-        orderNumber,
-        orderDate,
-        items: items.filter(item => 
-          item.species && 
-          item.length && 
-          item.bundleType && 
-          item.thickness && 
-          item.pallets > 0 &&
-          item.quantity > 0
-        ),
-      };
-      
-      // First stringify the content
-      const jsonString = JSON.stringify(orderContent);
-      // Then base64 encode it
-      const base64String = btoa(jsonString);
-      // Finally, make it URL safe
-      const urlSafeBase64 = encodeURIComponent(base64String);
-      
-      const url = `/generated-order/${urlSafeBase64}`;
-      
+      // Generate the shareable URL
+      const url = `/wholesale-order-form/${data.id}`;
+
       // Add to generated orders list
       const newOrder: GeneratedOrder = {
-        id: Date.now().toString(),
+        id: data.id,
         orderNumber,
         orderDate,
         url,
       };
-      
+
       setGeneratedOrders(prev => [newOrder, ...prev]);
 
-      // Navigate using React Router
+      // Navigate to the locked wholesale order form page
       navigate(url);
 
       toast({
         title: "Success",
-        description: "Order has been generated successfully.",
+        description: "Wholesale order generated successfully.",
       });
 
     } catch (error) {
@@ -142,7 +163,7 @@ export function OrderActions() {
               >
                 <FileText className="h-6 w-6 mr-3 text-[#2A4131]" />
                 <div>
-                  <div className="font-medium">Order #{order.orderNumber}</div>
+                  <div className="font-medium">{order.orderNumber}</div>
                   <div className="text-sm text-gray-500">{order.orderDate}</div>
                 </div>
               </a>
