@@ -21,7 +21,7 @@ const roleHierarchy: Record<UserRole, number> = {
 export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>({
     id: "1",
-    name: "Super Duper Admin",
+    name: "Super Admin",
     email: "super@admin.com",
     role: "superadmin"
   });
