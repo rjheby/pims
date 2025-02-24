@@ -223,7 +223,7 @@ export function OrderTable() {
                     variant="ghost"
                     size="sm"
                     onClick={() => setIsCompressed(!isCompressed)}
-                    className="bg-zinc-200 hover:bg-zinc-300 text-zinc-800 hover:text-zinc-900 rounded-full w-8 h-8 p-0"
+                    className="bg-zinc-50 hover:bg-zinc-100 text-zinc-600 hover:text-zinc-800 rounded-full w-8 h-8 p-0"
                   >
                     {isCompressed ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
                   </Button>
