@@ -40,7 +40,7 @@ export function OrderTableActions({
       <Button variant="ghost" size="sm" onClick={() => onCopyRow(item)} className="rounded-full w-8 h-8 p-0 text-sky-100 bg-blue-700 hover:bg-blue-600">
         <Copy className="h-4 w-4" />
       </Button>
-      <Button variant="ghost" size="sm" onClick={handleAddItem} className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white rounded-full w-8 h-8 p-0" aria-label="Add Item">
+      <Button variant="ghost" size="sm" onClick={handleAddItem} aria-label="Add Item" className="bg-[#2A4131] hover:bg-[#2A4131]/90 rounded-full w-8 h-8 p-0 text-slate-50">
         <Plus className="h-4 w-4" />
       </Button>
       <Button variant="ghost" size="sm" onClick={() => setIsCompressed(!isCompressed)} data-compressed={isCompressed} aria-label={isCompressed ? "Expand" : "Compress"} className="rounded-full w-8 h-8 p-0 bg-indigo-500 hover:bg-indigo-400 text-slate-50">
