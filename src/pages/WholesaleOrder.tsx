@@ -2,9 +2,9 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { OrderDetails } from "./wholesale-order/OrderDetails";
 import { OrderTable } from "./wholesale-order/OrderTable";
-import { OrderActions } from "./wholesale-order/components/OrderActions";
 import { WholesaleOrderProvider } from "./wholesale-order/context/WholesaleOrderContext";
 import { useWholesaleOrder } from "./wholesale-order/context/WholesaleOrderContext";
+import { WholesaleOrderSheet } from "./wholesale-order/WholesaleOrderSheet";
 
 function WholesaleOrderContent() {
   const { 
@@ -64,7 +64,7 @@ function WholesaleOrderContent() {
                 onDeliveryDateChange={(e) => setDeliveryDate(e.target.value)}
               />
               <OrderTable />
-              <OrderActions />
+              <WholesaleOrderSheet />
             </div>
           </CardContent>
         </Card>
