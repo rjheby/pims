@@ -1,4 +1,3 @@
-
 import { Sheet } from "@/components/sheets/Sheet";
 import { OrderItem } from "./types";
 import { useWholesaleOrder } from "./context/WholesaleOrderContext";
@@ -66,12 +65,12 @@ export function WholesaleOrderSheet() {
     try {
       const { data, error } = await supabase
         .from("wholesale_orders")
-        .insert({
+        .insert([{
           order_number: orderNumber,
           order_date: new Date(orderDate).toISOString(),
           items: JSON.stringify(validItems),
           admin_editable: true
-        })
+        }])
         .select("id")
         .single();
 
@@ -138,7 +137,7 @@ export function WholesaleOrderSheet() {
 
   return (
     <div className="space-y-4">
-      <Sheet<OrderItem>
+      <Sheet
         items={items}
         columns={columns}
         summaries={summaries}
