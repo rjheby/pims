@@ -55,13 +55,13 @@ export function OrderActions() {
       toast({
         title: "Warning",
         description: "Shipment may already be full.",
-        variant: "warning",
+        variant: "destructive",
       });
     } else if (newTotalPallets < 24) {
       toast({
         title: "Notice",
         description: "Shipment is not quite full. Consider adding more product to this order.",
-        variant: "warning",
+        variant: "default",
       });
     }
 

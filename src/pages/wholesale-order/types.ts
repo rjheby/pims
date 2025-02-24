@@ -8,6 +8,7 @@ export interface OrderItem {
   packaging: string;
   pallets: number;
   quantity: number;
+  cost: number;  // Added cost property
 }
 
 export interface DropdownOptions {
