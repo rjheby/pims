@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Plus, FileText } from "lucide-react";
 import { useWholesaleOrder } from "../context/WholesaleOrderContext";
@@ -77,8 +76,8 @@ export function OrderActions() {
         .insert([
           {
             order_number: orderNumber,
-            order_date: new Date(orderDate).toISOString(),
-            items: validItems,
+            order_date: new Date(orderDate).toISOString(), // Ensure correct date format
+            items: JSON.stringify(validItems), // Convert items to a JSON string
             admin_editable: true
           }
         ])
@@ -147,26 +146,3 @@ export function OrderActions() {
 
       {generatedOrders.length > 0 && (
         <div className="border-t pt-6">
-          <h3 className="text-lg font-medium mb-4">Generated Orders</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {generatedOrders.map((order) => (
-              <a
-                key={order.id}
-                href={order.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center p-4 border rounded-lg hover:bg-gray-50 transition-colors duration-200"
-              >
-                <FileText className="h-6 w-6 mr-3 text-[#2A4131]" />
-                <div>
-                  <div className="font-medium">{order.orderNumber}</div>
-                  <div className="text-sm text-gray-500">{order.orderDate}</div>
-                </div>
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
