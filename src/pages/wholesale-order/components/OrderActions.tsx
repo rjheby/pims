@@ -42,7 +42,7 @@ export function OrderActions() {
         bundleType: "",
         thickness: "",
         packaging: "Pallets",
-        pallets: 1,
+        pallets: 1, // Ensure pallets starts at 1 instead of 0
         quantity: 0,
       },
     ]);
