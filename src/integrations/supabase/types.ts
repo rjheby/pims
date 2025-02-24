@@ -9,7 +9,36 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      wholesale_orders: {
+        Row: {
+          admin_editable: boolean | null
+          created_at: string | null
+          id: string
+          items: Json
+          order_date: string
+          order_name: string | null
+          order_number: string
+        }
+        Insert: {
+          admin_editable?: boolean | null
+          created_at?: string | null
+          id?: string
+          items: Json
+          order_date: string
+          order_name?: string | null
+          order_number: string
+        }
+        Update: {
+          admin_editable?: boolean | null
+          created_at?: string | null
+          id?: string
+          items?: Json
+          order_date?: string
+          order_name?: string | null
+          order_number?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
