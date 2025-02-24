@@ -75,10 +75,25 @@ export function OrderTableMobileRow({
               inputMode="numeric"
               pattern="[0-9]*"
               min="0"
-              value={item.quantity}
-              onChange={(e) => onUpdateItem(item.id, "quantity", parseInt(e.target.value) || 0)}
+              value={item.pallets}
+              onChange={(e) => onUpdateItem(item.id, "pallets", parseInt(e.target.value) || 0)}
               className="w-full"
               placeholder="Enter quantity"
+            />
+          </div>
+          <div className="space-y-2">
+            <div className="text-sm font-medium text-muted-foreground">
+              Unit Cost
+            </div>
+            <Input
+              type="number"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              min="0"
+              value={item.unitCost}
+              onChange={(e) => onUpdateItem(item.id, "unitCost", parseFloat(e.target.value) || 0)}
+              className="w-full"
+              placeholder="Enter unit cost"
             />
           </div>
         </div>

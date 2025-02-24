@@ -111,8 +111,9 @@ export function WholesaleOrderForm() {
                       <th className="text-left py-2">Bundle Type</th>
                       <th className="text-left py-2">Thickness</th>
                       <th className="text-left py-2">Packaging</th>
-                      <th className="text-left py-2">Pallets</th>
                       <th className="text-left py-2">Quantity</th>
+                      <th className="text-left py-2">Unit Cost</th>
+                      <th className="text-left py-2">Total Cost</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -124,7 +125,8 @@ export function WholesaleOrderForm() {
                         <td className="py-2">{item.thickness}</td>
                         <td className="py-2">{item.packaging}</td>
                         <td className="py-2">{item.pallets}</td>
-                        <td className="py-2">{item.quantity}</td>
+                        <td className="py-2">${item.unitCost}</td>
+                        <td className="py-2">${(item.pallets * item.unitCost).toFixed(2)}</td>
                       </tr>
                     ))}
                   </tbody>

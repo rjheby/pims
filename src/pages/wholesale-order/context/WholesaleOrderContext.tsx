@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, ReactNode, Dispatch, SetStateAction } from "react";
 import { OrderItem, DropdownOptions, initialOptions } from "../types";
 import { useToast } from "@/hooks/use-toast";
@@ -55,8 +54,7 @@ export function WholesaleOrderProvider({ children }: { children: ReactNode }) {
       thickness: "",
       packaging: "Pallets",
       pallets: 0,
-      quantity: 0,
-      cost: 0,  // Added cost property
+      unitCost: 250,
     },
   ]);
 
