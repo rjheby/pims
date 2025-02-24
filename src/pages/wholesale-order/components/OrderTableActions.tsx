@@ -34,7 +34,7 @@ export function OrderTableActions({
     }]);
   };
   return <div className="flex gap-2 items-center">
-      <Button variant="ghost" size="sm" onClick={() => onRemoveRow(item.id)} className="bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-700 rounded-full w-8 h-8 p-0">
+      <Button variant="ghost" size="sm" onClick={() => onRemoveRow(item.id)} className="rounded-full w-8 h-8 p-0 text-pink-100 bg-red-800 hover:bg-red-700">
         <X className="h-4 w-4" />
       </Button>
       <Button variant="ghost" size="sm" onClick={() => onCopyRow(item)} className="bg-blue-50 hover:bg-blue-100 text-blue-500 hover:text-blue-700 rounded-full w-8 h-8 p-0">
