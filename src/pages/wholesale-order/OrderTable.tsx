@@ -3,7 +3,7 @@ import { OrderItem, DropdownOptions, initialOptions } from "./types";
 import { OrderTableRow } from "./components/OrderTableRow";
 import { useWholesaleOrder } from "./context/WholesaleOrderContext";
 import { Button } from "@/components/ui/button";
-import { Plus, Copy, X } from "lucide-react";
+import { Plus, Copy, X, Maximize2, Minimize2 } from "lucide-react";
 import { OrderTableDropdownCell } from "./components/OrderTableDropdownCell";
 import { Input } from "@/components/ui/input";
 
@@ -150,73 +150,86 @@ export function OrderTable() {
         </Button>
         
         <div className="grid gap-4">
-          {items.map((item) => (
-            <div key={item.id} className="bg-white rounded-lg border p-4 space-y-3">
-              <div className="font-medium">{generateItemName(item)}</div>
-              <div className="grid gap-4">
-                {optionFields.map((field) => (
-                  <div key={field} className="space-y-2">
-                    <div className="text-sm font-medium text-muted-foreground">
-                      {field.charAt(0).toUpperCase() + field.slice(1)}
+          {items.map((item) => {
+            const [isCompressed, setIsCompressed] = useState(false);
+            return (
+              <div key={item.id} className="bg-white rounded-lg border p-4 space-y-3">
+                <div className="font-medium">{generateItemName(item)}</div>
+                {!isCompressed && (
+                  <div className="grid gap-4">
+                    {optionFields.map((field) => (
+                      <div key={field} className="space-y-2">
+                        <div className="text-sm font-medium text-muted-foreground">
+                          {field.charAt(0).toUpperCase() + field.slice(1)}
+                        </div>
+                        <OrderTableDropdownCell
+                          field={field}
+                          item={item}
+                          options={safeOptions}
+                          isAdmin={isAdmin}
+                          editingField={editingField}
+                          newOption={newOption}
+                          onNewOptionChange={setNewOption}
+                          onKeyPress={handleKeyPress}
+                          onUpdateItem={handleUpdateItem}
+                          onUpdateOptions={handleUpdateOptions}
+                        />
+                      </div>
+                    ))}
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium text-muted-foreground">
+                        Quantity
+                      </div>
+                      <Input
+                        type="number"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        min="0"
+                        value={item.quantity}
+                        onChange={(e) => handleUpdateItem(item.id, "quantity", parseInt(e.target.value) || 0)}
+                        className="w-full"
+                        placeholder="Enter quantity"
+                      />
                     </div>
-                    <OrderTableDropdownCell
-                      field={field}
-                      item={item}
-                      options={safeOptions}
-                      isAdmin={isAdmin}
-                      editingField={editingField}
-                      newOption={newOption}
-                      onNewOptionChange={setNewOption}
-                      onKeyPress={handleKeyPress}
-                      onUpdateItem={handleUpdateItem}
-                      onUpdateOptions={handleUpdateOptions}
-                    />
                   </div>
-                ))}
-                <div className="space-y-2">
-                  <div className="text-sm font-medium text-muted-foreground">
-                    Quantity
-                  </div>
-                  <Input
-                    type="number"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    min="0"
-                    value={item.quantity}
-                    onChange={(e) => handleUpdateItem(item.id, "quantity", parseInt(e.target.value) || 0)}
-                    className="w-full"
-                    placeholder="Enter quantity"
-                  />
+                )}
+                <div className="flex gap-2 justify-center pt-2 border-t">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleRemoveRow(item.id)}
+                    className="bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-700 rounded-full w-8 h-8 p-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleCopyRow(item)}
+                    className="bg-blue-50 hover:bg-blue-100 text-blue-500 hover:text-blue-700 rounded-full w-8 h-8 p-0"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleAddItem}
+                    className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white rounded-full w-8 h-8 p-0"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsCompressed(!isCompressed)}
+                    className="bg-gray-50 hover:bg-gray-100 text-gray-500 hover:text-gray-700 rounded-full w-8 h-8 p-0"
+                  >
+                    {isCompressed ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
+                  </Button>
                 </div>
               </div>
-              <div className="flex gap-2 justify-center pt-2 border-t">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleRemoveRow(item.id)}
-                  className="bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-700 rounded-full w-8 h-8 p-0"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleCopyRow(item)}
-                  className="bg-blue-50 hover:bg-blue-100 text-blue-500 hover:text-blue-700 rounded-full w-8 h-8 p-0"
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleAddItem}
-                  className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white rounded-full w-8 h-8 p-0"
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

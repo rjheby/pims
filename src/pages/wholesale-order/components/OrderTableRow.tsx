@@ -4,6 +4,7 @@ import { OrderItem, DropdownOptions } from "../types";
 import { OrderTableDropdownCell } from "./OrderTableDropdownCell";
 import { OrderTableActions } from "./OrderTableActions";
 import { Input } from "@/components/ui/input";
+import { useState } from "react";
 
 interface OrderTableRowProps {
   item: OrderItem;
@@ -34,6 +35,8 @@ export function OrderTableRow({
   generateItemName,
   onUpdateOptions,
 }: OrderTableRowProps) {
+  const [isCompressed, setIsCompressed] = useState(false);
+
   return (
     <TableRow>
       <TableCell className="w-full md:w-1/4 min-w-[200px] text-base md:text-sm">
@@ -41,7 +44,7 @@ export function OrderTableRow({
           <div className="h-6 bg-muted/20 rounded animate-pulse" />
         )}
       </TableCell>
-      {(Object.keys(options) as Array<keyof DropdownOptions>).map((field) => (
+      {!isCompressed && (Object.keys(options) as Array<keyof DropdownOptions>).map((field) => (
         <TableCell key={field} className="min-w-[120px] md:min-w-[160px]">
           <OrderTableDropdownCell
             field={field}
@@ -57,16 +60,18 @@ export function OrderTableRow({
           />
         </TableCell>
       ))}
-      <TableCell>
-        <Input
-          type="number"
-          min="0"
-          value={item.quantity || ""}
-          onChange={(e) => onUpdateItem(item.id, "quantity", parseInt(e.target.value) || 0)}
-          className="w-24"
-          placeholder="Qty"
-        />
-      </TableCell>
+      {!isCompressed && (
+        <TableCell>
+          <Input
+            type="number"
+            min="0"
+            value={item.quantity || ""}
+            onChange={(e) => onUpdateItem(item.id, "quantity", parseInt(e.target.value) || 0)}
+            className="w-24"
+            placeholder="Qty"
+          />
+        </TableCell>
+      )}
       <TableCell>
         <OrderTableActions
           item={item}

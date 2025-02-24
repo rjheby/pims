@@ -1,8 +1,9 @@
 
 import { Button } from "@/components/ui/button";
-import { Copy, Plus, X } from "lucide-react";
+import { Copy, Plus, X, Minimize2, Maximize2 } from "lucide-react";
 import { OrderItem } from "../types";
 import { useWholesaleOrder } from "../context/WholesaleOrderContext";
+import { useState } from "react";
 
 interface OrderTableActionsProps {
   item: OrderItem;
@@ -18,6 +19,7 @@ export function OrderTableActions({
   onUpdateItem,
 }: OrderTableActionsProps) {
   const { items, setItems } = useWholesaleOrder();
+  const [isCompressed, setIsCompressed] = useState(false);
   
   const handleAddItem = () => {
     const maxId = Math.max(...items.map(item => item.id), 0);
@@ -62,6 +64,16 @@ export function OrderTableActions({
         aria-label="Add Item"
       >
         <Plus className="h-4 w-4" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setIsCompressed(!isCompressed)}
+        className="bg-gray-50 hover:bg-gray-100 text-gray-500 hover:text-gray-700 rounded-full w-8 h-8 p-0"
+        data-compressed={isCompressed}
+        aria-label={isCompressed ? "Expand" : "Compress"}
+      >
+        {isCompressed ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
       </Button>
     </div>
   );
