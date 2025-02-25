@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -149,7 +148,7 @@ export function WholesaleOrderForm() {
                   <h3 className="text-lg font-semibold text-[#222222] mb-4">Order Summary</h3>
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-[#8A898C]">Total Items</span>
+                      <span className="text-[#8A898C]">Item Types</span>
                       <span className="font-medium text-[#333333]">{summaryInfo.totalItems}</span>
                     </div>
                     <div className="flex justify-between items-center">
