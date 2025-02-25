@@ -1,4 +1,3 @@
-
 import { TableCell, TableRow } from "@/components/ui/table";
 import { OrderItem, DropdownOptions } from "../types";
 import { OrderTableDropdownCell } from "./OrderTableDropdownCell";
@@ -45,13 +44,13 @@ export function OrderTableRow({
 
   return (
     <TableRow>
-      <TableCell className="w-full md:w-1/4 min-w-[200px] text-base md:text-sm">
+      <TableCell className="w-full md:w-auto text-base md:text-sm">
         {generateItemName(item) || (
           <div className="h-6 bg-muted/20 rounded animate-pulse" />
         )}
       </TableCell>
       {!isCompressed && Object.keys(options).map((field) => (
-        <TableCell key={field} className="min-w-[120px] md:min-w-[160px]">
+        <TableCell key={field} className="w-auto">
           <OrderTableDropdownCell
             field={field as keyof DropdownOptions}
             item={item}
@@ -74,7 +73,7 @@ export function OrderTableRow({
               min="0"
               value={item.pallets || ""}
               onChange={(e) => onUpdateItem(item.id, "pallets", parseInt(e.target.value) || 0)}
-              className="w-24"
+              className="w-full"
               placeholder="Quantity"
             />
           </TableCell>
@@ -84,12 +83,12 @@ export function OrderTableRow({
               min="0"
               value={item.unitCost || ""}
               onChange={(e) => onUpdateItem(item.id, "unitCost", parseFloat(e.target.value) || 0)}
-              className="w-24"
+              className="w-full"
               placeholder="Unit Cost"
             />
           </TableCell>
           <TableCell>
-            <div className="w-24 text-right">
+            <div className="text-right">
               ${totalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
           </TableCell>
