@@ -21,26 +21,37 @@ export function OrderTable() {
     handleUpdateOptions,
     toggleCompressed,
     setNewOption,
-    calculateTotalPallets,
-    calculateTotalCost,
   } = useOrderTable();
 
+  // Hide on smaller screens, show cards instead
   return (
-    <div className="overflow-x-auto -mx-2 sm:-mx-4 md:mx-0">
-      <div className="hidden md:block min-w-full">
-        <Table className="w-full table-fixed">
+    <>
+      <div className="hidden md:block overflow-x-auto">
+        <style jsx>{`
+          table {
+            table-layout: fixed;
+            width: 100%;
+          }
+          th, td {
+            width: auto;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+        `}</style>
+        <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-1/6">Name</TableHead>
+              <TableHead style={{width: '15%'}}>Name</TableHead>
               {optionFields.map((field) => (
-                <TableHead key={field} className="w-1/12 truncate">
+                <TableHead key={field} style={{width: '12%'}}>
                   {field.charAt(0).toUpperCase() + field.slice(1)}
                 </TableHead>
               ))}
-              <TableHead className="w-1/12">Qty</TableHead>
-              <TableHead className="w-1/12">Unit</TableHead>
-              <TableHead className="w-1/12">Total</TableHead>
-              <TableHead className="w-1/12">Actions</TableHead>
+              <TableHead style={{width: '8%'}}>Qty</TableHead>
+              <TableHead style={{width: '8%'}}>Unit</TableHead>
+              <TableHead style={{width: '8%'}}>Total</TableHead>
+              <TableHead style={{width: '12%'}}>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -93,6 +104,6 @@ export function OrderTable() {
           ))}
         </div>
       </div>
-    </div>
+    </>
   );
 }
