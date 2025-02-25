@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { FileText, Plus } from "lucide-react";
+import { FileText, Plus, Download, Mail } from "lucide-react";
 
 export function WholesaleOrderArchive() {
   const [orders, setOrders] = useState([]);
@@ -59,26 +59,37 @@ export function WholesaleOrderArchive() {
     };
   });
 
+  const handleDownload = async (orderId: string) => {
+    // TODO: Implement PDF generation and download
+    console.log('Download order:', orderId);
+  };
+
+  const handleEmail = async (orderId: string) => {
+    // TODO: Implement email sending
+    console.log('Email order:', orderId);
+  };
+
   return (
     <div className="flex-1">
       <div className="w-full max-w-[95rem] mx-auto px-4">
-        <div className="flex justify-center md:justify-start mb-4">
-          <img 
-            src="/lovable-uploads/708f416f-5b66-4f87-865c-029557d1af58.png"
-            alt="Woodbourne Logo"
-            className="h-8 md:h-12 w-auto"
-          />
-        </div>
-
         <Card className="shadow-sm">
-          <CardHeader className="flex flex-row justify-between items-center">
-            <CardTitle>Wholesale Orders</CardTitle>
-            <Link to="/wholesale-order">
-              <Button className="bg-[#2A4131] hover:bg-[#2A4131]/90">
-                <Plus className="mr-2 h-4 w-4" />
-                New Order
-              </Button>
-            </Link>
+          <CardHeader className="flex flex-col space-y-4">
+            <div className="flex justify-center">
+              <img 
+                src="/lovable-uploads/708f416f-5b66-4f87-865c-029557d1af58.png"
+                alt="Woodbourne Logo"
+                className="h-8 md:h-12 w-auto"
+              />
+            </div>
+            <div className="flex justify-between items-center">
+              <CardTitle>Wholesale Orders Archive</CardTitle>
+              <Link to="/wholesale-order">
+                <Button className="bg-[#2A4131] hover:bg-[#2A4131]/90">
+                  <Plus className="mr-2 h-4 w-4" />
+                  New Order
+                </Button>
+              </Link>
+            </div>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -88,21 +99,17 @@ export function WholesaleOrderArchive() {
             ) : processedOrders.length > 0 ? (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {processedOrders.map((order) => (
-                  <Link 
-                    key={order.id} 
-                    to={`/wholesale-order-form/${order.id}`}
-                    className="block"
-                  >
-                    <div className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                      <div className="flex items-start gap-3">
-                        <FileText className="h-6 w-6 text-[#2A4131] mt-1" />
-                        <div className="flex-1">
+                  <div key={order.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-start gap-3">
+                      <FileText className="h-6 w-6 text-[#2A4131] mt-1" />
+                      <div className="flex-1">
+                        <Link to={`/wholesale-order-form/${order.id}`}>
                           <div className="font-medium">Order #{order.order_number}</div>
-                          <div className="text-sm text-gray-500">
-                            <span className="font-medium">Delivery: </span>
+                          <div className="text-sm text-gray-500 mb-2">
+                            <span className="font-medium">Delivery Date: </span>
                             {order.formattedDeliveryDate}
                           </div>
-                          <div className="mt-2 text-sm">
+                          <div className="text-sm">
                             <div className="flex justify-between">
                               <span>Total Pallets:</span>
                               <span className="font-medium">{order.totalPallets}</span>
@@ -112,10 +119,30 @@ export function WholesaleOrderArchive() {
                               <span className="font-medium">${order.totalValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                             </div>
                           </div>
+                        </Link>
+                        <div className="mt-3 flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="flex-1"
+                            onClick={() => handleDownload(order.id)}
+                          >
+                            <Download className="mr-1 h-4 w-4" />
+                            Download
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="flex-1"
+                            onClick={() => handleEmail(order.id)}
+                          >
+                            <Mail className="mr-1 h-4 w-4" />
+                            Email
+                          </Button>
                         </div>
                       </div>
                     </div>
-                  </Link>
+                  </div>
                 ))}
               </div>
             ) : (
