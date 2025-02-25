@@ -1,11 +1,11 @@
+
 import { Button } from "@/components/ui/button";
 import { Plus, FileText } from "lucide-react";
 import { useWholesaleOrder } from "../context/WholesaleOrderContext";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { OrderItem } from "../types";
 
 interface GeneratedOrder {
   id: string;
@@ -51,7 +51,7 @@ export function OrderActions() {
   });
 
   // Update debug info when dependencies change
-  useState(() => {
+  useEffect(() => {
     setDebugInfo({
       hasOrderNumber: !!orderNumber,
       hasOrderDate: !!orderDate,
