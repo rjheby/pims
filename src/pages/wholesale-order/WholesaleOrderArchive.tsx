@@ -1,10 +1,11 @@
+
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { FileText, Plus, Download, Mail } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "@/components/ui/use-toast";
 
 export function WholesaleOrderArchive() {
   const [orders, setOrders] = useState([]);
