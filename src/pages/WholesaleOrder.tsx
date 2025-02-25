@@ -1,9 +1,12 @@
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { OrderDetails } from "./wholesale-order/OrderDetails";
 import { OrderTable } from "./wholesale-order/OrderTable";
 import { OrderActions } from "./wholesale-order/components/OrderActions";
 import { WholesaleOrderProvider } from "./wholesale-order/context/WholesaleOrderContext";
 import { useWholesaleOrder } from "./wholesale-order/context/WholesaleOrderContext";
+import { Link } from "react-router-dom";
+import { Archive } from "lucide-react";
 
 function WholesaleOrderContent() {
   const { 
@@ -66,6 +69,17 @@ function WholesaleOrderContent() {
                 <OrderTable />
               </div>
               <OrderActions />
+              
+              {/* Archive Link */}
+              <div className="flex justify-center pt-6 border-t">
+                <Link 
+                  to="/wholesale-orders" 
+                  className="flex items-center gap-2 text-[#2A4131] hover:text-[#2A4131]/80 transition-colors"
+                >
+                  <Archive className="h-5 w-5" />
+                  <span>View All Orders</span>
+                </Link>
+              </div>
             </div>
           </CardContent>
         </Card>

@@ -23,6 +23,7 @@ import {
   Warehouse,
   ChevronDown,
   Home,
+  Archive,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -64,9 +65,14 @@ const menuGroups = {
         path: "/client-order",
       },
       {
-        title: "Wholesale Orders",
+        title: "New Wholesale Order",
         icon: ClipboardList,
         path: "/wholesale-order",
+      },
+      {
+        title: "Orders Archive",
+        icon: Archive,
+        path: "/wholesale-orders",
       },
     ],
   },
