@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { OrderDetails } from "./wholesale-order/OrderDetails";
 import { OrderTable } from "./wholesale-order/OrderTable";
@@ -31,7 +30,7 @@ function WholesaleOrderContent() {
 
   return (
     <div className="flex-1">
-      <div className="w-full max-w-[95rem] mx-auto px-4">
+      <div className="w-full mx-auto px-4 max-w-full">
         {/* Logo Section */}
         <div className="flex justify-center md:justify-start mb-4">
           <img 
@@ -63,7 +62,9 @@ function WholesaleOrderContent() {
                 onOrderDateChange={handleOrderDateChange}
                 onDeliveryDateChange={(e) => setDeliveryDate(e.target.value)}
               />
-              <OrderTable />
+              <div className="overflow-x-auto">
+                <OrderTable />
+              </div>
               <OrderActions />
             </div>
           </CardContent>
