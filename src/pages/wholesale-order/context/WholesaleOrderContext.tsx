@@ -37,7 +37,13 @@ export function WholesaleOrderProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const { setHasUnsavedChanges: setGlobalUnsavedChanges } = useAdmin();
   const [orderNumber, setOrderNumber] = useState("");
-  const [orderDate, setOrderDate] = useState("");
+  const [orderDate, setOrderDate] = useState(() => {
+  const today = new Date();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  const year = today.getFullYear();
+  return `${month}-${day}-${year}`;
+});
   const [deliveryDate, setDeliveryDate] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
