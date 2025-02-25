@@ -1,10 +1,10 @@
-
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { FileText, Plus, Download, Mail } from "lucide-react";
+import { toast } from "react-toastify";
 
 export function WholesaleOrderArchive() {
   const [orders, setOrders] = useState([]);
@@ -33,7 +33,6 @@ export function WholesaleOrderArchive() {
     fetchOrders();
   }, []);
 
-  // Calculate total pallets and order value for each order
   const processedOrders = orders.map(order => {
     let items = [];
     try {
@@ -60,13 +59,32 @@ export function WholesaleOrderArchive() {
   });
 
   const handleDownload = async (orderId: string) => {
-    // TODO: Implement PDF generation and download
     console.log('Download order:', orderId);
   };
 
   const handleEmail = async (orderId: string) => {
-    // TODO: Implement email sending
-    console.log('Email order:', orderId);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-wholesale-order-klaviyo', {
+        body: { 
+          orderId,
+          recipientEmail: 'recipient@example.com' // You might want to add an email input or modal here
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Email sent successfully",
+        description: "The wholesale order has been sent via email.",
+      });
+    } catch (error) {
+      console.error('Error sending email:', error);
+      toast({
+        title: "Error sending email",
+        description: "There was a problem sending the email. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
