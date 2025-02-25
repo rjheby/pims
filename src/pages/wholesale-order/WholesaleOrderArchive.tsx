@@ -1,0 +1,127 @@
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { FileText, Plus } from "lucide-react";
+
+export function WholesaleOrderArchive() {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchOrders() {
+      try {
+        const { data, error } = await supabase
+          .from("wholesale_orders")
+          .select("id, order_number, order_date, items")
+          .order('order_date', { ascending: false });
+
+        if (error) {
+          console.error("Error fetching orders:", error);
+        } else {
+          setOrders(data);
+        }
+      } catch (err) {
+        console.error("Error:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchOrders();
+  }, []);
+
+  // Calculate total pallets and order value for each order
+  const processedOrders = orders.map(order => {
+    let items = [];
+    try {
+      items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items || [];
+    } catch (e) {
+      console.error("Error parsing items:", e);
+    }
+    
+    const totalPallets = items.reduce((sum, item) => sum + (Number(item.pallets) || 0), 0);
+    const totalValue = items.reduce((sum, item) => {
+      return sum + ((Number(item.pallets) || 0) * (Number(item.unitCost) || 0));
+    }, 0);
+    
+    return {
+      ...order,
+      totalPallets,
+      totalValue,
+      formattedDate: new Date(order.order_date).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      })
+    };
+  });
+
+  return (
+    <div className="flex-1">
+      <div className="w-full max-w-[95rem] mx-auto px-4">
+        <div className="flex justify-center md:justify-start mb-4">
+          <img 
+            src="/lovable-uploads/708f416f-5b66-4f87-865c-029557d1af58.png"
+            alt="Woodbourne Logo"
+            className="h-8 md:h-12 w-auto"
+          />
+        </div>
+
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-row justify-between items-center">
+            <CardTitle>Wholesale Orders</CardTitle>
+            <Link to="/wholesale-order">
+              <Button className="bg-[#2A4131] hover:bg-[#2A4131]/90">
+                <Plus className="mr-2 h-4 w-4" />
+                New Order
+              </Button>
+            </Link>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex justify-center p-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2A4131]"></div>
+              </div>
+            ) : processedOrders.length > 0 ? (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {processedOrders.map((order) => (
+                  <Link 
+                    key={order.id} 
+                    to={`/wholesale-order-form/${order.id}`}
+                    className="block"
+                  >
+                    <div className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                      <div className="flex items-start gap-3">
+                        <FileText className="h-6 w-6 text-[#2A4131] mt-1" />
+                        <div className="flex-1">
+                          <div className="font-medium">Order #{order.order_number}</div>
+                          <div className="text-sm text-gray-500">{order.formattedDate}</div>
+                          <div className="mt-2 text-sm">
+                            <div className="flex justify-between">
+                              <span>Total Pallets:</span>
+                              <span className="font-medium">{order.totalPallets}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Order Value:</span>
+                              <span className="font-medium">${order.totalValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                No wholesale orders found. Create your first order to get started.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
