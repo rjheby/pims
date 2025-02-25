@@ -2,6 +2,7 @@ import { createContext, useContext, useState, ReactNode, Dispatch, SetStateActio
 import { OrderItem, DropdownOptions, initialOptions } from "../types";
 import { useToast } from "@/hooks/use-toast";
 import { useAdmin } from "@/context/AdminContext";
+import { supabase } from "@/integrations/supabase/client";
 
 interface WholesaleOrderContextType {
   orderNumber: string;
@@ -28,7 +29,7 @@ interface WholesaleOrderContextType {
   discardChanges: () => void;
   undoLastChange: () => void;
   handleOrderDateChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  generateOrderNumber: (date: string) => string;
+  generateOrderNumber: (date: string) => Promise<string>;
 }
 
 const WholesaleOrderContext = createContext<WholesaleOrderContextType | undefined>(undefined);
@@ -64,19 +65,38 @@ export function WholesaleOrderProvider({ children }: { children: ReactNode }) {
     },
   ]);
 
-  const generateOrderNumber = (date: string) => {
+  const generateOrderNumber = async (date: string) => {
     if (!date) return "";
     const orderDate = new Date(date);
     const year = orderDate.getFullYear().toString().slice(-2);
     const month = (orderDate.getMonth() + 1).toString().padStart(2, '0');
-    const orderSequence = "01";
-    return `${year}${month}-${orderSequence}`;
+    
+    // Fetch existing orders for this year/month to determine the sequence number
+    const yearMonth = `${year}${month}`;
+    const { data: existingOrders } = await supabase
+      .from('wholesale_orders')
+      .select('order_number')
+      .ilike('order_number', `${yearMonth}-%`)
+      .order('order_number', { ascending: false });
+
+    let sequence = 1;
+    if (existingOrders && existingOrders.length > 0) {
+      // Extract the highest sequence number
+      const latestOrder = existingOrders[0];
+      const currentSequence = parseInt(latestOrder.order_number.split('-')[1]);
+      sequence = currentSequence + 1;
+    }
+
+    // Format sequence with leading zero
+    const orderSequence = sequence.toString().padStart(2, '0');
+    return `${yearMonth}-${orderSequence}`;
   };
 
-  const handleOrderDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleOrderDateChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const newDate = e.target.value;
     setOrderDate(newDate);
-    setOrderNumber(generateOrderNumber(newDate));
+    const newOrderNumber = await generateOrderNumber(newDate);
+    setOrderNumber(newOrderNumber);
   };
 
   const saveChanges = () => {

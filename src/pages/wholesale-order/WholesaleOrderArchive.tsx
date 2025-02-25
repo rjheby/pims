@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,8 +15,8 @@ export function WholesaleOrderArchive() {
       try {
         const { data, error } = await supabase
           .from("wholesale_orders")
-          .select("id, order_number, order_date, items")
-          .order('order_date', { ascending: false });
+          .select("id, order_number, order_date, delivery_date, items")
+          .order('delivery_date', { ascending: false });
 
         if (error) {
           console.error("Error fetching orders:", error);
@@ -50,11 +51,11 @@ export function WholesaleOrderArchive() {
       ...order,
       totalPallets,
       totalValue,
-      formattedDate: new Date(order.order_date).toLocaleDateString('en-US', {
+      formattedDeliveryDate: order.delivery_date ? new Date(order.delivery_date).toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
         year: 'numeric'
-      })
+      }) : 'No delivery date set'
     };
   });
 
@@ -97,7 +98,10 @@ export function WholesaleOrderArchive() {
                         <FileText className="h-6 w-6 text-[#2A4131] mt-1" />
                         <div className="flex-1">
                           <div className="font-medium">Order #{order.order_number}</div>
-                          <div className="text-sm text-gray-500">{order.formattedDate}</div>
+                          <div className="text-sm text-gray-500">
+                            <span className="font-medium">Delivery: </span>
+                            {order.formattedDeliveryDate}
+                          </div>
                           <div className="mt-2 text-sm">
                             <div className="flex justify-between">
                               <span>Total Pallets:</span>
