@@ -1,3 +1,4 @@
+
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
 import { OrderTableRow } from "./components/OrderTableRow";
 import { OrderTableMobileRow } from "./components/OrderTableMobileRow";
@@ -57,7 +58,7 @@ export function OrderTable() {
             </TableHead>
               <TableHead style={{
               width: '8%'
-            }}>Total</TableHead>
+            }}>Total Cost</TableHead>
               <TableHead style={{
               width: '12%'
             }}>Actions</TableHead>
