@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Plus, FileText } from "lucide-react";
 import { useWholesaleOrder } from "../context/WholesaleOrderContext";
@@ -20,6 +19,13 @@ export function OrderActions() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [generatedOrders, setGeneratedOrders] = useState<GeneratedOrder[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [debugInfo, setDebugInfo] = useState({
+    hasOrderNumber: !!orderNumber,
+    hasOrderDate: !!orderDate,
+    itemsCount: items.length,
+    hasValidItems: false
+  });
   
   // Recalculate total pallets more safely
   const totalPallets = items.reduce((sum, item) => {
@@ -43,6 +49,16 @@ export function OrderActions() {
     
     return isValid;
   });
+
+  // Update debug info when dependencies change
+  useState(() => {
+    setDebugInfo({
+      hasOrderNumber: !!orderNumber,
+      hasOrderDate: !!orderDate,
+      itemsCount: items.length,
+      hasValidItems
+    });
+  }, [orderNumber, orderDate, items, hasValidItems]);
 
   const addItem = () => {
     const newTotalPallets = totalPallets + 1;
@@ -80,50 +96,59 @@ export function OrderActions() {
   };
 
   const handleSubmit = async () => {
-    if (!orderNumber || !orderDate) {
-      toast({
-        title: "Error",
-        description: "Order number and date are required.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    console.log('Items before validation:', items);
-
-    const validItems = items.filter(item => {
-      const isValid = item.species && 
-                     item.length && 
-                     item.bundleType && 
-                     item.thickness && 
-                     item.pallets > 0;
-      
-      if (!isValid) {
-        console.log('Invalid item:', {
-          id: item.id,
-          species: !!item.species,
-          length: !!item.length,
-          bundleType: !!item.bundleType,
-          thickness: !!item.thickness,
-          pallets: item.pallets > 0
-        });
-      }
-      
-      return isValid;
-    });
-
-    console.log('Valid items:', validItems);
-
-    if (validItems.length === 0) {
-      toast({
-        title: "Error",
-        description: "At least one valid item is required. All fields must be filled and quantities must be greater than 0.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+    console.log("Submit button clicked");
+    setIsSubmitting(true);
+    
     try {
+      if (!orderNumber || !orderDate) {
+        console.log("Missing required fields:", { orderNumber, orderDate });
+        toast({
+          title: "Error",
+          description: "Order number and date are required.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      console.log('Items before validation:', items);
+
+      const validItems = items.filter(item => {
+        const isValid = item.species && 
+                      item.length && 
+                      item.bundleType && 
+                      item.thickness && 
+                      item.pallets > 0;
+        
+        if (!isValid) {
+          console.log('Invalid item:', {
+            id: item.id,
+            species: !!item.species,
+            length: !!item.length,
+            bundleType: !!item.bundleType,
+            thickness: !!item.thickness,
+            pallets: item.pallets > 0
+          });
+        }
+        
+        return isValid;
+      });
+
+      console.log('Valid items:', validItems);
+
+      if (validItems.length === 0) {
+        console.log("No valid items found");
+        toast({
+          title: "Error",
+          description: "At least one valid item is required. All fields must be filled and quantities must be greater than 0.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      console.log("Attempting to save to Supabase");
+      
       const { data, error } = await supabase
         .from("wholesale_orders")
         .insert({
@@ -139,11 +164,14 @@ export function OrderActions() {
         console.error("Error saving wholesale order:", error);
         toast({
           title: "Error",
-          description: "Failed to generate wholesale order.",
+          description: "Failed to generate wholesale order: " + error.message,
           variant: "destructive",
         });
+        setIsSubmitting(false);
         return;
       }
+
+      console.log("Order saved successfully:", data);
 
       // Generate the shareable URL
       const url = `/wholesale-order-form/${data.id}`;
@@ -159,6 +187,7 @@ export function OrderActions() {
       setGeneratedOrders(prev => [newOrder, ...prev]);
 
       // Navigate to the locked wholesale order form page
+      console.log("Navigating to:", url);
       navigate(url);
 
       toast({
@@ -173,8 +202,12 @@ export function OrderActions() {
         description: "Failed to generate the order. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
+  const isButtonDisabled = !hasValidItems || !orderNumber || !orderDate;
 
   return (
     <div className="space-y-6">
@@ -186,13 +219,31 @@ export function OrderActions() {
           <Plus className="mr-2 h-5 w-5" />
           Add Item
         </Button>
-        <Button 
-          onClick={handleSubmit}
-          className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white transition-all duration-300 w-full sm:w-auto"
-          disabled={!hasValidItems || !orderNumber || !orderDate}
-        >
-          Submit Order
-        </Button>
+        <div className="flex flex-col">
+          <Button 
+            onClick={handleSubmit}
+            className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white transition-all duration-300 w-full sm:w-auto"
+            disabled={isButtonDisabled}
+          >
+            {isSubmitting ? "Submitting..." : "Submit Order"}
+          </Button>
+          {isButtonDisabled && (
+            <div className="text-xs text-red-500 mt-1">
+              {!orderNumber && "Order number required. "}
+              {!orderDate && "Order date required. "}
+              {!hasValidItems && "At least one complete item required."}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Debug Info - Remove in production */}
+      <div className="text-xs bg-gray-100 p-2 rounded">
+        <div>Order Number: {orderNumber || "missing"}</div>
+        <div>Order Date: {orderDate || "missing"}</div>
+        <div>Items Count: {items.length}</div>
+        <div>Has Valid Items: {hasValidItems ? "Yes" : "No"}</div>
+        <div>Button Disabled: {isButtonDisabled ? "Yes" : "No"}</div>
       </div>
 
       {generatedOrders.length > 0 && (
