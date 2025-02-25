@@ -82,6 +82,16 @@ export function WholesaleOrderForm() {
     });
   };
 
+  // Calculate summary information
+  const summaryInfo = orderData.items.reduce((acc, item) => {
+    const totalCost = item.pallets * item.unitCost;
+    return {
+      totalPallets: acc.totalPallets + item.pallets,
+      totalCost: acc.totalCost + totalCost,
+      totalItems: acc.totalItems + 1
+    };
+  }, { totalPallets: 0, totalCost: 0, totalItems: 0 });
+
   return (
     <div className="flex-1">
       <div className="w-full max-w-[95rem] mx-auto px-4">
@@ -131,6 +141,32 @@ export function WholesaleOrderForm() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Order Summary Section */}
+              <div className="mt-8 border-t pt-6">
+                <div className="bg-[#f3f3f3] rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-[#222222] mb-4">Order Summary</h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[#8A898C]">Total Items</span>
+                      <span className="font-medium text-[#333333]">{summaryInfo.totalItems}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-[#8A898C]">Total Pallets</span>
+                      <span className="font-medium text-[#333333]">{summaryInfo.totalPallets}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-lg">
+                      <span className="font-medium text-[#1A1F2C]">Total Order Value</span>
+                      <span className="font-bold text-[#1A1F2C]">
+                        ${summaryInfo.totalCost.toLocaleString('en-US', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>
