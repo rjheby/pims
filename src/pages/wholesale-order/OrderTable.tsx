@@ -1,4 +1,3 @@
-
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
 import { OrderTableRow } from "./components/OrderTableRow";
 import { OrderTableMobileRow } from "./components/OrderTableMobileRow";
@@ -27,23 +26,23 @@ export function OrderTable() {
   } = useOrderTable();
 
   return (
-    <div className="grid gap-4 overflow-x-auto">
-      <div className="hidden md:block overflow-x-auto">
-        <div className="min-w-full inline-block align-middle">
+    <div className="overflow-x-auto">
+      <div className="hidden md:block">
+        <div className="w-full inline-block align-middle">
           <div className="overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[300px]">Name</TableHead>
+                  <TableHead className="w-1/6">Name</TableHead>
                   {optionFields.map((field) => (
-                    <TableHead key={field} className="w-[160px]">
+                    <TableHead key={field} className="w-1/12">
                       {field.charAt(0).toUpperCase() + field.slice(1)}
                     </TableHead>
                   ))}
-                  <TableHead className="w-[100px]">Quantity</TableHead>
-                  <TableHead className="w-[100px]">Unit Cost</TableHead>
-                  <TableHead className="w-[100px]">Total Cost</TableHead>
-                  <TableHead className="w-[160px]">Actions</TableHead>
+                  <TableHead className="w-1/12">Quantity</TableHead>
+                  <TableHead className="w-1/12">Unit Cost</TableHead>
+                  <TableHead className="w-1/12">Total Cost</TableHead>
+                  <TableHead className="w-1/10">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
