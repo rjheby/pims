@@ -68,7 +68,7 @@ export function OrderTableRow({
       ))}
       {!isCompressed && (
         <>
-          <TableCell className="w-[8%] px-2">
+          <TableCell className="w-[6%] px-2">
             <Input
               type="number"
               min="0"
@@ -78,7 +78,7 @@ export function OrderTableRow({
               placeholder="Quantity"
             />
           </TableCell>
-          <TableCell className="w-[8%] px-2">
+          <TableCell className="w-[10%] px-2">
             <Input
               type="number"
               min="0"
