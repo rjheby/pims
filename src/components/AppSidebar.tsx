@@ -1,3 +1,4 @@
+
 import { Link, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -10,20 +11,8 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import {
-  FileText,
-  Users,
-  Settings,
-  BarChart,
-  Truck,
-  ClipboardList,
-  DollarSign,
-  Menu,
-  X,
-  ArrowLeft,
-  Warehouse,
-  ChevronDown,
-  Home,
-  Archive,
+  FileText, Users, Settings, BarChart, Truck, ClipboardList, 
+  DollarSign, Menu, X, ArrowLeft, Warehouse, ChevronDown, Home, Archive
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -35,125 +24,82 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+// Extracted menu configuration
 const menuGroups = {
   reports: {
     title: "Reports",
     items: [
-      {
-        title: "Dashboard",
-        icon: BarChart,
-        path: "/dashboard",
-      },
-      {
-        title: "Production Tracker",
-        icon: BarChart,
-        path: "/production",
-      },
-      {
-        title: "Payments",
-        icon: DollarSign,
-        path: "/driver-payments",
-      },
+      { title: "Dashboard", icon: BarChart, path: "/dashboard" },
+      { title: "Production Tracker", icon: BarChart, path: "/production" },
+      { title: "Payments", icon: DollarSign, path: "/driver-payments" },
     ],
   },
   orders: {
     title: "Orders",
     items: [
-      {
-        title: "Dispatch",
-        icon: Truck,
-        path: "/dispatch",
-      },
-      {
-        title: "Client Orders",
-        icon: FileText,
-        path: "/client-order",
-      },
-      {
-        title: "Supplier Order Form",
-        icon: ClipboardList,
-        path: "/wholesale-order",
-      },
-      {
-        title: "Supplier Archives",
-        icon: Archive,
-        path: "/wholesale-orders",
-      },
+      { title: "Dispatch", icon: Truck, path: "/dispatch" },
+      { title: "Client Orders", icon: FileText, path: "/client-order" },
+      { title: "Supplier Order Form", icon: ClipboardList, path: "/wholesale-order" },
+      { title: "Supplier Archives", icon: Archive, path: "/wholesale-orders" },
     ],
   },
   databases: {
     title: "Databases",
     items: [
-      {
-        title: "Customers",
-        icon: Users,
-        path: "/customers",
-      },
-      {
-        title: "Inventory",
-        icon: Warehouse,
-        path: "/inventory",
-      },
+      { title: "Customers", icon: Users, path: "/customers" },
+      { title: "Inventory", icon: Warehouse, path: "/inventory" },
     ],
   },
   settings: {
     title: "Settings",
     items: [
-      {
-        title: "Settings",
-        icon: Settings,
-        path: "/team-settings",
-      },
+      { title: "Settings", icon: Settings, path: "/team-settings" },
     ],
   },
 };
 
 const mobileNavItems = [
-  {
-    title: "Home",
-    icon: Home,
-    path: "/",
-  },
-  {
-    title: "Dispatch",
-    icon: Truck,
-    path: "/dispatch",
-  },
-  {
-    title: "Settings",
-    icon: Settings,
-    path: "/team-settings",
-  },
+  { title: "Home", icon: Home, path: "/" },
+  { title: "Dispatch", icon: Truck, path: "/dispatch" },
+  { title: "Settings", icon: Settings, path: "/team-settings" },
 ];
 
-interface AppSidebarProps {
-  isCollapsed: boolean;
-  onToggleCollapse: () => void;
-  isMobileMenuOpen: boolean;
-  onMobileMenuToggle: () => void;
-}
+const Logo = () => (
+  <Link to="/">
+    <img 
+      src="/lovable-uploads/21d56fd9-ffa2-4b0c-9d82-b10f7d03a546.png"
+      alt="Woodbourne Logo"
+      className="h-10 w-auto object-contain"
+    />
+  </Link>
+);
 
 export function AppSidebar() {
   const location = useLocation();
   const { isMobile, openMobile, setOpenMobile } = useSidebar();
 
   const handleMenuItemClick = () => {
-    if (isMobile) {
-      setOpenMobile(false);
-    }
+    if (isMobile) setOpenMobile(false);
   };
 
-  const Logo = () => (
-    <Link to="/">
-      <img 
-        src="/lovable-uploads/21d56fd9-ffa2-4b0c-9d82-b10f7d03a546.png"
-        alt="Woodbourne Logo"
-        className="h-10 w-auto object-contain"
-      />
+  // Reusable link component
+  const NavLink = ({ to, onClick, isActive, className, children }) => (
+    <Link
+      to={to}
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-2 px-3 py-2 transition-all duration-200 ease-in-out",
+        isActive 
+          ? "bg-[#2A4131] text-white font-medium" 
+          : "text-[#2A4131] hover:bg-[#F2E9D2]/50",
+        className
+      )}
+    >
+      {children}
     </Link>
   );
 
-  const SidebarComponent = () => (
+  const SidebarContent = () => (
     <>
       <div className="flex h-[72px] items-center justify-between px-4 border-b border-[#2A4131]/10">
         <div className="flex items-center gap-4">
@@ -169,39 +115,28 @@ export function AppSidebar() {
         </div>
       </div>
       
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {Object.values(menuGroups).map((group) => (
-                <SidebarMenuItem key={group.title}>
-                  <div className="px-3 py-2 text-sm font-medium text-[#2A4131]/60">
-                    {group.title}
-                  </div>
-                  {group.items.map((item) => (
-                    <SidebarMenuButton key={item.path} asChild>
-                      <Link
-                        to={item.path}
-                        onClick={handleMenuItemClick}
-                        className={cn(
-                          "flex items-center gap-2 px-3 py-2 text-[15px] rounded-md",
-                          "transition-all duration-200 ease-in-out",
-                          location.pathname === item.path 
-                            ? "bg-[#2A4131] text-white font-medium" 
-                            : "text-[#2A4131] hover:bg-[#F2E9D2]/50"
-                        )}
-                      >
-                        <item.icon className="h-5 w-5" />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  ))}
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
+      <SidebarMenu>
+        {Object.values(menuGroups).map((group) => (
+          <SidebarMenuItem key={group.title}>
+            <div className="px-3 py-2 text-sm font-medium text-[#2A4131]/60">
+              {group.title}
+            </div>
+            {group.items.map((item) => (
+              <SidebarMenuButton key={item.path} asChild>
+                <NavLink 
+                  to={item.path} 
+                  onClick={handleMenuItemClick}
+                  isActive={location.pathname === item.path}
+                  className="text-[15px] rounded-md"
+                >
+                  <item.icon className="h-5 w-5" />
+                  <span>{item.title}</span>
+                </NavLink>
+              </SidebarMenuButton>
+            ))}
+          </SidebarMenuItem>
+        ))}
+      </SidebarMenu>
     </>
   );
 
@@ -215,8 +150,7 @@ export function AppSidebar() {
               key={item.path}
               to={item.path}
               className={cn(
-                "flex flex-col items-center justify-center w-16 h-16",
-                "transition-all duration-200 ease-in-out",
+                "flex flex-col items-center justify-center w-16 h-16 transition-all duration-200 ease-in-out",
                 location.pathname === item.path 
                   ? "text-[#2A4131] font-medium bg-[#F2E9D2]" 
                   : "text-[#2A4131] hover:bg-[#F2E9D2]/50"
@@ -242,7 +176,7 @@ export function AppSidebar() {
           side="left" 
           className="p-0 w-full sm:w-[300px] h-[100dvh] overflow-y-auto transition-transform duration-300 ease-in-out"
         >
-          <SidebarComponent />
+          <SidebarContent />
         </SheetContent>
       </Sheet>
 
@@ -252,40 +186,30 @@ export function AppSidebar() {
           <div className="flex items-center gap-8">
             <Logo />
             <nav className="flex items-center gap-6">
-              <Link
+              <NavLink 
                 to="/"
-                className={cn(
-                  "flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md",
-                  "transition-all duration-200 ease-in-out",
-                  location.pathname === "/" 
-                    ? "bg-[#2A4131] text-white"
-                    : "text-[#2A4131]/70 hover:bg-[#F2E9D2]/50"
-                )}
+                isActive={location.pathname === "/"}
+                className="text-sm font-medium rounded-md"
               >
                 <Home className="h-4 w-4" />
                 <span>Home</span>
-              </Link>
-              <Link
+              </NavLink>
+              <NavLink 
                 to="/dispatch"
-                className={cn(
-                  "flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md",
-                  "transition-all duration-200 ease-in-out",
-                  location.pathname === "/dispatch"
-                    ? "bg-[#2A4131] text-white"
-                    : "text-[#2A4131]/70 hover:bg-[#F2E9D2]/50"
-                )}
+                isActive={location.pathname === "/dispatch"}
+                className="text-sm font-medium rounded-md"
               >
                 <Truck className="h-4 w-4" />
                 <span>Dispatch</span>
-              </Link>
+              </NavLink>
+              
               {Object.entries(menuGroups).map(([key, group]) => (
                 <DropdownMenu key={key}>
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="ghost"
                       className={cn(
-                        "flex items-center gap-1 px-3 py-2 text-sm font-medium",
-                        "transition-all duration-200 ease-in-out",
+                        "flex items-center gap-1 px-3 py-2 text-sm font-medium transition-all duration-200 ease-in-out",
                         group.items.some(item => location.pathname === item.path)
                           ? "text-[#2A4131] bg-[#F2E9D2]"
                           : "text-[#2A4131]/70 hover:bg-[#F2E9D2]/50"
@@ -304,8 +228,7 @@ export function AppSidebar() {
                         <Link
                           to={item.path}
                           className={cn(
-                            "flex items-center gap-2 cursor-pointer",
-                            "transition-all duration-200 ease-in-out",
+                            "flex items-center gap-2 cursor-pointer transition-all duration-200 ease-in-out",
                             location.pathname === item.path
                               ? "bg-[#2A4131] text-white"
                               : "text-[#2A4131] hover:bg-[#F2E9D2]/50"
