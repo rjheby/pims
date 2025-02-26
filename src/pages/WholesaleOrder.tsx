@@ -55,7 +55,7 @@ function WholesaleOrderContent() {
       <CardHeader>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <CardTitle>{orderNumber ? `Wholesale Order #${orderNumber}` : 'New Wholesale Order'}</CardTitle>
+            <CardTitle>{orderNumber ? `Supplier Order #${orderNumber}` : 'New Supplier Order'}</CardTitle>
             {headerDetails && (
               <CardDescription className="mt-1">
                 {headerDetails}
