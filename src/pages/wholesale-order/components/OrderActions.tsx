@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Plus, FileText } from "lucide-react";
 import { useWholesaleOrder } from "../context/WholesaleOrderContext";
@@ -23,18 +24,22 @@ export function OrderActions() {
     hasOrderNumber: !!orderNumber,
     hasOrderDate: !!orderDate,
     itemsCount: items.length,
-    hasValidItems: false
+    hasValidItems: false,
+    totalPallets: 0,
+    totalCost: 0
   });
   
   // Recalculate total pallets more safely
   const totalPallets = items.reduce((sum, item) => {
     const pallets = Number(item.pallets) || 0;
+    console.log(`Item ${item.id} pallets:`, pallets);
     return sum + pallets;
   }, 0);
 
   // Calculate total cost from all items (Quantity * Unit Cost for each item)
   const totalCost = items.reduce((sum, item) => {
     const itemTotal = (Number(item.pallets) || 0) * (Number(item.unitCost) || 0);
+    console.log(`Item ${item.id} total cost:`, itemTotal);
     return sum + itemTotal;
   }, 0);
 
@@ -46,31 +51,53 @@ export function OrderActions() {
                    item.thickness && 
                    item.pallets > 0;
     
+    if (!isValid) {
+      console.log('Invalid item:', {
+        id: item.id,
+        species: !!item.species,
+        length: !!item.length,
+        bundleType: !!item.bundleType,
+        thickness: !!item.thickness,
+        pallets: item.pallets > 0
+      });
+    }
+    
     return isValid;
   });
 
   // Update debug info when dependencies change
   useEffect(() => {
-    setDebugInfo({
+    const newDebugInfo = {
       hasOrderNumber: !!orderNumber,
       hasOrderDate: !!orderDate,
       itemsCount: items.length,
-      hasValidItems
-    });
-  }, [orderNumber, orderDate, items, hasValidItems]);
+      hasValidItems,
+      totalPallets,
+      totalCost
+    };
+    
+    console.log('Debug Info Updated:', newDebugInfo);
+    setDebugInfo(newDebugInfo);
+  }, [orderNumber, orderDate, items, hasValidItems, totalPallets, totalCost]);
 
   const addItem = () => {
     const newTotalPallets = totalPallets + 1;
-    console.log('Current total pallets:', totalPallets, 'New total would be:', newTotalPallets);
+    console.log('Adding new item:', {
+      currentTotalPallets: totalPallets,
+      newTotalPallets,
+      currentItemsCount: items.length
+    });
     
     // Show appropriate warning based on pallet count
     if (newTotalPallets > 24) {
+      console.log('Warning: Shipment may be full');
       toast({
         title: "Warning",
         description: "Shipment may already be full.",
         variant: "destructive",
       });
     } else if (newTotalPallets < 24) {
+      console.log('Notice: Shipment not full');
       toast({
         title: "Notice",
         description: "Shipment is not quite full. Consider adding more product to this order.",
@@ -79,6 +106,8 @@ export function OrderActions() {
     }
 
     const newId = Math.max(...items.map(item => item.id), 0) + 1;
+    console.log('Creating new item with ID:', newId);
+    
     setItems([
       ...items,
       {
@@ -96,6 +125,15 @@ export function OrderActions() {
 
   const handleSubmit = async () => {
     console.log("Submit button clicked");
+    console.log("Current state:", {
+      orderNumber,
+      orderDate,
+      itemsCount: items.length,
+      hasValidItems,
+      totalPallets,
+      totalCost
+    });
+    
     setIsSubmitting(true);
     
     try {
@@ -146,7 +184,11 @@ export function OrderActions() {
         return;
       }
 
-      console.log("Attempting to save to Supabase");
+      console.log("Attempting to save to Supabase", {
+        order_number: orderNumber,
+        order_date: new Date(orderDate).toISOString(),
+        items: validItems
+      });
       
       const { data, error } = await supabase
         .from("wholesale_orders")
@@ -174,6 +216,7 @@ export function OrderActions() {
 
       // Generate the shareable URL
       const url = `/wholesale-order-form/${data.id}`;
+      console.log("Generated URL:", url);
 
       // Add to generated orders list
       const newOrder: GeneratedOrder = {
@@ -236,12 +279,14 @@ export function OrderActions() {
         </div>
       </div>
 
-      {/* Debug Info - Remove in production */}
+      {/* Debug Info */}
       <div className="text-xs bg-gray-100 p-2 rounded">
         <div>Order Number: {orderNumber || "missing"}</div>
         <div>Order Date: {orderDate || "missing"}</div>
         <div>Items Count: {items.length}</div>
         <div>Has Valid Items: {hasValidItems ? "Yes" : "No"}</div>
+        <div>Total Pallets: {totalPallets}</div>
+        <div>Total Cost: ${totalCost}</div>
         <div>Button Disabled: {isButtonDisabled ? "Yes" : "No"}</div>
       </div>
 

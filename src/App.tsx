@@ -2,7 +2,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { WholesaleOrder } from "./pages/WholesaleOrder";
 import { WholesaleOrderForm } from "./pages/WholesaleOrderForm";
-import { WholesaleOrderArchive } from "./pages/wholesale-order/WholesaleOrderArchive";
+import { SupplierOrderArchive } from "./pages/supplier-order/SupplierOrderArchive";
 import { Toaster } from "@/components/ui/toaster";
 import AppLayout from "@/components/layouts/AppLayout";
 import { AdminProvider } from "@/context/AdminContext";
@@ -16,7 +16,7 @@ function App() {
           <Route path="/" element={<Navigate to="/wholesale-order" replace />} />
           <Route path="/wholesale-order" element={<WholesaleOrder />} />
           <Route path="/wholesale-order-form/:id" element={<WholesaleOrderForm />} />
-          <Route path="/wholesale-orders" element={<WholesaleOrderArchive />} />
+          <Route path="/wholesale-orders" element={<SupplierOrderArchive />} />
           <Route path="/dispatch-delivery" element={<DispatchDelivery />} />
         </Routes>
       </AppLayout>
@@ -26,3 +26,4 @@ function App() {
 }
 
 export default App;
+
