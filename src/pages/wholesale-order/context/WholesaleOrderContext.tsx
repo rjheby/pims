@@ -1,5 +1,4 @@
-
-import { createContext, useContext, useState, ReactNode, Dispatch, SetStateAction } from "react";
+import { createContext, useContext, useState, ReactNode, Dispatch, SetStateAction, useEffect } from "react";
 import { OrderItem, DropdownOptions, initialOptions } from "../types";
 import { useToast } from "@/hooks/use-toast";
 import { useAdmin } from "@/context/AdminContext";
@@ -66,13 +65,22 @@ export function WholesaleOrderProvider({ children }: { children: ReactNode }) {
     },
   ]);
 
+  useEffect(() => {
+    const initializeOrderNumber = async () => {
+      if (orderDate && !orderNumber) {
+        const newOrderNumber = await generateOrderNumber(orderDate);
+        setOrderNumber(newOrderNumber);
+      }
+    };
+    initializeOrderNumber();
+  }, [orderDate]);
+
   const generateOrderNumber = async (date: string) => {
     if (!date) return "";
     const orderDate = new Date(date);
     const year = orderDate.getFullYear().toString().slice(-2);
     const month = (orderDate.getMonth() + 1).toString().padStart(2, '0');
     
-    // Fetch existing orders for this year/month to determine the sequence number
     const yearMonth = `${year}${month}`;
     const { data: existingOrders } = await supabase
       .from('wholesale_orders')
@@ -82,13 +90,11 @@ export function WholesaleOrderProvider({ children }: { children: ReactNode }) {
 
     let sequence = 1;
     if (existingOrders && existingOrders.length > 0) {
-      // Extract the highest sequence number
       const latestOrder = existingOrders[0];
       const currentSequence = parseInt(latestOrder.order_number.split('-')[1]);
       sequence = currentSequence + 1;
     }
 
-    // Format sequence with leading zero
     const orderSequence = sequence.toString().padStart(2, '0');
     return `${yearMonth}-${orderSequence}`;
   };
