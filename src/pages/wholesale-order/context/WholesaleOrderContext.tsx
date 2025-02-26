@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, ReactNode, Dispatch, SetStateAction } from "react";
 import { OrderItem, DropdownOptions, initialOptions } from "../types";
 import { useToast } from "@/hooks/use-toast";
@@ -39,12 +40,12 @@ export function WholesaleOrderProvider({ children }: { children: ReactNode }) {
   const { setHasUnsavedChanges: setGlobalUnsavedChanges } = useAdmin();
   const [orderNumber, setOrderNumber] = useState("");
   const [orderDate, setOrderDate] = useState(() => {
-  const today = new Date();
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const day = String(today.getDate()).padStart(2, '0');
-  const year = today.getFullYear();
-  return `${month}-${day}-${year}`;
-});
+    const today = new Date();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const year = today.getFullYear();
+    return `${year}-${month}-${day}`;
+  });
   const [deliveryDate, setDeliveryDate] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
