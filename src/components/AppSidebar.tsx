@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -40,11 +39,6 @@ const menuGroups = {
   reports: {
     title: "Reports",
     items: [
-      {
-        title: "Home",
-        icon: Home,
-        path: "/",
-      },
       {
         title: "Dashboard",
         icon: BarChart,
