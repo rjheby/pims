@@ -64,7 +64,7 @@ function WholesaleOrderContent() {
           <div className="flex justify-center pt-6 border-t">
             <Button
               asChild
-              className="bg-[#FDE1D3] text-[#222222] hover:bg-[#FDE1D3]/90"
+              className="bg-[#f1e8c7] text-[#222222] hover:bg-[#f1e8c7]/90"
             >
               <Link to="/wholesale-orders" className="flex items-center gap-2">
                 <Archive className="h-5 w-5" />
