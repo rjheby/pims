@@ -1,5 +1,4 @@
 
-import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
 import { OrderTableRow } from "./components/OrderTableRow";
 import { OrderTableMobileRow } from "./components/OrderTableMobileRow";
 import { useOrderTable } from "./hooks/useOrderTable";
@@ -26,12 +25,11 @@ export function OrderTable() {
   } = useOrderTable();
 
   const headers = [
-    { key: 'name', label: 'Name', sortable: true, filterable: true },
+    { key: 'name', label: 'Name', sortable: true },
     ...optionFields.map(field => ({
       key: field,
       label: field.charAt(0).toUpperCase() + field.slice(1),
-      sortable: true,
-      filterable: true
+      sortable: true
     })),
     { key: 'pallets', label: 'Qty', sortable: true },
     { key: 'unitCost', label: 'Unit Cost', sortable: true },
@@ -54,8 +52,8 @@ export function OrderTable() {
           onSortChange={(key, direction) => {
             console.log('Sorting by:', key, direction);
           }}
-          onFilterChange={(filters) => {
-            console.log('Filters applied:', filters);
+          onFilterChange={(filter) => {
+            console.log('Filters applied:', filter);
           }}
         >
           {tableData.map(item => (

@@ -17,6 +17,8 @@ export function useOrderTable() {
   } = useWholesaleOrder();
 
   const [compressedStates, setCompressedStates] = useState<Record<number, boolean>>({});
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+  const [filterValue, setFilterValue] = useState("");
 
   const safeOptions: DropdownOptions = {
     ...initialOptions,
@@ -120,8 +122,34 @@ export function useOrderTable() {
            item.pallets > 0;
   });
 
+  // Apply sorting and filtering
+  let processedItems = [...items];
+
+  if (sortConfig) {
+    processedItems.sort((a, b) => {
+      const aValue = a[sortConfig.key];
+      const bValue = b[sortConfig.key];
+
+      if (aValue < bValue) {
+        return sortConfig.direction === 'asc' ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortConfig.direction === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+  }
+
+  if (filterValue) {
+    processedItems = processedItems.filter(item => 
+      Object.values(item).some(value => 
+        String(value).toLowerCase().includes(filterValue.toLowerCase())
+      )
+    );
+  }
+
   return {
-    items,
+    items: processedItems,
     options: safeOptions,
     isAdmin,
     editingField,

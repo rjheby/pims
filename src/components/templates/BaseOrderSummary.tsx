@@ -10,9 +10,9 @@ interface BaseOrderSummaryProps {
 export function BaseOrderSummary({ items, renderCustomSummary }: BaseOrderSummaryProps) {
   return (
     <div className="mt-8 border-t pt-6">
-      <div className="bg-[#f3f3f3] rounded-lg p-6">
+      <div className="bg-[#f3f3f3] rounded-lg p-6 flex flex-col items-center">
         <h3 className="text-lg font-semibold text-[#222222] mb-4">Order Summary</h3>
-        <div className="space-y-3">
+        <div className="space-y-3 w-full max-w-sm">
           <div className="flex justify-between items-center">
             <span className="text-[#8A898C]">Total Quantity</span>
             <span className="font-medium text-[#333333]">{items.totalQuantity}</span>
