@@ -34,15 +34,6 @@ function WholesaleOrderContent() {
   return (
     <div className="flex-1">
       <div className="w-full mx-auto px-4 max-w-full">
-        {/* Logo Section */}
-        <div className="flex justify-center md:justify-start mb-4">
-          <img 
-            src="/lovable-uploads/708f416f-5b66-4f87-865c-029557d1af58.png"
-            alt="Woodbourne Logo"
-            className="h-8 md:h-12 w-auto"
-          />
-        </div>
-
         <Card className="shadow-sm">
           <CardHeader>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
