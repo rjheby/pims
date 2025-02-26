@@ -50,7 +50,6 @@ export function BaseOrderTable({
   const sortedAndFilteredData = useMemo(() => {
     let processedData = [...data];
 
-    // Apply global filter
     if (filter) {
       processedData = processedData.filter(item => 
         Object.values(item).some(value => 
@@ -59,7 +58,6 @@ export function BaseOrderTable({
       );
     }
 
-    // Apply sorting
     if (sortConfig) {
       processedData.sort((a, b) => {
         const aValue = a[sortConfig.key];
@@ -79,7 +77,7 @@ export function BaseOrderTable({
   }, [data, filter, sortConfig]);
 
   return (
-    <div className="space-y-4">
+    <div style={{ width: '100%' }} className="space-y-4">
       <div className="flex justify-end">
         <div className="relative w-72">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -102,11 +100,17 @@ export function BaseOrderTable({
         </div>
       </div>
       <div className="overflow-x-auto rounded-md border">
-        <Table>
+        <Table className="w-full table-fixed">
           <TableHeader>
             <TableRow>
               {headers.map((header) => (
-                <TableHead key={header.key} className="min-w-[150px]">
+                <TableHead 
+                  key={header.key} 
+                  className="min-w-[150px]"
+                  style={{ width: header.key === 'name' ? '20%' : 
+                          header.key === 'actions' ? '10%' : 
+                          '14%' }}
+                >
                   <div className="flex items-center justify-between">
                     <span>{header.label}</span>
                     {header.sortable && (
