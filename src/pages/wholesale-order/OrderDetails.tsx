@@ -16,6 +16,9 @@ export function OrderDetails({
   onOrderDateChange,
   onDeliveryDateChange,
 }: OrderDetailsProps) {
+  // Format today's date as YYYY-MM-DD for the input
+  const today = new Date().toISOString().split('T')[0];
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
       <div className="space-y-2">
@@ -32,7 +35,7 @@ export function OrderDetails({
         <Input
           id="orderDate"
           type="date"
-          value={orderDate}
+          value={orderDate || today}
           onChange={onOrderDateChange}
         />
       </div>
