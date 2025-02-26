@@ -7,6 +7,22 @@ import { Button } from "@/components/ui/button";
 import { FileText, Plus, Pencil, Copy, Download, Link2, Send } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -47,13 +63,20 @@ export function SupplierOrderArchive() {
 
   const handleDuplicateOrder = async (order: any) => {
     try {
-      // Remove id to create a new order
-      const { id, created_at, ...orderData } = order;
-      orderData.order_number = `${orderData.order_number}-copy`;
+      // Remove id and reset dates for the new order
+      const { id, created_at, order_number, order_date, delivery_date, ...orderData } = order;
       
-      const { data, error } = await supabase
+      // Set default dates
+      const today = new Date();
+      const formattedToday = today.toISOString().split('T')[0];
+      
+      const { data: newOrder, error } = await supabase
         .from("wholesale_orders")
-        .insert([orderData])
+        .insert([{
+          ...orderData,
+          order_date: formattedToday,
+          delivery_date: null
+        }])
         .select()
         .single();
 
@@ -64,7 +87,7 @@ export function SupplierOrderArchive() {
         description: "The order has been duplicated successfully.",
       });
 
-      navigate(`/supplier-order/${data.id}`);
+      navigate(`/supplier-order/${newOrder.id}`);
     } catch (error) {
       console.error("Error duplicating order:", error);
       toast({
@@ -97,9 +120,14 @@ export function SupplierOrderArchive() {
     });
   };
 
-  const handleSendOrder = (orderId: string) => {
+  const handleShare = (orderId: string, method: 'email' | 'sms') => {
     const link = `${window.location.origin}/supplier-order-form/${orderId}`;
-    window.location.href = `mailto:?subject=Supplier Order&body=View the order here: ${link}`;
+    
+    if (method === 'email') {
+      window.location.href = `mailto:?subject=Supplier Order&body=View the order here: ${link}`;
+    } else if (method === 'sms') {
+      window.location.href = `sms:?body=View the order here: ${link}`;
+    }
   };
 
   const processedOrders = orders.map((order: any) => ({
@@ -177,19 +205,36 @@ export function SupplierOrderArchive() {
                               <TooltipContent>Edit order</TooltipContent>
                             </Tooltip>
 
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  className="h-8 w-8 p-0"
-                                  onClick={() => handleDuplicateOrder(order)}
-                                >
-                                  <Copy className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Duplicate order</TooltipContent>
-                            </Tooltip>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm" 
+                                      className="h-8 w-8 p-0"
+                                    >
+                                      <Copy className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Duplicate order</TooltipContent>
+                                </Tooltip>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Duplicate Order</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This will create a new order with the same items. The order date will be set to today and you'll need to set a new delivery date.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDuplicateOrder(order)}>
+                                    Continue
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
 
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -219,19 +264,42 @@ export function SupplierOrderArchive() {
                               <TooltipContent>Copy link</TooltipContent>
                             </Tooltip>
 
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  className="h-8 w-8 p-0"
-                                  onClick={() => handleSendOrder(order.id)}
-                                >
-                                  <Send className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Send order</TooltipContent>
-                            </Tooltip>
+                            <Popover>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <PopoverTrigger asChild>
+                                      <Button 
+                                        variant="outline" 
+                                        size="sm" 
+                                        className="h-8 w-8 p-0"
+                                      >
+                                        <Send className="h-4 w-4" />
+                                      </Button>
+                                    </PopoverTrigger>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Send order</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                              <PopoverContent className="w-40 p-2">
+                                <div className="flex flex-col gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    className="w-full justify-start"
+                                    onClick={() => handleShare(order.id, 'email')}
+                                  >
+                                    Send via Email
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    className="w-full justify-start"
+                                    onClick={() => handleShare(order.id, 'sms')}
+                                  >
+                                    Send via SMS
+                                  </Button>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
                           </TooltipProvider>
                         </div>
                       </div>
