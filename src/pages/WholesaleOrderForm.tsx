@@ -1,18 +1,24 @@
+
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { OrderItem } from "./wholesale-order/types";
+import { useToast } from "@/hooks/use-toast";
 
 interface WholesaleOrderData {
   id: string;
   order_number: string;
   order_date: string;
+  delivery_date: string;
   items: OrderItem[];
 }
 
 export function WholesaleOrderForm() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const [orderData, setOrderData] = useState<WholesaleOrderData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -49,6 +55,37 @@ export function WholesaleOrderForm() {
     }
   }, [id]);
 
+  const handleSubmit = async () => {
+    try {
+      if (!orderData) return;
+
+      const { error } = await supabase
+        .from('wholesale_orders')
+        .update({
+          items: orderData.items,
+          delivery_date: orderData.delivery_date,
+          order_date: orderData.order_date
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Order updated successfully",
+      });
+
+      navigate('/wholesale-orders');
+    } catch (err) {
+      console.error('Error updating order:', err);
+      toast({
+        title: "Error",
+        description: "Failed to update order",
+        variant: "destructive"
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -83,9 +120,9 @@ export function WholesaleOrderForm() {
 
   // Calculate summary information
   const summaryInfo = orderData.items.reduce((acc, item) => {
-    const totalCost = item.pallets * item.unitCost;
+    const totalCost = (item.pallets || 0) * (item.unitCost || 0);
     return {
-      totalPallets: acc.totalPallets + item.pallets,
+      totalPallets: acc.totalPallets + (item.pallets || 0),
       totalCost: acc.totalCost + totalCost,
       totalItems: acc.totalItems + 1
     };
@@ -104,7 +141,15 @@ export function WholesaleOrderForm() {
 
         <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle>Wholesale Order #{orderData.order_number}</CardTitle>
+            <div className="flex justify-between items-center">
+              <CardTitle>Supplier Order #{orderData.order_number}</CardTitle>
+              <Button 
+                onClick={handleSubmit}
+                className="bg-[#2A4131] hover:bg-[#2A4131]/90"
+              >
+                Update Order
+              </Button>
+            </div>
             <p className="text-sm text-gray-500">
               Order Date: {formatDate(orderData.order_date)}
             </p>
@@ -135,7 +180,7 @@ export function WholesaleOrderForm() {
                         <td className="py-2">{item.packaging}</td>
                         <td className="py-2">{item.pallets}</td>
                         <td className="py-2">${item.unitCost}</td>
-                        <td className="py-2">${(item.pallets * item.unitCost).toFixed(2)}</td>
+                        <td className="py-2">${((item.pallets || 0) * (item.unitCost || 0)).toFixed(2)}</td>
                       </tr>
                     ))}
                   </tbody>
