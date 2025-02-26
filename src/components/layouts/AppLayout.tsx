@@ -6,7 +6,6 @@ import { GlobalAdminControls } from "@/components/GlobalAdminControls";
 import { WholesaleOrderProvider } from "@/pages/wholesale-order/context/WholesaleOrderContext";
 import { useLocation, Link } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { LayoutDashboard } from "lucide-react";
 
 export default function AppLayout({ 
   children,
@@ -36,7 +35,11 @@ export default function AppLayout({
               <div className="flex items-center gap-4">
                 <AppSidebar />
                 <Link to="/" className="block md:hidden">
-                  <LayoutDashboard className="h-6 w-6 text-[#2A4131]" />
+                  <img 
+                    src="/lovable-uploads/2500bc58-0a71-4486-9a75-6d6eb06e9889.png"
+                    alt="Mountain Logo"
+                    className="h-8 w-8"
+                  />
                 </Link>
               </div>
               <GlobalAdminControls />
