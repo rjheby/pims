@@ -81,7 +81,7 @@ export function SupplierOrderArchive() {
   };
 
   const handleCopyLink = (orderId: string) => {
-    const link = `${window.location.origin}/wholesale-order/${orderId}/view`;
+    const link = `${window.location.origin}/wholesale-orders/${orderId}/view`;
     navigator.clipboard.writeText(link);
     toast({
       title: "Link copied",
@@ -90,7 +90,7 @@ export function SupplierOrderArchive() {
   };
 
   const handleShare = (orderId: string, method: 'email' | 'sms') => {
-    const link = `${window.location.origin}/wholesale-order/${orderId}/view`;
+    const link = `${window.location.origin}/wholesale-orders/${orderId}/view`;
     if (method === 'email') {
       window.location.href = `mailto:?subject=Supplier Order&body=View the order here: ${link}`;
     } else if (method === 'sms') {
@@ -99,9 +99,9 @@ export function SupplierOrderArchive() {
   };
 
   return (
-    <div className="flex-1">
-      <div className="w-full mx-auto px-4">
-        <Card className="shadow-sm">
+    <div className="flex-1 w-full">
+      <div className="w-full mx-auto px-2 md:px-4">
+        <Card className="shadow-sm w-full">
           <CardHeader className="flex flex-col space-y-4">
             <div className="flex justify-center">
               <img src="/lovable-uploads/708f416f-5b66-4f87-865c-029557d1af58.png" alt="Logo" className="h-8 md:h-12 w-auto" />
