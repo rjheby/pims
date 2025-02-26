@@ -38,7 +38,7 @@ export default function AppLayout({
           </div>
           
           <main className="w-full min-h-screen pt-[72px]">
-            <div style={{width: '95%', maxWidth: '100%'}} className="mx-auto">
+            <div className="w-[95%] sm:w-[95%] md:w-[95%] mx-auto max-w-full overflow-x-hidden">
               {isWholesaleOrder ? (
                 <WholesaleOrderProvider>
                   {children}
