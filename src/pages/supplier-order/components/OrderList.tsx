@@ -54,40 +54,21 @@ export function OrderList({ orders, onEdit, onDuplicate, onDownload, onCopyLink,
 
   const handleDownload = async (order: any) => {
     try {
-      // For now, we'll just trigger the Zapier webhook
-      const webhookUrl = prompt("Please enter your Zapier webhook URL for downloading orders:");
-      
-      if (!webhookUrl) {
-        toast({
-          title: "Cancelled",
-          description: "Download cancelled - no webhook URL provided.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const response = await fetch(webhookUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        mode: "no-cors",
-        body: JSON.stringify({
-          action: "download",
-          order: order,
-          timestamp: new Date().toISOString(),
-        }),
+      const { data, error } = await supabase.functions.invoke('send-wholesale-order-klaviyo', {
+        body: { ...order, action: 'download' }
       });
+
+      if (error) throw error;
 
       toast({
         title: "Download Initiated",
-        description: "The download request has been sent to your integration.",
+        description: "The order has been sent for processing.",
       });
     } catch (error) {
       console.error('Error downloading order:', error);
       toast({
         title: "Error",
-        description: "Failed to download the order. Please check your webhook URL and try again.",
+        description: "Failed to process the order. Please try again.",
         variant: "destructive",
       });
     }
@@ -104,42 +85,21 @@ export function OrderList({ orders, onEdit, onDuplicate, onDownload, onCopyLink,
 
   const handleShare = async (orderId: string, method: ShareMethod) => {
     try {
-      // For now, we'll just trigger the Zapier webhook
-      const webhookUrl = prompt(`Please enter your Zapier webhook URL for ${method} sharing:`);
-      
-      if (!webhookUrl) {
-        toast({
-          title: "Cancelled",
-          description: `${method.toUpperCase()} share cancelled - no webhook URL provided.`,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const response = await fetch(webhookUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        mode: "no-cors",
-        body: JSON.stringify({
-          action: "share",
-          method: method,
-          orderId: orderId,
-          orderUrl: `${window.location.origin}/wholesale-order-form/${orderId}`,
-          timestamp: new Date().toISOString(),
-        }),
+      const { data, error } = await supabase.functions.invoke('send-wholesale-order-klaviyo', {
+        body: { orderId, method, action: 'share' }
       });
+
+      if (error) throw error;
 
       toast({
         title: "Share Initiated",
-        description: `The ${method.toUpperCase()} share request has been sent to your integration.`,
+        description: `The order has been sent for ${method} delivery.`,
       });
     } catch (error) {
       console.error('Error sharing order:', error);
       toast({
         title: "Error",
-        description: `Failed to share the order via ${method.toUpperCase()}. Please check your webhook URL and try again.`,
+        description: `Failed to share the order via ${method}. Please try again.`,
         variant: "destructive",
       });
     }
