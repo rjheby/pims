@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, ReactNode, Dispatch, SetStateAction, useEffect } from "react";
 import { OrderItem, DropdownOptions, initialOptions } from "../types";
 import { useToast } from "@/hooks/use-toast";
@@ -65,16 +66,6 @@ export function WholesaleOrderProvider({ children }: { children: ReactNode }) {
     },
   ]);
 
-  useEffect(() => {
-    const initializeOrderNumber = async () => {
-      if (orderDate && !orderNumber) {
-        const newOrderNumber = await generateOrderNumber(orderDate);
-        setOrderNumber(newOrderNumber);
-      }
-    };
-    initializeOrderNumber();
-  }, [orderDate]);
-
   const generateOrderNumber = async (date: string) => {
     if (!date) return "";
     const orderDate = new Date(date);
@@ -98,6 +89,18 @@ export function WholesaleOrderProvider({ children }: { children: ReactNode }) {
     const orderSequence = sequence.toString().padStart(2, '0');
     return `${yearMonth}-${orderSequence}`;
   };
+
+  useEffect(() => {
+    const initializeOrderNumber = async () => {
+      if (orderDate && !orderNumber) {
+        console.log('Initializing order number with date:', orderDate);
+        const newOrderNumber = await generateOrderNumber(orderDate);
+        console.log('Generated order number:', newOrderNumber);
+        setOrderNumber(newOrderNumber);
+      }
+    };
+    initializeOrderNumber();
+  }, [orderDate, orderNumber]);
 
   const handleOrderDateChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const newDate = e.target.value;
