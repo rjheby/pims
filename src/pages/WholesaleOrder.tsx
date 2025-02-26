@@ -30,7 +30,7 @@ function WholesaleOrderContent() {
 
   const headerDetails = [
     orderDate && `Order Date: ${formatDate(orderDate)}`,
-    deliveryDate && `Delivery: ${formatDate(deliveryDate)}`
+    deliveryDate && `Delivery Date: ${formatDate(deliveryDate)}`
   ].filter(Boolean).join(' • ');
 
   const calculateTotals = () => {
