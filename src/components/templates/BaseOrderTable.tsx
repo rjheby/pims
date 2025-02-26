@@ -17,6 +17,22 @@ interface BaseOrderTableProps {
   onFilterChange?: (filter: string) => void;
 }
 
+function getColumnWidth(key: string): string {
+  const widths: Record<string, string> = {
+    name: '15%',
+    species: '12%',
+    length: '8%',
+    bundleType: '12%',
+    thickness: '12%',
+    packaging: '10%',
+    pallets: '8%',
+    unitCost: '10%',
+    totalCost: '10%',
+    actions: '8%'
+  };
+  return widths[key] || '10%';
+}
+
 export function BaseOrderTable({ 
   children, 
   headers,
@@ -77,7 +93,7 @@ export function BaseOrderTable({
   }, [data, filter, sortConfig]);
 
   return (
-    <div style={{ width: '100%' }} className="space-y-4">
+    <div className="space-y-4 w-full">
       <div className="flex justify-end">
         <div className="relative w-72">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -99,17 +115,19 @@ export function BaseOrderTable({
           )}
         </div>
       </div>
-      <div className="overflow-x-auto rounded-md border">
-        <Table className="w-full table-fixed">
+      <div className="overflow-x-auto rounded-md border" style={{width: '100%'}}>
+        <Table className="w-full table-fixed" style={{width: '100%'}}>
           <TableHeader>
             <TableRow>
               {headers.map((header) => (
                 <TableHead 
-                  key={header.key} 
-                  className="min-w-[150px]"
-                  style={{ width: header.key === 'name' ? '20%' : 
-                          header.key === 'actions' ? '10%' : 
-                          '14%' }}
+                  key={header.key}
+                  style={{
+                    width: getColumnWidth(header.key),
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}
                 >
                   <div className="flex items-center justify-between">
                     <span>{header.label}</span>

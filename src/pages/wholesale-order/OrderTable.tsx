@@ -46,7 +46,7 @@ export function OrderTable() {
   return (
     <>
       <div className="hidden md:block">
-        <div className="overflow-x-auto w-full">
+        <div className="overflow-x-auto w-full" style={{width: '100%'}}>
           <BaseOrderTable
             headers={headers}
             data={tableData}
