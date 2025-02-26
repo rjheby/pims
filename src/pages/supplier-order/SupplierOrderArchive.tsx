@@ -14,33 +14,35 @@ export function SupplierOrderArchive() {
   const { orders, loading } = useOrders();
 
   const handleEditOrder = (orderId: string) => {
-    navigate(`/wholesale-order/${orderId}`); // Changed to match the edit route
+    console.log("Navigating to edit order:", orderId);
+    navigate(`/wholesale-order/${orderId}`, { replace: true });
   };
 
   const handleDuplicateOrder = async (order: any) => {
     try {
-      const { id, created_at, order_number, order_date, delivery_date, ...orderData } = order;
-      const today = new Date();
-      const formattedToday = today.toISOString().split('T')[0];
+      const { id, created_at, order_number, ...orderData } = order;
+      const today = new Date().toISOString();
       
       const { data: newOrder, error } = await supabase
         .from("wholesale_orders")
         .insert([{
           ...orderData,
-          order_date: formattedToday,
-          delivery_date: null
+          order_date: today,
+          delivery_date: null,
+          order_number: `${order_number}-COPY`
         }])
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
+      if (!newOrder) throw new Error("Failed to create new order");
 
       toast({
         title: "Order duplicated",
         description: "The order has been duplicated successfully."
       });
 
-      navigate(`/wholesale-order/${newOrder.id}`);
+      navigate(`/wholesale-order/${newOrder.id}`, { replace: true });
     } catch (error) {
       console.error("Error duplicating order:", error);
       toast({
@@ -51,29 +53,44 @@ export function SupplierOrderArchive() {
     }
   };
 
+  const generateOrderPDF = (order: any) => {
+    // Convert order data to JSON string
+    return JSON.stringify(order, null, 2);
+  };
+
   const handleDownloadOrder = (order: any) => {
-    const blob = new Blob([JSON.stringify(order, null, 2)], { type: 'application/json' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `order-${order.order_number}.json`;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
+    try {
+      const pdfContent = generateOrderPDF(order);
+      const blob = new Blob([pdfContent], { type: 'application/json' }); // Will be changed to PDF
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `order-${order.order_number}.json`; // Will be changed to .pdf
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error("Error downloading order:", error);
+      toast({
+        title: "Error",
+        description: "Failed to download the order.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleCopyLink = (orderId: string) => {
-    const link = `${window.location.origin}/wholesale-order/${orderId}`; // Updated link format
+    const link = `${window.location.origin}/wholesale-order/${orderId}/pdf`;
     navigator.clipboard.writeText(link);
     toast({
       title: "Link copied",
-      description: "The order link has been copied to your clipboard."
+      description: "The PDF order link has been copied to your clipboard."
     });
   };
 
   const handleShare = (orderId: string, method: 'email' | 'sms') => {
-    const link = `${window.location.origin}/wholesale-order/${orderId}`; // Updated link format
+    const link = `${window.location.origin}/wholesale-order/${orderId}/pdf`;
     if (method === 'email') {
       window.location.href = `mailto:?subject=Supplier Order&body=View the order here: ${link}`;
     } else if (method === 'sms') {

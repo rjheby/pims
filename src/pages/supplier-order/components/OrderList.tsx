@@ -1,6 +1,5 @@
 
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { OrderCard } from "./OrderCard";
 
 interface OrderListProps {
@@ -12,99 +11,7 @@ interface OrderListProps {
   onShare: (orderId: string, method: 'email' | 'sms') => void;
 }
 
-type ShareMethod = 'email' | 'sms';
-
 export function OrderList({ orders, onEdit, onDuplicate, onDownload, onCopyLink, onShare }: OrderListProps) {
-  const { toast } = useToast();
-
-  const handleEdit = async (orderId: string) => {
-    // Navigate to edit page
-    window.location.href = `/wholesale-order-form/${orderId}`;
-  };
-
-  const handleDuplicate = async (order: any) => {
-    try {
-      // Remove id to create new order
-      const { id, created_at, ...orderData } = order;
-      
-      const { data, error } = await supabase
-        .from('wholesale_orders')
-        .insert([orderData])
-        .select('id')
-        .single();
-
-      if (error) throw error;
-
-      toast({
-        title: "Order Duplicated",
-        description: "The order has been duplicated successfully.",
-      });
-
-      // Refresh the page to show the new order
-      window.location.reload();
-    } catch (error) {
-      console.error('Error duplicating order:', error);
-      toast({
-        title: "Error",
-        description: "Failed to duplicate the order. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleDownload = async (order: any) => {
-    try {
-      const { data, error } = await supabase.functions.invoke('send-wholesale-order-klaviyo', {
-        body: { ...order, action: 'download' }
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Download Initiated",
-        description: "The order has been sent for processing.",
-      });
-    } catch (error) {
-      console.error('Error downloading order:', error);
-      toast({
-        title: "Error",
-        description: "Failed to process the order. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleCopyLink = (orderId: string) => {
-    const url = `${window.location.origin}/wholesale-order-form/${orderId}`;
-    navigator.clipboard.writeText(url);
-    toast({
-      title: "Link Copied",
-      description: "Order link has been copied to clipboard.",
-    });
-  };
-
-  const handleShare = async (orderId: string, method: ShareMethod) => {
-    try {
-      const { data, error } = await supabase.functions.invoke('send-wholesale-order-klaviyo', {
-        body: { orderId, method, action: 'share' }
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Share Initiated",
-        description: `The order has been sent for ${method} delivery.`,
-      });
-    } catch (error) {
-      console.error('Error sharing order:', error);
-      toast({
-        title: "Error",
-        description: `Failed to share the order via ${method}. Please try again.`,
-        variant: "destructive",
-      });
-    }
-  };
-
   if (orders.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
@@ -119,11 +26,11 @@ export function OrderList({ orders, onEdit, onDuplicate, onDownload, onCopyLink,
         <OrderCard
           key={order.id}
           order={order}
-          onEdit={() => handleEdit(order.id)}
-          onDuplicate={() => handleDuplicate(order)}
-          onDownload={() => handleDownload(order)}
-          onCopyLink={() => handleCopyLink(order.id)}
-          onShare={(method: ShareMethod) => handleShare(order.id, method)}
+          onEdit={onEdit}
+          onDuplicate={onDuplicate}
+          onDownload={onDownload}
+          onCopyLink={onCopyLink}
+          onShare={onShare}
         />
       ))}
     </div>
