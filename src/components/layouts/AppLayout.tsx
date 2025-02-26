@@ -13,10 +13,7 @@ export default function AppLayout({
   children: React.ReactNode;
   isAdminMode?: boolean;
 }) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
-
   const isWholesaleOrder = location.pathname === "/wholesale-order";
 
   return (
@@ -33,12 +30,7 @@ export default function AppLayout({
       <div className="relative flex flex-col">
         <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b">
           <div className="flex items-center justify-between h-[72px] px-4 max-w-[95rem] mx-auto">
-            <AppSidebar 
-              isCollapsed={isCollapsed}
-              onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
-              isMobileMenuOpen={isMobileMenuOpen}
-              onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            />
+            <AppSidebar />
             <GlobalAdminControls />
           </div>
         </div>
