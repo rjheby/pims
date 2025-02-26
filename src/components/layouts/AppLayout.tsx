@@ -37,8 +37,8 @@ export default function AppLayout({
             </div>
           </div>
           
-          <main className="w-full min-h-screen px-4 pb-20 md:pb-8 pt-[72px]">
-            <div className="py-4 w-full">
+          <main className="w-full min-h-screen pt-[72px]">
+            <div className="w-full">
               {isWholesaleOrder ? (
                 <WholesaleOrderProvider>
                   {children}
