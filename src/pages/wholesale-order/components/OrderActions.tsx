@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, FileText } from "lucide-react";
 import { useWholesaleOrder } from "../context/WholesaleOrderContext";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -19,27 +19,6 @@ export function OrderActions() {
   const navigate = useNavigate();
   const [generatedOrders, setGeneratedOrders] = useState<GeneratedOrder[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Calculate totals with useMemo for better performance
-  const { totalPallets, totalCost, hasValidItems } = useMemo(() => {
-    const totalPallets = items.reduce((sum, item) => sum + (Number(item.pallets) || 0), 0);
-    
-    const totalCost = items.reduce((sum, item) => {
-      return sum + ((Number(item.pallets) || 0) * (Number(item.unitCost) || 0));
-    }, 0);
-    
-    const hasValidItems = items.some(item => {
-      return item.species && 
-             item.length && 
-             item.bundleType && 
-             item.thickness && 
-             item.pallets > 0;
-    });
-    
-    return { totalPallets, totalCost, hasValidItems };
-  }, [items]);
-
-  // Debug info - keep this separate to avoid performance impact
   const [debugInfo, setDebugInfo] = useState({
     hasOrderNumber: !!orderNumber,
     hasOrderDate: !!orderDate,
@@ -47,6 +26,30 @@ export function OrderActions() {
     hasValidItems: false
   });
   
+  // Recalculate total pallets more safely
+  const totalPallets = items.reduce((sum, item) => {
+    const pallets = Number(item.pallets) || 0;
+    return sum + pallets;
+  }, 0);
+
+  // Calculate total cost from all items (Quantity * Unit Cost for each item)
+  const totalCost = items.reduce((sum, item) => {
+    const itemTotal = (Number(item.pallets) || 0) * (Number(item.unitCost) || 0);
+    return sum + itemTotal;
+  }, 0);
+
+  // Check if there's at least one valid item
+  const hasValidItems = items.some(item => {
+    const isValid = item.species && 
+                   item.length && 
+                   item.bundleType && 
+                   item.thickness && 
+                   item.pallets > 0;
+    
+    return isValid;
+  });
+
+  // Update debug info when dependencies change
   useEffect(() => {
     setDebugInfo({
       hasOrderNumber: !!orderNumber,
@@ -58,6 +61,7 @@ export function OrderActions() {
 
   const addItem = () => {
     const newTotalPallets = totalPallets + 1;
+    console.log('Current total pallets:', totalPallets, 'New total would be:', newTotalPallets);
     
     // Show appropriate warning based on pallet count
     if (newTotalPallets > 24) {
@@ -90,45 +94,59 @@ export function OrderActions() {
     ]);
   };
 
-  const validateItems = () => {
-    if (!orderNumber || !orderDate) {
-      toast({
-        title: "Error",
-        description: "Order number and date are required.",
-        variant: "destructive",
-      });
-      return null;
-    }
-
-    const validItems = items.filter(item => {
-      return item.species && 
-             item.length && 
-             item.bundleType && 
-             item.thickness && 
-             item.pallets > 0;
-    });
-
-    if (validItems.length === 0) {
-      toast({
-        title: "Error",
-        description: "At least one valid item is required. All fields must be filled and quantities must be greater than 0.",
-        variant: "destructive",
-      });
-      return null;
-    }
-
-    return validItems;
-  };
-
   const handleSubmit = async () => {
+    console.log("Submit button clicked");
     setIsSubmitting(true);
     
     try {
-      const validItems = validateItems();
-      if (!validItems) {
+      if (!orderNumber || !orderDate) {
+        console.log("Missing required fields:", { orderNumber, orderDate });
+        toast({
+          title: "Error",
+          description: "Order number and date are required.",
+          variant: "destructive",
+        });
         setIsSubmitting(false);
         return;
       }
+
+      console.log('Items before validation:', items);
+
+      const validItems = items.filter(item => {
+        const isValid = item.species && 
+                      item.length && 
+                      item.bundleType && 
+                      item.thickness && 
+                      item.pallets > 0;
+        
+        if (!isValid) {
+          console.log('Invalid item:', {
+            id: item.id,
+            species: !!item.species,
+            length: !!item.length,
+            bundleType: !!item.bundleType,
+            thickness: !!item.thickness,
+            pallets: item.pallets > 0
+          });
+        }
+        
+        return isValid;
+      });
+
+      console.log('Valid items:', validItems);
+
+      if (validItems.length === 0) {
+        console.log("No valid items found");
+        toast({
+          title: "Error",
+          description: "At least one valid item is required. All fields must be filled and quantities must be greater than 0.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      console.log("Attempting to save to Supabase");
       
       const { data, error } = await supabase
         .from("wholesale_orders")
@@ -142,24 +160,33 @@ export function OrderActions() {
         .single();
 
       if (error) {
+        console.error("Error saving wholesale order:", error);
         toast({
           title: "Error",
           description: "Failed to generate wholesale order: " + error.message,
           variant: "destructive",
         });
+        setIsSubmitting(false);
         return;
       }
 
-      // Generate the shareable URL and navigate
+      console.log("Order saved successfully:", data);
+
+      // Generate the shareable URL
       const url = `/wholesale-order-form/${data.id}`;
-      
-      setGeneratedOrders(prev => [{
+
+      // Add to generated orders list
+      const newOrder: GeneratedOrder = {
         id: data.id,
         orderNumber,
         orderDate,
         url,
-      }, ...prev]);
+      };
 
+      setGeneratedOrders(prev => [newOrder, ...prev]);
+
+      // Navigate to the locked wholesale order form page
+      console.log("Navigating to:", url);
       navigate(url);
 
       toast({
@@ -168,6 +195,7 @@ export function OrderActions() {
       });
 
     } catch (error) {
+      console.error('Submit error:', error);
       toast({
         title: "Error",
         description: "Failed to generate the order. Please try again.",
@@ -222,7 +250,7 @@ export function OrderActions() {
           <h3 className="text-lg font-medium mb-4">Generated Orders</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {generatedOrders.map((order) => (
-              
+              <a
                 key={order.id}
                 href={order.url}
                 target="_blank"
