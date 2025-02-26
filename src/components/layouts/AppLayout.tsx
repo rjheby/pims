@@ -4,7 +4,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { cn } from "@/lib/utils";
 import { GlobalAdminControls } from "@/components/GlobalAdminControls";
 import { WholesaleOrderProvider } from "@/pages/wholesale-order/context/WholesaleOrderContext";
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
 export default function AppLayout({ 
@@ -32,7 +32,16 @@ export default function AppLayout({
         <div className="relative flex flex-col w-full">
           <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b">
             <div className="flex items-center justify-between h-[72px] px-4">
-              <AppSidebar />
+              <div className="flex items-center gap-4">
+                <AppSidebar />
+                <Link to="/" className="block md:hidden">
+                  <img 
+                    src="/lovable-uploads/21d56fd9-ffa2-4b0c-9d82-b10f7d03a546.png"
+                    alt="Woodbourne Logo"
+                    className="h-10 w-auto object-contain"
+                  />
+                </Link>
+              </div>
               <GlobalAdminControls />
             </div>
           </div>
