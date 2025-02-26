@@ -19,7 +19,7 @@ export default function AppLayout({
 
   return (
     <SidebarProvider>
-      <div className="relative min-h-screen">
+      <div className="relative min-h-screen overflow-x-hidden">
         {/* Admin Mode Overlay */}
         <div
           className={cn(
@@ -46,8 +46,8 @@ export default function AppLayout({
             </div>
           </div>
           
-          <main className="w-full min-h-screen pt-[72px]">
-            <div className="w-[95%] sm:w-[95%] md:w-[95%] mx-auto max-w-full overflow-x-hidden">
+          <main className="w-full min-h-screen pt-[72px] overflow-x-hidden">
+            <div className="w-full mx-auto px-4 max-w-screen-sm sm:max-w-screen-md md:max-w-screen-lg lg:max-w-screen-xl">
               {isWholesaleOrder ? (
                 <WholesaleOrderProvider>
                   {children}

@@ -43,13 +43,13 @@ export function OrderTableMobileRow({
   generateItemName,
 }: OrderTableMobileRowProps) {
   return (
-    <div className="bg-white rounded-lg border p-4 space-y-3">
-      <div className="font-medium">{generateItemName(item)}</div>
+    <div className="bg-white rounded-lg border p-2 sm:p-4 space-y-2 overflow-hidden">
+      <div className="font-medium text-sm break-words">{generateItemName(item)}</div>
       {!isCompressed && (
-        <div className="grid gap-4">
+        <div className="grid gap-3">
           {optionFields.map((field) => (
-            <div key={field} className="space-y-2">
-              <div className="text-sm font-medium text-muted-foreground">
+            <div key={field} className="space-y-1">
+              <div className="text-xs font-medium text-muted-foreground">
                 {field.charAt(0).toUpperCase() + field.slice(1)}
               </div>
               <OrderTableDropdownCell
@@ -66,8 +66,8 @@ export function OrderTableMobileRow({
               />
             </div>
           ))}
-          <div className="space-y-2">
-            <div className="text-sm font-medium text-muted-foreground">
+          <div className="space-y-1">
+            <div className="text-xs font-medium text-muted-foreground">
               Quantity
             </div>
             <Input
@@ -77,12 +77,12 @@ export function OrderTableMobileRow({
               min="0"
               value={item.pallets}
               onChange={(e) => onUpdateItem(item.id, "pallets", parseInt(e.target.value) || 0)}
-              className="w-full"
+              className="w-full h-9"
               placeholder="Enter quantity"
             />
           </div>
-          <div className="space-y-2">
-            <div className="text-sm font-medium text-muted-foreground">
+          <div className="space-y-1">
+            <div className="text-xs font-medium text-muted-foreground">
               Unit Cost
             </div>
             <Input
@@ -92,7 +92,7 @@ export function OrderTableMobileRow({
               min="0"
               value={item.unitCost}
               onChange={(e) => onUpdateItem(item.id, "unitCost", parseFloat(e.target.value) || 0)}
-              className="w-full"
+              className="w-full h-9"
               placeholder="Enter unit cost"
             />
           </div>
