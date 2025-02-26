@@ -1,3 +1,4 @@
+
 import { TableCell, TableRow } from "@/components/ui/table";
 import { OrderItem, DropdownOptions } from "../types";
 import { OrderTableDropdownCell } from "./OrderTableDropdownCell";
@@ -44,13 +45,13 @@ export function OrderTableRow({
 
   return (
     <TableRow>
-      <TableCell className="w-full md:w-auto text-base md:text-sm">
+      <TableCell className="w-[20%] text-base md:text-sm px-2">
         {generateItemName(item) || (
           <div className="h-6 bg-muted/20 rounded animate-pulse" />
         )}
       </TableCell>
       {!isCompressed && Object.keys(options).map((field) => (
-        <TableCell key={field} className="w-auto">
+        <TableCell key={field} className="w-[13%] px-2">
           <OrderTableDropdownCell
             field={field as keyof DropdownOptions}
             item={item}
@@ -67,7 +68,7 @@ export function OrderTableRow({
       ))}
       {!isCompressed && (
         <>
-          <TableCell>
+          <TableCell className="w-[8%] px-2">
             <Input
               type="number"
               min="0"
@@ -77,7 +78,7 @@ export function OrderTableRow({
               placeholder="Quantity"
             />
           </TableCell>
-          <TableCell>
+          <TableCell className="w-[8%] px-2">
             <Input
               type="number"
               min="0"
@@ -87,15 +88,15 @@ export function OrderTableRow({
               placeholder="Unit Cost"
             />
           </TableCell>
-          <TableCell>
+          <TableCell className="w-[8%] px-2">
             <div className="text-right">
               ${totalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
           </TableCell>
         </>
       )}
-      <TableCell>
-        <div className="flex gap-2 items-center">
+      <TableCell className="w-[10%] px-2">
+        <div className="flex gap-1 items-center">
           <Button 
             variant="customAction"
             size="sm" 
