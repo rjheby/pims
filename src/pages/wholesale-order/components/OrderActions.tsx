@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Plus, FileText } from "lucide-react";
 import { useWholesaleOrder } from "../context/WholesaleOrderContext";
@@ -15,7 +14,7 @@ interface GeneratedOrder {
 }
 
 export function OrderActions() {
-  const { items, setItems, orderNumber, orderDate } = useWholesaleOrder();
+  const { items, setItems, orderNumber, orderDate, deliveryDate } = useWholesaleOrder();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [generatedOrders, setGeneratedOrders] = useState<GeneratedOrder[]>([]);
@@ -29,21 +28,18 @@ export function OrderActions() {
     totalCost: 0
   });
   
-  // Recalculate total pallets more safely
   const totalPallets = items.reduce((sum, item) => {
     const pallets = Number(item.pallets) || 0;
     console.log(`Item ${item.id} pallets:`, pallets);
     return sum + pallets;
   }, 0);
 
-  // Calculate total cost from all items (Quantity * Unit Cost for each item)
   const totalCost = items.reduce((sum, item) => {
     const itemTotal = (Number(item.pallets) || 0) * (Number(item.unitCost) || 0);
     console.log(`Item ${item.id} total cost:`, itemTotal);
     return sum + itemTotal;
   }, 0);
 
-  // Check if there's at least one valid item
   const hasValidItems = items.some(item => {
     const isValid = item.species && 
                    item.length && 
@@ -65,7 +61,6 @@ export function OrderActions() {
     return isValid;
   });
 
-  // Update debug info when dependencies change
   useEffect(() => {
     const newDebugInfo = {
       hasOrderNumber: !!orderNumber,
@@ -88,7 +83,6 @@ export function OrderActions() {
       currentItemsCount: items.length
     });
     
-    // Show appropriate warning based on pallet count
     if (newTotalPallets > 24) {
       console.log('Warning: Shipment may be full');
       toast({
@@ -128,6 +122,7 @@ export function OrderActions() {
     console.log("Current state:", {
       orderNumber,
       orderDate,
+      deliveryDate,
       itemsCount: items.length,
       hasValidItems,
       totalPallets,
@@ -187,6 +182,7 @@ export function OrderActions() {
       console.log("Attempting to save to Supabase", {
         order_number: orderNumber,
         order_date: new Date(orderDate).toISOString(),
+        delivery_date: deliveryDate ? new Date(deliveryDate).toISOString() : null,
         items: validItems
       });
       
@@ -195,6 +191,7 @@ export function OrderActions() {
         .insert({
           order_number: orderNumber,
           order_date: new Date(orderDate).toISOString(),
+          delivery_date: deliveryDate ? new Date(deliveryDate).toISOString() : null,
           items: JSON.stringify(validItems),
           admin_editable: true
         })
@@ -214,11 +211,9 @@ export function OrderActions() {
 
       console.log("Order saved successfully:", data);
 
-      // Generate the shareable URL
       const url = `/wholesale-order-form/${data.id}`;
       console.log("Generated URL:", url);
 
-      // Add to generated orders list
       const newOrder: GeneratedOrder = {
         id: data.id,
         orderNumber,
@@ -228,7 +223,6 @@ export function OrderActions() {
 
       setGeneratedOrders(prev => [newOrder, ...prev]);
 
-      // Navigate to the locked wholesale order form page
       console.log("Navigating to:", url);
       navigate(url);
 
@@ -279,10 +273,10 @@ export function OrderActions() {
         </div>
       </div>
 
-      {/* Debug Info */}
       <div className="text-xs bg-gray-100 p-2 rounded">
         <div>Order Number: {orderNumber || "missing"}</div>
         <div>Order Date: {orderDate || "missing"}</div>
+        <div>Delivery Date: {deliveryDate || "missing"}</div>
         <div>Items Count: {items.length}</div>
         <div>Has Valid Items: {hasValidItems ? "Yes" : "No"}</div>
         <div>Total Pallets: {totalPallets}</div>
@@ -313,7 +307,6 @@ export function OrderActions() {
         </div>
       )}
 
-      {/* Order Summary Section */}
       <div className="border-t pt-6">
         <h3 className="text-xl font-semibold mb-6 text-center">Order Summary</h3>
         <div className="flex flex-col gap-4 p-6 bg-slate-50 rounded-lg">

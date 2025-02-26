@@ -9,6 +9,7 @@ interface WholesaleOrderData {
   id: string;
   order_number: string;
   order_date: string;
+  delivery_date?: string | null;
   items: OrderItem[];
 }
 
@@ -82,6 +83,16 @@ export function WholesaleOrderForm() {
     });
   };
 
+  // Calculate summary information
+  const summaryInfo = orderData.items.reduce((acc, item) => {
+    const totalCost = item.pallets * item.unitCost;
+    return {
+      totalPallets: acc.totalPallets + item.pallets,
+      totalCost: acc.totalCost + totalCost,
+      totalItems: acc.totalItems + 1
+    };
+  }, { totalPallets: 0, totalCost: 0, totalItems: 0 });
+
   return (
     <div className="flex-1">
       <div className="w-full max-w-[95rem] mx-auto px-4">
@@ -98,6 +109,7 @@ export function WholesaleOrderForm() {
             <CardTitle>Wholesale Order #{orderData.order_number}</CardTitle>
             <p className="text-sm text-gray-500">
               Order Date: {formatDate(orderData.order_date)}
+              {orderData.delivery_date && ` • Delivery: ${formatDate(orderData.delivery_date)}`}
             </p>
           </CardHeader>
           <CardContent>

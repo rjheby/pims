@@ -13,6 +13,7 @@ export type Database = {
         Row: {
           admin_editable: boolean | null
           created_at: string | null
+          delivery_date: string | null
           id: string
           items: Json
           order_date: string
@@ -22,6 +23,7 @@ export type Database = {
         Insert: {
           admin_editable?: boolean | null
           created_at?: string | null
+          delivery_date?: string | null
           id?: string
           items: Json
           order_date: string
@@ -31,6 +33,7 @@ export type Database = {
         Update: {
           admin_editable?: boolean | null
           created_at?: string | null
+          delivery_date?: string | null
           id?: string
           items?: Json
           order_date?: string
