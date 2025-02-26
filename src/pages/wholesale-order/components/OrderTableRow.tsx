@@ -51,7 +51,7 @@ export function OrderTableRow({
         )}
       </TableCell>
       {!isCompressed && Object.keys(options).map((field) => (
-        <TableCell key={field} className="w-[13%] px-2">
+        <TableCell key={field} className={`px-2 ${field === 'length' ? 'w-[8%]' : 'w-[13%]'}`}>
           <OrderTableDropdownCell
             field={field as keyof DropdownOptions}
             item={item}
