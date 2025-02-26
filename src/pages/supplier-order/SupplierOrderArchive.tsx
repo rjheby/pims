@@ -54,18 +54,17 @@ export function SupplierOrderArchive() {
   };
 
   const generateOrderPDF = (order: any) => {
-    // Convert order data to JSON string
     return JSON.stringify(order, null, 2);
   };
 
   const handleDownloadOrder = (order: any) => {
     try {
       const pdfContent = generateOrderPDF(order);
-      const blob = new Blob([pdfContent], { type: 'application/json' }); // Will be changed to PDF
+      const blob = new Blob([pdfContent], { type: 'application/json' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `order-${order.order_number}.json`; // Will be changed to .pdf
+      a.download = `order-${order.order_number}.json`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -103,14 +102,11 @@ export function SupplierOrderArchive() {
       <div className="w-full mx-auto px-2 md:px-4">
         <Card className="shadow-sm w-full">
           <CardHeader className="flex flex-col space-y-4">
-            <div>
-              <div className="flex justify-center">
-                <img src="/lovable-uploads/708f416f-5b66-4f87-865c-029557d1af58.png" alt="Logo" className="h-8 md:h-12 w-auto" />
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between items-center">
+            <div className="flex flex-col space-y-4">
+              <div>
                 <CardTitle>Supplier Orders Archive</CardTitle>
+              </div>
+              <div>
                 <Link to="/wholesale-order">
                   <Button className="bg-[#2A4131] hover:bg-[#2A4131]/90">
                     <Plus className="mr-2 h-4 w-4" />
