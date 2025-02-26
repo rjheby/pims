@@ -20,7 +20,6 @@ function WholesaleOrderContent() {
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '';
-    // Create date from the input value (which is in YYYY-MM-DD format)
     const [year, month, day] = dateStr.split('-').map(Number);
     return new Date(year, month - 1, day).toLocaleDateString('en-US', { 
       month: 'short', 
@@ -35,10 +34,20 @@ function WholesaleOrderContent() {
   ].filter(Boolean).join(' • ');
 
   const calculateTotals = () => {
-    return items.reduce((acc, item) => ({
-      totalQuantity: acc.totalQuantity + (item.pallets || 0),
-      totalValue: acc.totalValue + ((item.pallets || 0) * (item.unitCost || 0)),
-    }), { totalQuantity: 0, totalValue: 0 });
+    const quantityByPackaging = items.reduce((acc, item) => {
+      const packaging = item.packaging || 'Unspecified';
+      acc[packaging] = (acc[packaging] || 0) + (item.pallets || 0);
+      return acc;
+    }, {} as Record<string, number>);
+
+    const totalQuantity = Object.values(quantityByPackaging).reduce((sum, qty) => sum + qty, 0);
+    const totalValue = items.reduce((sum, item) => sum + ((item.pallets || 0) * (item.unitCost || 0)), 0);
+
+    return {
+      quantityByPackaging,
+      totalQuantity,
+      totalValue,
+    };
   };
 
   return (

@@ -3,6 +3,7 @@ interface BaseOrderSummaryProps {
   items: {
     totalQuantity: number;
     totalValue: number;
+    quantityByPackaging?: Record<string, number>;
   };
   renderCustomSummary?: () => React.ReactNode;
 }
@@ -13,8 +14,14 @@ export function BaseOrderSummary({ items, renderCustomSummary }: BaseOrderSummar
       <div className="bg-[#f3f3f3] rounded-lg p-6 flex flex-col items-center">
         <h3 className="text-lg font-semibold text-[#222222] mb-4">Order Summary</h3>
         <div className="space-y-3 w-full max-w-sm">
-          <div className="flex justify-between items-center">
-            <span className="text-[#8A898C]">Total Quantity</span>
+          {items.quantityByPackaging && Object.entries(items.quantityByPackaging).map(([packaging, quantity]) => (
+            <div key={packaging} className="flex justify-between items-center">
+              <span className="text-[#8A898C]">{packaging}</span>
+              <span className="font-medium text-[#333333]">{quantity}</span>
+            </div>
+          ))}
+          <div className="flex justify-between items-center pt-2 border-t">
+            <span className="font-medium text-[#8A898C]">Total Quantity</span>
             <span className="font-medium text-[#333333]">{items.totalQuantity}</span>
           </div>
           <div className="flex justify-between items-center text-lg">
