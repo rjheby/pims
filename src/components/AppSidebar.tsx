@@ -23,7 +23,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-// Extracted menu configuration
 const menuGroups = {
   reports: {
     title: "Reports",
@@ -81,7 +80,6 @@ export function AppSidebar() {
     if (isMobile) setOpenMobile(false);
   };
 
-  // Reusable link component
   const NavLink = ({ to, onClick = () => {}, isActive, className, children }) => (
     <Link
       to={to}
@@ -141,7 +139,6 @@ export function AppSidebar() {
 
   return (
     <>
-      {/* Mobile bottom navigation */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#2A4131]/10 md:hidden z-50">
         <div className="flex items-center justify-around h-16">
           {mobileNavItems.map((item) => (
@@ -169,7 +166,6 @@ export function AppSidebar() {
         </div>
       </div>
 
-      {/* Mobile slide-out menu */}
       <Sheet open={openMobile} onOpenChange={setOpenMobile}>
         <SheetContent 
           side="left" 
@@ -179,7 +175,6 @@ export function AppSidebar() {
         </SheetContent>
       </Sheet>
 
-      {/* Desktop top navigation */}
       <div className="hidden md:block bg-white border-b border-[#2A4131]/10">
         <div className="flex items-center justify-between h-[72px] px-4 max-w-[95rem] mx-auto">
           <div className="flex items-center gap-8">
