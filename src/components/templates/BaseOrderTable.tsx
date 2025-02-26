@@ -19,16 +19,16 @@ interface BaseOrderTableProps {
 
 function getColumnWidth(key: string): string {
   const widths: Record<string, string> = {
-    name: '15%',
-    species: '12%',
-    length: '8%',
-    bundleType: '12%',
-    thickness: '12%',
-    packaging: '10%',
-    pallets: '8%',
-    unitCost: '10%',
-    totalCost: '10%',
-    actions: '8%'
+    name: '22%',       // Longest - needs most space for item descriptions
+    species: '10%',    // Medium importance
+    length: '6%',      // Very short values - minimal space needed
+    bundleType: '10%', // Medium importance
+    thickness: '10%',  // Medium importance
+    packaging: '8%',   // Short values
+    pallets: '5%',     // Very short numeric values
+    unitCost: '7%',    // Short currency values
+    totalCost: '8%',   // Medium currency values
+    actions: '14%'     // Second longest - needs space for multiple action buttons
   };
   return widths[key] || '10%';
 }
