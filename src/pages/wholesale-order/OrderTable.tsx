@@ -44,16 +44,16 @@ export function OrderTable() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead style={{ width: '15%' }}>Name</TableHead>
+              <TableHead style={{ width: '20%' }}>Name</TableHead>
               {optionFields.map(field => (
-                <TableHead key={field} style={{ width: '12%' }}>
+                <TableHead key={field} style={{ width: field === 'length' ? '8%' : '13%' }}>
                   {field.charAt(0).toUpperCase() + field.slice(1)}
                 </TableHead>
               ))}
-              <TableHead style={{ width: '8%' }}>Qty</TableHead>
-              <TableHead style={{ width: '8%' }}>Unit Cost</TableHead>
+              <TableHead style={{ width: '6%' }}>Qty</TableHead>
+              <TableHead style={{ width: '10%' }}>Unit Cost</TableHead>
               <TableHead style={{ width: '8%' }}>Total Cost</TableHead>
-              <TableHead style={{ width: '12%' }}>Actions</TableHead>
+              <TableHead style={{ width: '10%' }}>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
