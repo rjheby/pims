@@ -100,7 +100,7 @@ export function SupplierOrderArchive() {
 
   return (
     <div className="flex-1">
-      <div className="w-full max-w-[95rem] mx-auto px-4">
+      <div className="w-full mx-auto px-4">
         <Card className="shadow-sm">
           <CardHeader className="flex flex-col space-y-4">
             <div className="flex justify-center">

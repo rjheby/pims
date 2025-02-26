@@ -31,14 +31,14 @@ export default function AppLayout({
         {/* Main Content with Top Navigation */}
         <div className="relative flex flex-col w-full">
           <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b">
-            <div className="flex items-center justify-between h-[72px] px-4 max-w-[95rem] mx-auto">
+            <div className="flex items-center justify-between h-[72px] px-4 max-w-screen-2xl mx-auto">
               <AppSidebar />
               <GlobalAdminControls />
             </div>
           </div>
           
-          <main className="w-full min-h-screen px-2 md:px-4 pb-20 md:pb-8 pt-[72px]">
-            <div className="py-4">
+          <main className="w-full min-h-screen px-4 pb-20 md:pb-8 pt-[72px]">
+            <div className="py-4 max-w-screen-2xl mx-auto w-full">
               {isWholesaleOrder ? (
                 <WholesaleOrderProvider>
                   {children}
