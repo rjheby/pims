@@ -65,7 +65,7 @@ function WholesaleOrderContent() {
               <div className="flex justify-center pt-6 border-t">
                 <Link 
                   to="/wholesale-orders" 
-                  className="flex items-center gap-2 text-[#2A4131] hover:text-[#2A4131]/80 transition-colors"
+                  className="flex items-center gap-2 text-[#FDE1D3] hover:text-[#FDE1D3]/80 transition-colors"
                 >
                   <Archive className="h-5 w-5" />
                   <span>View All Orders</span>
