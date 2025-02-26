@@ -1,3 +1,4 @@
+
 import { Link, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -16,7 +17,6 @@ import {
   BarChart,
   Truck,
   ClipboardList,
-  LayoutDashboard,
   DollarSign,
   Menu,
   X,
@@ -41,9 +41,9 @@ const menuGroups = {
     title: "Reports",
     items: [
       {
-        title: "Dashboard",
-        icon: LayoutDashboard,
-        path: "/dashboard",
+        title: "Home",
+        icon: Home,
+        path: "/",
       },
       {
         title: "Production Tracker",
@@ -106,9 +106,9 @@ const menuGroups = {
 
 const mobileNavItems = [
   {
-    title: "Dashboard",
-    icon: LayoutDashboard,
-    path: "/dashboard",
+    title: "Home",
+    icon: Home,
+    path: "/",
   },
   {
     title: "Dispatch",
