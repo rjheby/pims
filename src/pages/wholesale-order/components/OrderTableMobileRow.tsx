@@ -98,7 +98,7 @@ export function OrderTableMobileRow({
           </div>
         </div>
       )}
-      <div className="flex gap-2 justify-center pt-2 border-t">
+      <div className="flex flex-col md:flex-row gap-2 justify-center pt-2 border-t">
         <Button 
           variant="customAction"
           size="sm" 
