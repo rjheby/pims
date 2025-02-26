@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -63,10 +62,8 @@ export function SupplierOrderArchive() {
 
   const handleDuplicateOrder = async (order: any) => {
     try {
-      // Remove id and reset dates for the new order
       const { id, created_at, order_number, order_date, delivery_date, ...orderData } = order;
       
-      // Set default dates
       const today = new Date();
       const formattedToday = today.toISOString().split('T')[0];
       
@@ -99,7 +96,6 @@ export function SupplierOrderArchive() {
   };
 
   const handleDownloadOrder = (order: any) => {
-    // For now, we'll just download the JSON
     const blob = new Blob([JSON.stringify(order, null, 2)], { type: 'application/json' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -168,7 +164,7 @@ export function SupplierOrderArchive() {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2A4131]"></div>
               </div>
             ) : processedOrders.length > 0 ? (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {processedOrders.map((order: any) => (
                   <div key={order.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
                     <div className="flex items-start gap-3">
