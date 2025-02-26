@@ -81,16 +81,16 @@ export function SupplierOrderArchive() {
   };
 
   const handleCopyLink = (orderId: string) => {
-    const link = `${window.location.origin}/wholesale-order/${orderId}/pdf`;
+    const link = `${window.location.origin}/wholesale-order/${orderId}/view`;
     navigator.clipboard.writeText(link);
     toast({
       title: "Link copied",
-      description: "The PDF order link has been copied to your clipboard."
+      description: "The order view link has been copied to your clipboard."
     });
   };
 
   const handleShare = (orderId: string, method: 'email' | 'sms') => {
-    const link = `${window.location.origin}/wholesale-order/${orderId}/pdf`;
+    const link = `${window.location.origin}/wholesale-order/${orderId}/view`;
     if (method === 'email') {
       window.location.href = `mailto:?subject=Supplier Order&body=View the order here: ${link}`;
     } else if (method === 'sms') {
