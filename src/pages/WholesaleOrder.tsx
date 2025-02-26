@@ -33,52 +33,48 @@ function WholesaleOrderContent() {
   ].filter(Boolean).join(' • ');
 
   return (
-    <div className="flex-1">
-      <div className="w-full mx-auto px-4 max-w-full">
-        <Card className="shadow-sm">
-          <CardHeader>
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-              <div>
-                <CardTitle>{orderNumber ? `Wholesale Order #${orderNumber}` : 'New Wholesale Order'}</CardTitle>
-                {headerDetails && (
-                  <CardDescription className="mt-1">
-                    {headerDetails}
-                  </CardDescription>
-                )}
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              <OrderDetails 
-                orderNumber={orderNumber}
-                orderDate={orderDate}
-                deliveryDate={deliveryDate}
-                onOrderDateChange={handleOrderDateChange}
-                onDeliveryDateChange={(e) => setDeliveryDate(e.target.value)}
-              />
-              <div className="overflow-x-auto">
-                <OrderTable />
-              </div>
-              <OrderActions />
-              
-              {/* Archive Link */}
-              <div className="flex justify-center pt-6 border-t">
-                <Button
-                  asChild
-                  className="bg-[#FDE1D3] text-[#222222] hover:bg-[#FDE1D3]/90"
-                >
-                  <Link to="/wholesale-orders" className="flex items-center gap-2">
-                    <Archive className="h-5 w-5" />
-                    <span>View All Orders</span>
-                  </Link>
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+    <Card className="shadow-sm">
+      <CardHeader>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <CardTitle>{orderNumber ? `Wholesale Order #${orderNumber}` : 'New Wholesale Order'}</CardTitle>
+            {headerDetails && (
+              <CardDescription className="mt-1">
+                {headerDetails}
+              </CardDescription>
+            )}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-6">
+          <OrderDetails 
+            orderNumber={orderNumber}
+            orderDate={orderDate}
+            deliveryDate={deliveryDate}
+            onOrderDateChange={handleOrderDateChange}
+            onDeliveryDateChange={(e) => setDeliveryDate(e.target.value)}
+          />
+          <div className="overflow-x-auto">
+            <OrderTable />
+          </div>
+          <OrderActions />
+          
+          {/* Archive Link */}
+          <div className="flex justify-center pt-6 border-t">
+            <Button
+              asChild
+              className="bg-[#FDE1D3] text-[#222222] hover:bg-[#FDE1D3]/90"
+            >
+              <Link to="/wholesale-orders" className="flex items-center gap-2">
+                <Archive className="h-5 w-5" />
+                <span>View All Orders</span>
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
