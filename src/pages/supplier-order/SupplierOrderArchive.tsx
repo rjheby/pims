@@ -103,34 +103,40 @@ export function SupplierOrderArchive() {
       <div className="w-full mx-auto px-2 md:px-4">
         <Card className="shadow-sm w-full">
           <CardHeader className="flex flex-col space-y-4">
-            <div className="flex justify-center">
-              <img src="/lovable-uploads/708f416f-5b66-4f87-865c-029557d1af58.png" alt="Logo" className="h-8 md:h-12 w-auto" />
+            <div>
+              <div className="flex justify-center">
+                <img src="/lovable-uploads/708f416f-5b66-4f87-865c-029557d1af58.png" alt="Logo" className="h-8 md:h-12 w-auto" />
+              </div>
             </div>
-            <div className="flex justify-between items-center">
-              <CardTitle>Supplier Orders Archive</CardTitle>
-              <Link to="/wholesale-order">
-                <Button className="bg-[#2A4131] hover:bg-[#2A4131]/90">
-                  <Plus className="mr-2 h-4 w-4" />
-                  New Order
-                </Button>
-              </Link>
+            <div>
+              <div className="flex justify-between items-center">
+                <CardTitle>Supplier Orders Archive</CardTitle>
+                <Link to="/wholesale-order">
+                  <Button className="bg-[#2A4131] hover:bg-[#2A4131]/90">
+                    <Plus className="mr-2 h-4 w-4" />
+                    New Order
+                  </Button>
+                </Link>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
-            {loading ? (
-              <div className="flex justify-center p-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2A4131]"></div>
-              </div>
-            ) : (
-              <OrderList
-                orders={orders}
-                onEdit={handleEditOrder}
-                onDuplicate={handleDuplicateOrder}
-                onDownload={handleDownloadOrder}
-                onCopyLink={handleCopyLink}
-                onShare={handleShare}
-              />
-            )}
+            <div>
+              {loading ? (
+                <div className="flex justify-center p-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2A4131]"></div>
+                </div>
+              ) : (
+                <OrderList
+                  orders={orders}
+                  onEdit={handleEditOrder}
+                  onDuplicate={handleDuplicateOrder}
+                  onDownload={handleDownloadOrder}
+                  onCopyLink={handleCopyLink}
+                  onShare={handleShare}
+                />
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
