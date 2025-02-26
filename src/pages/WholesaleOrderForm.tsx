@@ -59,10 +59,11 @@ export function WholesaleOrderForm() {
     try {
       if (!orderData) return;
 
+      // Convert items array to string before sending to Supabase
       const { error } = await supabase
         .from('wholesale_orders')
         .update({
-          items: orderData.items,
+          items: JSON.stringify(orderData.items),
           delivery_date: orderData.delivery_date,
           order_date: orderData.order_date
         })
