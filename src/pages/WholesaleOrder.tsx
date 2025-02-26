@@ -51,37 +51,41 @@ function WholesaleOrderContent() {
   };
 
   return (
-    <Card className="shadow-sm">
-      <CardHeader>
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <CardTitle>{orderNumber ? `Supplier Order #${orderNumber}` : 'New Supplier Order'}</CardTitle>
-            {headerDetails && (
-              <CardDescription className="mt-1">
-                {headerDetails}
-              </CardDescription>
-            )}
+    <div className="w-full mx-auto px-4 sm:px-6 md:px-8 max-w-full">
+      <Card className="shadow-sm">
+        <CardHeader>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <CardTitle>{orderNumber ? `Supplier Order #${orderNumber}` : 'New Supplier Order'}</CardTitle>
+              {headerDetails && (
+                <CardDescription className="mt-1">
+                  {headerDetails}
+                </CardDescription>
+              )}
+            </div>
           </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-6">
-          <BaseOrderDetails 
-            orderNumber={orderNumber}
-            orderDate={orderDate}
-            deliveryDate={deliveryDate}
-            onOrderDateChange={handleOrderDateChange}
-            onDeliveryDateChange={(e) => setDeliveryDate(e.target.value)}
-          />
-          <OrderTable />
-          <BaseOrderSummary items={calculateTotals()} />
-          <BaseOrderActions 
-            onSave={() => {}} 
-            archiveLink="/wholesale-orders"
-          />
-        </div>
-      </CardContent>
-    </Card>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            <BaseOrderDetails 
+              orderNumber={orderNumber}
+              orderDate={orderDate}
+              deliveryDate={deliveryDate}
+              onOrderDateChange={handleOrderDateChange}
+              onDeliveryDateChange={(e) => setDeliveryDate(e.target.value)}
+            />
+            <div className="overflow-x-auto">
+              <OrderTable />
+            </div>
+            <BaseOrderSummary items={calculateTotals()} />
+            <BaseOrderActions 
+              onSave={() => {}} 
+              archiveLink="/wholesale-orders"
+            />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
