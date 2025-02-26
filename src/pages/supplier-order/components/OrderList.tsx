@@ -12,6 +12,8 @@ interface OrderListProps {
   onShare: (orderId: string, method: 'email' | 'sms') => void;
 }
 
+type ShareMethod = 'email' | 'sms';
+
 export function OrderList({ orders, onEdit, onDuplicate, onDownload, onCopyLink, onShare }: OrderListProps) {
   const { toast } = useToast();
 
@@ -100,7 +102,7 @@ export function OrderList({ orders, onEdit, onDuplicate, onDownload, onCopyLink,
     });
   };
 
-  const handleShare = async (orderId: string, method: 'email' | 'sms') => {
+  const handleShare = async (orderId: string, method: ShareMethod) => {
     try {
       // For now, we'll just trigger the Zapier webhook
       const webhookUrl = prompt(`Please enter your Zapier webhook URL for ${method} sharing:`);
@@ -161,7 +163,7 @@ export function OrderList({ orders, onEdit, onDuplicate, onDownload, onCopyLink,
           onDuplicate={() => handleDuplicate(order)}
           onDownload={() => handleDownload(order)}
           onCopyLink={() => handleCopyLink(order.id)}
-          onShare={(method) => handleShare(order.id, method)}
+          onShare={(method: ShareMethod) => handleShare(order.id, method)}
         />
       ))}
     </div>
