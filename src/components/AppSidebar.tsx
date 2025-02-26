@@ -81,7 +81,7 @@ const menuGroups = {
         path: "/wholesale-order",
       },
       {
-        title: "Wholesale Orders Archive",
+        title: "Supplier Archives",
         icon: Archive,
         path: "/wholesale-orders",
       },
