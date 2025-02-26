@@ -7,6 +7,7 @@ import { WholesaleOrderProvider } from "./wholesale-order/context/WholesaleOrder
 import { useWholesaleOrder } from "./wholesale-order/context/WholesaleOrderContext";
 import { Link } from "react-router-dom";
 import { Archive } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 function WholesaleOrderContent() {
   const { 
@@ -63,13 +64,15 @@ function WholesaleOrderContent() {
               
               {/* Archive Link */}
               <div className="flex justify-center pt-6 border-t">
-                <Link 
-                  to="/wholesale-orders" 
-                  className="flex items-center gap-2 text-[#FDE1D3] hover:text-[#FDE1D3]/80 transition-colors"
+                <Button
+                  asChild
+                  className="bg-[#FDE1D3] text-[#222222] hover:bg-[#FDE1D3]/90"
                 >
-                  <Archive className="h-5 w-5" />
-                  <span>View All Orders</span>
-                </Link>
+                  <Link to="/wholesale-orders" className="flex items-center gap-2">
+                    <Archive className="h-5 w-5" />
+                    <span>View All Orders</span>
+                  </Link>
+                </Button>
               </div>
             </div>
           </CardContent>
