@@ -14,7 +14,7 @@ export function SupplierOrderArchive() {
   const { orders, loading } = useOrders();
 
   const handleEditOrder = (orderId: string) => {
-    navigate(`/wholesale-order-form/${orderId}`);
+    navigate(`/wholesale-order/${orderId}`); // Changed to match the edit route
   };
 
   const handleDuplicateOrder = async (order: any) => {
@@ -40,7 +40,7 @@ export function SupplierOrderArchive() {
         description: "The order has been duplicated successfully."
       });
 
-      navigate(`/wholesale-order-form/${newOrder.id}`);
+      navigate(`/wholesale-order/${newOrder.id}`);
     } catch (error) {
       console.error("Error duplicating order:", error);
       toast({
@@ -64,7 +64,7 @@ export function SupplierOrderArchive() {
   };
 
   const handleCopyLink = (orderId: string) => {
-    const link = `${window.location.origin}/wholesale-order-form/${orderId}`;
+    const link = `${window.location.origin}/wholesale-order/${orderId}`; // Updated link format
     navigator.clipboard.writeText(link);
     toast({
       title: "Link copied",
@@ -73,7 +73,7 @@ export function SupplierOrderArchive() {
   };
 
   const handleShare = (orderId: string, method: 'email' | 'sms') => {
-    const link = `${window.location.origin}/wholesale-order-form/${orderId}`;
+    const link = `${window.location.origin}/wholesale-order/${orderId}`; // Updated link format
     if (method === 'email') {
       window.location.href = `mailto:?subject=Supplier Order&body=View the order here: ${link}`;
     } else if (method === 'sms') {
