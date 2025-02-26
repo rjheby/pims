@@ -1,13 +1,12 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { OrderDetails } from "./wholesale-order/OrderDetails";
+import { BaseOrderDetails } from "@/components/templates/BaseOrderDetails";
+import { BaseOrderTable } from "@/components/templates/BaseOrderTable";
+import { BaseOrderSummary } from "@/components/templates/BaseOrderSummary";
+import { BaseOrderActions } from "@/components/templates/BaseOrderActions";
 import { OrderTable } from "./wholesale-order/OrderTable";
-import { OrderActions } from "./wholesale-order/components/OrderActions";
 import { WholesaleOrderProvider } from "./wholesale-order/context/WholesaleOrderContext";
 import { useWholesaleOrder } from "./wholesale-order/context/WholesaleOrderContext";
-import { Link } from "react-router-dom";
-import { Archive } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 function WholesaleOrderContent() {
   const { 
@@ -15,7 +14,8 @@ function WholesaleOrderContent() {
     orderDate, 
     deliveryDate, 
     handleOrderDateChange,
-    setDeliveryDate 
+    setDeliveryDate,
+    items,
   } = useWholesaleOrder();
 
   const formatDate = (dateStr: string) => {
@@ -31,6 +31,13 @@ function WholesaleOrderContent() {
     orderDate && `Order Date: ${formatDate(orderDate)}`,
     deliveryDate && `Delivery: ${formatDate(deliveryDate)}`
   ].filter(Boolean).join(' • ');
+
+  const calculateTotals = () => {
+    return items.reduce((acc, item) => ({
+      totalQuantity: acc.totalQuantity + (item.pallets || 0),
+      totalValue: acc.totalValue + ((item.pallets || 0) * (item.unitCost || 0)),
+    }), { totalQuantity: 0, totalValue: 0 });
+  };
 
   return (
     <Card className="shadow-sm">
@@ -48,30 +55,19 @@ function WholesaleOrderContent() {
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
-          <OrderDetails 
+          <BaseOrderDetails 
             orderNumber={orderNumber}
             orderDate={orderDate}
             deliveryDate={deliveryDate}
             onOrderDateChange={handleOrderDateChange}
             onDeliveryDateChange={(e) => setDeliveryDate(e.target.value)}
           />
-          <div className="overflow-x-auto">
-            <OrderTable />
-          </div>
-          <OrderActions />
-          
-          {/* Archive Link */}
-          <div className="flex justify-center pt-6 border-t">
-            <Button
-              asChild
-              className="bg-[#f1e8c7] text-[#222222] hover:bg-[#f1e8c7]/90"
-            >
-              <Link to="/wholesale-orders" className="flex items-center gap-2">
-                <Archive className="h-5 w-5" />
-                <span>View All Orders</span>
-              </Link>
-            </Button>
-          </div>
+          <OrderTable />
+          <BaseOrderSummary items={calculateTotals()} />
+          <BaseOrderActions 
+            onSave={() => {}} 
+            archiveLink="/wholesale-orders"
+          />
         </div>
       </CardContent>
     </Card>
