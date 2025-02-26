@@ -39,7 +39,7 @@ const menuGroups = {
     items: [
       { title: "Dispatch", icon: Truck, path: "/dispatch" },
       { title: "Client Orders", icon: FileText, path: "/client-order" },
-      { title: "Supplier Order Form", icon: ClipboardList, path: "/wholesale-order" },
+      { title: "Supplier Form", icon: ClipboardList, path: "/wholesale-order" },
       { title: "Supplier Archives", icon: Archive, path: "/wholesale-orders" },
     ],
   },
@@ -83,7 +83,7 @@ export function AppSidebar() {
   };
 
   // Reusable link component
-  const NavLink = ({ to, onClick, isActive, className, children }) => (
+  const NavLink = ({ to, onClick = () => {}, isActive, className, children }) => (
     <Link
       to={to}
       onClick={onClick}
