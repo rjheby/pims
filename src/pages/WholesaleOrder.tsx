@@ -51,7 +51,7 @@ function WholesaleOrderContent() {
   };
 
   return (
-    <div className="w-full mx-auto px-4 sm:px-6 md:px-8 max-w-full">
+    <div className="w-[95%] max-w-full mx-auto">
       <Card className="shadow-sm">
         <CardHeader>
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -74,7 +74,7 @@ function WholesaleOrderContent() {
               onOrderDateChange={handleOrderDateChange}
               onDeliveryDateChange={(e) => setDeliveryDate(e.target.value)}
             />
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto w-full">
               <OrderTable />
             </div>
             <BaseOrderSummary items={calculateTotals()} />

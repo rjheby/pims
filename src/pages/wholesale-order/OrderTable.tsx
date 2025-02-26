@@ -46,37 +46,39 @@ export function OrderTable() {
   return (
     <>
       <div className="hidden md:block">
-        <BaseOrderTable
-          headers={headers}
-          data={tableData}
-          onSortChange={(key, direction) => {
-            console.log('Sorting by:', key, direction);
-          }}
-          onFilterChange={(filter) => {
-            console.log('Filters applied:', filter);
-          }}
-        >
-          {tableData.map(item => (
-            <OrderTableRow
-              key={item.id}
-              item={item}
-              options={options}
-              isAdmin={isAdmin}
-              editingField={editingField}
-              newOption={newOption}
-              onNewOptionChange={setNewOption}
-              onKeyPress={handleKeyPress}
-              onUpdateItem={handleUpdateItem}
-              onRemoveRow={handleRemoveRow}
-              onCopyRow={handleCopyRow}
-              onAddItem={handleAddItem}
-              generateItemName={generateItemName}
-              onUpdateOptions={handleUpdateOptions}
-              isCompressed={!!compressedStates[item.id]}
-              onToggleCompressed={toggleCompressed}
-            />
-          ))}
-        </BaseOrderTable>
+        <div className="overflow-x-auto w-full">
+          <BaseOrderTable
+            headers={headers}
+            data={tableData}
+            onSortChange={(key, direction) => {
+              console.log('Sorting by:', key, direction);
+            }}
+            onFilterChange={(filter) => {
+              console.log('Filters applied:', filter);
+            }}
+          >
+            {tableData.map(item => (
+              <OrderTableRow
+                key={item.id}
+                item={item}
+                options={options}
+                isAdmin={isAdmin}
+                editingField={editingField}
+                newOption={newOption}
+                onNewOptionChange={setNewOption}
+                onKeyPress={handleKeyPress}
+                onUpdateItem={handleUpdateItem}
+                onRemoveRow={handleRemoveRow}
+                onCopyRow={handleCopyRow}
+                onAddItem={handleAddItem}
+                generateItemName={generateItemName}
+                onUpdateOptions={handleUpdateOptions}
+                isCompressed={!!compressedStates[item.id]}
+                onToggleCompressed={toggleCompressed}
+              />
+            ))}
+          </BaseOrderTable>
+        </div>
       </div>
 
       <div className="md:hidden">

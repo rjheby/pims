@@ -131,7 +131,7 @@ export function WholesaleOrderForm() {
 
   return (
     <div className="flex-1">
-      <div className="w-full max-w-[95rem] mx-auto px-4">
+      <div className="w-[95%] max-w-full mx-auto">
         <div className="flex justify-center md:justify-start mb-4">
           <img 
             src="/lovable-uploads/708f416f-5b66-4f87-865c-029557d1af58.png"
@@ -143,7 +143,7 @@ export function WholesaleOrderForm() {
         <Card className="shadow-sm">
           <CardHeader>
             <div className="flex justify-between items-center">
-              <CardTitle>Supplier Order #{orderData.order_number}</CardTitle>
+              <CardTitle>Supplier Order #{orderData?.order_number}</CardTitle>
               <Button 
                 onClick={handleSubmit}
                 className="bg-[#2A4131] hover:bg-[#2A4131]/90"
@@ -152,27 +152,27 @@ export function WholesaleOrderForm() {
               </Button>
             </div>
             <p className="text-sm text-gray-500">
-              Order Date: {formatDate(orderData.order_date)}
+              Order Date: {formatDate(orderData?.order_date)}
             </p>
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
-              <div className="overflow-x-auto">
-                <table className="w-full">
+              <div className="overflow-x-auto w-full">
+                <table className="w-full table-fixed">
                   <thead>
                     <tr className="border-b">
-                      <th className="text-left py-2">Species</th>
-                      <th className="text-left py-2">Length</th>
-                      <th className="text-left py-2">Bundle Type</th>
-                      <th className="text-left py-2">Thickness</th>
-                      <th className="text-left py-2">Packaging</th>
-                      <th className="text-left py-2">Quantity</th>
-                      <th className="text-left py-2">Unit Cost</th>
+                      <th className="text-left py-2 w-[20%]">Species</th>
+                      <th className="text-left py-2 w-[15%]">Length</th>
+                      <th className="text-left py-2 w-[15%]">Bundle Type</th>
+                      <th className="text-left py-2 w-[15%]">Thickness</th>
+                      <th className="text-left py-2 w-[15%]">Packaging</th>
+                      <th className="text-left py-2 w-[10%]">Quantity</th>
+                      <th className="text-left py-2 w-[10%]">Unit Cost</th>
                       <th className="text-left py-2">Total Cost</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {orderData.items.map((item, index) => (
+                    {orderData?.items.map((item, index) => (
                       <tr key={index} className="border-b">
                         <td className="py-2">{item.species}</td>
                         <td className="py-2">{item.length}</td>
@@ -195,16 +195,16 @@ export function WholesaleOrderForm() {
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
                       <span className="text-[#8A898C]">Item Types</span>
-                      <span className="font-medium text-[#333333]">{summaryInfo.totalItems}</span>
+                      <span className="font-medium text-[#333333]">{summaryInfo?.totalItems}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-[#8A898C]">Total Pallets</span>
-                      <span className="font-medium text-[#333333]">{summaryInfo.totalPallets}</span>
+                      <span className="font-medium text-[#333333]">{summaryInfo?.totalPallets}</span>
                     </div>
                     <div className="flex justify-between items-center text-lg">
                       <span className="font-medium text-[#1A1F2C]">Total Order Value</span>
                       <span className="font-bold text-[#1A1F2C]">
-                        ${summaryInfo.totalCost.toLocaleString('en-US', {
+                        ${summaryInfo?.totalCost.toLocaleString('en-US', {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2
                         })}
