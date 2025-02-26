@@ -1,4 +1,3 @@
-
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +14,7 @@ export function SupplierOrderArchive() {
 
   const handleEditOrder = (orderId: string) => {
     console.log("Navigating to edit order:", orderId);
-    navigate(`/wholesale-order/${orderId}`, { replace: true });
+    navigate(`/wholesale-orders/${orderId}`, { replace: true });
   };
 
   const handleDuplicateOrder = async (order: any) => {
@@ -42,7 +41,7 @@ export function SupplierOrderArchive() {
         description: "The order has been duplicated successfully."
       });
 
-      navigate(`/wholesale-order/${newOrder.id}`, { replace: true });
+      navigate(`/wholesale-orders/${newOrder.id}`, { replace: true });
     } catch (error) {
       console.error("Error duplicating order:", error);
       toast({
