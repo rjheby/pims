@@ -7,6 +7,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import {
   FileText,
@@ -128,17 +129,13 @@ interface AppSidebarProps {
   onMobileMenuToggle: () => void;
 }
 
-export function AppSidebar({ 
-  isCollapsed, 
-  onToggleCollapse,
-  isMobileMenuOpen,
-  onMobileMenuToggle 
-}: AppSidebarProps) {
+export function AppSidebar() {
   const location = useLocation();
+  const { isMobile, openMobile, setOpenMobile } = useSidebar();
 
   const handleMenuItemClick = () => {
-    if (window.innerWidth < 768) {
-      onMobileMenuToggle();
+    if (isMobile) {
+      setOpenMobile(false);
     }
   };
 
@@ -159,7 +156,7 @@ export function AppSidebar({
           <Button
             variant="ghost"
             size="sm"
-            onClick={onMobileMenuToggle}
+            onClick={() => setOpenMobile(false)}
             className="hover:bg-[#F2E9D2]/50 md:hidden"
           >
             <X className="h-5 w-5 text-[#2A4131]" />
@@ -226,7 +223,7 @@ export function AppSidebar({
             </Link>
           ))}
           <button
-            onClick={onMobileMenuToggle}
+            onClick={() => setOpenMobile(true)}
             className="flex flex-col items-center justify-center w-16 h-16 text-[#2A4131] transition-colors duration-200"
           >
             <Menu className="h-6 w-6" />
@@ -236,7 +233,7 @@ export function AppSidebar({
       </div>
 
       {/* Mobile slide-out menu */}
-      <Sheet open={isMobileMenuOpen} onOpenChange={onMobileMenuToggle}>
+      <Sheet open={openMobile} onOpenChange={setOpenMobile}>
         <SheetContent 
           side="left" 
           className="p-0 w-full sm:w-[300px] h-[100dvh] overflow-y-auto transition-transform duration-300 ease-in-out"
