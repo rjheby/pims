@@ -1,15 +1,22 @@
 
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { FileText, Plus, Download, Mail } from "lucide-react";
+import { FileText, Plus, Pencil, Copy, Download, Link2, Send } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export function SupplierOrderArchive() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     async function fetchOrders() {
@@ -33,6 +40,67 @@ export function SupplierOrderArchive() {
 
     fetchOrders();
   }, []);
+
+  const handleEditOrder = (orderId: string) => {
+    navigate(`/supplier-order/${orderId}`);
+  };
+
+  const handleDuplicateOrder = async (order: any) => {
+    try {
+      // Remove id to create a new order
+      const { id, created_at, ...orderData } = order;
+      orderData.order_number = `${orderData.order_number}-copy`;
+      
+      const { data, error } = await supabase
+        .from("wholesale_orders")
+        .insert([orderData])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast({
+        title: "Order duplicated",
+        description: "The order has been duplicated successfully.",
+      });
+
+      navigate(`/supplier-order/${data.id}`);
+    } catch (error) {
+      console.error("Error duplicating order:", error);
+      toast({
+        title: "Error",
+        description: "Failed to duplicate the order.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDownloadOrder = (order: any) => {
+    // For now, we'll just download the JSON
+    const blob = new Blob([JSON.stringify(order, null, 2)], { type: 'application/json' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `order-${order.order_number}.json`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  };
+
+  const handleCopyLink = (orderId: string) => {
+    const link = `${window.location.origin}/supplier-order-form/${orderId}`;
+    navigator.clipboard.writeText(link);
+    toast({
+      title: "Link copied",
+      description: "The order link has been copied to your clipboard.",
+    });
+  };
+
+  const handleSendOrder = (orderId: string) => {
+    const link = `${window.location.origin}/supplier-order-form/${orderId}`;
+    window.location.href = `mailto:?subject=Supplier Order&body=View the order here: ${link}`;
+  };
 
   const processedOrders = orders.map((order: any) => ({
     ...order,
@@ -78,23 +146,94 @@ export function SupplierOrderArchive() {
                     <div className="flex items-start gap-3">
                       <FileText className="h-6 w-6 text-[#2A4131] mt-1" />
                       <div className="flex-1">
-                        <Link to={`/supplier-order-form/${order.id}`}>
-                          <div className="font-medium">Order #{order.order_number}</div>
-                          <div className="text-sm text-gray-500 mb-2">
-                            <span className="font-medium">Delivery Date: </span>
-                            {order.formattedDeliveryDate}
+                        <div className="font-medium">Order #{order.order_number}</div>
+                        <div className="text-sm text-gray-500 mb-2">
+                          <span className="font-medium">Delivery Date: </span>
+                          {order.formattedDeliveryDate}
+                        </div>
+                        <div className="text-sm">
+                          <div className="flex justify-between">
+                            <span>Total Pallets:</span>
+                            <span className="font-medium">{order.totalPallets}</span>
                           </div>
-                          <div className="text-sm">
-                            <div className="flex justify-between">
-                              <span>Total Pallets:</span>
-                              <span className="font-medium">{order.totalPallets}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>Order Value:</span>
-                              <span className="font-medium">${order.totalValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-                            </div>
+                          <div className="flex justify-between">
+                            <span>Order Value:</span>
+                            <span className="font-medium">${order.totalValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                           </div>
-                        </Link>
+                        </div>
+                        <div className="flex gap-2 mt-3 justify-end">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => handleEditOrder(order.id)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Edit order</TooltipContent>
+                            </Tooltip>
+
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => handleDuplicateOrder(order)}
+                                >
+                                  <Copy className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Duplicate order</TooltipContent>
+                            </Tooltip>
+
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => handleDownloadOrder(order)}
+                                >
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Download order</TooltipContent>
+                            </Tooltip>
+
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => handleCopyLink(order.id)}
+                                >
+                                  <Link2 className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Copy link</TooltipContent>
+                            </Tooltip>
+
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => handleSendOrder(order.id)}
+                                >
+                                  <Send className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Send order</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
                       </div>
                     </div>
                   </div>
