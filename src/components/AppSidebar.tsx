@@ -46,6 +46,11 @@ const menuGroups = {
         path: "/",
       },
       {
+        title: "Dashboard",
+        icon: BarChart,
+        path: "/dashboard",
+      },
+      {
         title: "Production Tracker",
         icon: BarChart,
         path: "/production",
@@ -61,12 +66,17 @@ const menuGroups = {
     title: "Orders",
     items: [
       {
+        title: "Dispatch",
+        icon: Truck,
+        path: "/dispatch",
+      },
+      {
         title: "Client Orders",
         icon: FileText,
         path: "/client-order",
       },
       {
-        title: "New Wholesale Order",
+        title: "Supplier Order Form",
         icon: ClipboardList,
         path: "/wholesale-order",
       },
