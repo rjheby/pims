@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useNavigate } from "react-router-dom";
 
 interface OrderCardProps {
   order: {
@@ -21,6 +22,8 @@ interface OrderCardProps {
 }
 
 export function OrderCard({ order, onEdit, onDuplicate, onDownload, onCopyLink, onShare }: OrderCardProps) {
+  const navigate = useNavigate();
+
   return (
     <div className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
       <div className="flex items-start gap-3">
@@ -48,7 +51,12 @@ export function OrderCard({ order, onEdit, onDuplicate, onDownload, onCopyLink, 
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => onEdit(order.id)}>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-8 w-8 p-0" 
+                    onClick={() => navigate(`/wholesale-orders/${order.id}`)}
+                  >
                     <Pencil className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>

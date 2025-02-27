@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -59,7 +58,6 @@ export function WholesaleOrderForm() {
     try {
       if (!orderData) return;
 
-      // Convert items array to string before sending to Supabase
       const { error } = await supabase
         .from('wholesale_orders')
         .update({
@@ -119,7 +117,6 @@ export function WholesaleOrderForm() {
     });
   };
 
-  // Calculate summary information
   const summaryInfo = orderData.items.reduce((acc, item) => {
     const totalCost = (item.pallets || 0) * (item.unitCost || 0);
     return {
@@ -131,7 +128,7 @@ export function WholesaleOrderForm() {
 
   return (
     <div className="flex-1">
-      <div className="w-[95%] max-w-full mx-auto">
+      <div>
         <div className="flex justify-center md:justify-start mb-4">
           <img 
             src="/lovable-uploads/708f416f-5b66-4f87-865c-029557d1af58.png"
@@ -188,7 +185,6 @@ export function WholesaleOrderForm() {
                 </table>
               </div>
 
-              {/* Order Summary Section */}
               <div className="mt-8 border-t pt-6">
                 <div className="bg-[#f3f3f3] rounded-lg p-6">
                   <h3 className="text-lg font-semibold text-[#222222] mb-4">Order Summary</h3>
