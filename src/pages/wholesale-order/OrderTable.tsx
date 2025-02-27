@@ -1,4 +1,3 @@
-
 import { OrderTableRow } from "./components/OrderTableRow";
 import { OrderTableMobileRow } from "./components/OrderTableMobileRow";
 import { useOrderTable } from "./hooks/useOrderTable";
@@ -37,7 +36,6 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
     setFilterValue,
   } = useOrderTable();
 
-  // Call the onItemsChange callback whenever items change
   useEffect(() => {
     if (onItemsChange) {
       onItemsChange(items);
@@ -104,8 +102,7 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
             ))}
           </BaseOrderTable>
           
-          {/* Always show Add Row button for admin users, even when there are 0 items */}
-          {isAdmin && !readOnly && (
+          {!readOnly && (
             <div className="mt-4 flex justify-end">
               <Button 
                 onClick={handleAddItem}
@@ -144,8 +141,7 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
             />
           ))}
           
-          {/* Always show Add Row button for admin users on mobile */}
-          {isAdmin && !readOnly && (
+          {!readOnly && (
             <div className="mt-4">
               <Button 
                 onClick={handleAddItem}
@@ -159,19 +155,16 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
         </div>
       </div>
       
-      {/* Show a message when there are no items */}
       {items.length === 0 && !readOnly && (
         <div className="text-center py-10 border rounded-md bg-gray-50">
           <p className="text-gray-500 mb-4">No items added yet</p>
-          {isAdmin && (
-            <Button 
-              onClick={handleAddItem}
-              className="bg-[#2A4131] hover:bg-[#2A4131]/90"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Add Your First Row
-            </Button>
-          )}
+          <Button 
+            onClick={handleAddItem}
+            className="bg-[#2A4131] hover:bg-[#2A4131]/90"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add Your First Row
+          </Button>
         </div>
       )}
     </>
