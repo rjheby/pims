@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { BaseOrderDetails } from "@/components/templates/BaseOrderDetails";
 import { BaseOrderSummary } from "@/components/templates/BaseOrderSummary";
@@ -8,6 +7,9 @@ import { WholesaleOrderProvider } from "./wholesale-order/context/WholesaleOrder
 import { useWholesaleOrder } from "./wholesale-order/context/WholesaleOrderContext";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { serializeOrderItems } from "./wholesale-order/types";
+import { useState } from "react";
 
 function WholesaleOrderContent() {
   const { 
@@ -17,10 +19,13 @@ function WholesaleOrderContent() {
     handleOrderDateChange,
     setDeliveryDate,
     items,
+    generateOrderNumber
   } = useWholesaleOrder();
   
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '';
@@ -54,19 +59,118 @@ function WholesaleOrderContent() {
     };
   };
 
-  const handleSave = () => {
-    toast({
-      title: "Order Saved",
-      description: "Your order has been saved as a draft"
-    });
+  const validateOrder = () => {
+    if (!orderDate) {
+      throw new Error("Order date is required");
+    }
+
+    const validItems = items.filter(item => 
+      item.species && item.length && item.bundleType && item.thickness && Number(item.pallets) > 0
+    );
+    
+    if (validItems.length === 0) {
+      throw new Error("At least one valid item is required with all fields filled");
+    }
+
+    return true;
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      validateOrder();
+      
+      let currentOrderNumber = orderNumber;
+      if (!currentOrderNumber) {
+        currentOrderNumber = await generateOrderNumber(orderDate);
+      }
+
+      const { data, error } = await supabase
+        .from('wholesale_orders')
+        .insert({
+          order_number: currentOrderNumber,
+          order_date: orderDate,
+          delivery_date: deliveryDate || null,
+          items: serializeOrderItems(items),
+          status: 'draft'
+        })
+        .select();
+
+      if (error) throw error;
+
+      toast({
+        title: "Order Saved",
+        description: "Your order has been saved as a draft"
+      });
+      
+      if (data && data[0]) {
+        navigate(`/wholesale-order/${data[0].id}`);
+      } else {
+        navigate("/wholesale-orders");
+      }
+    } catch (err: any) {
+      console.error('Error saving order:', err);
+      toast({
+        title: "Error",
+        description: err.message || "Failed to save order",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
   
-  const handleSubmit = () => {
-    toast({
-      title: "Order Submitted",
-      description: "Your order has been submitted successfully"
-    });
-    navigate("/wholesale-orders");
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    try {
+      validateOrder();
+      
+      const totalPallets = calculateTotals().totalQuantity;
+      if (totalPallets > 24) {
+        toast({
+          title: "Warning",
+          description: `Order exceeds maximum load by ${totalPallets - 24} pallets. Consider reducing the pallet count.`,
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+      
+      let currentOrderNumber = orderNumber;
+      if (!currentOrderNumber) {
+        currentOrderNumber = await generateOrderNumber(orderDate);
+      }
+
+      const { data, error } = await supabase
+        .from('wholesale_orders')
+        .insert({
+          order_number: currentOrderNumber,
+          order_date: orderDate,
+          delivery_date: deliveryDate || null,
+          items: serializeOrderItems(items),
+          status: 'submitted',
+          submitted_at: new Date().toISOString()
+        })
+        .select();
+
+      if (error) throw error;
+
+      toast({
+        title: "Order Submitted",
+        description: "Your order has been submitted successfully"
+      });
+      
+      navigate("/wholesale-orders");
+    } catch (err: any) {
+      console.error('Error submitting order:', err);
+      toast({
+        title: "Error",
+        description: err.message || "Failed to submit order",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -101,6 +205,8 @@ function WholesaleOrderContent() {
               onSave={handleSave} 
               onSubmit={handleSubmit}
               archiveLink="/wholesale-orders"
+              isSaving={isSaving}
+              isSubmitting={isSubmitting}
             />
           </div>
         </CardContent>

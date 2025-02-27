@@ -1,14 +1,15 @@
+
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Archive, Save, SendHorizontal } from "lucide-react";
 
 interface BaseOrderActionsProps {
   onSave: () => void;
-  onSubmit?: () => void;  // New prop for submission
+  onSubmit: () => void;  // No longer optional to ensure consistency
   archiveLink: string;
   customActions?: React.ReactNode;
-  isSaving?: boolean;     // Optional prop to show loading state
-  isSubmitting?: boolean; // Optional prop to show loading state
+  isSaving?: boolean;     
+  isSubmitting?: boolean; 
 }
 
 export function BaseOrderActions({ 
@@ -40,25 +41,23 @@ export function BaseOrderActions({
           )}
         </Button>
         
-        {onSubmit && (
-          <Button 
-            onClick={onSubmit} 
-            className="bg-[#2A4131] hover:bg-[#2A4131]/90"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <>
-                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
-                Submitting...
-              </>
-            ) : (
-              <>
-                <SendHorizontal className="mr-2 h-4 w-4" />
-                Submit Order
-              </>
-            )}
-          </Button>
-        )}
+        <Button 
+          onClick={onSubmit} 
+          className="bg-[#2A4131] hover:bg-[#2A4131]/90"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? (
+            <>
+              <div className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
+              Submitting...
+            </>
+          ) : (
+            <>
+              <SendHorizontal className="mr-2 h-4 w-4" />
+              Submit Order
+            </>
+          )}
+        </Button>
         
         {customActions}
       </div>
