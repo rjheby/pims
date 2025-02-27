@@ -49,13 +49,10 @@ export function GlobalControls() {
             variant="outline"
             size="sm"
             onClick={() => setShowSearch(true)}
-            className="h-9 px-3 flex items-center gap-2"
+            className="h-8 w-8 p-0"
           >
             <Search className="h-4 w-4" />
-            <span className="hidden lg:inline-block">Search...</span>
-            <span className="hidden lg:inline-block text-xs text-muted-foreground">
-              (Ctrl+K)
-            </span>
+            <span className="sr-only">Search</span>
           </Button>
         )}
       </div>
