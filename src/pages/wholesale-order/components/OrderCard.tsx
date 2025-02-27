@@ -1,4 +1,3 @@
-
 import { FileText, Pencil, Copy, Download, Link2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -21,7 +20,7 @@ interface OrderCardProps {
   onEdit: (orderId: string) => void;
   onDuplicate: (order: any) => void;
   onDownload: (order: any) => void;
-  onCopyLink: (orderId: string) => void;
+  onCopyLink?: (orderId: string) => void;
   onShare: (orderId: string, method: 'email' | 'sms') => void;
 }
 
@@ -45,6 +44,11 @@ export function OrderCard({ order, onEdit, onDuplicate, onDownload, onCopyLink, 
   };
 
   const handleCopyLink = (orderId: string) => {
+    if (onCopyLink) {
+      onCopyLink(orderId);
+      return;
+    }
+    
     const url = `${window.location.origin}/wholesale-orders/view/${orderId}`;
     navigator.clipboard.writeText(url);
     toast({
