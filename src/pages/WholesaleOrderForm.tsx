@@ -3,14 +3,13 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Archive } from "lucide-react";
+import { Archive, Save, SendHorizontal } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { OrderItem, serializeOrderItems } from "./wholesale-order/types";
 import { useToast } from "@/hooks/use-toast";
 import { BaseOrderDetails } from "@/components/templates/BaseOrderDetails";
 import { OrderTable } from "./wholesale-order/OrderTable";
 import { WholesaleOrderProvider } from "./wholesale-order/context/WholesaleOrderContext";
-import { BaseOrderActions } from "@/components/templates/BaseOrderActions";
 import { BaseOrderSummary } from "@/components/templates/BaseOrderSummary";
 
 // Update this interface to match your Supabase database structure
@@ -20,8 +19,6 @@ interface WholesaleOrderData {
   order_date: string;
   delivery_date: string;
   items: OrderItem[];
-  // If the status field doesn't exist in your database yet, 
-  // we'll handle it in the code with a default value
 }
 
 export function WholesaleOrderForm() {
@@ -29,7 +26,7 @@ export function WholesaleOrderForm() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [orderData, setOrderData] = useState<WholesaleOrderData | null>(null);
-  const [orderStatus, setOrderStatus] = useState<string>('draft'); // Track status separately
+  const [orderStatus, setOrderStatus] = useState<string>('draft');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -59,8 +56,8 @@ export function WholesaleOrderForm() {
             items: parsedItems,
           });
           
-          // Handle the status separately (if the column exists in the database)
-          // @ts-ignore - We'll handle the case where status doesn't exist
+          // Handle the status separately
+          // @ts-ignore - Handle if status doesn't exist yet
           setOrderStatus(data.status || 'draft');
         }
       } catch (err) {
@@ -131,31 +128,13 @@ export function WholesaleOrderForm() {
       // Validate order data
       validateOrder();
 
-      // Define what we're going to update
-      const updateData: any = {
-        order_date: orderData.order_date,
-        delivery_date: orderData.delivery_date,
-        items: serializeOrderItems(orderData.items)
-      };
-      
-      // Only add status if your database has this column
-      try {
-        // Check if the status column exists
-        const { data: columnInfo } = await supabase
-          .from('wholesale_orders')
-          .select('status')
-          .limit(1);
-        
-        // If we got here, the column exists
-        updateData.status = 'draft';
-      } catch (e) {
-        // Status column doesn't exist, skip it
-        console.log('Status column may not exist yet');
-      }
-
       const { error: updateError } = await supabase
         .from('wholesale_orders')
-        .update(updateData)
+        .update({
+          order_date: orderData.order_date,
+          delivery_date: orderData.delivery_date,
+          items: serializeOrderItems(orderData.items)
+        })
         .eq('id', id);
 
       if (updateError) throw updateError;
@@ -199,32 +178,13 @@ export function WholesaleOrderForm() {
       // Validate order data
       validateOrder();
 
-      // Define what we're going to update
-      const updateData: any = {
-        order_date: orderData.order_date,
-        delivery_date: orderData.delivery_date,
-        items: serializeOrderItems(orderData.items)
-      };
-      
-      // Only add status/submitted_at if your database has these columns
-      try {
-        // Check if the status column exists
-        const { data: columnInfo } = await supabase
-          .from('wholesale_orders')
-          .select('status')
-          .limit(1);
-        
-        // If we got here, the columns might exist
-        updateData.status = 'submitted';
-        updateData.submitted_at = new Date().toISOString();
-      } catch (e) {
-        // Status/submitted_at columns don't exist, skip them
-        console.log('Status/submitted_at columns may not exist yet');
-      }
-
       const { error: updateError } = await supabase
         .from('wholesale_orders')
-        .update(updateData)
+        .update({
+          order_date: orderData.order_date,
+          delivery_date: orderData.delivery_date,
+          items: serializeOrderItems(orderData.items)
+        })
         .eq('id', id);
 
       if (updateError) throw updateError;
@@ -345,15 +305,59 @@ export function WholesaleOrderForm() {
                 renderCustomSummary={renderCustomSummary}
               />
 
-              {/* Only show action buttons if not already submitted */}
+              {/* Instead of using BaseOrderActions, we'll create the buttons directly */}
               {!isSubmitted ? (
-                <BaseOrderActions 
-                  onSave={handleSave}
-                  onSubmit={handleSubmit}
-                  archiveLink="/wholesale-orders"
-                  isSaving={isSaving}
-                  isSubmitting={isSubmitting}
-                />
+                <div className="flex flex-col space-y-4">
+                  <div className="flex justify-end gap-4">
+                    <Button 
+                      onClick={handleSave} 
+                      className="bg-gray-600 hover:bg-gray-700"
+                      disabled={isSaving}
+                    >
+                      {isSaving ? (
+                        <>
+                          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="mr-2 h-4 w-4" />
+                          Save Draft
+                        </>
+                      )}
+                    </Button>
+                    
+                    <Button 
+                      onClick={handleSubmit} 
+                      className="bg-[#2A4131] hover:bg-[#2A4131]/90"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
+                          Submitting...
+                        </>
+                      ) : (
+                        <>
+                          <SendHorizontal className="mr-2 h-4 w-4" />
+                          Submit Order
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  
+                  <div className="flex justify-center pt-6 border-t">
+                    <Button
+                      asChild
+                      className="bg-[#f1e8c7] text-[#222222] hover:bg-[#f1e8c7]/90"
+                    >
+                      <Link to="/wholesale-orders" className="flex items-center gap-2">
+                        <Archive className="h-5 w-5" />
+                        <span>View All Orders</span>
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
               ) : (
                 <div className="flex justify-center pt-6 border-t">
                   <Button
