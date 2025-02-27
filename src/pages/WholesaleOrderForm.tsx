@@ -4,7 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { OrderItem } from "./wholesale-order/types";
+import { OrderItem, serializeOrderItems } from "./wholesale-order/types";
 import { useToast } from "@/hooks/use-toast";
 import { BaseOrderDetails } from "@/components/templates/BaseOrderDetails";
 import { OrderTable } from "./wholesale-order/OrderTable";
@@ -91,7 +91,7 @@ export function WholesaleOrderForm() {
         .update({
           order_date: orderData.order_date,
           delivery_date: orderData.delivery_date,
-          items: orderData.items
+          items: serializeOrderItems(orderData.items) // Use the serializer here
         })
         .eq('id', id);
 
