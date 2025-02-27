@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
@@ -36,6 +35,27 @@ interface WholesaleOrderData {
   // Status is tracked separately
 }
 
+// Function to format date string to YYYY-MM-DD format for input elements
+const formatDateForInput = (dateString: string | null): string => {
+  if (!dateString) return '';
+  
+  try {
+    // If it's already in YYYY-MM-DD format, return it
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+      return dateString;
+    }
+    
+    // Otherwise parse it and format it
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return ''; // Invalid date
+    
+    return date.toISOString().split('T')[0];
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return '';
+  }
+};
+
 export function WholesaleOrderForm() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -64,17 +84,28 @@ export function WholesaleOrderForm() {
           // Type cast data to access potential status field safely
           const rawData = data as any;
           
+          console.log('Fetched order data:', rawData);
+          
           // Parse items whether it's a string or already an object
           const parsedItems = typeof rawData.items === 'string' 
             ? JSON.parse(rawData.items) 
             : rawData.items;
           
+          // Format dates for input fields
+          const formattedOrderDate = formatDateForInput(rawData.order_date);
+          const formattedDeliveryDate = formatDateForInput(rawData.delivery_date);
+          
+          console.log('Formatted dates:', {
+            orderDate: formattedOrderDate,
+            deliveryDate: formattedDeliveryDate
+          });
+          
           // Create our application model
           setOrderData({
             id: rawData.id,
             order_number: rawData.order_number,
-            order_date: rawData.order_date,
-            delivery_date: rawData.delivery_date || '',
+            order_date: formattedOrderDate,
+            delivery_date: formattedDeliveryDate,
             items: parsedItems,
           });
           
@@ -98,18 +129,22 @@ export function WholesaleOrderForm() {
 
   const handleOrderDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (orderData) {
+      const newDate = e.target.value;
+      console.log('Order date changed to:', newDate);
       setOrderData(prev => ({
         ...prev!,
-        order_date: e.target.value
+        order_date: newDate
       }));
     }
   };
 
   const handleDeliveryDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (orderData) {
+      const newDate = e.target.value;
+      console.log('Delivery date changed to:', newDate);
       setOrderData(prev => ({
         ...prev!,
-        delivery_date: e.target.value
+        delivery_date: newDate
       }));
     }
   };
@@ -163,29 +198,31 @@ export function WholesaleOrderForm() {
     try {
       validateOrder();
 
-      console.log('Saving order data:', {
-        order_date: orderData.order_date,
-        delivery_date: orderData.delivery_date || null
-      });
+      // Log the current data we're about to save
+      console.log('Saving order with ID:', id);
+      console.log('Current order data:', orderData);
 
-      // Create update object dynamically to avoid TypeScript errors
-      const updateData: Record<string, any> = {
-        order_date: orderData.order_date,
+      // Prepare data for update
+      let updateData: Record<string, any> = {
         items: serializeOrderItems(orderData.items),
         status: 'draft'
       };
       
-      // Only set delivery_date if it has a value to avoid empty string issues
+      // Add order_date if it exists
+      if (orderData.order_date) {
+        updateData.order_date = orderData.order_date;
+      }
+      
+      // Handle delivery_date, converting empty string to null for database
       if (orderData.delivery_date && orderData.delivery_date.trim() !== '') {
         updateData.delivery_date = orderData.delivery_date;
       } else {
-        // If delivery_date is empty, set it to null explicitly
         updateData.delivery_date = null;
       }
 
-      console.log('Updating order with ID:', id);
-      console.log('Update data:', updateData);
+      console.log('Update data being sent to database:', updateData);
 
+      // Update the order in the database
       const { error: updateError } = await supabase
         .from('wholesale_orders')
         .update(updateData)
@@ -206,16 +243,22 @@ export function WholesaleOrderForm() {
       if (refreshError) {
         console.error("Error refreshing order data:", refreshError);
       } else if (refreshedData) {
+        console.log('Refreshed data from server:', refreshedData);
+        
         // Update our local state with the refreshed data
         const parsedItems = typeof refreshedData.items === 'string' 
           ? JSON.parse(refreshedData.items) 
           : refreshedData.items;
         
+        // Format dates for input fields
+        const formattedOrderDate = formatDateForInput(refreshedData.order_date);
+        const formattedDeliveryDate = formatDateForInput(refreshedData.delivery_date);
+        
         setOrderData({
           id: refreshedData.id,
           order_number: refreshedData.order_number,
-          order_date: refreshedData.order_date,
-          delivery_date: refreshedData.delivery_date || '',
+          order_date: formattedOrderDate,
+          delivery_date: formattedDeliveryDate,
           items: parsedItems,
         });
       }
@@ -254,24 +297,30 @@ export function WholesaleOrderForm() {
     try {
       validateOrder();
 
-      // Create update object dynamically to avoid TypeScript errors
-      const updateData: Record<string, any> = {
-        order_date: orderData.order_date,
+      // Log the current data we're about to submit
+      console.log('Submitting order with ID:', id);
+      console.log('Current order data for submission:', orderData);
+
+      // Prepare data for update
+      let updateData: Record<string, any> = {
         items: serializeOrderItems(orderData.items),
         status: 'submitted',
         submitted_at: new Date().toISOString()
       };
       
-      // Only set delivery_date if it has a value to avoid empty string issues
+      // Add order_date if it exists
+      if (orderData.order_date) {
+        updateData.order_date = orderData.order_date;
+      }
+      
+      // Handle delivery_date, converting empty string to null for database
       if (orderData.delivery_date && orderData.delivery_date.trim() !== '') {
         updateData.delivery_date = orderData.delivery_date;
       } else {
-        // If delivery_date is empty, set it to null explicitly
         updateData.delivery_date = null;
       }
 
-      console.log('Submitting order with ID:', id);
-      console.log('Submit data:', updateData);
+      console.log('Update data being sent to database for submission:', updateData);
 
       const { error: updateError } = await supabase
         .from('wholesale_orders')
@@ -358,6 +407,8 @@ export function WholesaleOrderForm() {
       <div className="text-gray-500">Order not found</div>
     </div>
   );
+
+  console.log('Rendering with orderData:', orderData);
 
   const totalPallets = calculateTotalPallets();
   const totalCost = calculateTotalCost();
