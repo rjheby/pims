@@ -1,22 +1,9 @@
 
-import React, { useState, useMemo, ReactElement } from "react";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ArrowUpDown, Filter, Search, X } from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { ArrowUpDown, Search, X } from "lucide-react";
+import { useState, useMemo } from "react";
 
 interface BaseOrderTableProps {
   children: React.ReactNode;
@@ -30,9 +17,20 @@ interface BaseOrderTableProps {
   onFilterChange?: (filter: string) => void;
 }
 
-interface ProcessedItem extends Record<string, any> {
-  id: string | number;
-  highlighted?: boolean;
+function getColumnWidth(key: string): string {
+  const widths: Record<string, string> = {
+    name: '22%',       // Longest - needs most space for item descriptions
+    species: '10%',    // Medium importance
+    length: '6%',      // Very short values - minimal space needed
+    bundleType: '10%', // Medium importance
+    thickness: '10%',  // Medium importance
+    packaging: '8%',   // Short values
+    pallets: '5%',     // Very short numeric values
+    unitCost: '7%',    // Short currency values
+    totalCost: '8%',   // Medium currency values
+    actions: '14%'     // Second longest - needs space for multiple action buttons
+  };
+  return widths[key] || '10%';
 }
 
 export function BaseOrderTable({ 
@@ -42,15 +40,12 @@ export function BaseOrderTable({
   onSortChange,
   onFilterChange 
 }: BaseOrderTableProps) {
-  const isMobile = useIsMobile();
   const [sortConfig, setSortConfig] = useState<{
     key: string;
     direction: 'asc' | 'desc';
   } | null>(null);
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
-  const [filterOpen, setFilterOpen] = useState(false);
+  const [filter, setFilter] = useState('');
 
   const handleSort = (key: string) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -63,141 +58,75 @@ export function BaseOrderTable({
     onSortChange?.(key, direction);
   };
 
-  const filteredData = useMemo(() => {
-    return data.filter(item => {
-      return Object.entries(activeFilters).every(([key, value]) => {
-        if (!value) return true;
-        const itemValue = item[key]?.toString().toLowerCase();
-        return itemValue === value.toLowerCase();
-      });
-    });
-  }, [data, activeFilters]);
-
-  const processedData = useMemo(() => {
-    return filteredData.map(item => ({
-      ...item,
-      highlighted: searchTerm ? 
-        Object.values(item).some(value => 
-          value?.toString().toLowerCase().includes(searchTerm.toLowerCase())
-        ) : false
-    })) as ProcessedItem[];
-  }, [filteredData, searchTerm]);
-
-  const getFilterOptions = (key: string) => {
-    const uniqueValues = new Set(data.map(item => item[key]?.toString()).filter(Boolean));
-    return Array.from(uniqueValues);
+  const handleFilter = (value: string) => {
+    setFilter(value);
+    onFilterChange?.(value);
   };
 
-  const activeFilterCount = Object.values(activeFilters).filter(Boolean).length;
+  const sortedAndFilteredData = useMemo(() => {
+    let processedData = [...data];
 
-  const FilterControls = () => (
-    <div className="space-y-4 p-4 bg-white">
-      <div className="flex items-center justify-between mb-2">
-        <h4 className="font-medium">Filters</h4>
-        {activeFilterCount > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setActiveFilters({})}
-            className="h-8 px-2 text-sm"
-          >
-            Clear All
-          </Button>
-        )}
-      </div>
-      
-      <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
-        {headers.map(header => (
-          <div key={header.key}>
-            <label className="text-sm font-medium text-gray-700 mb-1 block">
-              {header.label}
-            </label>
-            <Select
-              value={activeFilters[header.key] || 'all'}
-              onValueChange={(value) => 
-                setActiveFilters(prev => ({
-                  ...prev,
-                  [header.key]: value === 'all' ? '' : value
-                }))
-              }
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder={`All ${header.label}`} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All {header.label}</SelectItem>
-                {getFilterOptions(header.key).map(option => (
-                  <SelectItem key={option} value={option}>
-                    {option}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+    if (filter) {
+      processedData = processedData.filter(item => 
+        Object.values(item).some(value => 
+          String(value).toLowerCase().includes(filter.toLowerCase())
+        )
+      );
+    }
+
+    if (sortConfig) {
+      processedData.sort((a, b) => {
+        const aValue = a[sortConfig.key];
+        const bValue = b[sortConfig.key];
+
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+
+    return processedData;
+  }, [data, filter, sortConfig]);
 
   return (
     <div className="space-y-4 w-full">
-      <div className="flex justify-between items-center gap-4">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex justify-end">
+        <div className="relative w-72">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search table..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Filter table..."
+            value={filter}
+            onChange={(e) => handleFilter(e.target.value)}
             className="pl-8"
           />
-          {searchTerm && (
+          {filter && (
             <Button
               variant="ghost"
               size="sm"
               className="absolute right-1 top-1.5 h-6 w-6 p-0"
-              onClick={() => setSearchTerm('')}
+              onClick={() => handleFilter('')}
             >
               <X className="h-4 w-4" />
             </Button>
           )}
         </div>
-
-        <Popover open={filterOpen} onOpenChange={setFilterOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <Filter className="h-4 w-4" />
-              <span>Filters</span>
-              {activeFilterCount > 0 && (
-                <span className="ml-1 rounded-full bg-primary w-5 h-5 text-xs flex items-center justify-center text-primary-foreground">
-                  {activeFilterCount}
-                </span>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-80 md:w-[450px] p-0" align="end">
-            <FilterControls />
-          </PopoverContent>
-        </Popover>
       </div>
-
-      <div className="overflow-x-auto rounded-md border w-full">
-        <Table className="w-full">
+      <div className="overflow-x-auto rounded-md border" style={{width: '100%'}}>
+        <Table className="w-full table-fixed" style={{width: '100%'}}>
           <TableHeader>
             <TableRow>
               {headers.map((header) => (
                 <TableHead 
                   key={header.key}
-                  className="px-2 whitespace-nowrap"
                   style={{
-                    width: header.key === 'name' ? '22%' : 
-                           header.key === 'pallets' ? '8%' :
-                           header.key === 'unitCost' ? '10%' :
-                           header.key === 'totalCost' ? '10%' :
-                           header.key === 'actions' ? '10%' : '10%'
+                    width: getColumnWidth(header.key),
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
                   }}
                 >
                   <div className="flex items-center justify-between">
@@ -218,15 +147,7 @@ export function BaseOrderTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {React.Children.map(children, (child) => {
-              if (!React.isValidElement(child)) return null;
-              const itemId = (child as ReactElement<any>).props?.item?.id;
-              const matchingItem = processedData.find(item => item.id === itemId);
-              
-              return React.cloneElement(child as ReactElement, {
-                className: matchingItem?.highlighted ? 'bg-yellow-50' : undefined
-              });
-            })}
+            {children}
           </TableBody>
         </Table>
       </div>

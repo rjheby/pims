@@ -1,5 +1,3 @@
-
-import React from "react";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +8,6 @@ import { BaseOrderDetails } from "@/components/templates/BaseOrderDetails";
 import { OrderTable } from "./wholesale-order/OrderTable";
 import { WholesaleOrderProvider } from "./wholesale-order/context/WholesaleOrderContext";
 import { BaseOrderActions } from "@/components/templates/BaseOrderActions";
-import { BaseOrderSummary } from "@/components/templates/BaseOrderSummary";
 
 interface WholesaleOrderData {
   id: string;
@@ -27,7 +24,6 @@ export function WholesaleOrderForm() {
   const [orderData, setOrderData] = useState<WholesaleOrderData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     async function fetchOrderData() {
@@ -84,52 +80,11 @@ export function WholesaleOrderForm() {
     }
   };
 
-  const calculateTotalPallets = () => {
-    if (!orderData?.items) return 0;
-    return orderData.items.reduce((sum, item) => sum + (Number(item.pallets) || 0), 0);
-  };
-
-  const calculateTotalCost = () => {
-    if (!orderData?.items) return 0;
-    return orderData.items.reduce((sum, item) => sum + ((Number(item.pallets) || 0) * (Number(item.unitCost) || 0)), 0);
-  };
-
-  const handleSave = async () => {
-    if (!orderData || isSaving) return;
-
-    const totalPallets = calculateTotalPallets();
-    
-    // Pallet count warnings
-    if (totalPallets > 24) {
-      toast({
-        title: "Warning",
-        description: `Order exceeds maximum load by ${totalPallets - 24} pallets. Consider reducing the pallet count.`,
-        variant: "destructive",
-      });
-    } else if (totalPallets < 24) {
-      toast({
-        title: "Notice",
-        description: `Order is not quite full. There's space for ${24 - totalPallets} more pallets.`,
-      });
-    }
-
-    setIsSaving(true);
+  const handleSubmit = async () => {
     try {
-      // Validate order data
-      if (!orderData.order_date) {
-        throw new Error("Order date is required");
-      }
+      if (!orderData) return;
 
-      // Check for valid items
-      const validItems = orderData.items.filter(item => 
-        item.species && item.length && item.bundleType && item.thickness && Number(item.pallets) > 0
-      );
-      
-      if (validItems.length === 0) {
-        throw new Error("At least one valid item is required with all fields filled");
-      }
-
-      const { error: updateError } = await supabase
+      const { error } = await supabase
         .from('wholesale_orders')
         .update({
           order_date: orderData.order_date,
@@ -138,49 +93,22 @@ export function WholesaleOrderForm() {
         })
         .eq('id', id);
 
-      if (updateError) throw updateError;
+      if (error) throw error;
 
       toast({
         title: "Success",
-        description: "Order saved successfully",
+        description: "Order updated successfully",
       });
 
-      // Redirect after successful save
       navigate('/wholesale-orders');
-    } catch (err: any) {
-      console.error('Error saving order:', err);
+    } catch (err) {
+      console.error('Error updating order:', err);
       toast({
         title: "Error",
-        description: err.message || "Failed to save order",
+        description: "Failed to update order",
         variant: "destructive"
       });
-    } finally {
-      setIsSaving(false);
     }
-  };
-
-  const renderCustomSummary = () => {
-    const totalPallets = calculateTotalPallets();
-    
-    return (
-      <div className="mt-4 pt-4 border-t border-gray-200">
-        {totalPallets < 24 && (
-          <div className="text-sm text-amber-600 text-center">
-            {24 - totalPallets} pallets remaining before full load
-          </div>
-        )}
-        {totalPallets > 24 && (
-          <div className="text-sm text-red-600 text-center">
-            Exceeds maximum load by {totalPallets - 24} pallets
-          </div>
-        )}
-        {totalPallets === 24 && (
-          <div className="text-sm text-green-600 text-center">
-            Perfect load! Exactly 24 pallets.
-          </div>
-        )}
-      </div>
-    );
   };
 
   if (loading) return (
@@ -201,12 +129,17 @@ export function WholesaleOrderForm() {
     </div>
   );
 
-  const totalPallets = calculateTotalPallets();
-  const totalCost = calculateTotalCost();
-
   return (
     <div className="flex-1">
       <div>
+        <div className="flex justify-center md:justify-start mb-4">
+          <img 
+            src="/lovable-uploads/708f416f-5b66-4f87-865c-029557d1af58.png"
+            alt="Woodbourne Logo"
+            className="h-8 md:h-12 w-auto"
+          />
+        </div>
+
         <Card className="shadow-sm">
           <CardHeader>
             <CardTitle>Supplier Order #{orderData?.order_number}</CardTitle>
@@ -225,17 +158,8 @@ export function WholesaleOrderForm() {
                 <OrderTable />
               </WholesaleOrderProvider>
 
-              <BaseOrderSummary 
-                items={{
-                  totalQuantity: totalPallets,
-                  totalValue: totalCost,
-                  quantityByPackaging: { 'Pallets': totalPallets }
-                }}
-                renderCustomSummary={renderCustomSummary}
-              />
-
               <BaseOrderActions 
-                onSave={handleSave}
+                onSave={handleSubmit}
                 archiveLink="/wholesale-orders"
               />
             </div>
