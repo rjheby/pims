@@ -8,6 +8,7 @@ import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { OrderList } from "./components/OrderList";
 import { useOrders } from "./hooks/useOrders";
+import { generateOrderPDF } from "./utils/pdfGenerator";
 
 export function WholesaleOrderArchive() {
   const navigate = useNavigate();
@@ -56,23 +57,46 @@ export function WholesaleOrderArchive() {
 
   const handleDownloadOrder = (order: any) => {
     try {
-      const pdfContent = JSON.stringify(order, null, 2);
-      const blob = new Blob([pdfContent], { type: 'application/json' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `order-${order.order_number}.json`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      // Create PDF document
+      const pdf = generateOrderPDF({
+        order_number: order.order_number,
+        order_date: order.order_date || order.created_at,
+        delivery_date: order.delivery_date,
+        items: order.items || [],
+        totalPallets: order.totalPallets,
+        totalValue: order.totalValue
+      });
+      
+      // Save the PDF file
+      pdf.save(`order-${order.order_number}.pdf`);
+      
+      toast({
+        title: "Success",
+        description: "Order PDF downloaded successfully."
+      });
     } catch (error) {
-      console.error("Error downloading order:", error);
+      console.error("Error downloading order as PDF:", error);
       toast({
         title: "Error",
-        description: "Failed to download the order.",
+        description: "Failed to generate PDF. Falling back to JSON download.",
         variant: "destructive"
       });
+      
+      // Fallback to JSON download
+      try {
+        const jsonContent = JSON.stringify(order, null, 2);
+        const blob = new Blob([jsonContent], { type: 'application/json' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `order-${order.order_number}.json`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } catch (fallbackError) {
+        console.error("Error with fallback JSON download:", fallbackError);
+      }
     }
   };
 
