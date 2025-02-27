@@ -341,40 +341,23 @@ export function WholesaleOrderForm() {
               {!isSubmitted ? (
                 <div className="flex flex-col space-y-4">
                   <div className="flex justify-end gap-4">
+                    {/* Save Draft Button */}
                     <Button 
                       onClick={handleSave} 
                       className="bg-gray-600 hover:bg-gray-700"
                       disabled={isSaving}
                     >
-                      {isSaving ? (
-                        <>
-                          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="mr-2 h-4 w-4" />
-                          Save Draft
-                        </>
-                      )}
+                      <Save className="mr-2 h-4 w-4" />
+                      Save Draft
                     </Button>
                     
+                    {/* Submit Order Button */}
                     <Button 
                       onClick={handleSubmit} 
                       className="bg-[#2A4131] hover:bg-[#2A4131]/90"
-                      disabled={isSubmitting}
                     >
-                      {isSubmitting ? (
-                        <>
-                          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
-                          Submitting...
-                        </>
-                      ) : (
-                        <>
-                          <SendHorizontal className="mr-2 h-4 w-4" />
-                          Submit Order
-                        </>
-                      )}
+                      <SendHorizontal className="mr-2 h-4 w-4" />
+                      Submit Order
                     </Button>
                   </div>
                   
