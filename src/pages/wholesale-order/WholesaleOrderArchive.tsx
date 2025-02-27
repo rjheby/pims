@@ -57,18 +57,22 @@ export function WholesaleOrderArchive() {
 
   const handleDownloadOrder = (order: any) => {
     try {
-      // Create PDF document
+      // Create enhanced PDF document with more details
       const pdf = generateOrderPDF({
-        order_number: order.order_number,
+        order_number: order.order_number || order.id?.substring(0, 8),
         order_date: order.order_date || order.created_at,
         delivery_date: order.delivery_date,
         items: order.items || [],
         totalPallets: order.totalPallets,
-        totalValue: order.totalValue
+        totalValue: order.totalValue,
+        customer: order.customer,
+        notes: order.notes,
+        status: order.status
       });
       
-      // Save the PDF file
-      pdf.save(`order-${order.order_number}.pdf`);
+      // Save the PDF file with better filename
+      const fileName = `order-${order.order_number || order.id?.substring(0, 8)}.pdf`;
+      pdf.save(fileName);
       
       toast({
         title: "Success",
@@ -89,7 +93,7 @@ export function WholesaleOrderArchive() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `order-${order.order_number}.json`;
+        a.download = `order-${order.order_number || order.id?.substring(0, 8)}.json`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -101,20 +105,31 @@ export function WholesaleOrderArchive() {
   };
 
   const handleCopyLink = (orderId: string) => {
-    const link = `${window.location.origin}/wholesale-orders/${orderId}/view`;
-    navigator.clipboard.writeText(link);
-    toast({
-      title: "Link copied",
-      description: "The order view link has been copied to your clipboard."
-    });
+    try {
+      // Generate shareable link for the order
+      const link = `${window.location.origin}/wholesale-orders/${orderId}/view`;
+      navigator.clipboard.writeText(link);
+      
+      toast({
+        title: "Link copied",
+        description: "The shareable order link has been copied to your clipboard."
+      });
+    } catch (error) {
+      console.error("Error copying link:", error);
+      toast({
+        title: "Error",
+        description: "Failed to copy link to clipboard.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleShare = (orderId: string, method: 'email' | 'sms') => {
     const link = `${window.location.origin}/wholesale-orders/${orderId}/view`;
     if (method === 'email') {
-      window.location.href = `mailto:?subject=Supplier Order&body=View the order here: ${link}`;
+      window.location.href = `mailto:?subject=Timber Order Details&body=View the order details here: ${link}`;
     } else if (method === 'sms') {
-      window.location.href = `sms:?body=View the order here: ${link}`;
+      window.location.href = `sms:?body=View the timber order details here: ${link}`;
     }
   };
 
