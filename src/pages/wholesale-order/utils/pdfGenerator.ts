@@ -25,28 +25,33 @@ export const generateOrderPDF = (orderData: OrderData) => {
   const doc = new jsPDF() as jsPDFWithAutoTable;
   const pageWidth = doc.internal.pageSize.getWidth();
   
-  // Add Company Logo instead of text
-  doc.setFillColor(42, 65, 49); // Woodbourne Green
+  // Create white background for the header (instead of green) for better logo visibility
+  doc.setFillColor(255, 255, 255);
   doc.rect(0, 0, pageWidth, 40, 'F');
   
-  // Add logo
+  // Add logo with improved positioning
   const logoUrl = '/lovable-uploads/21d56fd9-ffa2-4b0c-9d82-b10f7d03a546.png';
   try {
-    doc.addImage(logoUrl, 'PNG', pageWidth / 2 - 40, 10, 80, 20, undefined, 'FAST');
+    doc.addImage(logoUrl, 'PNG', pageWidth / 2 - 35, 8, 70, 18, undefined, 'FAST');
   } catch (error) {
     console.error("Error adding logo to PDF:", error);
     // Fallback if image loading fails
-    doc.setTextColor(255, 255, 255);
+    doc.setTextColor(42, 65, 49); // Woodbourne Green text instead
     doc.setFontSize(24);
     doc.setFont('helvetica', 'bold');
     doc.text("Order Summary", pageWidth / 2, 25, { align: "center" });
   }
   
+  // Add a separator line under the header
+  doc.setDrawColor(42, 65, 49); // Woodbourne Green
+  doc.setLineWidth(0.5);
+  doc.line(15, 40, pageWidth - 15, 40);
+  
   // Reset text color for the rest of the document
   doc.setTextColor(0, 0, 0);
   
   // Add title with status
-  doc.setFontSize(20);
+  doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
   doc.text(`Order #${orderData.order_number}`, 15, 55);
   
@@ -115,37 +120,35 @@ export const generateOrderPDF = (orderData: OrderData) => {
   
   yPos += 5;
   
-  // Format items data for table - concatenating name fields as requested
-  const formattedItems = orderData.items.map(item => {
+  // Format items data for table - include both name and pallets
+  const tableData = orderData.items.map(item => {
     // Create concatenated name field
     const name = [
       item.species, 
       item.length, 
-      item.thickness, 
-      item.bundleType
+      item.bundleType, 
+      item.thickness
     ].filter(Boolean).join(' - ');
     
-    return {
-      quantity: item.pallets || 0,
-      name: name,
-      unitCost: item.unitCost || 0,
-      totalCost: (item.pallets || 0) * (item.unitCost || 0)
-    };
+    return [
+      item.pallets?.toString() || '0',                      // Quantity
+      name,                                                  // Name
+      item.unitCost ? `$${item.unitCost.toFixed(2)}` : '$0.00',  // Unit Cost
+      item.unitCost ? `$${((item.pallets || 0) * (item.unitCost || 0)).toFixed(2)}` : '$0.00'  // Total Cost
+    ];
   });
   
-  // Add items table with new structure and larger font
+  // Add items table with improved formatting
   autoTable(doc, {
     head: [['Quantity', 'Name', 'Unit Cost', 'Total Cost']],
-    body: formattedItems.map(item => [
-      item.quantity.toString(),
-      item.name,
-      `$${item.unitCost.toFixed(2)}`,
-      `$${item.totalCost.toFixed(2)}`
-    ]),
+    body: tableData,
     startY: yPos,
     styles: { 
       fontSize: 12,  // Increased font size
-      cellPadding: 6 // More padding for readability
+      cellPadding: 8, // More padding for readability
+      font: 'helvetica',
+      overflow: 'linebreak',
+      lineWidth: 0.1
     },
     headStyles: { 
       fillColor: [42, 65, 49],  // Woodbourne Green 
@@ -154,42 +157,67 @@ export const generateOrderPDF = (orderData: OrderData) => {
       fontSize: 13 // Slightly larger header text
     },
     columnStyles: {
-      0: { halign: 'center', cellWidth: 20 }, // Quantity - centered, narrower
+      0: { halign: 'center', cellWidth: 25 }, // Quantity - centered, narrower
       1: { halign: 'left', cellWidth: 'auto' }, // Name - left-aligned, take available space
-      2: { halign: 'right', cellWidth: 30 }, // Unit Cost - right-aligned
-      3: { halign: 'right', cellWidth: 30 }  // Total Cost - right-aligned
+      2: { halign: 'right', cellWidth: 35 }, // Unit Cost - right-aligned
+      3: { halign: 'right', cellWidth: 35 }  // Total Cost - right-aligned
     },
     alternateRowStyles: { 
-      fillColor: [240, 245, 240] // Lighter alternate row color for better contrast
+      fillColor: [245, 247, 245] // Very light green tint for alternate rows
     },
-    margin: { top: 60 }
+    margin: { top: 60, right: 15, bottom: 15, left: 15 },
+    tableLineColor: [220, 220, 220],
+    tableLineWidth: 0.2,
+    showHead: 'firstPage',
+    didDrawPage: function(data) {
+      // Add page number on each page
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 5, { align: "center" });
+      }
+    }
   });
   
   // Get final Y position
   const finalY = (doc as any).lastAutoTable.finalY + 20;
   
-  // Add summary
-  doc.setFontSize(14); // Slightly larger for summary
+  // Add summary box with border
+  doc.setDrawColor(200, 200, 200);
+  doc.setFillColor(250, 250, 250);
+  const summaryBoxHeight = 50;
+  doc.roundedRect(pageWidth - 120, finalY - 10, 105, summaryBoxHeight, 3, 3, 'FD');
+  
+  // Add summary text
+  doc.setFontSize(13);
   doc.setFont('helvetica', 'bold');
-  doc.text(`Total Quantity: ${totalPallets}`, 15, finalY);
-  doc.text(`Total Value: $${totalValue.toFixed(2)}`, 15, finalY + 10);
+  doc.setTextColor(0, 0, 0);
+  doc.text(`Total Quantity: ${totalPallets} pallets`, pageWidth - 110, finalY + 5);
+  doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, finalY + 25);
   
   // Add notes if available
   if (orderData.notes) {
-    const notesY = finalY + 30;
-    doc.setFontSize(14);
+    const notesY = finalY + 60;
+    doc.setFillColor(245, 247, 245);
+    doc.roundedRect(15, notesY - 5, pageWidth - 30, 40, 3, 3, 'F');
+    
+    doc.setFontSize(13);
     doc.setFont('helvetica', 'bold');
-    doc.text("Notes:", 15, notesY);
+    doc.setTextColor(42, 65, 49);
+    doc.text("Notes:", 25, notesY + 5);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(11);
     
     // Split long notes into multiple lines with word wrap
-    const splitNotes = doc.splitTextToSize(orderData.notes, pageWidth - 30);
-    doc.text(splitNotes, 15, notesY + 10);
+    const splitNotes = doc.splitTextToSize(orderData.notes, pageWidth - 60);
+    doc.text(splitNotes, 25, notesY + 20);
   }
   
-  // Add footer
-  const footerY = doc.internal.pageSize.getHeight() - 10;
+  // Add footer with generation timestamp
+  const footerY = doc.internal.pageSize.getHeight() - 15;
   doc.setFontSize(8);
   doc.setTextColor(100, 100, 100);
   doc.text(`Generated on ${new Date().toLocaleString()}`, pageWidth / 2, footerY, { align: "center" });
@@ -199,9 +227,6 @@ export const generateOrderPDF = (orderData: OrderData) => {
 
 // Helper function to get a public URL for the PDF for sharing
 export const getOrderPdfUrl = async (orderData: OrderData): Promise<string> => {
-  // This is a placeholder for a real implementation that would upload the PDF to a server
-  // and return a public URL, or generate a link to a route that serves the PDF
-  
   // For now, we'll just return a frontend route that would handle displaying the order
   const baseUrl = window.location.origin;
   return `${baseUrl}/wholesale-orders/${orderData.order_number}/view`;
