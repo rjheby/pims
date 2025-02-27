@@ -27,7 +27,7 @@ export function OrderCard({ order, onEdit, onDuplicate, onDownload, onCopyLink, 
   return (
     <div className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
       <div className="flex items-start gap-3">
-        <FileText className="h-6 w-6 text-[#2A4131] mt-1" />
+        <FileText className="h-[50px] w-[50px] text-[#2A4131]" />
         <div className="flex-1">
           <div className="font-medium">Order #{order.order_number}</div>
           <div className="text-sm text-gray-500 mb-2">
