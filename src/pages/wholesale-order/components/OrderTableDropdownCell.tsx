@@ -30,6 +30,7 @@ interface OrderTableDropdownCellProps {
   onKeyPress: (e: React.KeyboardEvent<HTMLInputElement>, field: keyof DropdownOptions) => void;
   onUpdateItem: (id: number, field: keyof OrderItem, value: string | number) => void;
   onUpdateOptions: (field: keyof DropdownOptions, options: string[]) => void;
+  readOnly?: boolean;
 }
 
 export function OrderTableDropdownCell({
@@ -43,16 +44,19 @@ export function OrderTableDropdownCell({
   onKeyPress,
   onUpdateItem,
   onUpdateOptions,
+  readOnly = false,
 }: OrderTableDropdownCellProps) {
   const [editingOptionValue, setEditingOptionValue] = useState<string | null>(null);
   const [editedValue, setEditedValue] = useState("");
 
   const handleStartEdit = (option: string) => {
+    if (readOnly) return;
     setEditingOptionValue(option);
     setEditedValue(option);
   };
 
   const handleSave = (oldValue: string) => {
+    if (readOnly) return;
     if (editedValue && editedValue !== oldValue) {
       const updatedOptions = [...options[field]];
       const index = updatedOptions.indexOf(oldValue);
@@ -69,6 +73,7 @@ export function OrderTableDropdownCell({
   };
 
   const handleDeleteOption = (option: string) => {
+    if (readOnly) return;
     const updatedOptions = options[field].filter(o => o !== option);
     onUpdateOptions(field, updatedOptions);
     
@@ -79,6 +84,7 @@ export function OrderTableDropdownCell({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (readOnly) return;
     if (e.key === 'Enter') {
       e.preventDefault();
       e.stopPropagation();
@@ -86,11 +92,20 @@ export function OrderTableDropdownCell({
     }
   };
 
+  if (readOnly) {
+    return (
+      <div className="px-3 py-2 border border-input bg-background rounded-md text-sm">
+        {item[field as keyof OrderItem] as string || '-'}
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center gap-2">
       <Select 
         value={item[field as keyof OrderItem] as string} 
         onValueChange={(value) => onUpdateItem(item.id, field as keyof OrderItem, value)}
+        disabled={readOnly}
       >
         <SelectTrigger className="w-full">
           <SelectValue placeholder="Select" />
@@ -115,7 +130,7 @@ export function OrderTableDropdownCell({
                   <SelectItem value={option}>
                     {option}
                   </SelectItem>
-                  {isAdmin && (
+                  {isAdmin && !readOnly && (
                     <div className="flex gap-1">
                       <Button 
                         variant="ghost" 
@@ -146,7 +161,7 @@ export function OrderTableDropdownCell({
               )}
             </div>
           ))}
-          {isAdmin && (
+          {isAdmin && !readOnly && (
             <div className="p-2 border-t">
               <Input
                 value={newOption}
@@ -161,7 +176,7 @@ export function OrderTableDropdownCell({
         </SelectContent>
       </Select>
       
-      {isAdmin && (
+      {isAdmin && !readOnly && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="sm">

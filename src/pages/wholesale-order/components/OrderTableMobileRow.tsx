@@ -22,6 +22,7 @@ interface OrderTableMobileRowProps {
   onAddItem: () => void;
   onToggleCompressed: (id: number) => void;
   generateItemName: (item: OrderItem) => string;
+  readOnly?: boolean;
 }
 
 export function OrderTableMobileRow({
@@ -41,6 +42,7 @@ export function OrderTableMobileRow({
   onAddItem,
   onToggleCompressed,
   generateItemName,
+  readOnly = false,
 }: OrderTableMobileRowProps) {
   return (
     <div className="bg-white rounded-lg border p-2 sm:p-4 space-y-2 overflow-hidden">
@@ -63,6 +65,7 @@ export function OrderTableMobileRow({
                 onKeyPress={onKeyPress}
                 onUpdateItem={onUpdateItem}
                 onUpdateOptions={onUpdateOptions}
+                readOnly={readOnly}
               />
             </div>
           ))}
@@ -70,59 +73,80 @@ export function OrderTableMobileRow({
             <div className="text-xs font-medium text-muted-foreground">
               Quantity
             </div>
-            <Input
-              type="number"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              min="0"
-              value={item.pallets}
-              onChange={(e) => onUpdateItem(item.id, "pallets", parseInt(e.target.value) || 0)}
-              className="w-full h-9"
-              placeholder="Enter quantity"
-            />
+            {readOnly ? (
+              <div className="px-3 py-2 border border-input bg-background rounded-md text-sm">
+                {item.pallets || 0}
+              </div>
+            ) : (
+              <Input
+                type="number"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                min="0"
+                value={item.pallets}
+                onChange={(e) => onUpdateItem(item.id, "pallets", parseInt(e.target.value) || 0)}
+                className="w-full h-9"
+                placeholder="Enter quantity"
+                disabled={readOnly}
+              />
+            )}
           </div>
           <div className="space-y-1">
             <div className="text-xs font-medium text-muted-foreground">
               Unit Cost
             </div>
-            <Input
-              type="number"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              min="0"
-              value={item.unitCost}
-              onChange={(e) => onUpdateItem(item.id, "unitCost", parseFloat(e.target.value) || 0)}
-              className="w-full h-9"
-              placeholder="Enter unit cost"
-            />
+            {readOnly ? (
+              <div className="px-3 py-2 border border-input bg-background rounded-md text-sm">
+                {item.unitCost || 0}
+              </div>
+            ) : (
+              <Input
+                type="number"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                min="0"
+                value={item.unitCost}
+                onChange={(e) => onUpdateItem(item.id, "unitCost", parseFloat(e.target.value) || 0)}
+                className="w-full h-9"
+                placeholder="Enter unit cost"
+                disabled={readOnly}
+              />
+            )}
           </div>
         </div>
       )}
       <div className="flex gap-2 justify-center pt-2 border-t">
-        <Button 
-          variant="customAction"
-          size="sm" 
-          onClick={() => onRemoveRow(item.id)} 
-          className="rounded-full w-8 h-8 p-0 text-pink-100 bg-red-800 hover:bg-pink-100 hover:text-red-800"
-        >
-          <X className="h-4 w-4" />
-        </Button>
-        <Button 
-          variant="customAction"
-          size="sm" 
-          onClick={() => onCopyRow(item)} 
-          className="rounded-full w-8 h-8 p-0 text-sky-100 bg-blue-700 hover:bg-sky-100 hover:text-blue-700"
-        >
-          <Copy className="h-4 w-4" />
-        </Button>
-        <Button 
-          variant="customAction"
-          size="sm" 
-          onClick={onAddItem} 
-          className="rounded-full w-8 h-8 p-0 bg-[#2A4131] hover:bg-slate-50 text-slate-50 hover:text-[#2A4131]"
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
+        {!readOnly && (
+          <>
+            <Button 
+              variant="customAction"
+              size="sm" 
+              onClick={() => onRemoveRow(item.id)} 
+              className="rounded-full w-8 h-8 p-0 text-pink-100 bg-red-800 hover:bg-pink-100 hover:text-red-800"
+              disabled={readOnly}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="customAction"
+              size="sm" 
+              onClick={() => onCopyRow(item)} 
+              className="rounded-full w-8 h-8 p-0 text-sky-100 bg-blue-700 hover:bg-sky-100 hover:text-blue-700"
+              disabled={readOnly}
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="customAction"
+              size="sm" 
+              onClick={onAddItem} 
+              className="rounded-full w-8 h-8 p-0 bg-[#2A4131] hover:bg-slate-50 text-slate-50 hover:text-[#2A4131]"
+              disabled={readOnly}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </>
+        )}
         <Button 
           variant="customAction"
           size="sm" 

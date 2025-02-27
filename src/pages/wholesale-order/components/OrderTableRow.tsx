@@ -22,6 +22,7 @@ interface OrderTableRowProps {
   onToggleCompressed: (id: number) => void;
   generateItemName: (item: OrderItem) => string;
   onAddItem: () => void;
+  readOnly?: boolean;
 }
 
 export function OrderTableRow({
@@ -40,6 +41,7 @@ export function OrderTableRow({
   onUpdateOptions,
   onToggleCompressed,
   onAddItem,
+  readOnly = false,
 }: OrderTableRowProps) {
   const totalCost = (item.pallets || 0) * (item.unitCost || 0);
 
@@ -63,30 +65,45 @@ export function OrderTableRow({
             onKeyPress={onKeyPress}
             onUpdateItem={onUpdateItem}
             onUpdateOptions={onUpdateOptions}
+            readOnly={readOnly}
           />
         </TableCell>
       ))}
       {!isCompressed && (
         <>
           <TableCell className="w-[6%] px-2">
-            <Input
-              type="number"
-              min="0"
-              value={item.pallets || ""}
-              onChange={(e) => onUpdateItem(item.id, "pallets", parseInt(e.target.value) || 0)}
-              className="w-full"
-              placeholder="Quantity"
-            />
+            {readOnly ? (
+              <div className="px-3 py-2 border border-input bg-background rounded-md text-sm">
+                {item.pallets || 0}
+              </div>
+            ) : (
+              <Input
+                type="number"
+                min="0"
+                value={item.pallets || ""}
+                onChange={(e) => onUpdateItem(item.id, "pallets", parseInt(e.target.value) || 0)}
+                className="w-full"
+                placeholder="Quantity"
+                disabled={readOnly}
+              />
+            )}
           </TableCell>
           <TableCell className="w-[10%] px-2">
-            <Input
-              type="number"
-              min="0"
-              value={item.unitCost || ""}
-              onChange={(e) => onUpdateItem(item.id, "unitCost", parseFloat(e.target.value) || 0)}
-              className="w-full"
-              placeholder="Unit Cost"
-            />
+            {readOnly ? (
+              <div className="px-3 py-2 border border-input bg-background rounded-md text-sm">
+                {item.unitCost || 0}
+              </div>
+            ) : (
+              <Input
+                type="number"
+                min="0"
+                value={item.unitCost || ""}
+                onChange={(e) => onUpdateItem(item.id, "unitCost", parseFloat(e.target.value) || 0)}
+                className="w-full"
+                placeholder="Unit Cost"
+                disabled={readOnly}
+              />
+            )}
           </TableCell>
           <TableCell className="w-[8%] px-2">
             <div className="text-right">
@@ -96,31 +113,46 @@ export function OrderTableRow({
         </>
       )}
       <TableCell className="w-[10%] px-2">
-        <div className="flex gap-1 items-center">
-          <Button 
-            variant="customAction"
-            size="sm" 
-            onClick={() => onRemoveRow(item.id)} 
-            className="rounded-full w-8 h-8 p-0 text-pink-100 bg-red-800 hover:bg-pink-100 hover:text-red-800"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-          <Button 
-            variant="customAction"
-            size="sm" 
-            onClick={() => onCopyRow(item)} 
-            className="rounded-full w-8 h-8 p-0 text-sky-100 bg-blue-700 hover:bg-sky-100 hover:text-blue-700"
-          >
-            <Copy className="h-4 w-4" />
-          </Button>
-          <Button 
-            variant="customAction"
-            size="sm" 
-            onClick={onAddItem}
-            className="rounded-full w-8 h-8 p-0 bg-[#2A4131] hover:bg-slate-50 text-slate-50 hover:text-[#2A4131]"
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
+        {!readOnly && (
+          <div className="flex gap-1 items-center">
+            <Button 
+              variant="customAction"
+              size="sm" 
+              onClick={() => onRemoveRow(item.id)} 
+              className="rounded-full w-8 h-8 p-0 text-pink-100 bg-red-800 hover:bg-pink-100 hover:text-red-800"
+              disabled={readOnly}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="customAction"
+              size="sm" 
+              onClick={() => onCopyRow(item)} 
+              className="rounded-full w-8 h-8 p-0 text-sky-100 bg-blue-700 hover:bg-sky-100 hover:text-blue-700"
+              disabled={readOnly}
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="customAction"
+              size="sm" 
+              onClick={onAddItem}
+              className="rounded-full w-8 h-8 p-0 bg-[#2A4131] hover:bg-slate-50 text-slate-50 hover:text-[#2A4131]"
+              disabled={readOnly}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="customAction"
+              size="sm" 
+              onClick={() => onToggleCompressed(item.id)} 
+              className="rounded-full w-8 h-8 p-0 bg-black hover:bg-slate-50 text-slate-50 hover:text-black md:hidden"
+            >
+              {isCompressed ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
+            </Button>
+          </div>
+        )}
+        {readOnly && (
           <Button 
             variant="customAction"
             size="sm" 
@@ -129,7 +161,7 @@ export function OrderTableRow({
           >
             {isCompressed ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
           </Button>
-        </div>
+        )}
       </TableCell>
     </TableRow>
   );

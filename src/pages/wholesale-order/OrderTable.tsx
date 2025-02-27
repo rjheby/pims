@@ -4,7 +4,11 @@ import { OrderTableMobileRow } from "./components/OrderTableMobileRow";
 import { useOrderTable } from "./hooks/useOrderTable";
 import { BaseOrderTable } from "@/components/templates/BaseOrderTable";
 
-export function OrderTable() {
+interface OrderTableProps {
+  readOnly?: boolean;
+}
+
+export function OrderTable({ readOnly = false }: OrderTableProps) {
   const {
     items,
     options,
@@ -22,6 +26,10 @@ export function OrderTable() {
     handleUpdateOptions,
     toggleCompressed,
     setNewOption,
+    sortConfig,
+    setSortConfig,
+    filterValue,
+    setFilterValue,
   } = useOrderTable();
 
   const headers = [
@@ -43,6 +51,14 @@ export function OrderTable() {
     totalCost: (item.pallets || 0) * (item.unitCost || 0)
   }));
 
+  const handleSortChange = (key: string, direction: 'asc' | 'desc') => {
+    setSortConfig({ key, direction });
+  };
+
+  const handleFilterChange = (filter: string) => {
+    setFilterValue(filter);
+  };
+
   return (
     <>
       <div className="hidden md:block">
@@ -50,12 +66,8 @@ export function OrderTable() {
           <BaseOrderTable
             headers={headers}
             data={tableData}
-            onSortChange={(key, direction) => {
-              console.log('Sorting by:', key, direction);
-            }}
-            onFilterChange={(filter) => {
-              console.log('Filters applied:', filter);
-            }}
+            onSortChange={handleSortChange}
+            onFilterChange={handleFilterChange}
           >
             {tableData.map(item => (
               <OrderTableRow
@@ -75,6 +87,7 @@ export function OrderTable() {
                 onUpdateOptions={handleUpdateOptions}
                 isCompressed={!!compressedStates[item.id]}
                 onToggleCompressed={toggleCompressed}
+                readOnly={readOnly}
               />
             ))}
           </BaseOrderTable>
@@ -102,6 +115,7 @@ export function OrderTable() {
               onAddItem={handleAddItem}
               onToggleCompressed={toggleCompressed}
               generateItemName={generateItemName}
+              readOnly={readOnly}
             />
           ))}
         </div>
