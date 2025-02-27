@@ -150,15 +150,16 @@ export function WholesaleOrderForm() {
       // Create update object dynamically to avoid TypeScript errors
       const updateData: Record<string, any> = {
         order_date: orderData.order_date,
-        delivery_date: orderData.delivery_date,
-        items: serializeOrderItems(orderData.items)
+        items: serializeOrderItems(orderData.items),
+        status: 'draft'
       };
       
-      // Try to set status field if it exists in the database
-      try {
-        updateData.status = 'draft';
-      } catch (e) {
-        console.log('Status field may not exist in the database schema');
+      // Only set delivery_date if it has a value to avoid empty string issues
+      if (orderData.delivery_date && orderData.delivery_date.trim() !== '') {
+        updateData.delivery_date = orderData.delivery_date;
+      } else {
+        // If delivery_date is empty, set it to null explicitly
+        updateData.delivery_date = null;
       }
 
       const { error: updateError } = await supabase
@@ -205,16 +206,17 @@ export function WholesaleOrderForm() {
       // Create update object dynamically to avoid TypeScript errors
       const updateData: Record<string, any> = {
         order_date: orderData.order_date,
-        delivery_date: orderData.delivery_date,
-        items: serializeOrderItems(orderData.items)
+        items: serializeOrderItems(orderData.items),
+        status: 'submitted',
+        submitted_at: new Date().toISOString()
       };
       
-      // Try to set status and submitted_at fields if they exist in the database
-      try {
-        updateData.status = 'submitted';
-        updateData.submitted_at = new Date().toISOString();
-      } catch (e) {
-        console.log('Status or submitted_at fields may not exist in the database schema');
+      // Only set delivery_date if it has a value to avoid empty string issues
+      if (orderData.delivery_date && orderData.delivery_date.trim() !== '') {
+        updateData.delivery_date = orderData.delivery_date;
+      } else {
+        // If delivery_date is empty, set it to null explicitly
+        updateData.delivery_date = null;
       }
 
       const { error: updateError } = await supabase
