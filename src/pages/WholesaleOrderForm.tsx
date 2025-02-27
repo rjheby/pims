@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
@@ -13,14 +12,14 @@ import { OrderTable } from "./wholesale-order/OrderTable";
 import { WholesaleOrderProvider } from "./wholesale-order/context/WholesaleOrderContext";
 import { BaseOrderSummary } from "@/components/templates/BaseOrderSummary";
 
-// Update this interface to match your Supabase database structure
 interface WholesaleOrderData {
   id: string;
   order_number: string;
   order_date: string;
   delivery_date: string;
   items: OrderItem[];
-  status?: string; // Add status field to match database
+  status: string;
+  submitted_at?: string;
 }
 
 export function WholesaleOrderForm() {
@@ -56,10 +55,10 @@ export function WholesaleOrderForm() {
             order_date: data.order_date,
             delivery_date: data.delivery_date,
             items: parsedItems,
-            status: data.status, // Include status from database
+            status: data.status || 'draft',
+            submitted_at: data.submitted_at,
           });
           
-          // Set the status state from the database value
           setOrderStatus(data.status || 'draft');
         }
       } catch (err) {
@@ -103,13 +102,11 @@ export function WholesaleOrderForm() {
     return orderData.items.reduce((sum, item) => sum + ((Number(item.pallets) || 0) * (Number(item.unitCost) || 0)), 0);
   };
 
-  // Validate order data
   const validateOrder = () => {
     if (!orderData?.order_date) {
       throw new Error("Order date is required");
     }
 
-    // Check for valid items
     const validItems = orderData.items.filter(item => 
       item.species && item.length && item.bundleType && item.thickness && Number(item.pallets) > 0
     );
@@ -121,13 +118,11 @@ export function WholesaleOrderForm() {
     return true;
   };
 
-  // Save order without submitting
   const handleSave = async () => {
     if (!orderData || isSaving) return;
     
     setIsSaving(true);
     try {
-      // Validate order data
       validateOrder();
 
       const { error: updateError } = await supabase
@@ -146,8 +141,6 @@ export function WholesaleOrderForm() {
         title: "Success",
         description: "Order draft saved successfully",
       });
-      
-      // We don't redirect after saving a draft
     } catch (err: any) {
       console.error('Error saving order:', err);
       toast({
@@ -160,25 +153,22 @@ export function WholesaleOrderForm() {
     }
   };
 
-  // Submit the order (save and mark as submitted)
   const handleSubmit = async () => {
     if (!orderData || isSubmitting) return;
 
     const totalPallets = calculateTotalPallets();
     
-    // Pallet count warnings
     if (totalPallets > 24) {
       toast({
         title: "Warning",
         description: `Order exceeds maximum load by ${totalPallets - 24} pallets. Consider reducing the pallet count.`,
         variant: "destructive",
       });
-      return; // Don't allow submitting if over the pallet limit
+      return;
     }
 
     setIsSubmitting(true);
     try {
-      // Validate order data
       validateOrder();
 
       const { error: updateError } = await supabase
@@ -194,7 +184,6 @@ export function WholesaleOrderForm() {
 
       if (updateError) throw updateError;
 
-      // Update local state
       setOrderStatus('submitted');
 
       toast({
@@ -202,7 +191,6 @@ export function WholesaleOrderForm() {
         description: "Order submitted successfully",
       });
 
-      // Redirect after successful submission
       navigate('/wholesale-orders');
     } catch (err: any) {
       console.error('Error submitting order:', err);
@@ -261,7 +249,6 @@ export function WholesaleOrderForm() {
   const totalPallets = calculateTotalPallets();
   const totalCost = calculateTotalCost();
 
-  // Don't allow editing submitted orders
   const isSubmitted = orderStatus === 'submitted';
 
   return (
@@ -310,7 +297,6 @@ export function WholesaleOrderForm() {
                 renderCustomSummary={renderCustomSummary}
               />
 
-              {/* Instead of using BaseOrderActions, we'll create the buttons directly */}
               {!isSubmitted ? (
                 <div className="flex flex-col space-y-4">
                   <div className="flex justify-end gap-4">
