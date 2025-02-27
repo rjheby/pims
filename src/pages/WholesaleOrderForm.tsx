@@ -1,14 +1,13 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { OrderItem, serializeOrderItems } from "./wholesale-order/types";
 import { useToast } from "@/hooks/use-toast";
 import { BaseOrderDetails } from "@/components/templates/BaseOrderDetails";
 import { OrderTable } from "./wholesale-order/OrderTable";
 import { WholesaleOrderProvider } from "./wholesale-order/context/WholesaleOrderContext";
+import { BaseOrderActions } from "@/components/templates/BaseOrderActions";
 
 interface WholesaleOrderData {
   id: string;
@@ -40,7 +39,6 @@ export function WholesaleOrderForm() {
         }
 
         if (data) {
-          // Parse items if they're stored as a string
           const parsedItems = typeof data.items === 'string' ? JSON.parse(data.items) : data.items;
           
           setOrderData({
@@ -91,7 +89,7 @@ export function WholesaleOrderForm() {
         .update({
           order_date: orderData.order_date,
           delivery_date: orderData.delivery_date,
-          items: serializeOrderItems(orderData.items) // Use the serializer here
+          items: serializeOrderItems(orderData.items)
         })
         .eq('id', id);
 
@@ -113,29 +111,23 @@ export function WholesaleOrderForm() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2A4131]"></div>
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="flex justify-center items-center min-h-screen">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2A4131]"></div>
+    </div>
+  );
 
-  if (error) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-red-500">{error}</div>
-      </div>
-    );
-  }
+  if (error) return (
+    <div className="flex justify-center items-center min-h-screen">
+      <div className="text-red-500">{error}</div>
+    </div>
+  );
 
-  if (!orderData) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-gray-500">Order not found</div>
-      </div>
-    );
-  }
+  if (!orderData) return (
+    <div className="flex justify-center items-center min-h-screen">
+      <div className="text-gray-500">Order not found</div>
+    </div>
+  );
 
   return (
     <div className="flex-1">
@@ -150,15 +142,7 @@ export function WholesaleOrderForm() {
 
         <Card className="shadow-sm">
           <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle>Supplier Order #{orderData?.order_number}</CardTitle>
-              <Button 
-                onClick={handleSubmit}
-                className="bg-[#2A4131] hover:bg-[#2A4131]/90"
-              >
-                Update Order
-              </Button>
-            </div>
+            <CardTitle>Supplier Order #{orderData?.order_number}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
@@ -173,6 +157,11 @@ export function WholesaleOrderForm() {
               <WholesaleOrderProvider initialItems={orderData.items}>
                 <OrderTable />
               </WholesaleOrderProvider>
+
+              <BaseOrderActions 
+                onSave={handleSubmit}
+                archiveLink="/wholesale-orders"
+              />
             </div>
           </CardContent>
         </Card>
