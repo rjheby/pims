@@ -1,3 +1,4 @@
+
 import { Link, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -62,13 +63,21 @@ const mobileNavItems = [
   { title: "Settings", icon: Settings, path: "/team-settings" },
 ];
 
-const Logo = () => (
+const Logo = ({ variant = "full" }: { variant?: "full" | "icon" }) => (
   <Link to="/">
-    <img 
-      src="/lovable-uploads/21d56fd9-ffa2-4b0c-9d82-b10f7d03a546.png"
-      alt="Woodbourne Logo"
-      className="h-10 w-auto object-contain"
-    />
+    {variant === "full" ? (
+      <img 
+        src="/lovable-uploads/21d56fd9-ffa2-4b0c-9d82-b10f7d03a546.png"
+        alt="Woodbourne Logo"
+        className="h-10 w-auto object-contain"
+      />
+    ) : (
+      <img 
+        src="/lovable-uploads/2500bc58-0a71-4486-9a75-6d6eb06e9889.png"
+        alt="Woodbourne Icon"
+        className="h-8 w-8 object-contain"
+      />
+    )}
   </Link>
 );
 
@@ -108,7 +117,7 @@ export function AppSidebar() {
           >
             <X className="h-5 w-5 text-[#2A4131]" />
           </Button>
-          <Logo />
+          <Logo variant="full" />
         </div>
       </div>
       
@@ -178,7 +187,12 @@ export function AppSidebar() {
       <div className="hidden md:block bg-white border-b border-[#2A4131]/10">
         <div className="flex items-center justify-between h-[72px] px-4 max-w-[95rem] mx-auto">
           <div className="flex items-center gap-8">
-            <Logo />
+            <div className="hidden lg:block">
+              <Logo variant="full" />
+            </div>
+            <div className="lg:hidden">
+              <Logo variant="icon" />
+            </div>
             <nav className="flex items-center gap-6">
               <NavLink 
                 to="/"
