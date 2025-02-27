@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Edit, Download, Copy, Share, MoreHorizontal, Phone, Mail, Link } from "lucide-react";
-import { getOrderPdfUrl } from "../utils/pdfGenerator";
 import { toast } from "@/components/ui/use-toast";
 
 interface OrderCardProps {
@@ -71,28 +70,6 @@ export function OrderCard({ order, onEdit, onDuplicate, onDownload, onCopyLink, 
     (sum: number, item: any) => sum + (Number(item.pallets) || 0),
     0
   ) || order.totalPallets || 0;
-
-  // Enhanced copy link functionality
-  const handleCopyLink = async () => {
-    try {
-      // Generate shareable link for the order
-      const shareableLink = `${window.location.origin}/wholesale-orders/${order.id}/view`;
-      
-      await navigator.clipboard.writeText(shareableLink);
-      
-      toast({
-        title: "Link copied",
-        description: "The shareable order link has been copied to your clipboard.",
-      });
-    } catch (error) {
-      console.error("Error copying link:", error);
-      toast({
-        title: "Error",
-        description: "Failed to copy link to clipboard.",
-        variant: "destructive"
-      });
-    }
-  };
 
   return (
     <Card className="h-full flex flex-col overflow-hidden">
@@ -185,7 +162,7 @@ export function OrderCard({ order, onEdit, onDuplicate, onDownload, onCopyLink, 
           variant="outline" 
           size="sm" 
           className="flex-1"
-          onClick={handleCopyLink}
+          onClick={() => onCopyLink(order.id)}
         >
           <Link className="mr-1 h-4 w-4" />
           <span className="sr-only sm:not-sr-only sm:ml-1">Copy Link</span>

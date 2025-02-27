@@ -7,6 +7,7 @@ import Dashboard from "@/pages/Dashboard";
 import { WholesaleOrder } from "@/pages/WholesaleOrder";
 import { WholesaleOrderForm } from "@/pages/WholesaleOrderForm";
 import { WholesaleOrderArchive } from "@/pages/wholesale-order/WholesaleOrderArchive";
+import { OrderView } from "@/pages/wholesale-order/OrderView";
 import NotFound from "@/pages/NotFound";
 import { AdminProvider, useAdmin } from "@/context/AdminContext";
 import { UserProvider } from "@/context/UserContext";
@@ -83,6 +84,18 @@ const router = createBrowserRouter([
         <AdminProvider>
           <PageWrapper>
             <WholesaleOrderForm />
+          </PageWrapper>
+        </AdminProvider>
+      </UserProvider>
+    ),
+  },
+  {
+    path: "/wholesale-orders/:id/view",
+    element: (
+      <UserProvider>
+        <AdminProvider>
+          <PageWrapper>
+            <OrderView />
           </PageWrapper>
         </AdminProvider>
       </UserProvider>
