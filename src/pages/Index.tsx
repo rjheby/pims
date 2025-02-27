@@ -1,6 +1,4 @@
 
-import React, { useState } from "react";
-import AppLayout from "@/components/layouts/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -9,8 +7,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon, UserPlus, Settings } from "lucide-react";
+import { useState } from "react";
 import { useUser } from "@/context/UserContext";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 
 const Index = () => {
   const [date, setDate] = useState<Date>();
@@ -90,71 +89,69 @@ const Index = () => {
   );
 
   return (
-    <AppLayout>
-      <div className="container mx-auto py-8 px-4">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-2xl font-bold">Howdy, {user?.name || 'User'}</h1>
-            <p className="text-muted-foreground">Role: {user?.role || 'Guest'}</p>
-          </div>
-          {hasPermission("superadmin") && (
-            <div className="flex gap-2">
-              <Button onClick={handleAddUser}>
-                <UserPlus className="mr-2 h-4 w-4" />
-                Add User
-              </Button>
-              <Button variant="outline">
-                <Settings className="mr-2 h-4 w-4" />
-                System Settings
-              </Button>
-            </div>
-          )}
+    <div className="container mx-auto py-8 px-4">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-bold">Howdy, {user?.name}</h1>
+          <p className="text-muted-foreground">Role: {user?.role}</p>
         </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Order Management</CardTitle>
-            <CardDescription>
-              Track and manage deliveries, drivers, and order details
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Client</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Delivery Schedule</TableHead>
-                    <TableHead>Order</TableHead>
-                    <TableHead>Driver</TableHead>
-                    <TableHead>Items</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead>Notes</TableHead>
-                    <TableHead>Address</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  <TableRow>
-                    <TableCell className="font-medium">John Doe</TableCell>
-                    <TableCell>(555) 123-4567</TableCell>
-                    <TableCell>{renderScheduleCell()}</TableCell>
-                    <TableCell>-</TableCell>
-                    <TableCell>-</TableCell>
-                    <TableCell>-</TableCell>
-                    <TableCell>-</TableCell>
-                    <TableCell>-</TableCell>
-                    <TableCell>-</TableCell>
-                    <TableCell className="text-right">-</TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+        {hasPermission("superadmin") && (
+          <div className="flex gap-2">
+            <Button onClick={handleAddUser}>
+              <UserPlus className="mr-2 h-4 w-4" />
+              Add User
+            </Button>
+            <Button variant="outline">
+              <Settings className="mr-2 h-4 w-4" />
+              System Settings
+            </Button>
+          </div>
+        )}
       </div>
-    </AppLayout>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Order Management</CardTitle>
+          <CardDescription>
+            Track and manage deliveries, drivers, and order details
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Delivery Schedule</TableHead>
+                  <TableHead>Order</TableHead>
+                  <TableHead>Driver</TableHead>
+                  <TableHead>Items</TableHead>
+                  <TableHead>Price</TableHead>
+                  <TableHead>Notes</TableHead>
+                  <TableHead>Address</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow>
+                  <TableCell className="font-medium">John Doe</TableCell>
+                  <TableCell>(555) 123-4567</TableCell>
+                  <TableCell>{renderScheduleCell()}</TableCell>
+                  <TableCell>-</TableCell>
+                  <TableCell>-</TableCell>
+                  <TableCell>-</TableCell>
+                  <TableCell>-</TableCell>
+                  <TableCell>-</TableCell>
+                  <TableCell>-</TableCell>
+                  <TableCell className="text-right">-</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

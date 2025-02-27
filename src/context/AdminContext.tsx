@@ -28,7 +28,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const location = useLocation();
 
   const enterAdminMode = useCallback(() => {
-    if (!hasPermission("superadmin")) {
+    if (!hasPermission("admin")) {
       toast({
         title: "Access Denied",
         description: "You don't have permission to enter admin mode.",

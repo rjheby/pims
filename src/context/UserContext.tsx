@@ -1,104 +1,44 @@
 
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { User, UserRole, Permission } from "@/types/user";
+import { createContext, useContext, useState, ReactNode } from "react";
+import { User, UserRole } from "@/types/user";
 
-type UserContextType = {
+interface UserContextType {
   user: User | null;
   setUser: (user: User | null) => void;
-  hasPermission: (permission: Permission) => boolean;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
-  loading: boolean;
-};
+  hasPermission: (requiredRole: UserRole) => boolean;
+}
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
-// Mock user data
-const mockUsers: User[] = [
-  {
+const roleHierarchy: Record<UserRole, number> = {
+  superadmin: 4,
+  admin: 3,
+  staff: 2,
+  client: 1,
+  customer: 0,
+};
+
+export const UserProvider = ({ children }: { children: ReactNode }) => {
+  const [user, setUser] = useState<User | null>({
     id: "1",
-    name: "Admin User",
-    email: "admin@example.com",
-    role: "admin",
-    permissions: ["read", "write", "delete", "superadmin"],
-  },
-  {
-    id: "2",
-    name: "Regular User",
-    email: "user@example.com",
-    role: "user",
-    permissions: ["read"],
-  },
-];
+    name: "Super Admin",
+    email: "super@admin.com",
+    role: "superadmin"
+  });
 
-export const UserProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Simulate loading the user from local storage or a token
-    const loadUser = async () => {
-      try {
-        // For demo purposes, auto-login as admin
-        setUser(mockUsers[0]);
-      } catch (error) {
-        console.error("Failed to load user:", error);
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadUser();
-  }, []);
-
-  const hasPermission = (permission: Permission): boolean => {
-    if (!user || !user.permissions) return false;
-    return user.permissions.includes(permission);
-  };
-
-  const login = async (email: string, password: string): Promise<void> => {
-    setLoading(true);
-    try {
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
-      // Find user by email (in a real app, this would be an API call)
-      const foundUser = mockUsers.find((u) => u.email === email);
-      
-      if (foundUser) {
-        setUser(foundUser);
-        // Here you would store a token in localStorage
-      } else {
-        throw new Error("Invalid credentials");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const logout = (): void => {
-    setUser(null);
-    // Here you would remove the token from localStorage
+  const hasPermission = (requiredRole: UserRole) => {
+    if (!user) return false;
+    return roleHierarchy[user.role] >= roleHierarchy[requiredRole];
   };
 
   return (
-    <UserContext.Provider
-      value={{
-        user,
-        setUser,
-        hasPermission,
-        login,
-        logout,
-        loading,
-      }}
-    >
+    <UserContext.Provider value={{ user, setUser, hasPermission }}>
       {children}
     </UserContext.Provider>
   );
 };
 
-export const useUser = (): UserContextType => {
+export const useUser = () => {
   const context = useContext(UserContext);
   if (context === undefined) {
     throw new Error("useUser must be used within a UserProvider");

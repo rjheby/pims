@@ -1,177 +1,245 @@
-
-import * as React from "react";
-import { useLocation, Link } from "react-router-dom";
-import {
-  Settings,
-  Users,
-  FileText,
-  Package,
-  ShoppingBag,
-  BarChart3,
-  Truck,
-  Archive,
-  CalendarClock,
-  Home,
-} from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
-  SidebarTrigger,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import {
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
-} from "@/components/ui/sidebar/menu";
+  FileText, Users, Settings, BarChart, Truck, ClipboardList, 
+  DollarSign, Menu, X, ArrowLeft, Warehouse, ChevronDown, Home, Archive
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+const menuGroups = {
+  reports: {
+    title: "Reports",
+    items: [
+      { title: "Dashboard", icon: BarChart, path: "/dashboard" },
+      { title: "Production Tracker", icon: BarChart, path: "/production" },
+      { title: "Payments", icon: DollarSign, path: "/driver-payments" },
+    ],
+  },
+  orders: {
+    title: "Orders",
+    items: [
+      { title: "Dispatch", icon: Truck, path: "/dispatch" },
+      { title: "Client Orders", icon: FileText, path: "/client-order" },
+      { title: "Supplier Form", icon: ClipboardList, path: "/wholesale-order" },
+      { title: "Supplier Archives", icon: Archive, path: "/wholesale-orders" },
+    ],
+  },
+  databases: {
+    title: "Databases",
+    items: [
+      { title: "Customers", icon: Users, path: "/customers" },
+      { title: "Inventory", icon: Warehouse, path: "/inventory" },
+    ],
+  },
+  settings: {
+    title: "Settings",
+    items: [
+      { title: "Settings", icon: Settings, path: "/team-settings" },
+    ],
+  },
+};
+
+const mobileNavItems = [
+  { title: "Home", icon: Home, path: "/" },
+  { title: "Dispatch", icon: Truck, path: "/dispatch" },
+  { title: "Settings", icon: Settings, path: "/team-settings" },
+];
+
+const Logo = () => (
+  <Link to="/">
+    <img 
+      src="/lovable-uploads/21d56fd9-ffa2-4b0c-9d82-b10f7d03a546.png"
+      alt="Woodbourne Logo"
+      className="h-10 w-auto object-contain"
+    />
+  </Link>
+);
 
 export function AppSidebar() {
   const location = useLocation();
+  const { isMobile, openMobile, setOpenMobile } = useSidebar();
+
+  const handleMenuItemClick = () => {
+    if (isMobile) setOpenMobile(false);
+  };
+
+  const NavLink = ({ to, onClick = () => {}, isActive, className, children }) => (
+    <Link
+      to={to}
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-2 px-3 py-2 transition-all duration-200 ease-in-out",
+        isActive 
+          ? "bg-[#2A4131] text-white font-medium" 
+          : "text-[#2A4131] hover:bg-[#F2E9D2]/50",
+        className
+      )}
+    >
+      {children}
+    </Link>
+  );
+
+  const SidebarContent = () => (
+    <>
+      <div className="flex h-[72px] items-center justify-between px-4 border-b border-[#2A4131]/10">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setOpenMobile(false)}
+            className="hover:bg-[#F2E9D2]/50 md:hidden"
+          >
+            <X className="h-5 w-5 text-[#2A4131]" />
+          </Button>
+          <Logo />
+        </div>
+      </div>
+      
+      <SidebarMenu>
+        {Object.values(menuGroups).map((group) => (
+          <SidebarMenuItem key={group.title}>
+            <div className="px-3 py-2 text-sm font-medium text-[#2A4131]/60">
+              {group.title}
+            </div>
+            {group.items.map((item) => (
+              <SidebarMenuButton key={item.path} asChild>
+                <NavLink 
+                  to={item.path} 
+                  onClick={handleMenuItemClick}
+                  isActive={location.pathname === item.path}
+                  className="text-[15px] rounded-md"
+                >
+                  <item.icon className="h-5 w-5" />
+                  <span>{item.title}</span>
+                </NavLink>
+              </SidebarMenuButton>
+            ))}
+          </SidebarMenuItem>
+        ))}
+      </SidebarMenu>
+    </>
+  );
 
   return (
-    <Sidebar>
-      <div className="flex h-full flex-col gap-4">
-        <div className="flex h-[72px] items-center px-4">
-          <Link to="/" className="flex items-center gap-2 font-semibold">
-            <img 
-              src="/lovable-uploads/708f416f-5b66-4f87-865c-029557d1af58.png"
-              alt="Mountain Logo"
-              className="w-6 h-6"
-            />
-            <span className="group-[.collapsed]:invisible group-[.collapsed]:w-0">
-              Woodbourne
-            </span>
-          </Link>
-          <SidebarTrigger className="ml-auto" />
+    <>
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#2A4131]/10 md:hidden z-50">
+        <div className="flex items-center justify-around h-16">
+          {mobileNavItems.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={cn(
+                "flex flex-col items-center justify-center w-16 h-16 transition-all duration-200 ease-in-out",
+                location.pathname === item.path 
+                  ? "text-[#2A4131] font-medium bg-[#F2E9D2]" 
+                  : "text-[#2A4131] hover:bg-[#F2E9D2]/50"
+              )}
+            >
+              <item.icon className="h-6 w-6" />
+              <span className="text-xs mt-1">{item.title}</span>
+            </Link>
+          ))}
+          <button
+            onClick={() => setOpenMobile(true)}
+            className="flex flex-col items-center justify-center w-16 h-16 text-[#2A4131] transition-colors duration-200"
+          >
+            <Menu className="h-6 w-6" />
+            <span className="text-xs mt-1">Menu</span>
+          </button>
         </div>
-        <SidebarContent className="pb-8">
-          <SidebarMenu className="px-4">
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                isActive={location.pathname === "/" || location.pathname === "/dashboard"}
-              >
-                <Link to="/">
-                  <Home />
-                  <span>Dashboard</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                isActive={
-                  location.pathname === "/wholesale-order" || 
-                  location.pathname === "/wholesale-orders" ||
-                  location.pathname.startsWith("/wholesale-orders/")
-                }
-              >
-                <Link to="/wholesale-order">
-                  <Package />
-                  <span>Supplier Orders</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                isActive={
-                  location.pathname === "/client-order"
-                }
-              >
-                <Link to="/client-order">
-                  <ShoppingBag />
-                  <span>Customer Orders</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                isActive={
-                  location.pathname === "/dispatch" || 
-                  location.pathname.startsWith("/dispatch/")
-                }
-              >
-                <Truck />
-                <span>Dispatch</span>
-              </SidebarMenuButton>
-              <SidebarMenuSub>
-                <SidebarMenuSubItem>
-                  <SidebarMenuSubButton
-                    asChild
-                    isActive={
-                      location.pathname === "/dispatch" || 
-                      location.pathname === "/dispatch/schedule" ||
-                      location.pathname === "/dispatch/new" ||
-                      location.pathname.startsWith("/dispatch/schedule/")
-                    }
-                  >
-                    <Link to="/dispatch/schedule">
-                      <CalendarClock className="h-4 w-4" />
-                      <span>Schedule</span>
-                    </Link>
-                  </SidebarMenuSubButton>
-                </SidebarMenuSubItem>
-                <SidebarMenuSubItem>
-                  <SidebarMenuSubButton
-                    asChild
-                    isActive={
-                      location.pathname === "/dispatch/archive" ||
-                      location.pathname.startsWith("/dispatch/archive/")
-                    }
-                  >
-                    <Link to="/dispatch/archive">
-                      <Archive className="h-4 w-4" />
-                      <span>Archives</span>
-                    </Link>
-                  </SidebarMenuSubButton>
-                </SidebarMenuSubItem>
-              </SidebarMenuSub>
-            </SidebarMenuItem>
-            
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                isActive={location.pathname === "/inventory"}
-              >
-                <Link to="/inventory">
-                  <BarChart3 />
-                  <span>Inventory</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                isActive={location.pathname === "/customers"}
-              >
-                <Link to="/customers">
-                  <Users />
-                  <span>Customers</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                isActive={location.pathname === "/team-settings"}
-              >
-                <Link to="/team-settings">
-                  <Settings />
-                  <span>Settings</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarContent>
       </div>
-    </Sidebar>
+
+      <Sheet open={openMobile} onOpenChange={setOpenMobile}>
+        <SheetContent 
+          side="left" 
+          className="p-0 w-full sm:w-[300px] h-[100dvh] overflow-y-auto transition-transform duration-300 ease-in-out"
+        >
+          <SidebarContent />
+        </SheetContent>
+      </Sheet>
+
+      <div className="hidden md:block bg-white border-b border-[#2A4131]/10">
+        <div className="flex items-center justify-between h-[72px] px-4 max-w-[95rem] mx-auto">
+          <div className="flex items-center gap-8">
+            <Logo />
+            <nav className="flex items-center gap-6">
+              <NavLink 
+                to="/"
+                isActive={location.pathname === "/"}
+                className="text-sm font-medium rounded-md"
+              >
+                <Home className="h-4 w-4" />
+                <span>Home</span>
+              </NavLink>
+              <NavLink 
+                to="/dispatch"
+                isActive={location.pathname === "/dispatch"}
+                className="text-sm font-medium rounded-md"
+              >
+                <Truck className="h-4 w-4" />
+                <span>Dispatch</span>
+              </NavLink>
+              
+              {Object.entries(menuGroups).map(([key, group]) => (
+                <DropdownMenu key={key}>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className={cn(
+                        "flex items-center gap-1 px-3 py-2 text-sm font-medium transition-all duration-200 ease-in-out",
+                        group.items.some(item => location.pathname === item.path)
+                          ? "text-[#2A4131] bg-[#F2E9D2]"
+                          : "text-[#2A4131]/70 hover:bg-[#F2E9D2]/50"
+                      )}
+                    >
+                      {group.title}
+                      <ChevronDown className="h-4 w-4 opacity-50" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="start"
+                    className="w-[180px] bg-white"
+                  >
+                    {group.items.map((item) => (
+                      <DropdownMenuItem key={item.path} asChild>
+                        <Link
+                          to={item.path}
+                          className={cn(
+                            "flex items-center gap-2 cursor-pointer transition-all duration-200 ease-in-out",
+                            location.pathname === item.path
+                              ? "bg-[#2A4131] text-white"
+                              : "text-[#2A4131] hover:bg-[#F2E9D2]/50"
+                          )}
+                        >
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.title}</span>
+                        </Link>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ))}
+            </nav>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }

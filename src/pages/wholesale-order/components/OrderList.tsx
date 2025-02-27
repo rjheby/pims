@@ -1,4 +1,5 @@
 
+import { useToast } from "@/hooks/use-toast";
 import { OrderCard } from "./OrderCard";
 
 interface OrderListProps {
@@ -6,8 +7,8 @@ interface OrderListProps {
   onEdit: (orderId: string) => void;
   onDuplicate: (order: any) => void;
   onDownload: (order: any) => void;
+  onCopyLink: (orderId: string) => void;
   onShare: (orderId: string, method: 'email' | 'sms') => void;
-  onCopyLink?: (orderId: string) => void; // Make this optional
 }
 
 export function OrderList({ orders, onEdit, onDuplicate, onDownload, onCopyLink, onShare }: OrderListProps) {

@@ -76,6 +76,15 @@ export function WholesaleOrderArchive() {
     }
   };
 
+  const handleCopyLink = (orderId: string) => {
+    const link = `${window.location.origin}/wholesale-orders/${orderId}/view`;
+    navigator.clipboard.writeText(link);
+    toast({
+      title: "Link copied",
+      description: "The order view link has been copied to your clipboard."
+    });
+  };
+
   const handleShare = (orderId: string, method: 'email' | 'sms') => {
     const link = `${window.location.origin}/wholesale-orders/${orderId}/view`;
     if (method === 'email') {
@@ -115,6 +124,7 @@ export function WholesaleOrderArchive() {
                 onEdit={handleEditOrder}
                 onDuplicate={handleDuplicateOrder}
                 onDownload={handleDownloadOrder}
+                onCopyLink={handleCopyLink}
                 onShare={handleShare}
               />
             )}
