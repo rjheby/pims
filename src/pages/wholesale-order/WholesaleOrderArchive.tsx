@@ -1,3 +1,4 @@
+
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { OrderList } from "./components/OrderList";
 import { useOrders } from "./hooks/useOrders";
 
-export function SupplierOrderArchive() {
+export function WholesaleOrderArchive() {
   const navigate = useNavigate();
   const { orders, loading } = useOrders();
 
