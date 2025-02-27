@@ -51,9 +51,9 @@ export function AppSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
-                isActive={location.pathname === "/dashboard"}
+                isActive={location.pathname === "/" || location.pathname === "/dashboard"}
               >
-                <Link to="/dashboard">
+                <Link to="/">
                   <Home />
                   <span>Dashboard</span>
                 </Link>

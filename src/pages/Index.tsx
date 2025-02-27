@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { format } from "date-fns";
 import { Calendar as CalendarIcon, UserPlus, Settings } from "lucide-react";
 import { useUser } from "@/context/UserContext";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const [date, setDate] = useState<Date>();
@@ -94,8 +94,8 @@ const Index = () => {
       <div className="container mx-auto py-8 px-4">
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-2xl font-bold">Howdy, {user?.name}</h1>
-            <p className="text-muted-foreground">Role: {user?.role}</p>
+            <h1 className="text-2xl font-bold">Howdy, {user?.name || 'User'}</h1>
+            <p className="text-muted-foreground">Role: {user?.role || 'Guest'}</p>
           </div>
           {hasPermission("superadmin") && (
             <div className="flex gap-2">
