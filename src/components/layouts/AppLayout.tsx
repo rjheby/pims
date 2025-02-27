@@ -72,7 +72,7 @@ export default function AppLayout({
                     <img 
                       src="/lovable-uploads/2500bc58-0a71-4486-9a75-6d6eb06e9889.png"
                       alt="Mountain Logo"
-                      className="h-8 w-8"
+                      className="h-10 w-auto"
                     />
                   </Link>
                   <div className="hidden md:block">

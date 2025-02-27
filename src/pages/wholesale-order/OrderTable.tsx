@@ -5,6 +5,8 @@ import { useOrderTable } from "./hooks/useOrderTable";
 import { BaseOrderTable } from "@/components/templates/BaseOrderTable";
 import { OrderItem } from "./types";
 import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
 interface OrderTableProps {
   readOnly?: boolean;
@@ -101,6 +103,19 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
               />
             ))}
           </BaseOrderTable>
+          
+          {/* Always show the Add Row button */}
+          {!readOnly && (
+            <div className="mt-4 flex justify-end">
+              <Button 
+                onClick={handleAddItem}
+                className="bg-[#2A4131] hover:bg-[#2A4131]/90"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add Row
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -128,6 +143,17 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
               readOnly={readOnly}
             />
           ))}
+          
+          {/* Always show the Add Row button on mobile too */}
+          {!readOnly && (
+            <Button 
+              onClick={handleAddItem}
+              className="bg-[#2A4131] hover:bg-[#2A4131]/90 mt-2"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add Row
+            </Button>
+          )}
         </div>
       </div>
     </>
