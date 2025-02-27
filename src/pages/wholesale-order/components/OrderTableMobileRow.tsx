@@ -83,9 +83,9 @@ export function OrderTableMobileRow({
                 inputMode="numeric"
                 pattern="[0-9]*"
                 min="0"
-                value={item.pallets}
+                value={item.pallets || ""}
                 onChange={(e) => onUpdateItem(item.id, "pallets", parseInt(e.target.value) || 0)}
-                className="w-full h-9"
+                className="h-9 w-full min-w-[60px]"
                 placeholder="Enter quantity"
                 disabled={readOnly}
               />
@@ -105,13 +105,21 @@ export function OrderTableMobileRow({
                 inputMode="numeric"
                 pattern="[0-9]*"
                 min="0"
-                value={item.unitCost}
+                value={item.unitCost || ""}
                 onChange={(e) => onUpdateItem(item.id, "unitCost", parseFloat(e.target.value) || 0)}
-                className="w-full h-9"
+                className="h-9 w-full min-w-[80px]"
                 placeholder="Enter unit cost"
                 disabled={readOnly}
               />
             )}
+          </div>
+          <div className="space-y-1">
+            <div className="text-xs font-medium text-muted-foreground">
+              Total Cost
+            </div>
+            <div className="px-3 py-2 border border-input bg-background rounded-md text-sm">
+              ${((item.pallets || 0) * (item.unitCost || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
           </div>
         </div>
       )}
