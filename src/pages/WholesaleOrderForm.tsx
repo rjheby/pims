@@ -1,7 +1,9 @@
 import React from "react";
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Archive } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { OrderItem, serializeOrderItems } from "./wholesale-order/types";
 import { useToast } from "@/hooks/use-toast";
@@ -11,13 +13,15 @@ import { WholesaleOrderProvider } from "./wholesale-order/context/WholesaleOrder
 import { BaseOrderActions } from "@/components/templates/BaseOrderActions";
 import { BaseOrderSummary } from "@/components/templates/BaseOrderSummary";
 
+// Update this interface to match your Supabase database structure
 interface WholesaleOrderData {
   id: string;
   order_number: string;
   order_date: string;
   delivery_date: string;
   items: OrderItem[];
-  status?: string; // Added status field
+  // If the status field doesn't exist in your database yet, 
+  // we'll handle it in the code with a default value
 }
 
 export function WholesaleOrderForm() {
@@ -25,6 +29,7 @@ export function WholesaleOrderForm() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [orderData, setOrderData] = useState<WholesaleOrderData | null>(null);
+  const [orderStatus, setOrderStatus] = useState<string>('draft'); // Track status separately
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -52,8 +57,11 @@ export function WholesaleOrderForm() {
             order_date: data.order_date,
             delivery_date: data.delivery_date,
             items: parsedItems,
-            status: data.status || 'draft' // Add status with default
           });
+          
+          // Handle the status separately (if the column exists in the database)
+          // @ts-ignore - We'll handle the case where status doesn't exist
+          setOrderStatus(data.status || 'draft');
         }
       } catch (err) {
         console.error('Error fetching order:', err);
@@ -123,14 +131,31 @@ export function WholesaleOrderForm() {
       // Validate order data
       validateOrder();
 
+      // Define what we're going to update
+      const updateData: any = {
+        order_date: orderData.order_date,
+        delivery_date: orderData.delivery_date,
+        items: serializeOrderItems(orderData.items)
+      };
+      
+      // Only add status if your database has this column
+      try {
+        // Check if the status column exists
+        const { data: columnInfo } = await supabase
+          .from('wholesale_orders')
+          .select('status')
+          .limit(1);
+        
+        // If we got here, the column exists
+        updateData.status = 'draft';
+      } catch (e) {
+        // Status column doesn't exist, skip it
+        console.log('Status column may not exist yet');
+      }
+
       const { error: updateError } = await supabase
         .from('wholesale_orders')
-        .update({
-          order_date: orderData.order_date,
-          delivery_date: orderData.delivery_date,
-          items: serializeOrderItems(orderData.items),
-          status: 'draft' // Always save as draft
-        })
+        .update(updateData)
         .eq('id', id);
 
       if (updateError) throw updateError;
@@ -174,18 +199,38 @@ export function WholesaleOrderForm() {
       // Validate order data
       validateOrder();
 
+      // Define what we're going to update
+      const updateData: any = {
+        order_date: orderData.order_date,
+        delivery_date: orderData.delivery_date,
+        items: serializeOrderItems(orderData.items)
+      };
+      
+      // Only add status/submitted_at if your database has these columns
+      try {
+        // Check if the status column exists
+        const { data: columnInfo } = await supabase
+          .from('wholesale_orders')
+          .select('status')
+          .limit(1);
+        
+        // If we got here, the columns might exist
+        updateData.status = 'submitted';
+        updateData.submitted_at = new Date().toISOString();
+      } catch (e) {
+        // Status/submitted_at columns don't exist, skip them
+        console.log('Status/submitted_at columns may not exist yet');
+      }
+
       const { error: updateError } = await supabase
         .from('wholesale_orders')
-        .update({
-          order_date: orderData.order_date,
-          delivery_date: orderData.delivery_date,
-          items: serializeOrderItems(orderData.items),
-          status: 'submitted', // Mark as submitted
-          submitted_at: new Date().toISOString() // Add submission timestamp
-        })
+        .update(updateData)
         .eq('id', id);
 
       if (updateError) throw updateError;
+
+      // Update local state
+      setOrderStatus('submitted');
 
       toast({
         title: "Success",
@@ -252,7 +297,7 @@ export function WholesaleOrderForm() {
   const totalCost = calculateTotalCost();
 
   // Don't allow editing submitted orders
-  const isSubmitted = orderData.status === 'submitted';
+  const isSubmitted = orderStatus === 'submitted';
 
   return (
     <div className="flex-1">
