@@ -23,6 +23,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useEffect, useState } from "react";
 
 const menuGroups = {
   reports: {
@@ -84,6 +85,25 @@ const Logo = ({ variant = "full" }: { variant?: "full" | "icon" }) => (
 export function AppSidebar() {
   const location = useLocation();
   const { isMobile, openMobile, setOpenMobile } = useSidebar();
+  const [showFullLogo, setShowFullLogo] = useState(false);
+
+  // Check if window width is large enough for full logo (at least 1280px)
+  useEffect(() => {
+    const checkWindowSize = () => {
+      setShowFullLogo(window.innerWidth >= 1280);
+    };
+    
+    // Set initial value
+    checkWindowSize();
+    
+    // Add event listener
+    window.addEventListener('resize', checkWindowSize);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('resize', checkWindowSize);
+    };
+  }, []);
 
   const handleMenuItemClick = () => {
     if (isMobile) setOpenMobile(false);
@@ -187,12 +207,11 @@ export function AppSidebar() {
       <div className="hidden md:block bg-white border-b border-[#2A4131]/10">
         <div className="flex items-center justify-between h-[72px] px-4 max-w-[95rem] mx-auto">
           <div className="flex items-center gap-8">
-            <div className="hidden lg:block">
+            {showFullLogo ? (
               <Logo variant="full" />
-            </div>
-            <div className="lg:hidden">
+            ) : (
               <Logo variant="icon" />
-            </div>
+            )}
             <nav className="flex items-center gap-6">
               <NavLink 
                 to="/"
