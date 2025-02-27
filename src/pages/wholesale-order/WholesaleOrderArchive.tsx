@@ -1,4 +1,3 @@
-
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -98,44 +97,42 @@ export function WholesaleOrderArchive() {
   };
 
   return (
-    <div className="flex-1 w-full">
-      <div className="w-full mx-auto px-2 md:px-4">
-        <Card className="shadow-sm w-full">
-          <CardHeader className="flex flex-col space-y-4">
-            <div className="flex flex-col space-y-4">
-              <div>
-                <CardTitle>Supplier Orders Archive</CardTitle>
-              </div>
-              <div>
-                <Link to="/wholesale-order">
-                  <Button className="bg-[#2A4131] hover:bg-[#2A4131]/90">
-                    <Plus className="mr-2 h-4 w-4" />
-                    New Order
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
+    <div className="flex-1">
+      <Card className="shadow-sm">
+        <CardHeader className="flex flex-col space-y-4">
+          <div className="flex flex-col space-y-4">
             <div>
-              {loading ? (
-                <div className="flex justify-center p-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2A4131]"></div>
-                </div>
-              ) : (
-                <OrderList
-                  orders={orders}
-                  onEdit={handleEditOrder}
-                  onDuplicate={handleDuplicateOrder}
-                  onDownload={handleDownloadOrder}
-                  onCopyLink={handleCopyLink}
-                  onShare={handleShare}
-                />
-              )}
+              <CardTitle>Supplier Orders Archive</CardTitle>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+            <div>
+              <Link to="/wholesale-order">
+                <Button className="bg-[#2A4131] hover:bg-[#2A4131]/90">
+                  <Plus className="mr-2 h-4 w-4" />
+                  New Order
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div>
+            {loading ? (
+              <div className="flex justify-center p-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2A4131]"></div>
+              </div>
+            ) : (
+              <OrderList
+                orders={orders}
+                onEdit={handleEditOrder}
+                onDuplicate={handleDuplicateOrder}
+                onDownload={handleDownloadOrder}
+                onCopyLink={handleCopyLink}
+                onShare={handleShare}
+              />
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

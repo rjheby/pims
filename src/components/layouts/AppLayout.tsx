@@ -47,7 +47,7 @@ export default function AppLayout({
           </div>
           
           <main className="w-full min-h-screen pt-[72px] overflow-x-hidden">
-            <div className="w-full mx-auto px-4 max-w-screen-sm sm:max-w-screen-md md:max-w-screen-lg lg:max-w-screen-xl">
+            <div className="w-[95%] mx-auto overflow-x-hidden">
               {isWholesaleOrder ? (
                 <WholesaleOrderProvider>
                   {children}
