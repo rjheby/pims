@@ -61,13 +61,13 @@ export function GlobalAdminControls() {
           onDiscard: handleDiscard,
         })}
         className={cn(
-          "transition-all duration-300 px-4 w-auto",
+          "transition-all duration-300",
           isAdmin 
             ? "border-red-700 bg-red-600 text-white hover:bg-red-700"
             : "border-red-600 text-red-600 hover:bg-red-50"
         )}
       >
-        {isAdmin ? "Exit" : "Edit"}
+        {isAdmin ? "Exit Admin Mode" : "Admin Mode"}
       </Button>
     </div>
   );
