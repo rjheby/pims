@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,6 +6,10 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { OrderItem } from "./wholesale-order/types";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import { BaseOrderDetails } from "@/components/templates/BaseOrderDetails";
+import { OrderTable } from "./wholesale-order/OrderTable";
+import { WholesaleOrderProvider } from "./wholesale-order/context/WholesaleOrderContext";
 
 interface WholesaleOrderData {
   id: string;
@@ -53,6 +58,33 @@ export function WholesaleOrderForm() {
       fetchOrderData();
     }
   }, [id]);
+
+  const handleOrderDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (orderData) {
+      setOrderData({
+        ...orderData,
+        order_date: e.target.value
+      });
+    }
+  };
+
+  const handleDeliveryDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (orderData) {
+      setOrderData({
+        ...orderData,
+        delivery_date: e.target.value
+      });
+    }
+  };
+
+  const handleItemUpdate = (updatedItems: OrderItem[]) => {
+    if (orderData) {
+      setOrderData({
+        ...orderData,
+        items: updatedItems
+      });
+    }
+  };
 
   const handleSubmit = async () => {
     try {
@@ -109,23 +141,6 @@ export function WholesaleOrderForm() {
     );
   }
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
-
-  const summaryInfo = orderData.items.reduce((acc, item) => {
-    const totalCost = (item.pallets || 0) * (item.unitCost || 0);
-    return {
-      totalPallets: acc.totalPallets + (item.pallets || 0),
-      totalCost: acc.totalCost + totalCost,
-      totalItems: acc.totalItems + 1
-    };
-  }, { totalPallets: 0, totalCost: 0, totalItems: 0 });
-
   return (
     <div className="flex-1">
       <div>
@@ -148,67 +163,20 @@ export function WholesaleOrderForm() {
                 Update Order
               </Button>
             </div>
-            <p className="text-sm text-gray-500">
-              Order Date: {formatDate(orderData?.order_date)}
-            </p>
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
-              <div className="overflow-x-auto w-full">
-                <table className="w-full table-fixed">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2 w-[20%]">Species</th>
-                      <th className="text-left py-2 w-[15%]">Length</th>
-                      <th className="text-left py-2 w-[15%]">Bundle Type</th>
-                      <th className="text-left py-2 w-[15%]">Thickness</th>
-                      <th className="text-left py-2 w-[15%]">Packaging</th>
-                      <th className="text-left py-2 w-[10%]">Quantity</th>
-                      <th className="text-left py-2 w-[10%]">Unit Cost</th>
-                      <th className="text-left py-2">Total Cost</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {orderData?.items.map((item, index) => (
-                      <tr key={index} className="border-b">
-                        <td className="py-2">{item.species}</td>
-                        <td className="py-2">{item.length}</td>
-                        <td className="py-2">{item.bundleType}</td>
-                        <td className="py-2">{item.thickness}</td>
-                        <td className="py-2">{item.packaging}</td>
-                        <td className="py-2">{item.pallets}</td>
-                        <td className="py-2">${item.unitCost}</td>
-                        <td className="py-2">${((item.pallets || 0) * (item.unitCost || 0)).toFixed(2)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="mt-8 border-t pt-6">
-                <div className="bg-[#f3f3f3] rounded-lg p-6">
-                  <h3 className="text-lg font-semibold text-[#222222] mb-4">Order Summary</h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[#8A898C]">Item Types</span>
-                      <span className="font-medium text-[#333333]">{summaryInfo?.totalItems}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-[#8A898C]">Total Pallets</span>
-                      <span className="font-medium text-[#333333]">{summaryInfo?.totalPallets}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-lg">
-                      <span className="font-medium text-[#1A1F2C]">Total Order Value</span>
-                      <span className="font-bold text-[#1A1F2C]">
-                        ${summaryInfo?.totalCost.toLocaleString('en-US', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2
-                        })}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <BaseOrderDetails
+                orderNumber={orderData.order_number}
+                orderDate={orderData.order_date}
+                deliveryDate={orderData.delivery_date}
+                onOrderDateChange={handleOrderDateChange}
+                onDeliveryDateChange={handleDeliveryDateChange}
+              />
+              
+              <WholesaleOrderProvider>
+                <OrderTable />
+              </WholesaleOrderProvider>
             </div>
           </CardContent>
         </Card>
