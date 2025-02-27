@@ -55,7 +55,7 @@ export const generateOrderPDF = (orderData: OrderData) => {
   ]);
   
   // Create table using autoTable
-  doc.autoTable({
+  autoTable(doc, {
     head: [headers],
     body: data,
     startY: 60,
@@ -64,8 +64,9 @@ export const generateOrderPDF = (orderData: OrderData) => {
     margin: { top: 60 }
   });
   
-  // Add totals
-  const finalY = (doc.lastAutoTable?.finalY || 60) + 20;
+  // Get final Y position - autoTable directly modifies the document
+  // and returns the final Y position
+  const finalY = (doc as any).lastAutoTable.finalY + 20;
   doc.text(`Total Pallets: ${totalPallets}`, 15, finalY);
   doc.text(`Total Value: $${totalValue.toFixed(2)}`, 15, finalY + 10);
   
