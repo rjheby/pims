@@ -1,3 +1,4 @@
+
 import { formatCurrency, formatDate } from "../utils";
 import {
   Card,
@@ -182,7 +183,7 @@ export function OrderCard({
           onClick={() => onCopyLink(order.id)}
         >
           <Link className="mr-1 h-4 w-4" />
-          <span className="sr-only sm:not-sr-only sm:ml-1">Copy Link</span>
+          <span className="sr-only sm:not-sr-only sm:ml-1">Link</span>
         </Button>
 
         <AlertDialog>
