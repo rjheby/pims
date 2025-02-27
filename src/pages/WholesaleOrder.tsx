@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { BaseOrderDetails } from "@/components/templates/BaseOrderDetails";
 import { BaseOrderSummary } from "@/components/templates/BaseOrderSummary";
@@ -10,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { serializeOrderItems } from "./wholesale-order/types";
 import { useState } from "react";
+import AppLayout from "@/components/layouts/AppLayout";
 
 function WholesaleOrderContent() {
   const { 
@@ -175,6 +177,14 @@ function WholesaleOrderContent() {
 
   return (
     <div>
+      <div className="flex justify-center md:justify-start mb-4">
+        <img 
+          src="/lovable-uploads/708f416f-5b66-4f87-865c-029557d1af58.png"
+          alt="Woodbourne Logo"
+          className="h-8 md:h-12 w-auto"
+        />
+      </div>
+
       <Card className="shadow-sm">
         <CardHeader className="p-4 sm:p-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -217,8 +227,10 @@ function WholesaleOrderContent() {
 
 export function WholesaleOrder() {
   return (
-    <WholesaleOrderProvider>
-      <WholesaleOrderContent />
-    </WholesaleOrderProvider>
+    <AppLayout>
+      <WholesaleOrderProvider>
+        <WholesaleOrderContent />
+      </WholesaleOrderProvider>
+    </AppLayout>
   );
 }
