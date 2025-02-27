@@ -13,7 +13,7 @@ import { useUser } from "@/context/UserContext";
 export default function TeamSettings() {
   const { hasPermission } = useUser();
 
-  if (!hasPermission("admin")) {
+  if (!hasPermission("superadmin")) {
     return <div>You don't have permission to access this page.</div>;
   }
 
