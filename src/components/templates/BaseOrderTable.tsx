@@ -1,8 +1,9 @@
 
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ArrowUpDown } from "lucide-react";
-import { useState } from "react";
+import { ArrowUpDown, Search, X } from "lucide-react";
+import { useState, useMemo } from "react";
 
 interface BaseOrderTableProps {
   children: React.ReactNode;
@@ -44,6 +45,8 @@ export function BaseOrderTable({
     direction: 'asc' | 'desc';
   } | null>(null);
 
+  const [filter, setFilter] = useState('');
+
   const handleSort = (key: string) => {
     let direction: 'asc' | 'desc' = 'asc';
     
@@ -55,42 +58,99 @@ export function BaseOrderTable({
     onSortChange?.(key, direction);
   };
 
+  const handleFilter = (value: string) => {
+    setFilter(value);
+    onFilterChange?.(value);
+  };
+
+  const sortedAndFilteredData = useMemo(() => {
+    let processedData = [...data];
+
+    if (filter) {
+      processedData = processedData.filter(item => 
+        Object.values(item).some(value => 
+          String(value).toLowerCase().includes(filter.toLowerCase())
+        )
+      );
+    }
+
+    if (sortConfig) {
+      processedData.sort((a, b) => {
+        const aValue = a[sortConfig.key];
+        const bValue = b[sortConfig.key];
+
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+
+    return processedData;
+  }, [data, filter, sortConfig]);
+
   return (
-    <div className="w-full overflow-x-auto rounded-md border">
-      <Table className="w-full table-fixed">
-        <TableHeader>
-          <TableRow>
-            {headers.map((header) => (
-              <TableHead 
-                key={header.key}
-                style={{
-                  width: getColumnWidth(header.key),
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis'
-                }}
-              >
-                <div className="flex items-center justify-between">
-                  <span>{header.label}</span>
-                  {header.sortable && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0"
-                      onClick={() => handleSort(header.key)}
-                    >
-                      <ArrowUpDown className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              </TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {children}
-        </TableBody>
-      </Table>
+    <div className="space-y-4 w-full">
+      <div className="flex justify-end">
+        <div className="relative w-72">
+          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Filter table..."
+            value={filter}
+            onChange={(e) => handleFilter(e.target.value)}
+            className="pl-8"
+          />
+          {filter && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute right-1 top-1.5 h-6 w-6 p-0"
+              onClick={() => handleFilter('')}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      </div>
+      <div className="overflow-x-auto rounded-md border" style={{width: '100%'}}>
+        <Table className="w-full table-fixed" style={{width: '100%'}}>
+          <TableHeader>
+            <TableRow>
+              {headers.map((header) => (
+                <TableHead 
+                  key={header.key}
+                  style={{
+                    width: getColumnWidth(header.key),
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <span>{header.label}</span>
+                    {header.sortable && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={() => handleSort(header.key)}
+                      >
+                        <ArrowUpDown className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {children}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }

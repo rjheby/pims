@@ -7,33 +7,38 @@ export interface OrderItem {
   thickness: string;
   packaging: string;
   pallets: number;
-  unitCost: number;
-  highlight?: boolean;
+  unitCost: number;  // Renamed from cost to unitCost
 }
 
-export type DropdownOptions = {
+export interface DropdownOptions {
   species: string[];
   length: string[];
   bundleType: string[];
   thickness: string[];
   packaging: string[];
-};
+}
 
 export const initialOptions: DropdownOptions = {
-  species: ["Oak", "Walnut", "Cherry", "Maple", "Pine"],
-  length: ["8'", "10'", "12'", "16'"],
-  bundleType: ["Rough Sawn", "Planed", "S4S", "Veneer"],
-  thickness: ['4/4', '5/4', '6/4', '8/4', '12/4'],
-  packaging: ["Pallets", "Bundles", "Crates", "Loose"]
+  species: ["Mixed Hardwood", "Cherry", "Oak", "Hickory", "Ash"],
+  length: ["12\"", "16\""],
+  bundleType: ["Loose", "Bundled"],
+  thickness: ["Standard Split", "Thick Split"],
+  packaging: ["Pallets"],
 };
 
-export function serializeOrderItems(items: OrderItem[]): string {
-  try {
-    // Filter out any highlight property before serializing
-    const cleanedItems = items.map(({ highlight, ...item }) => item);
-    return JSON.stringify(cleanedItems);
-  } catch (error) {
-    console.error("Error serializing order items:", error);
-    return "[]";
-  }
-}
+// Helper function to serialize OrderItem for Supabase
+export const serializeOrderItem = (item: OrderItem): Record<string, string | number> => ({
+  id: item.id,
+  species: item.species,
+  length: item.length,
+  bundleType: item.bundleType,
+  thickness: item.thickness,
+  packaging: item.packaging,
+  pallets: item.pallets,
+  unitCost: item.unitCost,
+});
+
+// Helper function to serialize OrderItem array for Supabase
+export const serializeOrderItems = (items: OrderItem[]): Record<string, string | number>[] => {
+  return items.map(serializeOrderItem);
+};

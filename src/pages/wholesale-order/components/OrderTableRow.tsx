@@ -1,31 +1,28 @@
 
-import { useState } from "react";
 import { TableCell, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { OrderItem, DropdownOptions } from "../types";
 import { OrderTableDropdownCell } from "./OrderTableDropdownCell";
-import { OrderTableActions } from "./OrderTableActions";
-import { DropdownOptions, OrderItem } from "../types";
-import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Plus, Copy, X, Maximize2, Minimize2 } from "lucide-react";
 
 interface OrderTableRowProps {
-  item: OrderItem & { name?: string, totalCost?: number };
+  item: OrderItem;
   options: DropdownOptions;
   isAdmin: boolean;
-  editingField: string | null;
+  editingField: keyof DropdownOptions | null;
   newOption: string;
-  onNewOptionChange: (option: string) => void;
+  isCompressed: boolean;
+  onNewOptionChange: (value: string) => void;
   onKeyPress: (e: React.KeyboardEvent<HTMLInputElement>, field: keyof DropdownOptions) => void;
   onUpdateItem: (id: number, field: keyof OrderItem, value: string | number) => void;
   onRemoveRow: (id: number) => void;
   onCopyRow: (item: OrderItem) => void;
-  onAddItem: () => void;
-  generateItemName: (item: OrderItem) => string;
   onUpdateOptions: (field: keyof DropdownOptions, options: string[]) => void;
-  isCompressed: boolean;
   onToggleCompressed: (id: number) => void;
+  generateItemName: (item: OrderItem) => string;
+  onAddItem: () => void;
   readOnly?: boolean;
-  highlight?: boolean;
 }
 
 export function OrderTableRow({
@@ -34,267 +31,136 @@ export function OrderTableRow({
   isAdmin,
   editingField,
   newOption,
+  isCompressed,
   onNewOptionChange,
   onKeyPress,
   onUpdateItem,
   onRemoveRow,
   onCopyRow,
-  onAddItem,
   generateItemName,
   onUpdateOptions,
-  isCompressed,
   onToggleCompressed,
+  onAddItem,
   readOnly = false,
-  highlight = false
 }: OrderTableRowProps) {
-  const [isHovered, setIsHovered] = useState(false);
-
-  const handleMouseEnter = () => {
-    if (!readOnly) {
-      setIsHovered(true);
-    }
-  };
-
-  const handleMouseLeave = () => {
-    setIsHovered(false);
-  };
+  const totalCost = (item.pallets || 0) * (item.unitCost || 0);
 
   return (
-    <TableRow 
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      className={cn(
-        "transition-all",
-        highlight && "bg-yellow-50 dark:bg-yellow-900/20",
-        isHovered && "bg-muted"
-      )}
-    >
-      <TableCell className="pl-4">
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 w-6 p-0"
-            onClick={() => onToggleCompressed(item.id)}
-          >
-            {isCompressed ? (
-              <ChevronDown className="h-4 w-4" />
+    <TableRow>
+      <TableCell className="w-[20%] text-base md:text-sm px-2">
+        {generateItemName(item) || (
+          <div className="h-6 bg-muted/20 rounded animate-pulse" />
+        )}
+      </TableCell>
+      {!isCompressed && Object.keys(options).map((field) => (
+        <TableCell key={field} className="w-[13%] px-2">
+          <OrderTableDropdownCell
+            field={field as keyof DropdownOptions}
+            item={item}
+            options={options}
+            isAdmin={isAdmin}
+            editingField={editingField}
+            newOption={newOption}
+            onNewOptionChange={onNewOptionChange}
+            onKeyPress={onKeyPress}
+            onUpdateItem={onUpdateItem}
+            onUpdateOptions={onUpdateOptions}
+            readOnly={readOnly}
+          />
+        </TableCell>
+      ))}
+      {!isCompressed && (
+        <>
+          <TableCell className="w-[6%] px-2">
+            {readOnly ? (
+              <div className="px-3 py-2 border border-input bg-background rounded-md text-sm">
+                {item.pallets || 0}
+              </div>
             ) : (
-              <ChevronUp className="h-4 w-4" />
+              <Input
+                type="number"
+                min="0"
+                value={item.pallets || ""}
+                onChange={(e) => onUpdateItem(item.id, "pallets", parseInt(e.target.value) || 0)}
+                className="w-full"
+                placeholder="Quantity"
+                disabled={readOnly}
+              />
             )}
-          </Button>
-          {item.name}
-        </div>
-      </TableCell>
-
-      {/* Display fields for species, length, bundleType, thickness, packaging */}
-      <TableCell>
-        <OrderTableDropdownCell
-          value={item.species}
-          options={options.species}
-          onChange={(value) => onUpdateItem(item.id, "species", value)}
-          onAddOption={(option) => {
-            const updatedOptions = [...options.species, option];
-            onUpdateOptions("species", updatedOptions);
-          }}
-          isEditing={editingField === `species-${item.id}`}
-          onEdit={() => {
-            /* Handled by parent */
-          }}
-          newOption={editingField === `species-${item.id}` ? newOption : ""}
-          onNewOptionChange={onNewOptionChange}
-          onKeyPress={(e) => onKeyPress(e, "species")}
-          isCompressed={isCompressed}
-          readOnly={readOnly}
-        />
-      </TableCell>
-
-      <TableCell>
-        <OrderTableDropdownCell
-          value={item.length}
-          options={options.length}
-          onChange={(value) => onUpdateItem(item.id, "length", value)}
-          onAddOption={(option) => {
-            const updatedOptions = [...options.length, option];
-            onUpdateOptions("length", updatedOptions);
-          }}
-          isEditing={editingField === `length-${item.id}`}
-          onEdit={() => {
-            /* Handled by parent */
-          }}
-          newOption={editingField === `length-${item.id}` ? newOption : ""}
-          onNewOptionChange={onNewOptionChange}
-          onKeyPress={(e) => onKeyPress(e, "length")}
-          isCompressed={isCompressed}
-          readOnly={readOnly}
-        />
-      </TableCell>
-
-      <TableCell>
-        <OrderTableDropdownCell
-          value={item.bundleType}
-          options={options.bundleType}
-          onChange={(value) => onUpdateItem(item.id, "bundleType", value)}
-          onAddOption={(option) => {
-            const updatedOptions = [...options.bundleType, option];
-            onUpdateOptions("bundleType", updatedOptions);
-          }}
-          isEditing={editingField === `bundleType-${item.id}`}
-          onEdit={() => {
-            /* Handled by parent */
-          }}
-          newOption={editingField === `bundleType-${item.id}` ? newOption : ""}
-          onNewOptionChange={onNewOptionChange}
-          onKeyPress={(e) => onKeyPress(e, "bundleType")}
-          isCompressed={isCompressed}
-          readOnly={readOnly}
-        />
-      </TableCell>
-
-      <TableCell>
-        <OrderTableDropdownCell
-          value={item.thickness}
-          options={options.thickness}
-          onChange={(value) => onUpdateItem(item.id, "thickness", value)}
-          onAddOption={(option) => {
-            const updatedOptions = [...options.thickness, option];
-            onUpdateOptions("thickness", updatedOptions);
-          }}
-          isEditing={editingField === `thickness-${item.id}`}
-          onEdit={() => {
-            /* Handled by parent */
-          }}
-          newOption={editingField === `thickness-${item.id}` ? newOption : ""}
-          onNewOptionChange={onNewOptionChange}
-          onKeyPress={(e) => onKeyPress(e, "thickness")}
-          isCompressed={isCompressed}
-          readOnly={readOnly}
-        />
-      </TableCell>
-
-      <TableCell>
-        <OrderTableDropdownCell
-          value={item.packaging}
-          options={options.packaging}
-          onChange={(value) => onUpdateItem(item.id, "packaging", value)}
-          onAddOption={(option) => {
-            const updatedOptions = [...options.packaging, option];
-            onUpdateOptions("packaging", updatedOptions);
-          }}
-          isEditing={editingField === `packaging-${item.id}`}
-          onEdit={() => {
-            /* Handled by parent */
-          }}
-          newOption={editingField === `packaging-${item.id}` ? newOption : ""}
-          onNewOptionChange={onNewOptionChange}
-          onKeyPress={(e) => onKeyPress(e, "packaging")}
-          isCompressed={isCompressed}
-          readOnly={readOnly}
-        />
-      </TableCell>
-
-      <TableCell>
-        <input
-          type="number"
-          value={item.pallets || ""}
-          onChange={(e) => {
-            const value = e.target.value ? parseInt(e.target.value) : 0;
-            onUpdateItem(item.id, "pallets", value);
-          }}
-          className="w-full border rounded-md p-2"
-          min={0}
-          readOnly={readOnly}
-        />
-      </TableCell>
-
-      <TableCell>
-        <input
-          type="number"
-          value={item.unitCost || ""}
-          onChange={(e) => {
-            const value = e.target.value ? parseInt(e.target.value) : 0;
-            onUpdateItem(item.id, "unitCost", value);
-          }}
-          className="w-full border rounded-md p-2"
-          min={0}
-          readOnly={readOnly}
-        />
-      </TableCell>
-
-      <TableCell>${Number(item.totalCost || 0).toLocaleString()}</TableCell>
-
-      <TableCell className="text-right">
-        {readOnly ? (
-          <span className="text-sm text-muted-foreground">Read only</span>
-        ) : (
-          <div className="flex items-center justify-end space-x-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onCopyRow(item)}
-              className="h-8 w-8 p-0"
+          </TableCell>
+          <TableCell className="w-[10%] px-2">
+            {readOnly ? (
+              <div className="px-3 py-2 border border-input bg-background rounded-md text-sm">
+                {item.unitCost || 0}
+              </div>
+            ) : (
+              <Input
+                type="number"
+                min="0"
+                value={item.unitCost || ""}
+                onChange={(e) => onUpdateItem(item.id, "unitCost", parseFloat(e.target.value) || 0)}
+                className="w-full"
+                placeholder="Unit Cost"
+                disabled={readOnly}
+              />
+            )}
+          </TableCell>
+          <TableCell className="w-[8%] px-2">
+            <div className="text-right">
+              ${totalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+          </TableCell>
+        </>
+      )}
+      <TableCell className="w-[10%] px-2">
+        {!readOnly && (
+          <div className="flex gap-1 items-center">
+            <Button 
+              variant="customAction"
+              size="sm" 
+              onClick={() => onRemoveRow(item.id)} 
+              className="rounded-full w-8 h-8 p-0 text-pink-100 bg-red-800 hover:bg-pink-100 hover:text-red-800"
+              disabled={readOnly}
             >
-              <span className="sr-only">Copy</span>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-4 w-4"
-              >
-                <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
-                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-              </svg>
+              <X className="h-4 w-4" />
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onRemoveRow(item.id)}
-              className="h-8 w-8 p-0 text-red-500"
+            <Button 
+              variant="customAction"
+              size="sm" 
+              onClick={() => onCopyRow(item)} 
+              className="rounded-full w-8 h-8 p-0 text-sky-100 bg-blue-700 hover:bg-sky-100 hover:text-blue-700"
+              disabled={readOnly}
             >
-              <span className="sr-only">Delete</span>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-4 w-4"
-              >
-                <path d="M3 6h18" />
-                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                <line x1="10" x2="10" y1="11" y2="17" />
-                <line x1="14" x2="14" y1="11" y2="17" />
-              </svg>
+              <Copy className="h-4 w-4" />
             </Button>
-            <Button
-              variant="ghost"
+            <Button 
+              variant="customAction"
               size="sm" 
               onClick={onAddItem}
-              className="h-8 w-8 p-0"
+              className="rounded-full w-8 h-8 p-0 bg-[#2A4131] hover:bg-slate-50 text-slate-50 hover:text-[#2A4131]"
+              disabled={readOnly}
             >
-              <span className="sr-only">Add</span>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-4 w-4"
-              >
-                <path d="M5 12h14" />
-                <path d="M12 5v14" />
-              </svg>
+              <Plus className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="customAction"
+              size="sm" 
+              onClick={() => onToggleCompressed(item.id)} 
+              className="rounded-full w-8 h-8 p-0 bg-black hover:bg-slate-50 text-slate-50 hover:text-black md:hidden"
+            >
+              {isCompressed ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
             </Button>
           </div>
+        )}
+        {readOnly && (
+          <Button 
+            variant="customAction"
+            size="sm" 
+            onClick={() => onToggleCompressed(item.id)} 
+            className="rounded-full w-8 h-8 p-0 bg-black hover:bg-slate-50 text-slate-50 hover:text-black md:hidden"
+          >
+            {isCompressed ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
+          </Button>
         )}
       </TableCell>
     </TableRow>
