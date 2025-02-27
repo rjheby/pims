@@ -99,6 +99,8 @@ export type Database = {
           order_date: string
           order_name: string | null
           order_number: string
+          status: string | null
+          submitted_at: string | null
         }
         Insert: {
           admin_editable?: boolean | null
@@ -109,6 +111,8 @@ export type Database = {
           order_date: string
           order_name?: string | null
           order_number: string
+          status?: string | null
+          submitted_at?: string | null
         }
         Update: {
           admin_editable?: boolean | null
@@ -119,6 +123,8 @@ export type Database = {
           order_date?: string
           order_name?: string | null
           order_number?: string
+          status?: string | null
+          submitted_at?: string | null
         }
         Relationships: []
       }
