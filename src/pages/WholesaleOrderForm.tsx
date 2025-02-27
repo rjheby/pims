@@ -322,11 +322,11 @@ export function WholesaleOrderForm() {
                 deliveryDate={orderData.delivery_date}
                 onOrderDateChange={handleOrderDateChange}
                 onDeliveryDateChange={handleDeliveryDateChange}
-                disabled={false} // Allow editing regardless of status
+                disabled={false}
               />
               
               <WholesaleOrderProvider initialItems={orderData.items}>
-                <OrderTable readOnly={false} /> // Allow editing regardless of status
+                <OrderTable readOnly={false} />
               </WholesaleOrderProvider>
 
               <BaseOrderSummary 
@@ -338,10 +338,8 @@ export function WholesaleOrderForm() {
                 renderCustomSummary={renderCustomSummary}
               />
 
-              {/* Always show edit controls */}
               <div className="flex flex-col space-y-4">
                 <div className="flex justify-end gap-4">
-                  {/* Save Draft Button */}
                   <Button 
                     onClick={handleSave} 
                     className="bg-gray-600 hover:bg-gray-700"
@@ -351,7 +349,6 @@ export function WholesaleOrderForm() {
                     Save Draft
                   </Button>
                   
-                  {/* Submit Order Button */}
                   <Button 
                     onClick={handleSubmit} 
                     className="bg-[#2A4131] hover:bg-[#2A4131]/90"

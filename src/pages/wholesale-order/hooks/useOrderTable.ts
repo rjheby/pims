@@ -97,7 +97,7 @@ export function useOrderTable() {
     if (item.bundleType) parts.push(item.bundleType);
     if (item.thickness) parts.push(item.thickness);
 
-    return parts.join(" - ") || "New Item";
+    return parts.join(" ") || "New Item";
   };
 
   const handleUpdateOptions = (field: keyof DropdownOptions, newOptions: string[]) => {
