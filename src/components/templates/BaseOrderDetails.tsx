@@ -1,4 +1,3 @@
-
 import { Input } from "@/components/ui/input";
 
 interface BaseOrderDetailsProps {
@@ -8,6 +7,7 @@ interface BaseOrderDetailsProps {
   onOrderDateChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onDeliveryDateChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   customFields?: React.ReactNode;
+  disabled?: boolean; // Added disabled prop
 }
 
 export function BaseOrderDetails({
@@ -17,6 +17,7 @@ export function BaseOrderDetails({
   onOrderDateChange,
   onDeliveryDateChange,
   customFields,
+  disabled = false, // Default to enabled
 }: BaseOrderDetailsProps) {
   return (
     <div className="grid gap-4 md:grid-cols-4">
@@ -36,6 +37,7 @@ export function BaseOrderDetails({
           value={orderDate}
           onChange={onOrderDateChange}
           className="mt-1.5"
+          disabled={disabled}
         />
       </div>
       <div>
@@ -48,6 +50,7 @@ export function BaseOrderDetails({
           value={deliveryDate}
           onChange={onDeliveryDateChange}
           className="mt-1.5"
+          disabled={disabled}
         />
       </div>
       {customFields}
