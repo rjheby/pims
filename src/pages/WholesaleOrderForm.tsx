@@ -163,6 +163,11 @@ export function WholesaleOrderForm() {
     try {
       validateOrder();
 
+      console.log('Saving order data:', {
+        order_date: orderData.order_date,
+        delivery_date: orderData.delivery_date || null
+      });
+
       // Create update object dynamically to avoid TypeScript errors
       const updateData: Record<string, any> = {
         order_date: orderData.order_date,
