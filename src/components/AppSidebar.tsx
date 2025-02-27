@@ -1,3 +1,4 @@
+
 import { Link, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -11,7 +12,7 @@ import {
 } from "@/components/ui/sidebar";
 import {
   FileText, Users, Settings, BarChart, Truck, ClipboardList, 
-  DollarSign, Menu, X, ArrowLeft, Warehouse, ChevronDown, Home, Archive
+  DollarSign, Menu, X, ArrowLeft, Warehouse, ChevronDown, Home, Archive, Calendar, Clock
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,8 @@ const menuGroups = {
     title: "Orders",
     items: [
       { title: "Dispatch", icon: Truck, path: "/dispatch" },
+      { title: "Schedule", icon: Calendar, path: "/dispatch/schedule" },
+      { title: "Dispatch Archives", icon: Archive, path: "/dispatch/archives" },
       { title: "Client Orders", icon: FileText, path: "/client-order" },
       { title: "Supplier Form", icon: ClipboardList, path: "/wholesale-order" },
       { title: "Supplier Archives", icon: Archive, path: "/wholesale-orders" },

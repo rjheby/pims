@@ -1,0 +1,225 @@
+
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { BaseOrderDetails } from "@/components/templates/BaseOrderDetails";
+import { BaseOrderSummary } from "@/components/templates/BaseOrderSummary";
+import { BaseOrderActions } from "@/components/templates/BaseOrderActions";
+import { OrderTable } from "../wholesale-order/OrderTable";
+import { WholesaleOrderProvider } from "../wholesale-order/context/WholesaleOrderContext";
+import { useWholesaleOrder } from "../wholesale-order/context/WholesaleOrderContext";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { serializeOrderItems } from "../wholesale-order/types";
+import { useState } from "react";
+
+function ScheduleContent() {
+  const { 
+    orderNumber, 
+    orderDate, 
+    deliveryDate, 
+    handleOrderDateChange,
+    setDeliveryDate,
+    items,
+    generateOrderNumber
+  } = useWholesaleOrder();
+  
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric' 
+    });
+  };
+
+  const headerDetails = [
+    orderDate && `Order Date: ${formatDate(orderDate)}`,
+    deliveryDate && `Delivery Date: ${formatDate(deliveryDate)}`
+  ].filter(Boolean).join(' • ');
+
+  const calculateTotals = () => {
+    const quantityByPackaging = items.reduce((acc, item) => {
+      const packaging = item.packaging || 'Unspecified';
+      acc[packaging] = (acc[packaging] || 0) + (item.pallets || 0);
+      return acc;
+    }, {} as Record<string, number>);
+
+    const totalQuantity = Object.values(quantityByPackaging).reduce((sum, qty) => sum + qty, 0);
+    const totalValue = items.reduce((sum, item) => sum + ((item.pallets || 0) * (item.unitCost || 0)), 0);
+
+    return {
+      quantityByPackaging,
+      totalQuantity,
+      totalValue,
+    };
+  };
+
+  const validateOrder = () => {
+    if (!orderDate) {
+      throw new Error("Order date is required");
+    }
+
+    const validItems = items.filter(item => 
+      item.species && item.length && item.bundleType && item.thickness && Number(item.pallets) > 0
+    );
+    
+    if (validItems.length === 0) {
+      throw new Error("At least one valid item is required with all fields filled");
+    }
+
+    return true;
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      validateOrder();
+      
+      let currentOrderNumber = orderNumber;
+      if (!currentOrderNumber) {
+        currentOrderNumber = await generateOrderNumber(orderDate);
+      }
+
+      const { data, error } = await supabase
+        .from('wholesale_orders')
+        .insert({
+          order_number: currentOrderNumber,
+          order_date: orderDate,
+          delivery_date: deliveryDate || null,
+          items: serializeOrderItems(items),
+          status: 'draft'
+        })
+        .select();
+
+      if (error) throw error;
+
+      toast({
+        title: "Schedule Saved",
+        description: "Your schedule has been saved as a draft"
+      });
+      
+      if (data && data[0]) {
+        navigate(`/dispatch/archives/${data[0].id}`);
+      } else {
+        navigate("/dispatch/archives");
+      }
+    } catch (err: any) {
+      console.error('Error saving schedule:', err);
+      toast({
+        title: "Error",
+        description: err.message || "Failed to save schedule",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    try {
+      validateOrder();
+      
+      const totalPallets = calculateTotals().totalQuantity;
+      if (totalPallets > 24) {
+        toast({
+          title: "Warning",
+          description: `Schedule exceeds maximum load by ${totalPallets - 24} pallets. Consider reducing the pallet count.`,
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+      
+      let currentOrderNumber = orderNumber;
+      if (!currentOrderNumber) {
+        currentOrderNumber = await generateOrderNumber(orderDate);
+      }
+
+      const { data, error } = await supabase
+        .from('wholesale_orders')
+        .insert({
+          order_number: currentOrderNumber,
+          order_date: orderDate,
+          delivery_date: deliveryDate || null,
+          items: serializeOrderItems(items),
+          status: 'submitted',
+          submitted_at: new Date().toISOString()
+        })
+        .select();
+
+      if (error) throw error;
+
+      toast({
+        title: "Schedule Submitted",
+        description: "Your schedule has been submitted successfully"
+      });
+      
+      navigate("/dispatch/archives");
+    } catch (err: any) {
+      console.error('Error submitting schedule:', err);
+      toast({
+        title: "Error",
+        description: err.message || "Failed to submit schedule",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div>
+      <Card className="shadow-sm">
+        <CardHeader className="p-4 sm:p-6">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <CardTitle>{orderNumber ? `Schedule #${orderNumber}` : 'New Delivery Schedule'}</CardTitle>
+              {headerDetails && (
+                <CardDescription className="mt-1">
+                  {headerDetails}
+                </CardDescription>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-4 sm:p-6">
+          <div className="space-y-6">
+            <BaseOrderDetails 
+              orderNumber={orderNumber}
+              orderDate={orderDate}
+              deliveryDate={deliveryDate}
+              onOrderDateChange={handleOrderDateChange}
+              onDeliveryDateChange={(e) => setDeliveryDate(e.target.value)}
+            />
+            <div className="w-full overflow-x-auto">
+              <OrderTable />
+            </div>
+            <BaseOrderSummary items={calculateTotals()} />
+            <BaseOrderActions 
+              onSave={handleSave} 
+              onSubmit={handleSubmit}
+              archiveLink="/dispatch/archives"
+              isSaving={isSaving}
+              isSubmitting={isSubmitting}
+            />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+export function Schedule() {
+  return (
+    <WholesaleOrderProvider>
+      <ScheduleContent />
+    </WholesaleOrderProvider>
+  );
+}

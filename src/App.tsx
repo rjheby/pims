@@ -7,6 +7,9 @@ import Dashboard from "@/pages/Dashboard";
 import { WholesaleOrder } from "@/pages/WholesaleOrder";
 import { WholesaleOrderForm } from "@/pages/WholesaleOrderForm";
 import { WholesaleOrderArchive } from "@/pages/wholesale-order/WholesaleOrderArchive";
+import { Schedule } from "@/pages/dispatch/Schedule";
+import { DispatchArchives } from "@/pages/dispatch/DispatchArchives";
+import { DispatchArchiveDetail } from "@/pages/dispatch/DispatchArchiveDetail";
 import NotFound from "@/pages/NotFound";
 import { AdminProvider, useAdmin } from "@/context/AdminContext";
 import { UserProvider } from "@/context/UserContext";
@@ -71,6 +74,42 @@ const router = createBrowserRouter([
         <AdminProvider>
           <PageWrapper>
             <WholesaleOrderForm />
+          </PageWrapper>
+        </AdminProvider>
+      </UserProvider>
+    ),
+  },
+  {
+    path: "/dispatch/schedule",
+    element: (
+      <UserProvider>
+        <AdminProvider>
+          <PageWrapper>
+            <Schedule />
+          </PageWrapper>
+        </AdminProvider>
+      </UserProvider>
+    ),
+  },
+  {
+    path: "/dispatch/archives",
+    element: (
+      <UserProvider>
+        <AdminProvider>
+          <PageWrapper>
+            <DispatchArchives />
+          </PageWrapper>
+        </AdminProvider>
+      </UserProvider>
+    ),
+  },
+  {
+    path: "/dispatch/archives/:id",
+    element: (
+      <UserProvider>
+        <AdminProvider>
+          <PageWrapper>
+            <DispatchArchiveDetail />
           </PageWrapper>
         </AdminProvider>
       </UserProvider>
