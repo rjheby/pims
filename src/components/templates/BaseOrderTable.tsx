@@ -12,6 +12,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface BaseOrderTableProps {
   children: React.ReactNode;
@@ -45,7 +50,7 @@ export function BaseOrderTable({
 
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
-  const [showFilters, setShowFilters] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
 
   const handleSort = (key: string) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -83,19 +88,30 @@ export function BaseOrderTable({
     return Array.from(uniqueValues);
   };
 
+  const activeFilterCount = Object.values(activeFilters).filter(Boolean).length;
+
   const FilterControls = () => (
-    <div className={`flex ${isMobile ? 'flex-col' : 'items-center'} gap-2`}>
-      <div className="flex items-center gap-2">
-        <Filter className="h-4 w-4 text-muted-foreground" />
-        {isMobile && 
-          <span className="text-sm text-muted-foreground">
-            Filters {Object.keys(activeFilters).length > 0 && `(${Object.keys(activeFilters).length})`}
-          </span>
-        }
+    <div className="space-y-4 p-4 bg-white">
+      <div className="flex items-center justify-between mb-2">
+        <h4 className="font-medium">Filters</h4>
+        {activeFilterCount > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setActiveFilters({})}
+            className="h-8 px-2 text-sm"
+          >
+            Clear All
+          </Button>
+        )}
       </div>
-      <div className={`flex ${isMobile ? 'flex-col' : 'items-center'} gap-2`}>
+      
+      <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
         {headers.map(header => (
-          <div key={header.key} className={isMobile ? 'w-full' : 'w-32'}>
+          <div key={header.key}>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">
+              {header.label}
+            </label>
             <Select
               value={activeFilters[header.key] || 'all'}
               onValueChange={(value) => 
@@ -105,8 +121,8 @@ export function BaseOrderTable({
                 }))
               }
             >
-              <SelectTrigger>
-                <SelectValue placeholder={`Filter ${header.label}`} />
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder={`All ${header.label}`} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All {header.label}</SelectItem>
@@ -119,24 +135,14 @@ export function BaseOrderTable({
             </Select>
           </div>
         ))}
-        {Object.keys(activeFilters).length > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setActiveFilters({})}
-            className={`h-8 px-2 ${isMobile ? 'w-full' : ''}`}
-          >
-            Clear Filters
-          </Button>
-        )}
       </div>
     </div>
   );
 
   return (
     <div className="space-y-4 w-full">
-      <div className={`flex ${isMobile ? 'flex-col' : 'justify-between items-center'} gap-4`}>
-        <div className={`relative ${isMobile ? 'w-full' : 'w-72'}`}>
+      <div className="flex justify-between items-center gap-4">
+        <div className="relative flex-1 max-w-md">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search table..."
@@ -156,29 +162,26 @@ export function BaseOrderTable({
           )}
         </div>
 
-        {isMobile ? (
-          <>
+        <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+          <PopoverTrigger asChild>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setShowFilters(!showFilters)}
-              className="w-full flex items-center justify-between"
+              className="flex items-center gap-2"
             >
-              <span className="flex items-center gap-2">
-                <Filter className="h-4 w-4" />
-                Filters {Object.keys(activeFilters).length > 0 && `(${Object.keys(activeFilters).length})`}
-              </span>
-              <ArrowUpDown className="h-4 w-4" />
+              <Filter className="h-4 w-4" />
+              <span>Filters</span>
+              {activeFilterCount > 0 && (
+                <span className="ml-1 rounded-full bg-primary w-5 h-5 text-xs flex items-center justify-center text-primary-foreground">
+                  {activeFilterCount}
+                </span>
+              )}
             </Button>
-            {showFilters && (
-              <div className="border rounded-md p-4 space-y-4">
-                <FilterControls />
-              </div>
-            )}
-          </>
-        ) : (
-          <FilterControls />
-        )}
+          </PopoverTrigger>
+          <PopoverContent className="w-80 md:w-[450px] p-0" align="end">
+            <FilterControls />
+          </PopoverContent>
+        </Popover>
       </div>
 
       <div className="overflow-x-auto rounded-md border w-full">

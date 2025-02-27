@@ -10,6 +10,7 @@ import { BaseOrderDetails } from "@/components/templates/BaseOrderDetails";
 import { OrderTable } from "./wholesale-order/OrderTable";
 import { WholesaleOrderProvider } from "./wholesale-order/context/WholesaleOrderContext";
 import { BaseOrderActions } from "@/components/templates/BaseOrderActions";
+import { BaseOrderSummary } from "@/components/templates/BaseOrderSummary";
 
 interface WholesaleOrderData {
   id: string;
@@ -83,11 +84,51 @@ export function WholesaleOrderForm() {
     }
   };
 
+  const calculateTotalPallets = () => {
+    if (!orderData?.items) return 0;
+    return orderData.items.reduce((sum, item) => sum + (Number(item.pallets) || 0), 0);
+  };
+
+  const calculateTotalCost = () => {
+    if (!orderData?.items) return 0;
+    return orderData.items.reduce((sum, item) => sum + ((Number(item.pallets) || 0) * (Number(item.unitCost) || 0)), 0);
+  };
+
   const handleSave = async () => {
     if (!orderData || isSaving) return;
 
+    const totalPallets = calculateTotalPallets();
+    
+    // Pallet count warnings
+    if (totalPallets > 24) {
+      toast({
+        title: "Warning",
+        description: `Order exceeds maximum load by ${totalPallets - 24} pallets. Consider reducing the pallet count.`,
+        variant: "destructive",
+      });
+    } else if (totalPallets < 24) {
+      toast({
+        title: "Notice",
+        description: `Order is not quite full. There's space for ${24 - totalPallets} more pallets.`,
+      });
+    }
+
     setIsSaving(true);
     try {
+      // Validate order data
+      if (!orderData.order_date) {
+        throw new Error("Order date is required");
+      }
+
+      // Check for valid items
+      const validItems = orderData.items.filter(item => 
+        item.species && item.length && item.bundleType && item.thickness && Number(item.pallets) > 0
+      );
+      
+      if (validItems.length === 0) {
+        throw new Error("At least one valid item is required with all fields filled");
+      }
+
       const { error: updateError } = await supabase
         .from('wholesale_orders')
         .update({
@@ -106,16 +147,40 @@ export function WholesaleOrderForm() {
 
       // Redirect after successful save
       navigate('/wholesale-orders');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error saving order:', err);
       toast({
         title: "Error",
-        description: "Failed to save order",
+        description: err.message || "Failed to save order",
         variant: "destructive"
       });
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const renderCustomSummary = () => {
+    const totalPallets = calculateTotalPallets();
+    
+    return (
+      <div className="mt-4 pt-4 border-t border-gray-200">
+        {totalPallets < 24 && (
+          <div className="text-sm text-amber-600 text-center">
+            {24 - totalPallets} pallets remaining before full load
+          </div>
+        )}
+        {totalPallets > 24 && (
+          <div className="text-sm text-red-600 text-center">
+            Exceeds maximum load by {totalPallets - 24} pallets
+          </div>
+        )}
+        {totalPallets === 24 && (
+          <div className="text-sm text-green-600 text-center">
+            Perfect load! Exactly 24 pallets.
+          </div>
+        )}
+      </div>
+    );
   };
 
   if (loading) return (
@@ -135,6 +200,9 @@ export function WholesaleOrderForm() {
       <div className="text-gray-500">Order not found</div>
     </div>
   );
+
+  const totalPallets = calculateTotalPallets();
+  const totalCost = calculateTotalCost();
 
   return (
     <div className="flex-1">
@@ -156,6 +224,15 @@ export function WholesaleOrderForm() {
               <WholesaleOrderProvider initialItems={orderData.items}>
                 <OrderTable />
               </WholesaleOrderProvider>
+
+              <BaseOrderSummary 
+                items={{
+                  totalQuantity: totalPallets,
+                  totalValue: totalCost,
+                  quantityByPackaging: { 'Pallets': totalPallets }
+                }}
+                renderCustomSummary={renderCustomSummary}
+              />
 
               <BaseOrderActions 
                 onSave={handleSave}
