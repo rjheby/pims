@@ -4,6 +4,7 @@ import { OrderItem, DropdownOptions, initialOptions } from "../types";
 import { useToast } from "@/hooks/use-toast";
 import { useAdmin } from "@/context/AdminContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useHistory } from "@/context/HistoryContext";
 
 interface WholesaleOrderContextType {
   orderNumber: string;
@@ -43,6 +44,7 @@ interface WholesaleOrderProviderProps {
 export function WholesaleOrderProvider({ children, initialItems }: WholesaleOrderProviderProps) {
   const { toast } = useToast();
   const { setHasUnsavedChanges: setGlobalUnsavedChanges } = useAdmin();
+  const { addAction } = useHistory();
   const [orderNumber, setOrderNumber] = useState("");
   const [orderDate, setOrderDate] = useState(() => {
     const today = new Date();
@@ -71,6 +73,36 @@ export function WholesaleOrderProvider({ children, initialItems }: WholesaleOrde
   
   // Track initial items to detect changes
   const [initialItemsState] = useState<OrderItem[]>(JSON.parse(JSON.stringify(initialItems || [])));
+
+  // Custom setItems function that tracks history
+  const handleSetItems = (newItemsOrUpdater: OrderItem[] | ((prevItems: OrderItem[]) => OrderItem[])) => {
+    setItems(prevItems => {
+      const prevItemsCopy = [...prevItems];
+      const newItems = typeof newItemsOrUpdater === 'function' 
+        ? newItemsOrUpdater(prevItems)
+        : newItemsOrUpdater;
+      
+      // Record this action in history
+      addAction({
+        payload: { type: 'items', data: newItems },
+        reverse: () => setItems(prevItemsCopy)
+      });
+      
+      return newItems;
+    });
+  };
+
+  // Custom setOptions function that tracks history
+  const handleSetOptions = (newOptions: DropdownOptions) => {
+    const prevOptions = { ...options };
+    setOptions(newOptions);
+    
+    // Record this action in history
+    addAction({
+      payload: { type: 'options', data: newOptions },
+      reverse: () => setOptions(prevOptions)
+    });
+  };
 
   useEffect(() => {
     // Mark changes when items are modified compared to the initial state
@@ -176,7 +208,7 @@ export function WholesaleOrderProvider({ children, initialItems }: WholesaleOrde
     hasUnsavedChanges,
     setHasUnsavedChanges,
     options,
-    setOptions,
+    setOptions: handleSetOptions,
     optionsHistory,
     setOptionsHistory,
     editingField,
@@ -184,7 +216,7 @@ export function WholesaleOrderProvider({ children, initialItems }: WholesaleOrde
     newOption,
     setNewOption,
     items,
-    setItems,
+    setItems: handleSetItems,
     saveChanges,
     discardChanges,
     undoLastChange,

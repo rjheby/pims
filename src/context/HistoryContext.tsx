@@ -26,6 +26,7 @@ type HistoryContextType = {
   redo: () => void;
   canUndo: boolean;
   canRedo: boolean;
+  addAction: (action: Omit<ActionType, 'type'>) => void;
 };
 
 const HistoryContext = createContext<HistoryContextType | undefined>(undefined);
@@ -76,11 +77,16 @@ export function HistoryProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'REDO', payload: null });
   }, []);
 
+  const addAction = useCallback((action: Omit<ActionType, 'type'>) => {
+    dispatch({ type: 'PERFORM_ACTION', ...action });
+  }, []);
+
   const value = {
     state,
     dispatch,
     undo,
     redo,
+    addAction,
     canUndo: state.past.length > 0,
     canRedo: state.future.length > 0,
   };

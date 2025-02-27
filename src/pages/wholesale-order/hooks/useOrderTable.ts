@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useWholesaleOrder } from "../context/WholesaleOrderContext";
 import { OrderItem, DropdownOptions, initialOptions } from "../types";
+import { useHistory } from "@/context/HistoryContext";
 
 export function useOrderTable() {
   const { 
@@ -15,6 +16,8 @@ export function useOrderTable() {
     setItems,
     setOptions 
   } = useWholesaleOrder();
+  
+  const { addAction } = useHistory();
 
   const [compressedStates, setCompressedStates] = useState<Record<number, boolean>>({});
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
@@ -27,17 +30,35 @@ export function useOrderTable() {
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>, field: keyof DropdownOptions) => {
     if (e.key === "Enter" && newOption?.trim()) {
+      const prevOptions = { ...safeOptions };
       const updatedOptions = [...(safeOptions[field] || []), newOption.trim()];
+      
       setOptions({
         ...safeOptions,
         [field]: updatedOptions,
       });
+      
+      // Record this action in history
+      addAction({
+        payload: { 
+          type: 'options', 
+          field, 
+          data: { 
+            ...safeOptions,
+            [field]: updatedOptions 
+          } 
+        },
+        reverse: () => setOptions(prevOptions)
+      });
+      
       setNewOption("");
       setEditingField(null);
     }
   };
 
   const handleUpdateItem = (id: number, field: keyof OrderItem, value: string | number) => {
+    const prevItems = [...items];
+    
     setItems(prev => 
       prev.map((item) =>
         item.id === id ? { 
@@ -48,32 +69,74 @@ export function useOrderTable() {
         } : item
       )
     );
+    
+    // Record this action in history
+    addAction({
+      payload: { 
+        type: 'updateItem', 
+        itemId: id, 
+        field, 
+        value 
+      },
+      reverse: () => setItems(prevItems)
+    });
   };
 
   const handleRemoveRow = (id: number) => {
+    const prevItems = [...items];
     setItems(prev => prev.filter((item) => item.id !== id));
+    
+    // Record this action in history
+    addAction({
+      payload: { 
+        type: 'removeRow', 
+        itemId: id 
+      },
+      reverse: () => setItems(prevItems)
+    });
   };
 
   const handleCopyRow = (item: OrderItem) => {
+    const prevItems = [...items];
     const maxId = Math.max(...items.map((item) => item.id), 0);
-    setItems(prev => [...prev, { ...item, id: maxId + 1 }]);
+    const newItem = { ...item, id: maxId + 1 };
+    
+    setItems(prev => [...prev, newItem]);
+    
+    // Record this action in history
+    addAction({
+      payload: { 
+        type: 'copyRow', 
+        newItem 
+      },
+      reverse: () => setItems(prevItems)
+    });
   };
 
   const handleAddItem = () => {
+    const prevItems = [...items];
     const maxId = Math.max(...items.map((item) => item.id), 0);
-    setItems(prev => [
-      ...prev,
-      {
-        id: maxId + 1,
-        species: "",
-        length: "",
-        bundleType: "",
-        thickness: "",
-        packaging: "Pallets",
-        pallets: 0,
-        unitCost: 250, // Default unit cost
+    const newItem = {
+      id: maxId + 1,
+      species: "",
+      length: "",
+      bundleType: "",
+      thickness: "",
+      packaging: "Pallets",
+      pallets: 0,
+      unitCost: 250, // Default unit cost
+    };
+    
+    setItems(prev => [...prev, newItem]);
+    
+    // Record this action in history
+    addAction({
+      payload: { 
+        type: 'addItem', 
+        newItem 
       },
-    ]);
+      reverse: () => setItems(prevItems)
+    });
   };
 
   const calculateTotalPallets = () => {
@@ -101,9 +164,21 @@ export function useOrderTable() {
   };
 
   const handleUpdateOptions = (field: keyof DropdownOptions, newOptions: string[]) => {
+    const prevOptions = { ...safeOptions };
+    
     setOptions({
       ...safeOptions,
       [field]: newOptions,
+    });
+    
+    // Record this action in history
+    addAction({
+      payload: { 
+        type: 'updateOptions', 
+        field, 
+        newOptions 
+      },
+      reverse: () => setOptions(prevOptions)
     });
   };
 

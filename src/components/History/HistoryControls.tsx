@@ -3,9 +3,31 @@ import { RotateCcw, RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useHistory } from '@/context/HistoryContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useToast } from '@/hooks/use-toast';
 
 export function HistoryControls() {
   const { undo, redo, canUndo, canRedo } = useHistory();
+  const { toast } = useToast();
+
+  const handleUndo = () => {
+    if (canUndo) {
+      undo();
+      toast({
+        title: "Action undone",
+        description: "Previous action was undone successfully",
+      });
+    }
+  };
+
+  const handleRedo = () => {
+    if (canRedo) {
+      redo();
+      toast({
+        title: "Action redone",
+        description: "Action was redone successfully",
+      });
+    }
+  };
 
   return (
     <TooltipProvider>
@@ -15,7 +37,7 @@ export function HistoryControls() {
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={undo}
+              onClick={handleUndo}
               disabled={!canUndo}
               className="h-8 w-8 p-0"
             >
@@ -24,7 +46,7 @@ export function HistoryControls() {
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Undo</p>
+            <p>Undo (Ctrl+Z)</p>
           </TooltipContent>
         </Tooltip>
         
@@ -33,7 +55,7 @@ export function HistoryControls() {
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={redo}
+              onClick={handleRedo}
               disabled={!canRedo}
               className="h-8 w-8 p-0"
             >
@@ -42,7 +64,7 @@ export function HistoryControls() {
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Redo</p>
+            <p>Redo (Ctrl+Y)</p>
           </TooltipContent>
         </Tooltip>
       </div>

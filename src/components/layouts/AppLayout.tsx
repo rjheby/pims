@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { cn } from "@/lib/utils";
 import { GlobalAdminControls } from "@/components/GlobalAdminControls";
@@ -8,6 +8,36 @@ import { useLocation, Link } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { GlobalControls } from "@/components/GlobalControls";
 import { HistoryProvider } from "@/context/HistoryContext";
+import { useHistory } from "@/context/HistoryContext";
+
+// Component to handle keyboard shortcuts
+function KeyboardShortcuts() {
+  const { undo, redo, canUndo, canRedo } = useHistory();
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Handle Ctrl+Z for undo
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey && canUndo) {
+        e.preventDefault();
+        undo();
+      }
+      
+      // Handle Ctrl+Y or Ctrl+Shift+Z for redo
+      if (((e.ctrlKey || e.metaKey) && e.key === 'y') || 
+          ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z')) {
+        if (canRedo) {
+          e.preventDefault();
+          redo();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [undo, redo, canUndo, canRedo]);
+
+  return null;
+}
 
 export default function AppLayout({ 
   children,
@@ -22,6 +52,7 @@ export default function AppLayout({
   return (
     <SidebarProvider>
       <HistoryProvider>
+        <KeyboardShortcuts />
         <div className="relative min-h-screen overflow-x-hidden">
           {/* Admin Mode Overlay */}
           <div
