@@ -46,7 +46,6 @@ export function WholesaleOrderForm() {
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [summaryItems, setSummaryItems] = useState<OrderItem[]>([]);
 
   useEffect(() => {
     async function fetchOrderData() {
@@ -78,9 +77,6 @@ export function WholesaleOrderForm() {
             delivery_date: rawData.delivery_date || '',
             items: parsedItems,
           });
-          
-          // Also update the summary items
-          setSummaryItems(parsedItems);
           
           // Check if status exists before trying to use it
           if ('status' in rawData && rawData.status) {
@@ -118,30 +114,14 @@ export function WholesaleOrderForm() {
     }
   };
 
-  const calculateTotalPallets = (items: OrderItem[]) => {
-    if (!items?.length) return 0;
-    return items.reduce((sum, item) => sum + (Number(item.pallets) || 0), 0);
+  const calculateTotalPallets = () => {
+    if (!orderData?.items) return 0;
+    return orderData.items.reduce((sum, item) => sum + (Number(item.pallets) || 0), 0);
   };
 
-  const calculateTotalCost = (items: OrderItem[]) => {
-    if (!items?.length) return 0;
-    return items.reduce((sum, item) => sum + ((Number(item.pallets) || 0) * (Number(item.unitCost) || 0)), 0);
-  };
-
-  // Calculate the quantity breakdown by species
-  const calculateQuantityBySpecies = (items: OrderItem[]) => {
-    if (!items?.length) return {};
-    
-    const speciesMap: Record<string, number> = {};
-    
-    items.forEach((item) => {
-      if (item.species && item.pallets) {
-        const species = item.species;
-        speciesMap[species] = (speciesMap[species] || 0) + Number(item.pallets);
-      }
-    });
-    
-    return speciesMap;
+  const calculateTotalCost = () => {
+    if (!orderData?.items) return 0;
+    return orderData.items.reduce((sum, item) => sum + ((Number(item.pallets) || 0) * (Number(item.unitCost) || 0)), 0);
   };
 
   const validateOrder = () => {
@@ -189,9 +169,6 @@ export function WholesaleOrderForm() {
 
       if (updateError) throw updateError;
 
-      // Update the summary items with the latest data
-      setSummaryItems([...orderData.items]);
-
       toast({
         title: "Success",
         description: "Order draft saved successfully",
@@ -211,7 +188,7 @@ export function WholesaleOrderForm() {
   const handleSubmit = async () => {
     if (!orderData || isSubmitting) return;
 
-    const totalPallets = calculateTotalPallets(orderData.items);
+    const totalPallets = calculateTotalPallets();
     
     if (totalPallets > 24) {
       toast({
@@ -251,9 +228,6 @@ export function WholesaleOrderForm() {
 
       // Update local state regardless of database schema
       setOrderStatus('submitted');
-      
-      // Update the summary items with the latest data
-      setSummaryItems([...orderData.items]);
 
       toast({
         title: "Success",
@@ -273,21 +247,8 @@ export function WholesaleOrderForm() {
     }
   };
 
-  const handleItemsChanged = (items: OrderItem[]) => {
-    // Update summary immediately when items change in the OrderTable
-    setSummaryItems(items);
-    
-    // Also update the main orderData
-    if (orderData) {
-      setOrderData(prev => ({
-        ...prev!,
-        items
-      }));
-    }
-  };
-
   const renderCustomSummary = () => {
-    const totalPallets = calculateTotalPallets(summaryItems);
+    const totalPallets = calculateTotalPallets();
     
     return (
       <div className="mt-4 pt-4 border-t border-gray-200">
@@ -328,9 +289,8 @@ export function WholesaleOrderForm() {
     </div>
   );
 
-  const totalPallets = calculateTotalPallets(summaryItems);
-  const totalCost = calculateTotalCost(summaryItems);
-  const quantityBySpecies = calculateQuantityBySpecies(summaryItems);
+  const totalPallets = calculateTotalPallets();
+  const totalCost = calculateTotalCost();
 
   const isSubmitted = orderStatus === 'submitted';
 
@@ -367,10 +327,7 @@ export function WholesaleOrderForm() {
                 disabled={false}
               />
               
-              <WholesaleOrderProvider 
-                initialItems={orderData.items}
-                onItemsChanged={handleItemsChanged}
-              >
+              <WholesaleOrderProvider initialItems={orderData.items}>
                 <OrderTable readOnly={false} />
               </WholesaleOrderProvider>
 
@@ -378,10 +335,7 @@ export function WholesaleOrderForm() {
                 items={{
                   totalQuantity: totalPallets,
                   totalValue: totalCost,
-                  quantityByPackaging: { 
-                    'Total Pallets': totalPallets,
-                    ...quantityBySpecies  // Include quantity by species
-                  }
+                  quantityByPackaging: { 'Pallets': totalPallets }
                 }}
                 renderCustomSummary={renderCustomSummary}
               />
