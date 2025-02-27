@@ -25,6 +25,11 @@ interface BaseOrderTableProps {
   onFilterChange?: (filter: string) => void;
 }
 
+interface ProcessedItem extends Record<string, any> {
+  id: string | number;
+  highlighted?: boolean;
+}
+
 export function BaseOrderTable({ 
   children, 
   headers,
@@ -70,7 +75,7 @@ export function BaseOrderTable({
         Object.values(item).some(value => 
           value?.toString().toLowerCase().includes(searchTerm.toLowerCase())
         ) : false
-    }));
+    })) as ProcessedItem[];
   }, [filteredData, searchTerm]);
 
   const getFilterOptions = (key: string) => {
