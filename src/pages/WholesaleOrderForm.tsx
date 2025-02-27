@@ -178,12 +178,18 @@ export function WholesaleOrderForm() {
         updateData.delivery_date = null;
       }
 
+      console.log('Updating order with ID:', id);
+      console.log('Update data:', updateData);
+
       const { error: updateError } = await supabase
         .from('wholesale_orders')
         .update(updateData)
         .eq('id', id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Supabase update error:', updateError);
+        throw updateError;
+      }
 
       // Refresh the order data from the server to ensure everything is up to date
       const { data: refreshedData, error: refreshError } = await supabase
@@ -259,12 +265,18 @@ export function WholesaleOrderForm() {
         updateData.delivery_date = null;
       }
 
+      console.log('Submitting order with ID:', id);
+      console.log('Submit data:', updateData);
+
       const { error: updateError } = await supabase
         .from('wholesale_orders')
         .update(updateData)
         .eq('id', id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Supabase submit error:', updateError);
+        throw updateError;
+      }
 
       // Update local state regardless of database schema
       setOrderStatus('submitted');
@@ -409,16 +421,35 @@ export function WholesaleOrderForm() {
                     className="bg-gray-600 hover:bg-gray-700"
                     disabled={isSaving}
                   >
-                    <Save className="mr-2 h-4 w-4" />
-                    Save Draft
+                    {isSaving ? (
+                      <>
+                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Save Draft
+                      </>
+                    )}
                   </Button>
                   
                   <Button 
                     onClick={handleSubmit} 
                     className="bg-[#2A4131] hover:bg-[#2A4131]/90"
+                    disabled={isSubmitting}
                   >
-                    <SendHorizontal className="mr-2 h-4 w-4" />
-                    {isSubmitted ? "Resubmit Order" : "Submit Order"}
+                    {isSubmitting ? (
+                      <>
+                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <SendHorizontal className="mr-2 h-4 w-4" />
+                        {isSubmitted ? "Resubmit Order" : "Submit Order"}
+                      </>
+                    )}
                   </Button>
                 </div>
                 
