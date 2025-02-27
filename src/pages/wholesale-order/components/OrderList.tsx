@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { OrderCard } from "./OrderCard";
@@ -5,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Filter, Search, X } from "lucide-react";
 import { OrderFilters } from "./OrderFilters";
+import { Badge } from "@/components/ui/badge";
 
 interface OrderListProps {
   orders: any[];
@@ -102,6 +104,15 @@ export function OrderList({
   const isFiltersActive = filters.status || filters.dateRange.from || filters.dateRange.to || 
                            filters.minTotal || filters.maxTotal;
 
+  // Count the number of active filters
+  const activeFilterCount = [
+    filters.status, 
+    filters.dateRange.from, 
+    filters.dateRange.to, 
+    filters.minTotal, 
+    filters.maxTotal
+  ].filter(Boolean).length;
+
   if (orders.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
@@ -136,36 +147,116 @@ export function OrderList({
         <Button 
           variant={isFiltersActive ? "default" : "outline"} 
           size="sm"
-          onClick={() => setShowFilters(!showFilters)}
+          onClick={() => setShowFilters(true)}
           className="flex items-center"
         >
           <Filter className="h-4 w-4 mr-2" />
-          {isFiltersActive ? "Filters Active" : "Filters"}
-          {isFiltersActive && (
-            <span className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary-foreground text-xs font-medium text-primary">
-              {Object.values(filters).filter(f => f !== "" && f !== null).length}
-            </span>
+          Filters
+          {activeFilterCount > 0 && (
+            <Badge className="ml-2 bg-primary-foreground text-primary">
+              {activeFilterCount}
+            </Badge>
           )}
         </Button>
-        
-        {isFiltersActive && (
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={clearFilters}
-          >
-            Clear filters
-          </Button>
-        )}
       </div>
       
-      {showFilters && (
-        <div className="mb-4 p-4 border rounded-lg shadow-sm bg-white">
-          <OrderFilters 
-            filters={filters} 
-            onApplyFilters={handleFilterApply} 
-            onClose={() => setShowFilters(false)} 
-          />
+      {/* Filters Sidebar */}
+      <OrderFilters 
+        open={showFilters}
+        onClose={() => setShowFilters(false)}
+        filters={filters} 
+        onApplyFilters={handleFilterApply}
+      />
+      
+      {/* Active Filters Display */}
+      {isFiltersActive && (
+        <div className="mb-4 flex flex-wrap gap-2 items-center">
+          <span className="text-sm text-muted-foreground">Active filters:</span>
+          
+          {filters.status && (
+            <Badge variant="outline" className="flex items-center gap-1 bg-background">
+              Status: {filters.status}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-4 w-4 p-0 ml-1" 
+                onClick={() => setFilters({...filters, status: ""})}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </Badge>
+          )}
+          
+          {filters.dateRange.from && (
+            <Badge variant="outline" className="flex items-center gap-1 bg-background">
+              From: {format(filters.dateRange.from, "PP")}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-4 w-4 p-0 ml-1" 
+                onClick={() => setFilters({
+                  ...filters, 
+                  dateRange: {...filters.dateRange, from: null}
+                })}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </Badge>
+          )}
+          
+          {filters.dateRange.to && (
+            <Badge variant="outline" className="flex items-center gap-1 bg-background">
+              To: {format(filters.dateRange.to, "PP")}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-4 w-4 p-0 ml-1" 
+                onClick={() => setFilters({
+                  ...filters, 
+                  dateRange: {...filters.dateRange, to: null}
+                })}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </Badge>
+          )}
+          
+          {filters.minTotal && (
+            <Badge variant="outline" className="flex items-center gap-1 bg-background">
+              Min Total: ${filters.minTotal}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-4 w-4 p-0 ml-1" 
+                onClick={() => setFilters({...filters, minTotal: ""})}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </Badge>
+          )}
+          
+          {filters.maxTotal && (
+            <Badge variant="outline" className="flex items-center gap-1 bg-background">
+              Max Total: ${filters.maxTotal}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-4 w-4 p-0 ml-1" 
+                onClick={() => setFilters({...filters, maxTotal: ""})}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </Badge>
+          )}
+          
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-sm text-muted-foreground" 
+            onClick={clearFilters}
+          >
+            Clear all
+          </Button>
         </div>
       )}
       

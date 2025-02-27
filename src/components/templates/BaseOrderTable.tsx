@@ -2,9 +2,11 @@
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ArrowUpDown, Search, X, Filter } from "lucide-react";
+import { ArrowUpDown, Search, X, Filter, ArrowUp, ArrowDown } from "lucide-react";
 import { useState, useMemo } from "react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 
 interface BaseOrderTableProps {
   children: React.ReactNode;
@@ -79,6 +81,20 @@ export function BaseOrderTable({
     setColumnFilters(newFilters);
   };
 
+  // Clear a specific column filter
+  const clearColumnFilter = (key: string) => {
+    const newFilters = { ...columnFilters };
+    delete newFilters[key];
+    setColumnFilters(newFilters);
+  };
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setColumnFilters({});
+    setFilter('');
+    onFilterChange?.('');
+  };
+
   const filteredData = useMemo(() => {
     let processedData = [...data];
 
@@ -118,7 +134,18 @@ export function BaseOrderTable({
     return processedData;
   }, [data, filter, columnFilters, sortConfig]);
 
-  const hasActiveFilters = Object.keys(columnFilters).length > 0;
+  const getSortIcon = (key: string) => {
+    if (!sortConfig || sortConfig.key !== key) {
+      return <ArrowUpDown className="ml-2 h-4 w-4" />;
+    }
+    
+    return sortConfig.direction === 'asc' 
+      ? <ArrowUp className="ml-2 h-4 w-4" /> 
+      : <ArrowDown className="ml-2 h-4 w-4" />;
+  };
+
+  const hasActiveFilters = Object.keys(columnFilters).length > 0 || filter;
+  const activeFilterCount = Object.keys(columnFilters).length + (filter ? 1 : 0);
 
   return (
     <div className="space-y-4 w-full">
@@ -148,58 +175,129 @@ export function BaseOrderTable({
         <Button 
           variant={hasActiveFilters ? "default" : "outline"}
           size="sm" 
-          onClick={() => setShowFiltersPanel(!showFiltersPanel)}
+          onClick={() => setShowFiltersPanel(true)}
           className="flex items-center"
         >
           <Filter className="h-4 w-4 mr-2" />
-          {hasActiveFilters ? 
-            `Filters (${Object.keys(columnFilters).length})` : 
-            "Filters"
-          }
+          Filters
+          {activeFilterCount > 0 && (
+            <Badge className="ml-2 bg-primary-foreground text-primary">
+              {activeFilterCount}
+            </Badge>
+          )}
         </Button>
       </div>
 
-      {/* Filters Panel */}
-      {showFiltersPanel && (
-        <div className="p-4 border rounded-md shadow-sm bg-white">
-          <h3 className="text-sm font-medium mb-3">Filter by column</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {headers.filter(header => header.key !== 'actions').map(header => (
-              <div key={header.key} className="space-y-1">
-                <label 
-                  htmlFor={`filter-${header.key}`}
-                  className="text-xs font-medium text-muted-foreground"
-                >
-                  {header.label}
-                </label>
-                <Input
-                  id={`filter-${header.key}`}
-                  placeholder={`Filter ${header.label}...`}
-                  value={columnFilters[header.key] || ''}
-                  onChange={(e) => handleColumnFilterChange(header.key, e.target.value)}
-                  className="h-8 text-sm"
-                />
-              </div>
-            ))}
-          </div>
-          <div className="flex justify-end mt-4">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setColumnFilters({})}
-              className="mr-2"
-            >
-              Clear All
-            </Button>
-            <Button 
-              size="sm" 
-              onClick={() => setShowFiltersPanel(false)}
-            >
-              Close
-            </Button>
-          </div>
+      {/* Active Filters Display */}
+      {hasActiveFilters && (
+        <div className="flex flex-wrap gap-2 items-center">
+          <span className="text-sm text-muted-foreground">Active filters:</span>
+          
+          {filter && (
+            <Badge variant="outline" className="flex items-center gap-1 bg-background">
+              Search: {filter}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-4 w-4 p-0 ml-1" 
+                onClick={() => handleFilter('')}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </Badge>
+          )}
+          
+          {Object.entries(columnFilters).map(([key, value]) => (
+            <Badge key={key} variant="outline" className="flex items-center gap-1 bg-background">
+              {headers.find(h => h.key === key)?.label}: {value}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-4 w-4 p-0 ml-1" 
+                onClick={() => clearColumnFilter(key)}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </Badge>
+          ))}
+          
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-sm text-muted-foreground" 
+            onClick={clearAllFilters}
+          >
+            Clear all
+          </Button>
         </div>
       )}
+
+      {/* Filters Sidebar */}
+      <Sheet open={showFiltersPanel} onOpenChange={setShowFiltersPanel}>
+        <SheetContent className="sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>Filter Items</SheetTitle>
+            <SheetDescription>
+              Apply filters to narrow down your items
+            </SheetDescription>
+          </SheetHeader>
+          
+          <div className="py-6 space-y-6">
+            {/* Global Search */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Search All Fields</Label>
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search all columns..."
+                  value={filter}
+                  onChange={(e) => handleFilter(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
+            </div>
+            
+            {/* Column Filters */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium">Filter by Column</h3>
+              <div className="space-y-4">
+                {headers.filter(header => header.key !== 'actions').map(header => (
+                  <div key={header.key} className="space-y-2">
+                    <Label 
+                      htmlFor={`filter-${header.key}`}
+                      className="text-xs font-medium"
+                    >
+                      {header.label}
+                    </Label>
+                    <Input
+                      id={`filter-${header.key}`}
+                      placeholder={`Filter ${header.label.toLowerCase()}...`}
+                      value={columnFilters[header.key] || ''}
+                      onChange={(e) => handleColumnFilterChange(header.key, e.target.value)}
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex flex-col gap-2 mt-6">
+            <Button
+              onClick={() => setShowFiltersPanel(false)}
+              className="bg-[#2A4131] hover:bg-[#2A4131]/90"
+            >
+              Apply Filters
+            </Button>
+            <Button
+              variant="outline"
+              onClick={clearAllFilters}
+            >
+              Reset All Filters
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <div className="overflow-x-auto rounded-md border" style={{width: '100%'}}>
         <Table className="w-full table-fixed" style={{width: '100%'}}>
@@ -219,9 +317,9 @@ export function BaseOrderTable({
                     <span>
                       {header.label}
                       {columnFilters[header.key] && (
-                        <span className="ml-1 text-xs bg-primary/20 text-primary py-0.5 px-1 rounded">
+                        <Badge className="ml-1 text-xs bg-primary/20 text-primary py-0.5 px-1">
                           Filtered
-                        </span>
+                        </Badge>
                       )}
                     </span>
                     {header.sortable && (
@@ -231,7 +329,7 @@ export function BaseOrderTable({
                         className="h-8 w-8 p-0"
                         onClick={() => handleSort(header.key)}
                       >
-                        <ArrowUpDown className="h-4 w-4" />
+                        {getSortIcon(header.key)}
                       </Button>
                     )}
                   </div>
@@ -251,7 +349,7 @@ export function BaseOrderTable({
         </div>
       )}
       
-      {(filter || hasActiveFilters) && filteredData.length > 0 && (
+      {hasActiveFilters && filteredData.length > 0 && (
         <div className="text-xs text-muted-foreground">
           Showing {filteredData.length} of {data.length} items
         </div>
