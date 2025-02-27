@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ArrowUpDown, Filter, Search, X } from "lucide-react";
 import { useState, useMemo } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Select,
   SelectContent,
@@ -31,6 +32,7 @@ export function BaseOrderTable({
   onSortChange,
   onFilterChange 
 }: BaseOrderTableProps) {
+  const isMobile = useIsMobile();
   const [sortConfig, setSortConfig] = useState<{
     key: string;
     direction: 'asc' | 'desc';
@@ -38,6 +40,7 @@ export function BaseOrderTable({
 
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
+  const [showFilters, setShowFilters] = useState(false);
 
   const handleSort = (key: string) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -78,11 +81,61 @@ export function BaseOrderTable({
     return Array.from(uniqueValues);
   };
 
+  const FilterControls = () => (
+    <div className={`flex ${isMobile ? 'flex-col' : 'items-center'} gap-2`}>
+      <div className="flex items-center gap-2">
+        <Filter className="h-4 w-4 text-muted-foreground" />
+        {isMobile && 
+          <span className="text-sm text-muted-foreground">
+            Filters {Object.keys(activeFilters).length > 0 && `(${Object.keys(activeFilters).length})`}
+          </span>
+        }
+      </div>
+      <div className={`flex ${isMobile ? 'flex-col' : 'items-center'} gap-2`}>
+        {headers.map(header => (
+          <div key={header.key} className={isMobile ? 'w-full' : 'w-32'}>
+            <Select
+              value={activeFilters[header.key] || ''}
+              onValueChange={(value) => 
+                setActiveFilters(prev => ({
+                  ...prev,
+                  [header.key]: value
+                }))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={`Filter ${header.label}`} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All {header.label}</SelectItem>
+                {getFilterOptions(header.key).map(option => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ))}
+        {Object.keys(activeFilters).length > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setActiveFilters({})}
+            className={`h-8 px-2 ${isMobile ? 'w-full' : ''}`}
+          >
+            Clear Filters
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-4 w-full">
-      <div className="flex justify-between items-center gap-4">
+      <div className={`flex ${isMobile ? 'flex-col' : 'justify-between items-center'} gap-4`}>
         {/* Search Section */}
-        <div className="relative w-72">
+        <div className={`relative ${isMobile ? 'w-full' : 'w-72'}`}>
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search table..."
@@ -103,44 +156,29 @@ export function BaseOrderTable({
         </div>
 
         {/* Filters Section */}
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          {headers.map(header => (
-            <div key={header.key} className="w-32">
-              <Select
-                value={activeFilters[header.key] || ''}
-                onValueChange={(value) => 
-                  setActiveFilters(prev => ({
-                    ...prev,
-                    [header.key]: value
-                  }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={`Filter ${header.label}`} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All {header.label}</SelectItem>
-                  {getFilterOptions(header.key).map(option => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          ))}
-          {Object.keys(activeFilters).length > 0 && (
+        {isMobile ? (
+          <>
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
-              onClick={() => setActiveFilters({})}
-              className="h-8 px-2"
+              onClick={() => setShowFilters(!showFilters)}
+              className="w-full flex items-center justify-between"
             >
-              Clear Filters
+              <span className="flex items-center gap-2">
+                <Filter className="h-4 w-4" />
+                Filters {Object.keys(activeFilters).length > 0 && `(${Object.keys(activeFilters).length})`}
+              </span>
+              <ArrowUpDown className="h-4 w-4" />
             </Button>
-          )}
-        </div>
+            {showFilters && (
+              <div className="border rounded-md p-4 space-y-4">
+                <FilterControls />
+              </div>
+            )}
+          </>
+        ) : (
+          <FilterControls />
+        )}
       </div>
 
       <div className="overflow-x-auto rounded-md border w-full">
@@ -179,7 +217,6 @@ export function BaseOrderTable({
           <TableBody>
             {React.Children.map(children, child => {
               if (!React.isValidElement(child)) return null;
-              // Add highlighted prop to rows based on search results
               return React.cloneElement(child, {
                 style: {
                   backgroundColor: processedData.find(item => item.id === child.props.item?.id)?.highlighted 
