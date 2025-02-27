@@ -1,3 +1,4 @@
+
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +20,7 @@ export function WholesaleOrderArchive() {
 
   const handleDuplicateOrder = async (order: any) => {
     try {
-      const { id, created_at, order_number, ...orderData } = order;
+      const { id, created_at, order_number, status, submitted_at, ...orderData } = order;
       const today = new Date().toISOString();
       
       const { data: newOrder, error } = await supabase
@@ -28,7 +29,8 @@ export function WholesaleOrderArchive() {
           ...orderData,
           order_date: today,
           delivery_date: null,
-          order_number: `${order_number}-COPY`
+          order_number: `${order_number}-COPY`,
+          status: 'draft'
         }])
         .select()
         .maybeSingle();
@@ -52,13 +54,9 @@ export function WholesaleOrderArchive() {
     }
   };
 
-  const generateOrderPDF = (order: any) => {
-    return JSON.stringify(order, null, 2);
-  };
-
   const handleDownloadOrder = (order: any) => {
     try {
-      const pdfContent = generateOrderPDF(order);
+      const pdfContent = JSON.stringify(order, null, 2);
       const blob = new Blob([pdfContent], { type: 'application/json' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');

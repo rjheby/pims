@@ -15,6 +15,8 @@ interface OrderCardProps {
     formattedDeliveryDate: string;
     totalPallets: number;
     totalValue: number;
+    status?: string;
+    submitted_at?: string;
   };
   onEdit: (orderId: string) => void;
   onDuplicate: (order: any) => void;
@@ -26,6 +28,7 @@ interface OrderCardProps {
 export function OrderCard({ order, onEdit, onDuplicate, onDownload, onCopyLink, onShare }: OrderCardProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const isSubmitted = order.status === 'submitted';
 
   const handleDownload = async (order: any) => {
     try {
@@ -59,7 +62,14 @@ export function OrderCard({ order, onEdit, onDuplicate, onDownload, onCopyLink, 
               <FileText className="h-[50px] w-[50px] text-[#2A4131]" />
             </td>
             <td className="align-top">
-              <div className="font-medium">Order #{order.order_number}</div>
+              <div className="flex justify-between items-start">
+                <div className="font-medium">Order #{order.order_number}</div>
+                {isSubmitted && (
+                  <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+                    Submitted
+                  </span>
+                )}
+              </div>
               <div className="text-sm text-gray-500 mb-2">
                 <span className="font-medium">Delivery Date: </span>
                 {order.formattedDeliveryDate}
@@ -84,13 +94,16 @@ export function OrderCard({ order, onEdit, onDuplicate, onDownload, onCopyLink, 
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        className="h-8 w-8 p-0" 
+                        className={`h-8 w-8 p-0 ${isSubmitted ? 'opacity-50 cursor-not-allowed' : ''}`}
                         onClick={() => navigate(`/wholesale-orders/${order.id}`)}
+                        disabled={isSubmitted}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Edit order</TooltipContent>
+                    <TooltipContent>
+                      {isSubmitted ? 'Submitted orders cannot be edited' : 'Edit order'}
+                    </TooltipContent>
                   </Tooltip>
 
                   <AlertDialog>

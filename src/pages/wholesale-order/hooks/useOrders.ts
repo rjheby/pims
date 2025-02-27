@@ -11,8 +11,8 @@ export function useOrders() {
       try {
         const { data, error } = await supabase
           .from("wholesale_orders")
-          .select("id, order_number, order_date, delivery_date, items")
-          .order('delivery_date', { ascending: false });
+          .select("id, order_number, order_date, delivery_date, items, status, submitted_at")
+          .order('order_number', { ascending: false }); // Z to A sorting
 
         if (error) {
           console.error("Error fetching orders:", error);
