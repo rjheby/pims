@@ -20,42 +20,75 @@ const AppContent = () => {
   }, []);
 
   return (
-    <UserProvider>
-      <AppLayout isAdminMode={isAdmin}>
-        <RouterProvider router={router} />
-        <Toaster />
-      </AppLayout>
-    </UserProvider>
+    <AppLayout isAdminMode={isAdmin}>
+      <Toaster />
+    </AppLayout>
   );
 };
 
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <Dashboard />,
+    element: (
+      <UserProvider>
+        <AdminProvider>
+          <AppContent>
+            <Dashboard />
+          </AppContent>
+        </AdminProvider>
+      </UserProvider>
+    ),
   },
   {
     path: "/wholesale-order",
-    element: <WholesaleOrder />,
+    element: (
+      <UserProvider>
+        <AdminProvider>
+          <AppContent>
+            <WholesaleOrder />
+          </AppContent>
+        </AdminProvider>
+      </UserProvider>
+    ),
   },
   {
     path: "/wholesale-orders",
-    element: <SupplierOrderArchive />,
+    element: (
+      <UserProvider>
+        <AdminProvider>
+          <AppContent>
+            <SupplierOrderArchive />
+          </AppContent>
+        </AdminProvider>
+      </UserProvider>
+    ),
   },
   {
     path: "/wholesale-orders/:id",
-    element: <WholesaleOrderForm />,
+    element: (
+      <UserProvider>
+        <AdminProvider>
+          <AppContent>
+            <WholesaleOrderForm />
+          </AppContent>
+        </AdminProvider>
+      </UserProvider>
+    ),
   },
   {
     path: "*",
-    element: <NotFound />,
+    element: (
+      <UserProvider>
+        <AdminProvider>
+          <AppContent>
+            <NotFound />
+          </AppContent>
+        </AdminProvider>
+      </UserProvider>
+    ),
   },
 ]);
 
 export default function App() {
-  return (
-    <AdminProvider>
-      <AppContent />
-    </AdminProvider>
-  );
+  return <RouterProvider router={router} />;
 }
