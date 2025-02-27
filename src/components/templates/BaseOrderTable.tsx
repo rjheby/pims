@@ -97,11 +97,11 @@ export function BaseOrderTable({
         {headers.map(header => (
           <div key={header.key} className={isMobile ? 'w-full' : 'w-32'}>
             <Select
-              value={activeFilters[header.key] || ''}
+              value={activeFilters[header.key] || 'all'}
               onValueChange={(value) => 
                 setActiveFilters(prev => ({
                   ...prev,
-                  [header.key]: value
+                  [header.key]: value === 'all' ? '' : value
                 }))
               }
             >
@@ -109,7 +109,7 @@ export function BaseOrderTable({
                 <SelectValue placeholder={`Filter ${header.label}`} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All {header.label}</SelectItem>
+                <SelectItem value="all">All {header.label}</SelectItem>
                 {getFilterOptions(header.key).map(option => (
                   <SelectItem key={option} value={option}>
                     {option}
