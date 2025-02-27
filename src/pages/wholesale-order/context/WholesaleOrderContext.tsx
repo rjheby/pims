@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, ReactNode, Dispatch, SetStateAction, useEffect } from "react";
 import { OrderItem, DropdownOptions, initialOptions } from "../types";
 import { useToast } from "@/hooks/use-toast";
@@ -67,6 +68,20 @@ export function WholesaleOrderProvider({ children, initialItems }: WholesaleOrde
     pallets: 0,
     unitCost: 250,
   }]);
+  
+  // Track initial items to detect changes
+  const [initialItemsState] = useState<OrderItem[]>(JSON.parse(JSON.stringify(initialItems || [])));
+
+  useEffect(() => {
+    // Mark changes when items are modified compared to the initial state
+    if (initialItemsState.length > 0) {
+      const itemsChanged = JSON.stringify(items) !== JSON.stringify(initialItemsState);
+      if (itemsChanged) {
+        setHasUnsavedChanges(true);
+        setGlobalUnsavedChanges(true);
+      }
+    }
+  }, [items, initialItemsState, setGlobalUnsavedChanges]);
 
   const generateOrderNumber = async (date: string) => {
     if (!date) return "";

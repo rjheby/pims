@@ -3,12 +3,15 @@ import { OrderTableRow } from "./components/OrderTableRow";
 import { OrderTableMobileRow } from "./components/OrderTableMobileRow";
 import { useOrderTable } from "./hooks/useOrderTable";
 import { BaseOrderTable } from "@/components/templates/BaseOrderTable";
+import { OrderItem } from "./types";
+import { useEffect } from "react";
 
 interface OrderTableProps {
   readOnly?: boolean;
+  onItemsChange?: (items: OrderItem[]) => void;
 }
 
-export function OrderTable({ readOnly = false }: OrderTableProps) {
+export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps) {
   const {
     items,
     options,
@@ -31,6 +34,13 @@ export function OrderTable({ readOnly = false }: OrderTableProps) {
     filterValue,
     setFilterValue,
   } = useOrderTable();
+
+  // Call the onItemsChange callback whenever items change
+  useEffect(() => {
+    if (onItemsChange) {
+      onItemsChange(items);
+    }
+  }, [items, onItemsChange]);
 
   const headers = [
     { key: 'name', label: 'Name', sortable: true },

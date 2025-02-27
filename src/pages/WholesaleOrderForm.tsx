@@ -124,6 +124,22 @@ export function WholesaleOrderForm() {
     return orderData.items.reduce((sum, item) => sum + ((Number(item.pallets) || 0) * (Number(item.unitCost) || 0)), 0);
   };
 
+  // Calculate quantities by species for the order summary
+  const calculateQuantityBySpecies = () => {
+    if (!orderData?.items) return {};
+    
+    const speciesMap: Record<string, number> = {};
+    
+    orderData.items.forEach(item => {
+      if (item.species && item.pallets) {
+        const species = item.species;
+        speciesMap[species] = (speciesMap[species] || 0) + (Number(item.pallets) || 0);
+      }
+    });
+    
+    return speciesMap;
+  };
+
   const validateOrder = () => {
     if (!orderData?.order_date) {
       throw new Error("Order date is required");
@@ -168,6 +184,30 @@ export function WholesaleOrderForm() {
         .eq('id', id);
 
       if (updateError) throw updateError;
+
+      // Refresh the order data from the server to ensure everything is up to date
+      const { data: refreshedData, error: refreshError } = await supabase
+        .from("wholesale_orders")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (refreshError) {
+        console.error("Error refreshing order data:", refreshError);
+      } else if (refreshedData) {
+        // Update our local state with the refreshed data
+        const parsedItems = typeof refreshedData.items === 'string' 
+          ? JSON.parse(refreshedData.items) 
+          : refreshedData.items;
+        
+        setOrderData({
+          id: refreshedData.id,
+          order_number: refreshedData.order_number,
+          order_date: refreshedData.order_date,
+          delivery_date: refreshedData.delivery_date || '',
+          items: parsedItems,
+        });
+      }
 
       toast({
         title: "Success",
@@ -247,6 +287,19 @@ export function WholesaleOrderForm() {
     }
   };
 
+  // This function is called when the order items change within the WholesaleOrderProvider
+  const handleOrderItemsChange = (updatedItems: OrderItem[]) => {
+    if (orderData) {
+      // Update the local state with the new items
+      setOrderData(prev => ({
+        ...prev!,
+        items: updatedItems
+      }));
+      
+      console.log("Order items updated:", updatedItems);
+    }
+  };
+
   const renderCustomSummary = () => {
     const totalPallets = calculateTotalPallets();
     
@@ -291,6 +344,7 @@ export function WholesaleOrderForm() {
 
   const totalPallets = calculateTotalPallets();
   const totalCost = calculateTotalCost();
+  const speciesBreakdown = calculateQuantityBySpecies();
 
   const isSubmitted = orderStatus === 'submitted';
 
@@ -327,15 +381,23 @@ export function WholesaleOrderForm() {
                 disabled={false}
               />
               
-              <WholesaleOrderProvider initialItems={orderData.items}>
-                <OrderTable readOnly={false} />
+              <WholesaleOrderProvider 
+                initialItems={orderData.items}
+              >
+                <OrderTable 
+                  readOnly={false}
+                  onItemsChange={handleOrderItemsChange} 
+                />
               </WholesaleOrderProvider>
 
               <BaseOrderSummary 
                 items={{
                   totalQuantity: totalPallets,
                   totalValue: totalCost,
-                  quantityByPackaging: { 'Pallets': totalPallets }
+                  quantityByPackaging: {
+                    'Pallets': totalPallets,
+                    ...speciesBreakdown
+                  }
                 }}
                 renderCustomSummary={renderCustomSummary}
               />
