@@ -12,7 +12,7 @@ import { AdminProvider, useAdmin } from "@/context/AdminContext";
 import { UserProvider } from "@/context/UserContext";
 import "./App.css";
 
-const AppContent = () => {
+function PageWrapper({ children }: { children: React.ReactNode }) {
   const { isAdmin } = useAdmin();
 
   useEffect(() => {
@@ -21,10 +21,11 @@ const AppContent = () => {
 
   return (
     <AppLayout isAdminMode={isAdmin}>
+      {children}
       <Toaster />
     </AppLayout>
   );
-};
+}
 
 const router = createBrowserRouter([
   {
@@ -32,9 +33,9 @@ const router = createBrowserRouter([
     element: (
       <UserProvider>
         <AdminProvider>
-          <AppContent>
+          <PageWrapper>
             <Dashboard />
-          </AppContent>
+          </PageWrapper>
         </AdminProvider>
       </UserProvider>
     ),
@@ -44,9 +45,9 @@ const router = createBrowserRouter([
     element: (
       <UserProvider>
         <AdminProvider>
-          <AppContent>
+          <PageWrapper>
             <WholesaleOrder />
-          </AppContent>
+          </PageWrapper>
         </AdminProvider>
       </UserProvider>
     ),
@@ -56,9 +57,9 @@ const router = createBrowserRouter([
     element: (
       <UserProvider>
         <AdminProvider>
-          <AppContent>
+          <PageWrapper>
             <SupplierOrderArchive />
-          </AppContent>
+          </PageWrapper>
         </AdminProvider>
       </UserProvider>
     ),
@@ -68,9 +69,9 @@ const router = createBrowserRouter([
     element: (
       <UserProvider>
         <AdminProvider>
-          <AppContent>
+          <PageWrapper>
             <WholesaleOrderForm />
-          </AppContent>
+          </PageWrapper>
         </AdminProvider>
       </UserProvider>
     ),
@@ -80,9 +81,9 @@ const router = createBrowserRouter([
     element: (
       <UserProvider>
         <AdminProvider>
-          <AppContent>
+          <PageWrapper>
             <NotFound />
-          </AppContent>
+          </PageWrapper>
         </AdminProvider>
       </UserProvider>
     ),
