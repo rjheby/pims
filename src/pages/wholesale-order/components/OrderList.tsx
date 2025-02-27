@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { OrderCard } from "./OrderCard";
@@ -14,9 +13,18 @@ interface OrderListProps {
   onDownload: (order: any) => void;
   onCopyLink: (orderId: string) => void;
   onShare: (orderId: string, method: 'email' | 'sms') => void;
+  onDelete: (orderId: string) => void;
 }
 
-export function OrderList({ orders, onEdit, onDuplicate, onDownload, onCopyLink, onShare }: OrderListProps) {
+export function OrderList({ 
+  orders, 
+  onEdit, 
+  onDuplicate, 
+  onDownload, 
+  onCopyLink, 
+  onShare,
+  onDelete 
+}: OrderListProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
@@ -29,16 +37,13 @@ export function OrderList({ orders, onEdit, onDuplicate, onDownload, onCopyLink,
     maxTotal: ""
   });
 
-  // Apply filters to orders
   const filteredOrders = orders.filter(order => {
     let matchesFilter = true;
     
-    // Status filter
     if (filters.status && order.status !== filters.status) {
       matchesFilter = false;
     }
     
-    // Date range filter
     if (filters.dateRange.from && new Date(order.created_at) < new Date(filters.dateRange.from)) {
       matchesFilter = false;
     }
@@ -46,12 +51,10 @@ export function OrderList({ orders, onEdit, onDuplicate, onDownload, onCopyLink,
       matchesFilter = false;
     }
     
-    // Min total filter
     if (filters.minTotal && order.total < Number(filters.minTotal)) {
       matchesFilter = false;
     }
     
-    // Max total filter
     if (filters.maxTotal && order.total > Number(filters.maxTotal)) {
       matchesFilter = false;
     }
@@ -59,13 +62,11 @@ export function OrderList({ orders, onEdit, onDuplicate, onDownload, onCopyLink,
     return matchesFilter;
   });
 
-  // Apply search to filtered orders
   const searchedOrders = filteredOrders.filter(order => {
     if (!searchTerm.trim()) return true;
     
     const searchLower = searchTerm.toLowerCase();
     
-    // Search across multiple fields
     return (
       (order.order_number && order.order_number.toLowerCase().includes(searchLower)) ||
       (order.status && order.status.toLowerCase().includes(searchLower)) ||
@@ -111,9 +112,7 @@ export function OrderList({ orders, onEdit, onDuplicate, onDownload, onCopyLink,
 
   return (
     <div>
-      {/* Search and Filter controls */}
       <div className="mb-4 flex flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-4 md:items-center">
-        {/* Search */}
         <div className="relative flex-1">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -134,7 +133,6 @@ export function OrderList({ orders, onEdit, onDuplicate, onDownload, onCopyLink,
           )}
         </div>
         
-        {/* Filter button */}
         <Button 
           variant={isFiltersActive ? "default" : "outline"} 
           size="sm"
@@ -161,7 +159,6 @@ export function OrderList({ orders, onEdit, onDuplicate, onDownload, onCopyLink,
         )}
       </div>
       
-      {/* Filter panel */}
       {showFilters && (
         <div className="mb-4 p-4 border rounded-lg shadow-sm bg-white">
           <OrderFilters 
@@ -172,14 +169,12 @@ export function OrderList({ orders, onEdit, onDuplicate, onDownload, onCopyLink,
         </div>
       )}
       
-      {/* Results count */}
       <div className="mb-4 text-sm text-muted-foreground">
         Showing {searchedOrders.length} of {orders.length} orders
         {searchTerm && <span> (search: "{searchTerm}")</span>}
         {isFiltersActive && <span> (filtered)</span>}
       </div>
       
-      {/* Order cards */}
       {searchedOrders.length === 0 ? (
         <div className="text-center py-8 text-gray-500">
           No orders match your search or filters. Try adjusting your criteria.
@@ -195,6 +190,7 @@ export function OrderList({ orders, onEdit, onDuplicate, onDownload, onCopyLink,
               onDownload={onDownload}
               onCopyLink={onCopyLink}
               onShare={onShare}
+              onDelete={onDelete}
               searchTerm={searchTerm}
             />
           ))}

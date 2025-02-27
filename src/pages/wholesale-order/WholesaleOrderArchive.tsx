@@ -1,4 +1,3 @@
-
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +11,7 @@ import { generateOrderPDF } from "./utils/pdfGenerator";
 
 export function WholesaleOrderArchive() {
   const navigate = useNavigate();
-  const { orders, loading } = useOrders();
+  const { orders, loading, refreshOrders } = useOrders();
 
   const handleEditOrder = (orderId: string) => {
     console.log("Navigating to edit order:", orderId);
@@ -57,7 +56,6 @@ export function WholesaleOrderArchive() {
 
   const handleDownloadOrder = (order: any) => {
     try {
-      // Create enhanced PDF document with more details
       const pdf = generateOrderPDF({
         order_number: order.order_number || order.id?.substring(0, 8),
         order_date: order.order_date || order.created_at,
@@ -70,7 +68,6 @@ export function WholesaleOrderArchive() {
         status: order.status
       });
       
-      // Save the PDF file with better filename
       const fileName = `order-${order.order_number || order.id?.substring(0, 8)}.pdf`;
       pdf.save(fileName);
       
@@ -86,7 +83,6 @@ export function WholesaleOrderArchive() {
         variant: "destructive"
       });
       
-      // Fallback to JSON download
       try {
         const jsonContent = JSON.stringify(order, null, 2);
         const blob = new Blob([jsonContent], { type: 'application/json' });
@@ -106,7 +102,6 @@ export function WholesaleOrderArchive() {
 
   const handleCopyLink = (orderId: string) => {
     try {
-      // Generate shareable link for the order
       const link = `${window.location.origin}/wholesale-orders/${orderId}/view`;
       navigator.clipboard.writeText(link);
       
@@ -130,6 +125,31 @@ export function WholesaleOrderArchive() {
       window.location.href = `mailto:?subject=Timber Order Details&body=View the order details here: ${link}`;
     } else if (method === 'sms') {
       window.location.href = `sms:?body=View the timber order details here: ${link}`;
+    }
+  };
+
+  const handleDeleteOrder = async (orderId: string) => {
+    try {
+      const { error } = await supabase
+        .from("wholesale_orders")
+        .delete()
+        .eq("id", orderId);
+
+      if (error) throw error;
+
+      refreshOrders();
+
+      toast({
+        title: "Order deleted",
+        description: "The order has been permanently deleted.",
+      });
+    } catch (error) {
+      console.error("Error deleting order:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete the order. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -165,6 +185,7 @@ export function WholesaleOrderArchive() {
                 onDownload={handleDownloadOrder}
                 onCopyLink={handleCopyLink}
                 onShare={handleShare}
+                onDelete={handleDeleteOrder}
               />
             )}
           </div>

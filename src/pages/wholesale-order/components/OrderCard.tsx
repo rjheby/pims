@@ -1,4 +1,3 @@
-
 import { formatCurrency, formatDate } from "../utils";
 import {
   Card,
@@ -16,7 +15,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Download, Copy, Share, MoreHorizontal, Phone, Mail, Link } from "lucide-react";
+import { Edit, Download, Copy, Share, MoreHorizontal, Phone, Mail, Link, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/use-toast";
 
 interface OrderCardProps {
@@ -26,10 +36,10 @@ interface OrderCardProps {
   onDownload: (order: any) => void;
   onCopyLink: (orderId: string) => void;
   onShare: (orderId: string, method: 'email' | 'sms') => void;
+  onDelete: (orderId: string) => void;
   searchTerm?: string;
 }
 
-// Helper function to highlight search terms in text
 function highlightText(text: string, searchTerm: string) {
   if (!searchTerm || !text) return text;
   
@@ -41,7 +51,16 @@ function highlightText(text: string, searchTerm: string) {
   );
 }
 
-export function OrderCard({ order, onEdit, onDuplicate, onDownload, onCopyLink, onShare, searchTerm = "" }: OrderCardProps) {
+export function OrderCard({ 
+  order, 
+  onEdit, 
+  onDuplicate, 
+  onDownload, 
+  onCopyLink, 
+  onShare, 
+  onDelete,
+  searchTerm = "" 
+}: OrderCardProps) {
   const getStatusBadgeVariant = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'draft':
@@ -59,13 +78,11 @@ export function OrderCard({ order, onEdit, onDuplicate, onDownload, onCopyLink, 
     }
   };
 
-  // Calculate total price from items if available
   const totalPrice = order.items?.reduce(
     (sum: number, item: any) => sum + (item.pallets || 0) * (item.unitCost || 0),
     0
   ) || order.totalPrice || 0;
 
-  // Calculate total pallets from items if available
   const totalPallets = order.items?.reduce(
     (sum: number, item: any) => sum + (Number(item.pallets) || 0),
     0
@@ -167,6 +184,37 @@ export function OrderCard({ order, onEdit, onDuplicate, onDownload, onCopyLink, 
           <Link className="mr-1 h-4 w-4" />
           <span className="sr-only sm:not-sr-only sm:ml-1">Copy Link</span>
         </Button>
+
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="flex-1 text-destructive hover:text-destructive"
+            >
+              <Trash2 className="mr-1 h-4 w-4" />
+              <span className="sr-only sm:not-sr-only sm:ml-1">Delete</span>
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Order</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete order #{order.order_number || order.id?.substring(0, 8)}?
+                This action cannot be undone. All order data will be permanently removed.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => onDelete(order.id)}
+              >
+                Yes, Delete Order
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
         
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
