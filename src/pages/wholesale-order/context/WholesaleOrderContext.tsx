@@ -1,35 +1,26 @@
-import { createContext, useContext, useState, ReactNode, Dispatch, SetStateAction, useEffect } from "react";
+
+import React, { createContext, useContext, useState, ReactNode } from "react";
 import { OrderItem, DropdownOptions, initialOptions } from "../types";
-import { useToast } from "@/hooks/use-toast";
-import { useAdmin } from "@/context/AdminContext";
+import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
 interface WholesaleOrderContextType {
-  orderNumber: string;
-  setOrderNumber: (value: string) => void;
-  orderDate: string;
-  setOrderDate: (value: string) => void;
-  deliveryDate: string;
-  setDeliveryDate: (value: string) => void;
-  isAdmin: boolean;
-  setIsAdmin: (value: boolean) => void;
-  hasUnsavedChanges: boolean;
-  setHasUnsavedChanges: (value: boolean) => void;
+  items: OrderItem[];
   options: DropdownOptions;
-  setOptions: (value: DropdownOptions) => void;
-  optionsHistory: DropdownOptions[];
-  setOptionsHistory: (value: DropdownOptions[]) => void;
+  isAdmin: boolean;
+  orderNumber: string;
+  orderDate: string;
+  deliveryDate: string;
   editingField: keyof DropdownOptions | null;
-  setEditingField: (value: keyof DropdownOptions | null) => void;
   newOption: string;
   setNewOption: (value: string) => void;
-  items: OrderItem[];
-  setItems: Dispatch<SetStateAction<OrderItem[]>>;
-  saveChanges: () => void;
-  discardChanges: () => void;
-  undoLastChange: () => void;
+  setEditingField: (value: keyof DropdownOptions | null) => void;
+  setItems: (items: OrderItem[] | ((prev: OrderItem[]) => OrderItem[])) => void;
+  setOptions: (options: DropdownOptions) => void;
   handleOrderDateChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  setDeliveryDate: (value: string) => void;
   generateOrderNumber: (date: string) => Promise<string>;
+  onItemsChanged?: (items: OrderItem[]) => void;
 }
 
 const WholesaleOrderContext = createContext<WholesaleOrderContextType | undefined>(undefined);
@@ -37,157 +28,119 @@ const WholesaleOrderContext = createContext<WholesaleOrderContextType | undefine
 interface WholesaleOrderProviderProps {
   children: ReactNode;
   initialItems?: OrderItem[];
+  isAdmin?: boolean;
+  onItemsChanged?: (items: OrderItem[]) => void;
 }
 
-export function WholesaleOrderProvider({ children, initialItems }: WholesaleOrderProviderProps) {
-  const { toast } = useToast();
-  const { setHasUnsavedChanges: setGlobalUnsavedChanges } = useAdmin();
-  const [orderNumber, setOrderNumber] = useState("");
-  const [orderDate, setOrderDate] = useState(() => {
-    const today = new Date();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    const year = today.getFullYear();
-    return `${year}-${month}-${day}`;
-  });
-  const [deliveryDate, setDeliveryDate] = useState("");
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+export function WholesaleOrderProvider({ 
+  children, 
+  initialItems = [], 
+  isAdmin = false,
+  onItemsChanged
+}: WholesaleOrderProviderProps) {
+  const { id } = useParams();
+  const [items, setItemsInternal] = useState<OrderItem[]>(initialItems);
   const [options, setOptions] = useState<DropdownOptions>(initialOptions);
-  const [optionsHistory, setOptionsHistory] = useState<DropdownOptions[]>([initialOptions]);
   const [editingField, setEditingField] = useState<keyof DropdownOptions | null>(null);
-  const [newOption, setNewOption] = useState("");
-  const [items, setItems] = useState<OrderItem[]>(initialItems || [{
-    id: 1,
-    species: "",
-    length: "",
-    bundleType: "",
-    thickness: "",
-    packaging: "Pallets",
-    pallets: 0,
-    unitCost: 250,
-  }]);
+  const [newOption, setNewOption] = useState<string>("");
+  const [orderNumber, setOrderNumber] = useState<string>("");
+  const [orderDate, setOrderDate] = useState<string>(new Date().toISOString().substring(0, 10));
+  const [deliveryDate, setDeliveryDate] = useState<string>("");
 
-  const generateOrderNumber = async (date: string) => {
-    if (!date) return "";
-    const orderDate = new Date(date);
-    const year = orderDate.getFullYear().toString().slice(-2);
-    const month = (orderDate.getMonth() + 1).toString().padStart(2, '0');
-    
-    const yearMonth = `${year}${month}`;
-    const { data: existingOrders } = await supabase
-      .from('wholesale_orders')
-      .select('order_number')
-      .ilike('order_number', `${yearMonth}-%`)
-      .order('order_number', { ascending: false });
-
-    let sequence = 1;
-    if (existingOrders && existingOrders.length > 0) {
-      const latestOrder = existingOrders[0];
-      const currentSequence = parseInt(latestOrder.order_number.split('-')[1]);
-      sequence = currentSequence + 1;
-    }
-
-    const orderSequence = sequence.toString().padStart(2, '0');
-    return `${yearMonth}-${orderSequence}`;
-  };
-
-  useEffect(() => {
-    const initializeOrderNumber = async () => {
-      if (orderDate && !orderNumber) {
-        console.log('Initializing order number with date:', orderDate);
-        const newOrderNumber = await generateOrderNumber(orderDate);
-        console.log('Generated order number:', newOrderNumber);
-        setOrderNumber(newOrderNumber);
+  // Custom setItems function that also calls the onItemsChanged callback
+  const setItems = (value: OrderItem[] | ((prev: OrderItem[]) => OrderItem[])) => {
+    setItemsInternal((prev) => {
+      const newItems = typeof value === 'function' ? value(prev) : value;
+      
+      // Call the callback if provided
+      if (onItemsChanged) {
+        onItemsChanged(newItems);
       }
-    };
-    initializeOrderNumber();
-  }, [orderDate, orderNumber]);
-
-  const handleOrderDateChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newDate = e.target.value;
-    setOrderDate(newDate);
-    const newOrderNumber = await generateOrderNumber(newDate);
-    setOrderNumber(newOrderNumber);
+      
+      return newItems;
+    });
   };
 
-  const saveChanges = () => {
-    if (hasUnsavedChanges) {
-      setOptionsHistory([...optionsHistory, options]);
-      setHasUnsavedChanges(false);
-      setGlobalUnsavedChanges(false);
-      toast({
-        title: "Changes saved",
-        description: "Your changes have been saved successfully.",
-      });
+  const handleOrderDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setOrderDate(e.target.value);
+  };
+
+  const generateOrderNumber = async (date: string): Promise<string> => {
+    try {
+      if (!date) {
+        console.error("No date provided for order number generation");
+        return "";
+      }
+
+      // Extract month and date from the order date
+      const dateParts = date.split('-');
+      
+      if (dateParts.length < 3) {
+        console.error("Invalid date format for order number generation");
+        return "";
+      }
+      
+      const month = dateParts[1];
+      const day = dateParts[2];
+      
+      // Count existing orders for this month to generate the sequence number
+      const { data, error } = await supabase
+        .from('wholesale_orders')
+        .select('order_number')
+        .like('order_number', `${month}${day}-%`);
+      
+      if (error) {
+        console.error("Error fetching order numbers:", error);
+        return "";
+      }
+      
+      // Generate the next sequence number (starting with 01)
+      const sequenceNumber = (data?.length || 0) + 1;
+      const paddedSequence = String(sequenceNumber).padStart(2, '0');
+      
+      // Format: MM-DD-XX
+      const generatedOrderNumber = `${month}${day}-${paddedSequence}`;
+      
+      console.info("Generated order number:", generatedOrderNumber);
+      setOrderNumber(generatedOrderNumber);
+      
+      return generatedOrderNumber;
+    } catch (error) {
+      console.error("Error generating order number:", error);
+      return "";
     }
-  };
-
-  const discardChanges = () => {
-    if (hasUnsavedChanges) {
-      setOptions(optionsHistory[optionsHistory.length - 1]);
-      setHasUnsavedChanges(false);
-      setGlobalUnsavedChanges(false);
-      toast({
-        title: "Changes discarded",
-        description: "Your changes have been discarded.",
-      });
-    }
-  };
-
-  const undoLastChange = () => {
-    if (optionsHistory.length > 1) {
-      const previousOptions = optionsHistory[optionsHistory.length - 2];
-      setOptions(previousOptions);
-      setOptionsHistory(optionsHistory.slice(0, -1));
-      setHasUnsavedChanges(true);
-      setGlobalUnsavedChanges(true);
-      toast({
-        title: "Change undone",
-        description: "The last change has been undone.",
-      });
-    }
-  };
-
-  const value = {
-    orderNumber,
-    setOrderNumber,
-    orderDate,
-    setOrderDate,
-    deliveryDate,
-    setDeliveryDate,
-    isAdmin,
-    setIsAdmin,
-    hasUnsavedChanges,
-    setHasUnsavedChanges,
-    options,
-    setOptions,
-    optionsHistory,
-    setOptionsHistory,
-    editingField,
-    setEditingField,
-    newOption,
-    setNewOption,
-    items,
-    setItems,
-    saveChanges,
-    discardChanges,
-    undoLastChange,
-    handleOrderDateChange,
-    generateOrderNumber,
   };
 
   return (
-    <WholesaleOrderContext.Provider value={value}>
+    <WholesaleOrderContext.Provider
+      value={{
+        items,
+        options,
+        isAdmin,
+        orderNumber,
+        orderDate,
+        deliveryDate,
+        editingField,
+        newOption,
+        setNewOption,
+        setEditingField,
+        setItems,
+        setOptions,
+        handleOrderDateChange,
+        setDeliveryDate,
+        generateOrderNumber,
+        onItemsChanged
+      }}
+    >
       {children}
     </WholesaleOrderContext.Provider>
   );
 }
 
-export const useWholesaleOrder = () => {
+export function useWholesaleOrder() {
   const context = useContext(WholesaleOrderContext);
   if (context === undefined) {
     throw new Error("useWholesaleOrder must be used within a WholesaleOrderProvider");
   }
   return context;
-};
+}
