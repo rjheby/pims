@@ -94,15 +94,14 @@ export function OrderCard({ order, onEdit, onDuplicate, onDownload, onCopyLink, 
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        className={`h-8 w-8 p-0 ${isSubmitted ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className="h-8 w-8 p-0" 
                         onClick={() => navigate(`/wholesale-orders/${order.id}`)}
-                        disabled={isSubmitted}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      {isSubmitted ? 'Submitted orders cannot be edited' : 'Edit order'}
+                      {isSubmitted ? 'Edit submitted order' : 'Edit order'}
                     </TooltipContent>
                   </Tooltip>
 

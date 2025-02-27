@@ -322,11 +322,11 @@ export function WholesaleOrderForm() {
                 deliveryDate={orderData.delivery_date}
                 onOrderDateChange={handleOrderDateChange}
                 onDeliveryDateChange={handleDeliveryDateChange}
-                disabled={isSubmitted}
+                disabled={false} // Allow editing regardless of status
               />
               
               <WholesaleOrderProvider initialItems={orderData.items}>
-                <OrderTable readOnly={isSubmitted} />
+                <OrderTable readOnly={false} /> // Allow editing regardless of status
               </WholesaleOrderProvider>
 
               <BaseOrderSummary 
@@ -338,42 +338,29 @@ export function WholesaleOrderForm() {
                 renderCustomSummary={renderCustomSummary}
               />
 
-              {!isSubmitted ? (
-                <div className="flex flex-col space-y-4">
-                  <div className="flex justify-end gap-4">
-                    {/* Save Draft Button */}
-                    <Button 
-                      onClick={handleSave} 
-                      className="bg-gray-600 hover:bg-gray-700"
-                      disabled={isSaving}
-                    >
-                      <Save className="mr-2 h-4 w-4" />
-                      Save Draft
-                    </Button>
-                    
-                    {/* Submit Order Button */}
-                    <Button 
-                      onClick={handleSubmit} 
-                      className="bg-[#2A4131] hover:bg-[#2A4131]/90"
-                    >
-                      <SendHorizontal className="mr-2 h-4 w-4" />
-                      Submit Order
-                    </Button>
-                  </div>
+              {/* Always show edit controls */}
+              <div className="flex flex-col space-y-4">
+                <div className="flex justify-end gap-4">
+                  {/* Save Draft Button */}
+                  <Button 
+                    onClick={handleSave} 
+                    className="bg-gray-600 hover:bg-gray-700"
+                    disabled={isSaving}
+                  >
+                    <Save className="mr-2 h-4 w-4" />
+                    Save Draft
+                  </Button>
                   
-                  <div className="flex justify-center pt-6 border-t">
-                    <Button
-                      asChild
-                      className="bg-[#f1e8c7] text-[#222222] hover:bg-[#f1e8c7]/90"
-                    >
-                      <Link to="/wholesale-orders" className="flex items-center gap-2">
-                        <Archive className="h-5 w-5" />
-                        <span>View All Orders</span>
-                      </Link>
-                    </Button>
-                  </div>
+                  {/* Submit Order Button */}
+                  <Button 
+                    onClick={handleSubmit} 
+                    className="bg-[#2A4131] hover:bg-[#2A4131]/90"
+                  >
+                    <SendHorizontal className="mr-2 h-4 w-4" />
+                    {isSubmitted ? "Resubmit Order" : "Submit Order"}
+                  </Button>
                 </div>
-              ) : (
+                
                 <div className="flex justify-center pt-6 border-t">
                   <Button
                     asChild
@@ -381,11 +368,11 @@ export function WholesaleOrderForm() {
                   >
                     <Link to="/wholesale-orders" className="flex items-center gap-2">
                       <Archive className="h-5 w-5" />
-                      <span>Back to All Orders</span>
+                      <span>View All Orders</span>
                     </Link>
                   </Button>
                 </div>
-              )}
+              </div>
             </div>
           </CardContent>
         </Card>
