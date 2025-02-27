@@ -6,7 +6,7 @@ import AppLayout from "@/components/layouts/AppLayout";
 import Dashboard from "@/pages/Dashboard";
 import { WholesaleOrder } from "@/pages/WholesaleOrder";
 import { WholesaleOrderForm } from "@/pages/WholesaleOrderForm";
-import { SupplierOrderArchive } from "@/pages/supplier-order/SupplierOrderArchive";
+import { WholesaleOrderArchive } from "@/pages/wholesale-order/WholesaleOrderArchive";
 import NotFound from "@/pages/NotFound";
 import { AdminProvider, useAdmin } from "@/context/AdminContext";
 import { UserProvider } from "@/context/UserContext";
@@ -58,7 +58,7 @@ const router = createBrowserRouter([
       <UserProvider>
         <AdminProvider>
           <PageWrapper>
-            <SupplierOrderArchive />
+            <WholesaleOrderArchive />
           </PageWrapper>
         </AdminProvider>
       </UserProvider>
