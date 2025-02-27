@@ -122,12 +122,13 @@ export const generateOrderPDF = (orderData: OrderData) => {
   
   // Format items data for table - include both name and pallets
   const tableData = orderData.items.map(item => {
-    // Create concatenated name field
+    // Create concatenated name field with packaging type included
     const name = [
       item.species, 
       item.length, 
       item.bundleType, 
-      item.thickness
+      item.thickness,
+      item.packaging // Added packaging to the description
     ].filter(Boolean).join(' - ');
     
     return [
