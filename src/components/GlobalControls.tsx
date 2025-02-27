@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { HistoryControls } from "./History/HistoryControls";
+import { NavigationControls } from "./Navigation/NavigationControls";
 
 export function GlobalControls() {
   const [showSearch, setShowSearch] = useState(false);
@@ -24,7 +25,9 @@ export function GlobalControls() {
   
   return (
     <div className="flex items-center gap-4">
-      <div className="flex items-center">
+      <div className="flex items-center gap-2">
+        <NavigationControls />
+        <div className="mx-1 border-r border-gray-200 h-8" />
         <HistoryControls />
       </div>
       
