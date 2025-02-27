@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { OrderItem } from "./wholesale-order/types";
 import { useToast } from "@/hooks/use-toast";
-import { Input } from "@/components/ui/input";
 import { BaseOrderDetails } from "@/components/templates/BaseOrderDetails";
 import { OrderTable } from "./wholesale-order/OrderTable";
 import { WholesaleOrderProvider } from "./wholesale-order/context/WholesaleOrderContext";
@@ -41,9 +40,15 @@ export function WholesaleOrderForm() {
         }
 
         if (data) {
+          // Parse items if they're stored as a string
+          const parsedItems = typeof data.items === 'string' ? JSON.parse(data.items) : data.items;
+          
           setOrderData({
-            ...data,
-            items: typeof data.items === 'string' ? JSON.parse(data.items) : data.items
+            id: data.id,
+            order_number: data.order_number,
+            order_date: data.order_date,
+            delivery_date: data.delivery_date,
+            items: parsedItems
           });
         }
       } catch (err) {
@@ -61,28 +66,19 @@ export function WholesaleOrderForm() {
 
   const handleOrderDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (orderData) {
-      setOrderData({
-        ...orderData,
+      setOrderData(prev => ({
+        ...prev!,
         order_date: e.target.value
-      });
+      }));
     }
   };
 
   const handleDeliveryDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (orderData) {
-      setOrderData({
-        ...orderData,
+      setOrderData(prev => ({
+        ...prev!,
         delivery_date: e.target.value
-      });
-    }
-  };
-
-  const handleItemUpdate = (updatedItems: OrderItem[]) => {
-    if (orderData) {
-      setOrderData({
-        ...orderData,
-        items: updatedItems
-      });
+      }));
     }
   };
 
@@ -93,9 +89,9 @@ export function WholesaleOrderForm() {
       const { error } = await supabase
         .from('wholesale_orders')
         .update({
-          items: JSON.stringify(orderData.items),
+          order_date: orderData.order_date,
           delivery_date: orderData.delivery_date,
-          order_date: orderData.order_date
+          items: orderData.items
         })
         .eq('id', id);
 
@@ -174,7 +170,7 @@ export function WholesaleOrderForm() {
                 onDeliveryDateChange={handleDeliveryDateChange}
               />
               
-              <WholesaleOrderProvider>
+              <WholesaleOrderProvider initialItems={orderData.items}>
                 <OrderTable />
               </WholesaleOrderProvider>
             </div>
