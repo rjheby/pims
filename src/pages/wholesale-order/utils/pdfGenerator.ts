@@ -1,5 +1,6 @@
 
 import { jsPDF } from "jspdf";
+import 'jspdf-autotable';
 import { OrderItem } from "../types";
 
 interface OrderData {
@@ -39,8 +40,8 @@ export const generateOrderPDF = (orderData: OrderData) => {
     `$${(item.pallets * item.unitCost).toFixed(2)}`
   ]);
   
-  // Create table
-  doc.autoTable({
+  // Create table using the autoTable plugin
+  (doc as any).autoTable({
     head: [headers],
     body: data,
     startY: 100,

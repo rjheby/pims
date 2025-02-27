@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, ReactNode, Dispatch, SetStateAction, useEffect } from "react";
 import { OrderItem, DropdownOptions, initialOptions } from "../types";
 import { useToast } from "@/hooks/use-toast";
@@ -35,7 +34,12 @@ interface WholesaleOrderContextType {
 
 const WholesaleOrderContext = createContext<WholesaleOrderContextType | undefined>(undefined);
 
-export function WholesaleOrderProvider({ children }: { children: ReactNode }) {
+interface WholesaleOrderProviderProps {
+  children: ReactNode;
+  initialItems?: OrderItem[];
+}
+
+export function WholesaleOrderProvider({ children, initialItems }: WholesaleOrderProviderProps) {
   const { toast } = useToast();
   const { setHasUnsavedChanges: setGlobalUnsavedChanges } = useAdmin();
   const [orderNumber, setOrderNumber] = useState("");
@@ -53,18 +57,16 @@ export function WholesaleOrderProvider({ children }: { children: ReactNode }) {
   const [optionsHistory, setOptionsHistory] = useState<DropdownOptions[]>([initialOptions]);
   const [editingField, setEditingField] = useState<keyof DropdownOptions | null>(null);
   const [newOption, setNewOption] = useState("");
-  const [items, setItems] = useState<OrderItem[]>([
-    {
-      id: 1,
-      species: "",
-      length: "",
-      bundleType: "",
-      thickness: "",
-      packaging: "Pallets",
-      pallets: 0,
-      unitCost: 250,
-    },
-  ]);
+  const [items, setItems] = useState<OrderItem[]>(initialItems || [{
+    id: 1,
+    species: "",
+    length: "",
+    bundleType: "",
+    thickness: "",
+    packaging: "Pallets",
+    pallets: 0,
+    unitCost: 250,
+  }]);
 
   const generateOrderNumber = async (date: string) => {
     if (!date) return "";
