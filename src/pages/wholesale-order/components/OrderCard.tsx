@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Download, Copy, Share, MoreHorizontal, Phone, Mail } from "lucide-react";
+import { Edit, Download, Copy, Share, MoreHorizontal, Phone, Mail, Link } from "lucide-react";
 
 interface OrderCardProps {
   order: any;
@@ -157,6 +157,16 @@ export function OrderCard({ order, onEdit, onDuplicate, onDownload, onCopyLink, 
           <span className="sr-only sm:not-sr-only sm:ml-1">Download</span>
         </Button>
         
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="flex-1"
+          onClick={() => onCopyLink(order.id)}
+        >
+          <Link className="mr-1 h-4 w-4" />
+          <span className="sr-only sm:not-sr-only sm:ml-1">Copy Link</span>
+        </Button>
+        
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className="flex-grow-0">
@@ -167,10 +177,6 @@ export function OrderCard({ order, onEdit, onDuplicate, onDownload, onCopyLink, 
             <DropdownMenuItem onClick={() => onDuplicate(order)}>
               <Copy className="mr-2 h-4 w-4" />
               Duplicate
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onCopyLink(order.id)}>
-              <Copy className="mr-2 h-4 w-4" />
-              Copy Link
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => onShare(order.id, 'email')}>
               <Mail className="mr-2 h-4 w-4" />
