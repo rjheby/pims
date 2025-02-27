@@ -1,12 +1,13 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { BaseOrderDetails } from "@/components/templates/BaseOrderDetails";
-import { BaseOrderTable } from "@/components/templates/BaseOrderTable";
 import { BaseOrderSummary } from "@/components/templates/BaseOrderSummary";
 import { BaseOrderActions } from "@/components/templates/BaseOrderActions";
 import { OrderTable } from "./wholesale-order/OrderTable";
 import { WholesaleOrderProvider } from "./wholesale-order/context/WholesaleOrderContext";
 import { useWholesaleOrder } from "./wholesale-order/context/WholesaleOrderContext";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 function WholesaleOrderContent() {
   const { 
@@ -17,6 +18,9 @@ function WholesaleOrderContent() {
     setDeliveryDate,
     items,
   } = useWholesaleOrder();
+  
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '';
@@ -50,6 +54,21 @@ function WholesaleOrderContent() {
     };
   };
 
+  const handleSave = () => {
+    toast({
+      title: "Order Saved",
+      description: "Your order has been saved as a draft"
+    });
+  };
+  
+  const handleSubmit = () => {
+    toast({
+      title: "Order Submitted",
+      description: "Your order has been submitted successfully"
+    });
+    navigate("/wholesale-orders");
+  };
+
   return (
     <div>
       <Card className="shadow-sm">
@@ -79,7 +98,8 @@ function WholesaleOrderContent() {
             </div>
             <BaseOrderSummary items={calculateTotals()} />
             <BaseOrderActions 
-              onSave={() => {}} 
+              onSave={handleSave} 
+              onSubmit={handleSubmit}
               archiveLink="/wholesale-orders"
             />
           </div>
