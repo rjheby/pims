@@ -1,185 +1,188 @@
 
-import { FileText, Pencil, Copy, Download, Link2, Send } from "lucide-react";
+import { formatCurrency, formatDate } from "../utils";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useNavigate } from "react-router-dom";
-import { generateOrderPDF } from "../utils/pdfGenerator";
-import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
+import { Edit, Download, Copy, Share, MoreHorizontal, Phone, Mail } from "lucide-react";
 
 interface OrderCardProps {
-  order: {
-    id: string;
-    order_number: string;
-    formattedDeliveryDate: string;
-    totalPallets: number;
-    totalValue: number;
-    status?: string;
-    submitted_at?: string;
-  };
+  order: any;
   onEdit: (orderId: string) => void;
   onDuplicate: (order: any) => void;
   onDownload: (order: any) => void;
   onCopyLink: (orderId: string) => void;
   onShare: (orderId: string, method: 'email' | 'sms') => void;
+  searchTerm?: string;
 }
 
-export function OrderCard({ order, onEdit, onDuplicate, onDownload, onCopyLink, onShare }: OrderCardProps) {
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const isSubmitted = order.status === 'submitted';
+// Helper function to highlight search terms in text
+function highlightText(text: string, searchTerm: string) {
+  if (!searchTerm || !text) return text;
+  
+  const regex = new RegExp(`(${searchTerm})`, 'gi');
+  const parts = text.split(regex);
+  
+  return parts.map((part, i) => 
+    regex.test(part) ? <mark key={i} className="bg-yellow-200">{part}</mark> : part
+  );
+}
 
-  const handleDownload = async (order: any) => {
-    try {
-      const doc = generateOrderPDF(order);
-      doc.save(`order-${order.order_number}.pdf`);
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      toast({
-        title: "Error",
-        description: "Failed to generate PDF",
-        variant: "destructive"
-      });
+export function OrderCard({ order, onEdit, onDuplicate, onDownload, onCopyLink, onShare, searchTerm = "" }: OrderCardProps) {
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'draft':
+        return 'secondary';
+      case 'submitted':
+        return 'default';
+      case 'processing':
+        return 'warning';
+      case 'completed':
+        return 'success';
+      case 'cancelled':
+        return 'destructive';
+      default:
+        return 'outline';
     }
   };
 
-  const handleCopyLink = (orderId: string) => {
-    const url = `${window.location.origin}/wholesale-orders/view/${orderId}`;
-    navigator.clipboard.writeText(url);
-    toast({
-      title: "Success",
-      description: "Link copied to clipboard",
-    });
-  };
+  // Calculate total price from items if available
+  const totalPrice = order.items?.reduce(
+    (sum: number, item: any) => sum + (item.pallets || 0) * (item.unitCost || 0),
+    0
+  ) || order.totalPrice || 0;
+
+  // Calculate total pallets from items if available
+  const totalPallets = order.items?.reduce(
+    (sum: number, item: any) => sum + (Number(item.pallets) || 0),
+    0
+  ) || order.totalPallets || 0;
 
   return (
-    <div className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
-      <table className="w-full">
-        <tbody>
-          <tr>
-            <td className="p-2 align-top w-[50px]">
-              <FileText className="h-[50px] w-[50px] text-[#2A4131]" />
-            </td>
-            <td className="align-top">
-              <div className="flex justify-between items-start">
-                <div className="font-medium">Order #{order.order_number}</div>
-                {isSubmitted && (
-                  <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
-                    Submitted
-                  </span>
-                )}
+    <Card className="h-full flex flex-col overflow-hidden">
+      <CardHeader className="pb-3">
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle className="text-lg font-semibold">
+              {searchTerm ? 
+                highlightText(`Order #${order.order_number || order.id?.substring(0, 8)}`, searchTerm) :
+                `Order #${order.order_number || order.id?.substring(0, 8)}`
+              }
+            </CardTitle>
+            <CardDescription className="text-sm text-muted-foreground mt-1">
+              {searchTerm ? 
+                highlightText(formatDate(order.created_at || order.order_date), searchTerm) :
+                formatDate(order.created_at || order.order_date)
+              }
+            </CardDescription>
+          </div>
+          {order.status && (
+            <Badge variant={getStatusBadgeVariant(order.status)}>
+              {searchTerm ? 
+                highlightText(order.status, searchTerm) :
+                order.status
+              }
+            </Badge>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="flex-grow pb-3">
+        <div className="space-y-2">
+          {order.customer && (
+            <div className="flex items-center text-sm">
+              <span className="text-muted-foreground mr-2">Customer:</span>
+              <span>
+                {searchTerm ? 
+                  highlightText(order.customer, searchTerm) :
+                  order.customer
+                }
+              </span>
+            </div>
+          )}
+          
+          <div className="flex items-center justify-between text-sm">
+            <div>
+              <span className="text-muted-foreground mr-2">Total:</span>
+              <span className="font-medium">{formatCurrency(totalPrice)}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground mr-2">Items:</span>
+              <span>{totalPallets} {totalPallets === 1 ? 'pallet' : 'pallets'}</span>
+            </div>
+          </div>
+          
+          {order.notes && (
+            <div className="mt-4 text-sm">
+              <span className="text-muted-foreground block mb-1">Notes:</span>
+              <div className="bg-muted p-2 rounded text-xs">
+                {searchTerm ? 
+                  highlightText(order.notes, searchTerm) :
+                  order.notes
+                }
               </div>
-              <div className="text-sm text-gray-500 mb-2">
-                <span className="font-medium">Delivery Date: </span>
-                {order.formattedDeliveryDate}
-              </div>
-              <div className="text-sm">
-                <div className="flex justify-between">
-                  <span>Total Pallets:</span>
-                  <span className="font-medium">{order.totalPallets}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Order Value:</span>
-                  <span className="font-medium">${order.totalValue.toLocaleString('en-US', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                  })}</span>
-                </div>
-              </div>
-              <div className="flex gap-2 mt-3 justify-end">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="h-8 w-8 p-0" 
-                        onClick={() => navigate(`/wholesale-orders/${order.id}`)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      {isSubmitted ? 'Edit submitted order' : 'Edit order'}
-                    </TooltipContent>
-                  </Tooltip>
-
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="outline" size="sm" className="h-8 w-8 p-0">
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Duplicate order</TooltipContent>
-                      </Tooltip>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Duplicate Order</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will create a new order with the same items. The order date will be set to today and you'll need to set a new delivery date.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => onDuplicate(order)}>
-                          Continue
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => handleDownload(order)}>
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Download PDF</TooltipContent>
-                  </Tooltip>
-
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => handleCopyLink(order.id)}>
-                        <Link2 className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Copy link</TooltipContent>
-                  </Tooltip>
-
-                  <Popover>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <PopoverTrigger asChild>
-                            <Button variant="outline" size="sm" className="h-8 w-8 p-0">
-                              <Send className="h-4 w-4" />
-                            </Button>
-                          </PopoverTrigger>
-                        </TooltipTrigger>
-                        <TooltipContent>Send order</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    <PopoverContent className="w-40 p-2">
-                      <div className="flex flex-col gap-2">
-                        <Button variant="ghost" className="w-full justify-start" onClick={() => onShare(order.id, 'email')}>
-                          Send via Email
-                        </Button>
-                        <Button variant="ghost" className="w-full justify-start" onClick={() => onShare(order.id, 'sms')}>
-                          Send via SMS
-                        </Button>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                </TooltipProvider>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+            </div>
+          )}
+        </div>
+      </CardContent>
+      <CardFooter className="pt-0 flex flex-wrap gap-2">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="flex-1"
+          onClick={() => onEdit(order.id)}
+        >
+          <Edit className="mr-1 h-4 w-4" />
+          <span className="sr-only sm:not-sr-only sm:ml-1">Edit</span>
+        </Button>
+        
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="flex-1"
+          onClick={() => onDownload(order)}
+        >
+          <Download className="mr-1 h-4 w-4" />
+          <span className="sr-only sm:not-sr-only sm:ml-1">Download</span>
+        </Button>
+        
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="flex-grow-0">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => onDuplicate(order)}>
+              <Copy className="mr-2 h-4 w-4" />
+              Duplicate
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onCopyLink(order.id)}>
+              <Copy className="mr-2 h-4 w-4" />
+              Copy Link
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onShare(order.id, 'email')}>
+              <Mail className="mr-2 h-4 w-4" />
+              Share via Email
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onShare(order.id, 'sms')}>
+              <Phone className="mr-2 h-4 w-4" />
+              Share via SMS
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </CardFooter>
+    </Card>
   );
 }

@@ -2,8 +2,9 @@
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ArrowUpDown, Search, X } from "lucide-react";
+import { ArrowUpDown, Search, X, Filter } from "lucide-react";
 import { useState, useMemo } from "react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface BaseOrderTableProps {
   children: React.ReactNode;
@@ -46,6 +47,8 @@ export function BaseOrderTable({
   } | null>(null);
 
   const [filter, setFilter] = useState('');
+  const [showFiltersPanel, setShowFiltersPanel] = useState(false);
+  const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
 
   const handleSort = (key: string) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -63,9 +66,23 @@ export function BaseOrderTable({
     onFilterChange?.(value);
   };
 
-  const sortedAndFilteredData = useMemo(() => {
+  // Apply column filters
+  const handleColumnFilterChange = (key: string, value: string) => {
+    const newFilters = { ...columnFilters };
+    
+    if (value === '') {
+      delete newFilters[key];
+    } else {
+      newFilters[key] = value;
+    }
+    
+    setColumnFilters(newFilters);
+  };
+
+  const filteredData = useMemo(() => {
     let processedData = [...data];
 
+    // Apply global search filter
     if (filter) {
       processedData = processedData.filter(item => 
         Object.values(item).some(value => 
@@ -74,6 +91,15 @@ export function BaseOrderTable({
       );
     }
 
+    // Apply column-specific filters
+    Object.entries(columnFilters).forEach(([key, filterValue]) => {
+      processedData = processedData.filter(item => {
+        const value = String(item[key] || '').toLowerCase();
+        return value.includes(filterValue.toLowerCase());
+      });
+    });
+
+    // Apply sorting
     if (sortConfig) {
       processedData.sort((a, b) => {
         const aValue = a[sortConfig.key];
@@ -90,15 +116,18 @@ export function BaseOrderTable({
     }
 
     return processedData;
-  }, [data, filter, sortConfig]);
+  }, [data, filter, columnFilters, sortConfig]);
+
+  const hasActiveFilters = Object.keys(columnFilters).length > 0;
 
   return (
     <div className="space-y-4 w-full">
-      <div className="flex justify-end">
-        <div className="relative w-72">
+      <div className="flex flex-col sm:flex-row sm:justify-between gap-2">
+        {/* Search Input */}
+        <div className="relative w-full sm:w-72">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Filter table..."
+            placeholder="Search table..."
             value={filter}
             onChange={(e) => handleFilter(e.target.value)}
             className="pl-8"
@@ -114,7 +143,64 @@ export function BaseOrderTable({
             </Button>
           )}
         </div>
+        
+        {/* Filters Button */}
+        <Button 
+          variant={hasActiveFilters ? "default" : "outline"}
+          size="sm" 
+          onClick={() => setShowFiltersPanel(!showFiltersPanel)}
+          className="flex items-center"
+        >
+          <Filter className="h-4 w-4 mr-2" />
+          {hasActiveFilters ? 
+            `Filters (${Object.keys(columnFilters).length})` : 
+            "Filters"
+          }
+        </Button>
       </div>
+
+      {/* Filters Panel */}
+      {showFiltersPanel && (
+        <div className="p-4 border rounded-md shadow-sm bg-white">
+          <h3 className="text-sm font-medium mb-3">Filter by column</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {headers.filter(header => header.key !== 'actions').map(header => (
+              <div key={header.key} className="space-y-1">
+                <label 
+                  htmlFor={`filter-${header.key}`}
+                  className="text-xs font-medium text-muted-foreground"
+                >
+                  {header.label}
+                </label>
+                <Input
+                  id={`filter-${header.key}`}
+                  placeholder={`Filter ${header.label}...`}
+                  value={columnFilters[header.key] || ''}
+                  onChange={(e) => handleColumnFilterChange(header.key, e.target.value)}
+                  className="h-8 text-sm"
+                />
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-end mt-4">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setColumnFilters({})}
+              className="mr-2"
+            >
+              Clear All
+            </Button>
+            <Button 
+              size="sm" 
+              onClick={() => setShowFiltersPanel(false)}
+            >
+              Close
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="overflow-x-auto rounded-md border" style={{width: '100%'}}>
         <Table className="w-full table-fixed" style={{width: '100%'}}>
           <TableHeader>
@@ -130,7 +216,14 @@ export function BaseOrderTable({
                   }}
                 >
                   <div className="flex items-center justify-between">
-                    <span>{header.label}</span>
+                    <span>
+                      {header.label}
+                      {columnFilters[header.key] && (
+                        <span className="ml-1 text-xs bg-primary/20 text-primary py-0.5 px-1 rounded">
+                          Filtered
+                        </span>
+                      )}
+                    </span>
                     {header.sortable && (
                       <Button
                         variant="ghost"
@@ -151,6 +244,18 @@ export function BaseOrderTable({
           </TableBody>
         </Table>
       </div>
+      
+      {filteredData.length === 0 && (
+        <div className="text-center py-4 text-muted-foreground">
+          No results match your search or filter criteria
+        </div>
+      )}
+      
+      {(filter || hasActiveFilters) && filteredData.length > 0 && (
+        <div className="text-xs text-muted-foreground">
+          Showing {filteredData.length} of {data.length} items
+        </div>
+      )}
     </div>
   );
 }
