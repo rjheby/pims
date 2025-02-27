@@ -1,9 +1,8 @@
-
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ArrowUpDown, Filter, Search, X } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, ReactElement } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Select,
@@ -53,7 +52,6 @@ export function BaseOrderTable({
     onSortChange?.(key, direction);
   };
 
-  // Apply filters first
   const filteredData = useMemo(() => {
     return data.filter(item => {
       return Object.entries(activeFilters).every(([key, value]) => {
@@ -64,7 +62,6 @@ export function BaseOrderTable({
     });
   }, [data, activeFilters]);
 
-  // Then handle search highlighting separately
   const processedData = useMemo(() => {
     return filteredData.map(item => ({
       ...item,
@@ -75,7 +72,6 @@ export function BaseOrderTable({
     }));
   }, [filteredData, searchTerm]);
 
-  // Get unique values for each filterable column
   const getFilterOptions = (key: string) => {
     const uniqueValues = new Set(data.map(item => item[key]?.toString()).filter(Boolean));
     return Array.from(uniqueValues);
@@ -134,7 +130,6 @@ export function BaseOrderTable({
   return (
     <div className="space-y-4 w-full">
       <div className={`flex ${isMobile ? 'flex-col' : 'justify-between items-center'} gap-4`}>
-        {/* Search Section */}
         <div className={`relative ${isMobile ? 'w-full' : 'w-72'}`}>
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -155,7 +150,6 @@ export function BaseOrderTable({
           )}
         </div>
 
-        {/* Filters Section */}
         {isMobile ? (
           <>
             <Button
@@ -215,14 +209,13 @@ export function BaseOrderTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {React.Children.map(children, child => {
+            {React.Children.map(children, (child) => {
               if (!React.isValidElement(child)) return null;
-              return React.cloneElement(child, {
-                style: {
-                  backgroundColor: processedData.find(item => item.id === child.props.item?.id)?.highlighted 
-                    ? 'rgba(255, 255, 0, 0.1)' 
-                    : undefined
-                }
+              const itemId = (child as ReactElement<any>).props?.item?.id;
+              const matchingItem = processedData.find(item => item.id === itemId);
+              
+              return React.cloneElement(child as ReactElement, {
+                className: matchingItem?.highlighted ? 'bg-yellow-50' : undefined
               });
             })}
           </TableBody>

@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +25,7 @@ export function WholesaleOrderForm() {
   const [orderData, setOrderData] = useState<WholesaleOrderData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     async function fetchOrderData() {
@@ -80,11 +82,12 @@ export function WholesaleOrderForm() {
     }
   };
 
-  const handleSubmit = async () => {
-    try {
-      if (!orderData) return;
+  const handleSave = async () => {
+    if (!orderData || isSaving) return;
 
-      const { error } = await supabase
+    setIsSaving(true);
+    try {
+      const { error: updateError } = await supabase
         .from('wholesale_orders')
         .update({
           order_date: orderData.order_date,
@@ -93,21 +96,24 @@ export function WholesaleOrderForm() {
         })
         .eq('id', id);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
 
       toast({
         title: "Success",
-        description: "Order updated successfully",
+        description: "Order saved successfully",
       });
 
+      // Redirect after successful save
       navigate('/wholesale-orders');
     } catch (err) {
-      console.error('Error updating order:', err);
+      console.error('Error saving order:', err);
       toast({
         title: "Error",
-        description: "Failed to update order",
+        description: "Failed to save order",
         variant: "destructive"
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -159,7 +165,7 @@ export function WholesaleOrderForm() {
               </WholesaleOrderProvider>
 
               <BaseOrderActions 
-                onSave={handleSubmit}
+                onSave={handleSave}
                 archiveLink="/wholesale-orders"
               />
             </div>
