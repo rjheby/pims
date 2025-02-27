@@ -25,7 +25,7 @@ export const generateOrderPDF = (orderData: OrderData) => {
   const doc = new jsPDF() as jsPDFWithAutoTable;
   const pageWidth = doc.internal.pageSize.getWidth();
   
-  // Create white background for the header (instead of green) for better logo visibility
+  // Create white background for the header for better logo visibility
   doc.setFillColor(255, 255, 255);
   doc.rect(0, 0, pageWidth, 40, 'F');
   
@@ -131,7 +131,7 @@ export const generateOrderPDF = (orderData: OrderData) => {
     ].filter(Boolean).join(' - ');
     
     return [
-      item.pallets?.toString() || '0',                      // Quantity
+      item.pallets?.toString() || '0',                      // Qty
       name,                                                  // Name
       item.unitCost ? `$${item.unitCost.toFixed(2)}` : '$0.00',  // Unit Cost
       item.unitCost ? `$${((item.pallets || 0) * (item.unitCost || 0)).toFixed(2)}` : '$0.00'  // Total Cost
@@ -140,12 +140,12 @@ export const generateOrderPDF = (orderData: OrderData) => {
   
   // Add items table with improved formatting
   autoTable(doc, {
-    head: [['Quantity', 'Name', 'Unit Cost', 'Total Cost']],
+    head: [['Qty', 'Product Description', 'Unit Price', 'Total']],
     body: tableData,
     startY: yPos,
     styles: { 
-      fontSize: 12,  // Increased font size
-      cellPadding: 8, // More padding for readability
+      fontSize: 10,
+      cellPadding: 6,
       font: 'helvetica',
       overflow: 'linebreak',
       lineWidth: 0.1
@@ -154,13 +154,15 @@ export const generateOrderPDF = (orderData: OrderData) => {
       fillColor: [42, 65, 49],  // Woodbourne Green 
       textColor: [255, 255, 255],
       fontStyle: 'bold',
-      fontSize: 13 // Slightly larger header text
+      fontSize: 11,
+      halign: 'center',
+      cellPadding: 5
     },
     columnStyles: {
-      0: { halign: 'center', cellWidth: 25 }, // Quantity - centered, narrower
-      1: { halign: 'left', cellWidth: 'auto' }, // Name - left-aligned, take available space
-      2: { halign: 'right', cellWidth: 35 }, // Unit Cost - right-aligned
-      3: { halign: 'right', cellWidth: 35 }  // Total Cost - right-aligned
+      0: { halign: 'center', cellWidth: 20 },                // Qty - centered, narrow column
+      1: { halign: 'left', cellWidth: 'auto' },              // Product Description - left-aligned, flexible width
+      2: { halign: 'right', cellWidth: 35 },                 // Unit Price - right-aligned
+      3: { halign: 'right', cellWidth: 35 }                  // Total - right-aligned
     },
     alternateRowStyles: { 
       fillColor: [245, 247, 245] // Very light green tint for alternate rows
@@ -191,7 +193,7 @@ export const generateOrderPDF = (orderData: OrderData) => {
   doc.roundedRect(pageWidth - 120, finalY - 10, 105, summaryBoxHeight, 3, 3, 'FD');
   
   // Add summary text
-  doc.setFontSize(13);
+  doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(0, 0, 0);
   doc.text(`Total Quantity: ${totalPallets} pallets`, pageWidth - 110, finalY + 5);
@@ -203,13 +205,13 @@ export const generateOrderPDF = (orderData: OrderData) => {
     doc.setFillColor(245, 247, 245);
     doc.roundedRect(15, notesY - 5, pageWidth - 30, 40, 3, 3, 'F');
     
-    doc.setFontSize(13);
+    doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(42, 65, 49);
     doc.text("Notes:", 25, notesY + 5);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0, 0, 0);
-    doc.setFontSize(11);
+    doc.setFontSize(10);
     
     // Split long notes into multiple lines with word wrap
     const splitNotes = doc.splitTextToSize(orderData.notes, pageWidth - 60);
