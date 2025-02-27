@@ -1,3 +1,4 @@
+import React from "react";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +9,7 @@ import { BaseOrderDetails } from "@/components/templates/BaseOrderDetails";
 import { OrderTable } from "./wholesale-order/OrderTable";
 import { WholesaleOrderProvider } from "./wholesale-order/context/WholesaleOrderContext";
 import { BaseOrderActions } from "@/components/templates/BaseOrderActions";
+import { BaseOrderSummary } from "@/components/templates/BaseOrderSummary";
 
 interface WholesaleOrderData {
   id: string;
@@ -15,6 +17,7 @@ interface WholesaleOrderData {
   order_date: string;
   delivery_date: string;
   items: OrderItem[];
+  status?: string; // Added status field
 }
 
 export function WholesaleOrderForm() {
@@ -24,6 +27,8 @@ export function WholesaleOrderForm() {
   const [orderData, setOrderData] = useState<WholesaleOrderData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     async function fetchOrderData() {
@@ -46,7 +51,8 @@ export function WholesaleOrderForm() {
             order_number: data.order_number,
             order_date: data.order_date,
             delivery_date: data.delivery_date,
-            items: parsedItems
+            items: parsedItems,
+            status: data.status || 'draft' // Add status with default
           });
         }
       } catch (err) {
@@ -80,35 +86,148 @@ export function WholesaleOrderForm() {
     }
   };
 
-  const handleSubmit = async () => {
-    try {
-      if (!orderData) return;
+  const calculateTotalPallets = () => {
+    if (!orderData?.items) return 0;
+    return orderData.items.reduce((sum, item) => sum + (Number(item.pallets) || 0), 0);
+  };
 
-      const { error } = await supabase
+  const calculateTotalCost = () => {
+    if (!orderData?.items) return 0;
+    return orderData.items.reduce((sum, item) => sum + ((Number(item.pallets) || 0) * (Number(item.unitCost) || 0)), 0);
+  };
+
+  // Validate order data
+  const validateOrder = () => {
+    if (!orderData?.order_date) {
+      throw new Error("Order date is required");
+    }
+
+    // Check for valid items
+    const validItems = orderData.items.filter(item => 
+      item.species && item.length && item.bundleType && item.thickness && Number(item.pallets) > 0
+    );
+    
+    if (validItems.length === 0) {
+      throw new Error("At least one valid item is required with all fields filled");
+    }
+
+    return true;
+  };
+
+  // Save order without submitting
+  const handleSave = async () => {
+    if (!orderData || isSaving) return;
+    
+    setIsSaving(true);
+    try {
+      // Validate order data
+      validateOrder();
+
+      const { error: updateError } = await supabase
         .from('wholesale_orders')
         .update({
           order_date: orderData.order_date,
           delivery_date: orderData.delivery_date,
-          items: serializeOrderItems(orderData.items)
+          items: serializeOrderItems(orderData.items),
+          status: 'draft' // Always save as draft
         })
         .eq('id', id);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
 
       toast({
         title: "Success",
-        description: "Order updated successfully",
+        description: "Order draft saved successfully",
       });
-
-      navigate('/wholesale-orders');
-    } catch (err) {
-      console.error('Error updating order:', err);
+      
+      // We don't redirect after saving a draft
+    } catch (err: any) {
+      console.error('Error saving order:', err);
       toast({
         title: "Error",
-        description: "Failed to update order",
+        description: err.message || "Failed to save order",
         variant: "destructive"
       });
+    } finally {
+      setIsSaving(false);
     }
+  };
+
+  // Submit the order (save and mark as submitted)
+  const handleSubmit = async () => {
+    if (!orderData || isSubmitting) return;
+
+    const totalPallets = calculateTotalPallets();
+    
+    // Pallet count warnings
+    if (totalPallets > 24) {
+      toast({
+        title: "Warning",
+        description: `Order exceeds maximum load by ${totalPallets - 24} pallets. Consider reducing the pallet count.`,
+        variant: "destructive",
+      });
+      return; // Don't allow submitting if over the pallet limit
+    }
+
+    setIsSubmitting(true);
+    try {
+      // Validate order data
+      validateOrder();
+
+      const { error: updateError } = await supabase
+        .from('wholesale_orders')
+        .update({
+          order_date: orderData.order_date,
+          delivery_date: orderData.delivery_date,
+          items: serializeOrderItems(orderData.items),
+          status: 'submitted', // Mark as submitted
+          submitted_at: new Date().toISOString() // Add submission timestamp
+        })
+        .eq('id', id);
+
+      if (updateError) throw updateError;
+
+      toast({
+        title: "Success",
+        description: "Order submitted successfully",
+      });
+
+      // Redirect after successful submission
+      navigate('/wholesale-orders');
+    } catch (err: any) {
+      console.error('Error submitting order:', err);
+      toast({
+        title: "Error",
+        description: err.message || "Failed to submit order",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const renderCustomSummary = () => {
+    const totalPallets = calculateTotalPallets();
+    
+    return (
+      <div className="mt-4 pt-4 border-t border-gray-200">
+        {totalPallets < 24 && (
+          <div className="text-sm text-amber-600 text-center">
+            {24 - totalPallets} pallets remaining before full load
+          </div>
+        )}
+        {totalPallets > 24 && (
+          <div className="text-sm text-red-600 text-center">
+            Exceeds maximum load by {totalPallets - 24} pallets
+          </div>
+        )}
+        {totalPallets === 24 && (
+          <div className="text-sm text-green-600 text-center">
+            Perfect load! Exactly 24 pallets.
+          </div>
+        )}
+      </div>
+    );
   };
 
   if (loading) return (
@@ -129,6 +248,12 @@ export function WholesaleOrderForm() {
     </div>
   );
 
+  const totalPallets = calculateTotalPallets();
+  const totalCost = calculateTotalCost();
+
+  // Don't allow editing submitted orders
+  const isSubmitted = orderData.status === 'submitted';
+
   return (
     <div className="flex-1">
       <div>
@@ -142,7 +267,14 @@ export function WholesaleOrderForm() {
 
         <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle>Supplier Order #{orderData?.order_number}</CardTitle>
+            <div className="flex justify-between items-center">
+              <CardTitle>Supplier Order #{orderData?.order_number}</CardTitle>
+              {isSubmitted && (
+                <div className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                  Submitted
+                </div>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
@@ -152,16 +284,44 @@ export function WholesaleOrderForm() {
                 deliveryDate={orderData.delivery_date}
                 onOrderDateChange={handleOrderDateChange}
                 onDeliveryDateChange={handleDeliveryDateChange}
+                disabled={isSubmitted}
               />
               
               <WholesaleOrderProvider initialItems={orderData.items}>
-                <OrderTable />
+                <OrderTable readOnly={isSubmitted} />
               </WholesaleOrderProvider>
 
-              <BaseOrderActions 
-                onSave={handleSubmit}
-                archiveLink="/wholesale-orders"
+              <BaseOrderSummary 
+                items={{
+                  totalQuantity: totalPallets,
+                  totalValue: totalCost,
+                  quantityByPackaging: { 'Pallets': totalPallets }
+                }}
+                renderCustomSummary={renderCustomSummary}
               />
+
+              {/* Only show action buttons if not already submitted */}
+              {!isSubmitted ? (
+                <BaseOrderActions 
+                  onSave={handleSave}
+                  onSubmit={handleSubmit}
+                  archiveLink="/wholesale-orders"
+                  isSaving={isSaving}
+                  isSubmitting={isSubmitting}
+                />
+              ) : (
+                <div className="flex justify-center pt-6 border-t">
+                  <Button
+                    asChild
+                    className="bg-[#f1e8c7] text-[#222222] hover:bg-[#f1e8c7]/90"
+                  >
+                    <Link to="/wholesale-orders" className="flex items-center gap-2">
+                      <Archive className="h-5 w-5" />
+                      <span>Back to All Orders</span>
+                    </Link>
+                  </Button>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
