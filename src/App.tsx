@@ -53,6 +53,18 @@ const router = createBrowserRouter([
     ),
   },
   {
+    path: "/wholesale-order/:id",
+    element: (
+      <UserProvider>
+        <AdminProvider>
+          <PageWrapper>
+            <WholesaleOrderForm />
+          </PageWrapper>
+        </AdminProvider>
+      </UserProvider>
+    ),
+  },
+  {
     path: "/wholesale-orders",
     element: (
       <UserProvider>
