@@ -8,9 +8,26 @@ import { WholesaleOrder } from "@/pages/WholesaleOrder";
 import { WholesaleOrderForm } from "@/pages/WholesaleOrderForm";
 import { SupplierOrderArchive } from "@/pages/supplier-order/SupplierOrderArchive";
 import NotFound from "@/pages/NotFound";
-import { useAdmin } from "@/context/AdminContext";
+import { AdminProvider, useAdmin } from "@/context/AdminContext";
 import { UserProvider } from "@/context/UserContext";
 import "./App.css";
+
+const AppContent = () => {
+  const { isAdmin } = useAdmin();
+
+  useEffect(() => {
+    document.body.style.backgroundColor = "#F7F7F7";
+  }, []);
+
+  return (
+    <UserProvider>
+      <AppLayout isAdminMode={isAdmin}>
+        <RouterProvider router={router} />
+        <Toaster />
+      </AppLayout>
+    </UserProvider>
+  );
+};
 
 const router = createBrowserRouter([
   {
@@ -36,18 +53,9 @@ const router = createBrowserRouter([
 ]);
 
 export default function App() {
-  const { isAdmin } = useAdmin();
-
-  useEffect(() => {
-    document.body.style.backgroundColor = "#F7F7F7";
-  }, []);
-
   return (
-    <UserProvider>
-      <AppLayout isAdminMode={isAdmin}>
-        <RouterProvider router={router} />
-        <Toaster />
-      </AppLayout>
-    </UserProvider>
+    <AdminProvider>
+      <AppContent />
+    </AdminProvider>
   );
 }
