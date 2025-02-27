@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
@@ -19,6 +20,7 @@ interface WholesaleOrderData {
   order_date: string;
   delivery_date: string;
   items: OrderItem[];
+  status?: string; // Add status field to match database
 }
 
 export function WholesaleOrderForm() {
@@ -54,10 +56,10 @@ export function WholesaleOrderForm() {
             order_date: data.order_date,
             delivery_date: data.delivery_date,
             items: parsedItems,
+            status: data.status, // Include status from database
           });
           
-          // Handle the status separately
-          // @ts-ignore - Handle if status doesn't exist yet
+          // Set the status state from the database value
           setOrderStatus(data.status || 'draft');
         }
       } catch (err) {
@@ -133,7 +135,8 @@ export function WholesaleOrderForm() {
         .update({
           order_date: orderData.order_date,
           delivery_date: orderData.delivery_date,
-          items: serializeOrderItems(orderData.items)
+          items: serializeOrderItems(orderData.items),
+          status: 'draft'
         })
         .eq('id', id);
 
@@ -183,7 +186,9 @@ export function WholesaleOrderForm() {
         .update({
           order_date: orderData.order_date,
           delivery_date: orderData.delivery_date,
-          items: serializeOrderItems(orderData.items)
+          items: serializeOrderItems(orderData.items),
+          status: 'submitted',
+          submitted_at: new Date().toISOString()
         })
         .eq('id', id);
 
