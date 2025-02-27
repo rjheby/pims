@@ -1,7 +1,12 @@
 
 import { jsPDF } from "jspdf";
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { OrderItem } from "../types";
+
+// Extend jsPDF type to include autoTable
+interface jsPDFWithAutoTable extends jsPDF {
+  autoTable: typeof autoTable;
+}
 
 interface OrderData {
   order_number: string;
@@ -13,7 +18,8 @@ interface OrderData {
 }
 
 export const generateOrderPDF = (orderData: OrderData) => {
-  const doc = new jsPDF();
+  // Create PDF document with autotable plugin
+  const doc = new jsPDF() as jsPDFWithAutoTable;
   const pageWidth = doc.internal.pageSize.getWidth();
   
   // Add title
@@ -48,17 +54,18 @@ export const generateOrderPDF = (orderData: OrderData) => {
     item.unitCost ? `$${((item.pallets || 0) * (item.unitCost || 0)).toFixed(2)}` : '$0.00'
   ]);
   
-  // Create table using the autoTable plugin
-  (doc as any).autoTable({
+  // Create table using autoTable
+  doc.autoTable({
     head: [headers],
     body: data,
     startY: 60,
     styles: { fontSize: 10 },
     headStyles: { fillColor: [42, 65, 49] },
+    margin: { top: 60 }
   });
   
   // Add totals
-  const finalY = (doc as any).lastAutoTable.finalY + 20;
+  const finalY = (doc.lastAutoTable?.finalY || 60) + 20;
   doc.text(`Total Pallets: ${totalPallets}`, 15, finalY);
   doc.text(`Total Value: $${totalValue.toFixed(2)}`, 15, finalY + 10);
   
