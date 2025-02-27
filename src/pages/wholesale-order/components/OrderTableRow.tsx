@@ -82,7 +82,7 @@ export function OrderTableRow({
                 min="0"
                 value={item.pallets || ""}
                 onChange={(e) => onUpdateItem(item.id, "pallets", parseInt(e.target.value) || 0)}
-                className="min-w-[60px] max-w-full"
+                className="min-w-[50px] max-w-full"
                 placeholder="Qty"
                 disabled={readOnly}
               />
@@ -99,7 +99,7 @@ export function OrderTableRow({
                 min="0"
                 value={item.unitCost || ""}
                 onChange={(e) => onUpdateItem(item.id, "unitCost", parseFloat(e.target.value) || 0)}
-                className="min-w-[80px] max-w-full"
+                className="min-w-[60px] max-w-full"
                 placeholder="Cost"
                 disabled={readOnly}
               />
@@ -114,41 +114,41 @@ export function OrderTableRow({
       )}
       <TableCell className="w-[10%] px-2">
         {!readOnly && (
-          <div className="flex gap-1 items-center justify-end md:justify-start">
+          <div className="flex gap-0.5 items-center justify-end md:justify-start">
             <Button 
               variant="customAction"
               size="sm" 
               onClick={() => onRemoveRow(item.id)} 
-              className="rounded-full w-7 h-7 sm:w-8 sm:h-8 p-0 text-pink-100 bg-red-800 hover:bg-pink-100 hover:text-red-800"
+              className="rounded-full w-6 h-6 sm:w-7 sm:h-7 p-0 text-pink-100 bg-red-800 hover:bg-pink-100 hover:text-red-800"
               disabled={readOnly}
             >
-              <X className="h-3 w-3 sm:h-4 sm:w-4" />
+              <X className="h-3 w-3" />
             </Button>
             <Button 
               variant="customAction"
               size="sm" 
               onClick={() => onCopyRow(item)} 
-              className="rounded-full w-7 h-7 sm:w-8 sm:h-8 p-0 text-sky-100 bg-blue-700 hover:bg-sky-100 hover:text-blue-700"
+              className="rounded-full w-6 h-6 sm:w-7 sm:h-7 p-0 text-sky-100 bg-blue-700 hover:bg-sky-100 hover:text-blue-700"
               disabled={readOnly}
             >
-              <Copy className="h-3 w-3 sm:h-4 sm:w-4" />
+              <Copy className="h-3 w-3" />
             </Button>
             <Button 
               variant="customAction"
               size="sm" 
               onClick={onAddItem}
-              className="rounded-full w-7 h-7 sm:w-8 sm:h-8 p-0 bg-[#2A4131] hover:bg-slate-50 text-slate-50 hover:text-[#2A4131]"
+              className="rounded-full w-6 h-6 sm:w-7 sm:h-7 p-0 bg-[#2A4131] hover:bg-slate-50 text-slate-50 hover:text-[#2A4131]"
               disabled={readOnly}
             >
-              <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+              <Plus className="h-3 w-3" />
             </Button>
             <Button 
               variant="customAction"
               size="sm" 
               onClick={() => onToggleCompressed(item.id)} 
-              className="rounded-full w-7 h-7 sm:w-8 sm:h-8 p-0 bg-black hover:bg-slate-50 text-slate-50 hover:text-black md:hidden"
+              className="rounded-full w-6 h-6 sm:w-7 sm:h-7 p-0 bg-black hover:bg-slate-50 text-slate-50 hover:text-black md:hidden"
             >
-              {isCompressed ? <Maximize2 className="h-3 w-3 sm:h-4 sm:w-4" /> : <Minimize2 className="h-3 w-3 sm:h-4 sm:w-4" />}
+              {isCompressed ? <Maximize2 className="h-3 w-3" /> : <Minimize2 className="h-3 w-3" />}
             </Button>
           </div>
         )}
@@ -157,9 +157,9 @@ export function OrderTableRow({
             variant="customAction"
             size="sm" 
             onClick={() => onToggleCompressed(item.id)} 
-            className="rounded-full w-7 h-7 sm:w-8 sm:h-8 p-0 bg-black hover:bg-slate-50 text-slate-50 hover:text-black md:hidden"
+            className="rounded-full w-6 h-6 sm:w-7 sm:h-7 p-0 bg-black hover:bg-slate-50 text-slate-50 hover:text-black md:hidden"
           >
-            {isCompressed ? <Maximize2 className="h-3 w-3 sm:h-4 sm:w-4" /> : <Minimize2 className="h-3 w-3 sm:h-4 sm:w-4" />}
+            {isCompressed ? <Maximize2 className="h-3 w-3" /> : <Minimize2 className="h-3 w-3" />}
           </Button>
         )}
       </TableCell>

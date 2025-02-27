@@ -85,8 +85,8 @@ export function OrderTableMobileRow({
                 min="0"
                 value={item.pallets || ""}
                 onChange={(e) => onUpdateItem(item.id, "pallets", parseInt(e.target.value) || 0)}
-                className="h-9 w-full min-w-[60px]"
-                placeholder="Enter quantity"
+                className="h-9 w-full min-w-[50px]"
+                placeholder="Qty"
                 disabled={readOnly}
               />
             )}
@@ -107,8 +107,8 @@ export function OrderTableMobileRow({
                 min="0"
                 value={item.unitCost || ""}
                 onChange={(e) => onUpdateItem(item.id, "unitCost", parseFloat(e.target.value) || 0)}
-                className="h-9 w-full min-w-[80px]"
-                placeholder="Enter unit cost"
+                className="h-9 w-full min-w-[60px]"
+                placeholder="Cost"
                 disabled={readOnly}
               />
             )}
@@ -123,35 +123,35 @@ export function OrderTableMobileRow({
           </div>
         </div>
       )}
-      <div className="flex gap-2 justify-center pt-2 border-t">
+      <div className="flex gap-1.5 justify-center pt-2 border-t">
         {!readOnly && (
           <>
             <Button 
               variant="customAction"
               size="sm" 
               onClick={() => onRemoveRow(item.id)} 
-              className="rounded-full w-8 h-8 p-0 text-pink-100 bg-red-800 hover:bg-pink-100 hover:text-red-800"
+              className="rounded-full w-7 h-7 p-0 text-pink-100 bg-red-800 hover:bg-pink-100 hover:text-red-800"
               disabled={readOnly}
             >
-              <X className="h-4 w-4" />
+              <X className="h-3.5 w-3.5" />
             </Button>
             <Button 
               variant="customAction"
               size="sm" 
               onClick={() => onCopyRow(item)} 
-              className="rounded-full w-8 h-8 p-0 text-sky-100 bg-blue-700 hover:bg-sky-100 hover:text-blue-700"
+              className="rounded-full w-7 h-7 p-0 text-sky-100 bg-blue-700 hover:bg-sky-100 hover:text-blue-700"
               disabled={readOnly}
             >
-              <Copy className="h-4 w-4" />
+              <Copy className="h-3.5 w-3.5" />
             </Button>
             <Button 
               variant="customAction"
               size="sm" 
               onClick={onAddItem} 
-              className="rounded-full w-8 h-8 p-0 bg-[#2A4131] hover:bg-slate-50 text-slate-50 hover:text-[#2A4131]"
+              className="rounded-full w-7 h-7 p-0 bg-[#2A4131] hover:bg-slate-50 text-slate-50 hover:text-[#2A4131]"
               disabled={readOnly}
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-3.5 w-3.5" />
             </Button>
           </>
         )}
@@ -159,9 +159,9 @@ export function OrderTableMobileRow({
           variant="customAction"
           size="sm" 
           onClick={() => onToggleCompressed(item.id)} 
-          className="rounded-full w-8 h-8 p-0 bg-black hover:bg-slate-50 text-slate-50 hover:text-black"
+          className="rounded-full w-7 h-7 p-0 bg-black hover:bg-slate-50 text-slate-50 hover:text-black"
         >
-          {isCompressed ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
+          {isCompressed ? <Maximize2 className="h-3.5 w-3.5" /> : <Minimize2 className="h-3.5 w-3.5" />}
         </Button>
       </div>
     </div>
