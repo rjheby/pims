@@ -2,8 +2,15 @@
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ArrowUpDown, Search, X } from "lucide-react";
+import { ArrowUpDown, Filter, Search, X } from "lucide-react";
 import { useState, useMemo } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface BaseOrderTableProps {
   children: React.ReactNode;
@@ -29,7 +36,8 @@ export function BaseOrderTable({
     direction: 'asc' | 'desc';
   } | null>(null);
 
-  const [filter, setFilter] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
 
   const handleSort = (key: string) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -42,63 +50,99 @@ export function BaseOrderTable({
     onSortChange?.(key, direction);
   };
 
-  const handleFilter = (value: string) => {
-    setFilter(value);
-    onFilterChange?.(value);
-  };
-
-  const sortedAndFilteredData = useMemo(() => {
-    let processedData = [...data];
-
-    if (filter) {
-      processedData = processedData.filter(item => 
-        Object.values(item).some(value => 
-          String(value).toLowerCase().includes(filter.toLowerCase())
-        )
-      );
-    }
-
-    if (sortConfig) {
-      processedData.sort((a, b) => {
-        const aValue = a[sortConfig.key];
-        const bValue = b[sortConfig.key];
-
-        if (aValue < bValue) {
-          return sortConfig.direction === 'asc' ? -1 : 1;
-        }
-        if (aValue > bValue) {
-          return sortConfig.direction === 'asc' ? 1 : -1;
-        }
-        return 0;
+  // Apply filters first
+  const filteredData = useMemo(() => {
+    return data.filter(item => {
+      return Object.entries(activeFilters).every(([key, value]) => {
+        if (!value) return true;
+        const itemValue = item[key]?.toString().toLowerCase();
+        return itemValue === value.toLowerCase();
       });
-    }
+    });
+  }, [data, activeFilters]);
 
-    return processedData;
-  }, [data, filter, sortConfig]);
+  // Then handle search highlighting separately
+  const processedData = useMemo(() => {
+    return filteredData.map(item => ({
+      ...item,
+      highlighted: searchTerm ? 
+        Object.values(item).some(value => 
+          value?.toString().toLowerCase().includes(searchTerm.toLowerCase())
+        ) : false
+    }));
+  }, [filteredData, searchTerm]);
+
+  // Get unique values for each filterable column
+  const getFilterOptions = (key: string) => {
+    const uniqueValues = new Set(data.map(item => item[key]?.toString()).filter(Boolean));
+    return Array.from(uniqueValues);
+  };
 
   return (
     <div className="space-y-4 w-full">
-      <div className="flex justify-end">
+      <div className="flex justify-between items-center gap-4">
+        {/* Search Section */}
         <div className="relative w-72">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Filter table..."
-            value={filter}
-            onChange={(e) => handleFilter(e.target.value)}
+            placeholder="Search table..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-8"
           />
-          {filter && (
+          {searchTerm && (
             <Button
               variant="ghost"
               size="sm"
               className="absolute right-1 top-1.5 h-6 w-6 p-0"
-              onClick={() => handleFilter('')}
+              onClick={() => setSearchTerm('')}
             >
               <X className="h-4 w-4" />
             </Button>
           )}
         </div>
+
+        {/* Filters Section */}
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          {headers.map(header => (
+            <div key={header.key} className="w-32">
+              <Select
+                value={activeFilters[header.key] || ''}
+                onValueChange={(value) => 
+                  setActiveFilters(prev => ({
+                    ...prev,
+                    [header.key]: value
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={`Filter ${header.label}`} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All {header.label}</SelectItem>
+                  {getFilterOptions(header.key).map(option => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ))}
+          {Object.keys(activeFilters).length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setActiveFilters({})}
+              className="h-8 px-2"
+            >
+              Clear Filters
+            </Button>
+          )}
+        </div>
       </div>
+
       <div className="overflow-x-auto rounded-md border w-full">
         <Table className="w-full">
           <TableHeader>
@@ -133,7 +177,17 @@ export function BaseOrderTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {children}
+            {React.Children.map(children, child => {
+              if (!React.isValidElement(child)) return null;
+              // Add highlighted prop to rows based on search results
+              return React.cloneElement(child, {
+                style: {
+                  backgroundColor: processedData.find(item => item.id === child.props.item?.id)?.highlighted 
+                    ? 'rgba(255, 255, 0, 0.1)' 
+                    : undefined
+                }
+              });
+            })}
           </TableBody>
         </Table>
       </div>
