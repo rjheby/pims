@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { User, Role, Permission } from "@/types/user";
+import { User, UserRole, Permission } from "@/types/user";
 
 type UserContextType = {
   user: User | null;
@@ -53,7 +53,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const hasPermission = (permission: Permission): boolean => {
-    if (!user) return false;
+    if (!user || !user.permissions) return false;
     return user.permissions.includes(permission);
   };
 
