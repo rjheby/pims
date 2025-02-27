@@ -1,4 +1,3 @@
-
 import { TableCell, TableRow } from "@/components/ui/table";
 import { OrderItem, DropdownOptions } from "../types";
 import { OrderTableDropdownCell } from "./OrderTableDropdownCell";
@@ -82,7 +81,7 @@ export function OrderTableRow({
                 min="0"
                 value={item.pallets || ""}
                 onChange={(e) => onUpdateItem(item.id, "pallets", parseInt(e.target.value) || 0)}
-                className="min-w-[50px] max-w-full"
+                className="min-w-[50px] max-w-full text-center px-1 h-9"
                 placeholder="Qty"
                 disabled={readOnly}
               />
