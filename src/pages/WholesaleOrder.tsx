@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { BaseOrderDetails } from "@/components/templates/BaseOrderDetails";
 import { BaseOrderSummary } from "@/components/templates/BaseOrderSummary";
@@ -10,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { serializeOrderItems } from "./wholesale-order/types";
 import { useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 function WholesaleOrderContent() {
   const { 
@@ -26,6 +28,7 @@ function WholesaleOrderContent() {
   const navigate = useNavigate();
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isMobile = useIsMobile();
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '';
@@ -174,14 +177,14 @@ function WholesaleOrderContent() {
   };
 
   return (
-    <div>
+    <div className="pb-10">
       <Card className="shadow-sm">
         <CardHeader className="p-4 sm:p-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-              <CardTitle>{orderNumber ? `Supplier Order #${orderNumber}` : 'New Supplier Order'}</CardTitle>
+              <CardTitle className="text-xl md:text-2xl">{orderNumber ? `Supplier Order #${orderNumber}` : 'New Supplier Order'}</CardTitle>
               {headerDetails && (
-                <CardDescription className="mt-1">
+                <CardDescription className="mt-1 text-sm">
                   {headerDetails}
                 </CardDescription>
               )}
@@ -197,7 +200,7 @@ function WholesaleOrderContent() {
               onOrderDateChange={handleOrderDateChange}
               onDeliveryDateChange={(e) => setDeliveryDate(e.target.value)}
             />
-            <div className="w-full overflow-x-auto">
+            <div className="w-full overflow-x-auto pb-4">
               <OrderTable />
             </div>
             <BaseOrderSummary items={calculateTotals()} />

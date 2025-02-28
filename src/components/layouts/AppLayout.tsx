@@ -9,6 +9,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { GlobalControls } from "@/components/GlobalControls";
 import { HistoryProvider } from "@/context/HistoryContext";
 import { useHistory } from "@/context/HistoryContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Component to handle keyboard shortcuts
 function KeyboardShortcuts() {
@@ -48,6 +49,20 @@ export default function AppLayout({
 }) {
   const location = useLocation();
   const isWholesaleOrder = location.pathname === "/wholesale-order";
+  const isMobile = useIsMobile();
+
+  // Add extra padding at the bottom of the page for mobile
+  useEffect(() => {
+    if (isMobile) {
+      document.body.style.paddingBottom = '80px';
+    } else {
+      document.body.style.paddingBottom = '0';
+    }
+    
+    return () => {
+      document.body.style.paddingBottom = '0';
+    };
+  }, [isMobile]);
 
   return (
     <SidebarProvider>
@@ -83,7 +98,7 @@ export default function AppLayout({
               </div>
             </div>
             
-            <main className="w-full min-h-screen pt-[72px] overflow-x-hidden">
+            <main className="w-full min-h-screen pt-[72px] pb-20 overflow-x-hidden">
               <div className="w-[95%] mx-auto">
                 {isWholesaleOrder ? (
                   <WholesaleOrderProvider>

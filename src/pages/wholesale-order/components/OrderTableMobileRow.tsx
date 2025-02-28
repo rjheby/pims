@@ -45,7 +45,7 @@ export function OrderTableMobileRow({
   readOnly = false,
 }: OrderTableMobileRowProps) {
   return (
-    <div className="bg-white rounded-lg border p-2 sm:p-4 space-y-2 overflow-hidden">
+    <div className="bg-white rounded-lg border p-2 sm:p-4 space-y-2 overflow-hidden mb-4">
       <div className="font-medium text-sm break-words">{generateItemName(item)}</div>
       {!isCompressed && (
         <div className="grid gap-3">
@@ -130,28 +130,31 @@ export function OrderTableMobileRow({
               variant="customAction"
               size="sm" 
               onClick={() => onRemoveRow(item.id)} 
-              className="rounded-full w-7 h-7 p-0 text-pink-100 bg-red-800 hover:bg-pink-100 hover:text-red-800"
+              className="rounded-full w-8 h-8 p-0 text-pink-100 bg-red-800 hover:bg-pink-100 hover:text-red-800"
               disabled={readOnly}
+              aria-label="Remove item"
             >
-              <X className="h-3.5 w-3.5" />
+              <X className="h-4 w-4" />
             </Button>
             <Button 
               variant="customAction"
               size="sm" 
               onClick={() => onCopyRow(item)} 
-              className="rounded-full w-7 h-7 p-0 text-sky-100 bg-blue-700 hover:bg-sky-100 hover:text-blue-700"
+              className="rounded-full w-8 h-8 p-0 text-sky-100 bg-blue-700 hover:bg-sky-100 hover:text-blue-700"
               disabled={readOnly}
+              aria-label="Copy item"
             >
-              <Copy className="h-3.5 w-3.5" />
+              <Copy className="h-4 w-4" />
             </Button>
             <Button 
               variant="customAction"
               size="sm" 
               onClick={onAddItem} 
-              className="rounded-full w-7 h-7 p-0 bg-[#2A4131] hover:bg-slate-50 text-slate-50 hover:text-[#2A4131]"
+              className="rounded-full w-8 h-8 p-0 bg-[#2A4131] hover:bg-slate-50 text-slate-50 hover:text-[#2A4131]"
               disabled={readOnly}
+              aria-label="Add new item"
             >
-              <Plus className="h-3.5 w-3.5" />
+              <Plus className="h-4 w-4" />
             </Button>
           </>
         )}
@@ -159,9 +162,10 @@ export function OrderTableMobileRow({
           variant="customAction"
           size="sm" 
           onClick={() => onToggleCompressed(item.id)} 
-          className="rounded-full w-7 h-7 p-0 bg-black hover:bg-slate-50 text-slate-50 hover:text-black"
+          className="rounded-full w-8 h-8 p-0 bg-black hover:bg-slate-50 text-slate-50 hover:text-black"
+          aria-label={isCompressed ? "Expand item" : "Collapse item"}
         >
-          {isCompressed ? <Maximize2 className="h-3.5 w-3.5" /> : <Minimize2 className="h-3.5 w-3.5" />}
+          {isCompressed ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
         </Button>
       </div>
     </div>
