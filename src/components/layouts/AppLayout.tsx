@@ -54,7 +54,7 @@ export default function AppLayout({
   // Add extra padding at the bottom of the page for mobile
   useEffect(() => {
     if (isMobile) {
-      document.body.style.paddingBottom = '120px'; // Increased padding for mobile
+      document.body.style.paddingBottom = '140px'; // Increased padding for mobile
     } else {
       document.body.style.paddingBottom = '0';
     }
@@ -98,8 +98,8 @@ export default function AppLayout({
               </div>
             </div>
             
-            <main className="w-full min-h-screen pt-[72px] pb-28 overflow-x-hidden">
-              <div className="w-[95%] mx-auto">
+            <main className="w-full min-h-screen pt-[72px] pb-36 overflow-x-hidden">
+              <div className="w-full px-3 md:w-[95%] mx-auto">
                 {isWholesaleOrder ? (
                   <WholesaleOrderProvider>
                     {children}

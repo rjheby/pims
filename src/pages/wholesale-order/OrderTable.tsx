@@ -1,3 +1,4 @@
+
 import { OrderTableRow } from "./components/OrderTableRow";
 import { OrderTableMobileRow } from "./components/OrderTableMobileRow";
 import { useOrderTable } from "./hooks/useOrderTable";
@@ -72,7 +73,7 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
   return (
     <>
       <div className="hidden md:block">
-        <div className="overflow-x-auto w-full" style={{width: '100%'}}>
+        <div className="overflow-x-auto w-full">
           <BaseOrderTable
             headers={headers}
             data={tableData}
@@ -116,8 +117,8 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
         </div>
       </div>
 
-      <div className="md:hidden">
-        <div className="grid gap-4">
+      <div className="md:hidden w-full">
+        <div className="grid gap-4 w-full">
           {items.map(item => (
             <OrderTableMobileRow
               key={item.id}

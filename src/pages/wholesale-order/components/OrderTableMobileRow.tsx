@@ -45,12 +45,12 @@ export function OrderTableMobileRow({
   readOnly = false,
 }: OrderTableMobileRowProps) {
   return (
-    <div className="bg-white rounded-lg border p-2 sm:p-4 space-y-2 overflow-hidden mb-4">
+    <div className="bg-white rounded-lg border p-2 sm:p-4 space-y-2 w-full max-w-full overflow-hidden mb-4">
       <div className="font-medium text-sm break-words">{generateItemName(item)}</div>
       {!isCompressed && (
-        <div className="grid gap-3">
+        <div className="grid gap-3 w-full">
           {optionFields.map((field) => (
-            <div key={field} className="space-y-1">
+            <div key={field} className="space-y-1 w-full">
               <div className="text-xs font-medium text-muted-foreground">
                 {field.charAt(0).toUpperCase() + field.slice(1)}
               </div>
@@ -69,7 +69,7 @@ export function OrderTableMobileRow({
               />
             </div>
           ))}
-          <div className="space-y-1">
+          <div className="space-y-1 w-full">
             <div className="text-xs font-medium text-muted-foreground">
               Quantity
             </div>
@@ -91,7 +91,7 @@ export function OrderTableMobileRow({
               />
             )}
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 w-full">
             <div className="text-xs font-medium text-muted-foreground">
               Unit Cost
             </div>
@@ -113,7 +113,7 @@ export function OrderTableMobileRow({
               />
             )}
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 w-full">
             <div className="text-xs font-medium text-muted-foreground">
               Total Cost
             </div>
@@ -123,7 +123,7 @@ export function OrderTableMobileRow({
           </div>
         </div>
       )}
-      <div className="flex gap-1.5 justify-center pt-2 border-t">
+      <div className="flex gap-1.5 justify-center pt-2 border-t w-full">
         {!readOnly && (
           <>
             <Button 

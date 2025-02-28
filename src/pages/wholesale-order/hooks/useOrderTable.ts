@@ -8,6 +8,7 @@ import { useOrderDisplay } from "./orderTable/useOrderDisplay";
 import { useOrderValidation } from "./orderTable/useOrderValidation";
 
 export function useOrderTable() {
+  // Get context values first to maintain hook order
   const { 
     items = [], 
     options = initialOptions,
@@ -25,39 +26,15 @@ export function useOrderTable() {
     ...options
   };
 
-  // Import all the smaller hooks
-  const {
-    handleKeyPress,
-    handleUpdateItem,
-    handleRemoveRow,
-    handleCopyRow,
-    handleAddItem,
-    handleUpdateOptions,
-  } = useOrderActions();
-
-  const {
-    calculateTotalPallets,
-    calculateTotalCost,
-    generateItemName
-  } = useOrderCalculations();
-
-  const {
-    sortConfig,
-    setSortConfig,
-    filterValue,
-    setFilterValue,
-    applyFiltersAndSorting
-  } = useOrderFiltering();
-
-  const {
-    compressedStates,
-    toggleCompressed
-  } = useOrderDisplay();
-
+  // Import all the smaller hooks in a consistent order to prevent React hook ordering issues
+  const orderActions = useOrderActions();
+  const orderCalculations = useOrderCalculations();
+  const orderFiltering = useOrderFiltering();
+  const orderDisplay = useOrderDisplay();
   const { hasValidItems } = useOrderValidation(items);
 
   // Process items with sorting and filtering
-  const processedItems = applyFiltersAndSorting(items, generateItemName);
+  const processedItems = orderFiltering.applyFiltersAndSorting(items, orderCalculations.generateItemName);
 
   // Return a consolidated object with all the functionality
   return {
@@ -66,23 +43,23 @@ export function useOrderTable() {
     isAdmin,
     editingField,
     newOption,
-    compressedStates,
+    compressedStates: orderDisplay.compressedStates,
     optionFields: Object.keys(safeOptions) as Array<keyof typeof safeOptions>,
-    handleKeyPress,
-    handleUpdateItem,
-    handleRemoveRow,
-    handleCopyRow,
-    handleAddItem,
-    generateItemName,
-    handleUpdateOptions,
-    toggleCompressed,
+    handleKeyPress: orderActions.handleKeyPress,
+    handleUpdateItem: orderActions.handleUpdateItem,
+    handleRemoveRow: orderActions.handleRemoveRow,
+    handleCopyRow: orderActions.handleCopyRow,
+    handleAddItem: orderActions.handleAddItem,
+    generateItemName: orderCalculations.generateItemName,
+    handleUpdateOptions: orderActions.handleUpdateOptions,
+    toggleCompressed: orderDisplay.toggleCompressed,
     setNewOption,
     hasValidItems,
-    calculateTotalPallets,
-    calculateTotalCost,
-    sortConfig,
-    setSortConfig,
-    filterValue,
-    setFilterValue,
+    calculateTotalPallets: orderCalculations.calculateTotalPallets,
+    calculateTotalCost: orderCalculations.calculateTotalCost,
+    sortConfig: orderFiltering.sortConfig,
+    setSortConfig: orderFiltering.setSortConfig,
+    filterValue: orderFiltering.filterValue,
+    setFilterValue: orderFiltering.setFilterValue,
   };
 }
