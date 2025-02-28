@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Filter, Search, X } from "lucide-react";
 import { OrderFilters } from "./OrderFilters";
 import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns"; // Add this import for date formatting
 
 interface OrderListProps {
   orders: any[];
