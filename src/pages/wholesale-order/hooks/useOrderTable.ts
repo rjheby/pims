@@ -1,8 +1,11 @@
 
-import { useState } from "react";
 import { useWholesaleOrder } from "../context/WholesaleOrderContext";
-import { OrderItem, DropdownOptions, initialOptions } from "../types";
-import { useHistory } from "@/context/HistoryContext";
+import { OrderItem, initialOptions } from "../types";
+import { useOrderActions } from "./orderTable/useOrderActions";
+import { useOrderCalculations } from "./orderTable/useOrderCalculations";
+import { useOrderFiltering } from "./orderTable/useOrderFiltering";
+import { useOrderDisplay } from "./orderTable/useOrderDisplay";
+import { useOrderValidation } from "./orderTable/useOrderValidation";
 
 export function useOrderTable() {
   const { 
@@ -17,249 +20,46 @@ export function useOrderTable() {
     setOptions 
   } = useWholesaleOrder();
   
-  const { addAction } = useHistory();
-
-  const [compressedStates, setCompressedStates] = useState<Record<number, boolean>>({});
-  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
-  const [filterValue, setFilterValue] = useState("");
-
-  const safeOptions: DropdownOptions = {
+  const safeOptions = {
     ...initialOptions,
     ...options
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>, field: keyof DropdownOptions) => {
-    if (e.key === "Enter" && newOption?.trim()) {
-      const prevOptions = { ...safeOptions };
-      const updatedOptions = [...(safeOptions[field] || []), newOption.trim()];
-      
-      setOptions({
-        ...safeOptions,
-        [field]: updatedOptions,
-      });
-      
-      // Record this action in history
-      addAction({
-        payload: { 
-          type: 'options', 
-          field, 
-          data: { 
-            ...safeOptions,
-            [field]: updatedOptions 
-          } 
-        },
-        reverse: () => setOptions(prevOptions)
-      });
-      
-      setNewOption("");
-      setEditingField(null);
-    }
-  };
+  // Import all the smaller hooks
+  const {
+    handleKeyPress,
+    handleUpdateItem,
+    handleRemoveRow,
+    handleCopyRow,
+    handleAddItem,
+    handleUpdateOptions,
+  } = useOrderActions();
 
-  const handleUpdateItem = (id: number, field: keyof OrderItem, value: string | number) => {
-    const prevItems = [...items];
-    
-    setItems(prev => 
-      prev.map((item) =>
-        item.id === id ? { 
-          ...item, 
-          [field]: value,
-          // Set default unit cost when species is updated
-          ...(field === 'species' ? { unitCost: 250 } : {})
-        } : item
-      )
-    );
-    
-    // Record this action in history
-    addAction({
-      payload: { 
-        type: 'updateItem', 
-        itemId: id, 
-        field, 
-        value 
-      },
-      reverse: () => setItems(prevItems)
-    });
-  };
+  const {
+    calculateTotalPallets,
+    calculateTotalCost,
+    generateItemName
+  } = useOrderCalculations();
 
-  const handleRemoveRow = (id: number) => {
-    const prevItems = [...items];
-    setItems(prev => prev.filter((item) => item.id !== id));
-    
-    // Record this action in history
-    addAction({
-      payload: { 
-        type: 'removeRow', 
-        itemId: id 
-      },
-      reverse: () => setItems(prevItems)
-    });
-  };
+  const {
+    sortConfig,
+    setSortConfig,
+    filterValue,
+    setFilterValue,
+    applyFiltersAndSorting
+  } = useOrderFiltering();
 
-  const handleCopyRow = (item: OrderItem) => {
-    const prevItems = [...items];
-    const maxId = Math.max(...items.map((item) => item.id), 0);
-    const newItem = { ...item, id: maxId + 1 };
-    
-    setItems(prev => [...prev, newItem]);
-    
-    // Record this action in history
-    addAction({
-      payload: { 
-        type: 'copyRow', 
-        newItem 
-      },
-      reverse: () => setItems(prevItems)
-    });
-  };
+  const {
+    compressedStates,
+    toggleCompressed
+  } = useOrderDisplay();
 
-  const handleAddItem = () => {
-    const prevItems = [...items];
-    const maxId = Math.max(...items.map((item) => item.id), 0);
-    const newItem = {
-      id: maxId + 1,
-      species: "",
-      length: "",
-      bundleType: "",
-      thickness: "",
-      packaging: "Pallets",
-      pallets: 0,
-      unitCost: 250, // Default unit cost
-    };
-    
-    setItems(prev => [...prev, newItem]);
-    
-    // Record this action in history
-    addAction({
-      payload: { 
-        type: 'addItem', 
-        newItem 
-      },
-      reverse: () => setItems(prevItems)
-    });
-  };
+  const { hasValidItems } = useOrderValidation(items);
 
-  const calculateTotalPallets = () => {
-    return items.reduce((sum, item) => sum + (Number(item.pallets) || 0), 0);
-  };
+  // Process items with sorting and filtering
+  const processedItems = applyFiltersAndSorting(items, generateItemName);
 
-  const calculateTotalCost = () => {
-    return items.reduce((sum, item) => sum + ((Number(item.pallets) || 0) * (Number(item.unitCost) || 0)), 0);
-  };
-
-  const generateItemName = (item: OrderItem) => {
-    if (!item) return "New Item";
-    const parts = [];
-
-    if (item.pallets && item.packaging) {
-      parts.push(`${item.pallets} ${item.packaging} of`);
-    }
-
-    if (item.species) parts.push(item.species);
-    if (item.length) parts.push(item.length);
-    if (item.bundleType) parts.push(item.bundleType);
-    if (item.thickness) parts.push(item.thickness);
-
-    return parts.join(" ") || "New Item";
-  };
-
-  const handleUpdateOptions = (field: keyof DropdownOptions, newOptions: string[]) => {
-    const prevOptions = { ...safeOptions };
-    
-    setOptions({
-      ...safeOptions,
-      [field]: newOptions,
-    });
-    
-    // Record this action in history
-    addAction({
-      payload: { 
-        type: 'updateOptions', 
-        field, 
-        newOptions 
-      },
-      reverse: () => setOptions(prevOptions)
-    });
-  };
-
-  const toggleCompressed = (itemId: number) => {
-    setCompressedStates(prev => ({
-      ...prev,
-      [itemId]: !prev[itemId]
-    }));
-  };
-
-  const hasValidItems = items.some(item => {
-    return item.species && 
-           item.length && 
-           item.bundleType && 
-           item.thickness && 
-           item.pallets > 0;
-  });
-
-  // Apply sorting and filtering
-  let processedItems = [...items];
-
-  if (sortConfig) {
-    processedItems.sort((a, b) => {
-      const aValue = a[sortConfig.key as keyof OrderItem];
-      const bValue = b[sortConfig.key as keyof OrderItem];
-
-      // Handle string comparison
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return sortConfig.direction === 'asc' 
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue);
-      }
-      
-      // Handle number comparison
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        return sortConfig.direction === 'asc'
-          ? aValue - bValue
-          : bValue - aValue;
-      }
-      
-      // When comparing different types or nulls
-      if (!aValue && bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-      if (aValue && !bValue) return sortConfig.direction === 'asc' ? 1 : -1;
-      
-      return 0;
-    });
-  }
-
-  if (filterValue) {
-    processedItems = processedItems.filter(item => {
-      const searchLower = filterValue.toLowerCase();
-      
-      // Check main properties
-      if (
-        (item.species && item.species.toLowerCase().includes(searchLower)) ||
-        (item.length && item.length.toLowerCase().includes(searchLower)) ||
-        (item.bundleType && item.bundleType.toLowerCase().includes(searchLower)) ||
-        (item.thickness && item.thickness.toLowerCase().includes(searchLower)) ||
-        (item.packaging && item.packaging.toLowerCase().includes(searchLower))
-      ) {
-        return true;
-      }
-      
-      // Check numeric values as strings
-      if (
-        item.pallets?.toString().includes(searchLower) ||
-        item.unitCost?.toString().includes(searchLower)
-      ) {
-        return true;
-      }
-      
-      // Check the generated name
-      const name = generateItemName(item).toLowerCase();
-      if (name.includes(searchLower)) {
-        return true;
-      }
-      
-      return false;
-    });
-  }
-
+  // Return a consolidated object with all the functionality
   return {
     items: processedItems,
     options: safeOptions,
@@ -267,7 +67,7 @@ export function useOrderTable() {
     editingField,
     newOption,
     compressedStates,
-    optionFields: Object.keys(safeOptions) as Array<keyof DropdownOptions>,
+    optionFields: Object.keys(safeOptions) as Array<keyof typeof safeOptions>,
     handleKeyPress,
     handleUpdateItem,
     handleRemoveRow,
