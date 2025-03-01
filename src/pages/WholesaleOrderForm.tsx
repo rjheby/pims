@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
@@ -343,17 +344,17 @@ export function WholesaleOrderForm() {
     
     return (
       <div className="mt-4 pt-4 border-t border-gray-200">
-        {totalPallets < 24 && (
+        {safeNumber(totalPallets) < 24 && (
           <div className="text-sm text-amber-600 text-center">
-            {24 - totalPallets} pallets remaining before full load
+            {24 - safeNumber(totalPallets)} pallets remaining before full load
           </div>
         )}
-        {totalPallets > 24 && (
+        {safeNumber(totalPallets) > 24 && (
           <div className="text-sm text-red-600 text-center">
-            Exceeds maximum load by {totalPallets - 24} pallets
+            Exceeds maximum load by {safeNumber(totalPallets) - 24} pallets
           </div>
         )}
-        {totalPallets === 24 && (
+        {safeNumber(totalPallets) === 24 && (
           <div className="text-sm text-green-600 text-center">
             Perfect load! Exactly 24 pallets.
           </div>
