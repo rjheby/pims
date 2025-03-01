@@ -158,6 +158,45 @@ export type Database = {
         }
         Relationships: []
       }
+      wood_products: {
+        Row: {
+          bundle_type: string
+          created_at: string | null
+          full_description: string
+          id: string
+          is_popular: boolean | null
+          length: string
+          popularity_rank: number | null
+          species: string
+          thickness: string
+          unit_cost: number
+        }
+        Insert: {
+          bundle_type: string
+          created_at?: string | null
+          full_description: string
+          id?: string
+          is_popular?: boolean | null
+          length: string
+          popularity_rank?: number | null
+          species: string
+          thickness: string
+          unit_cost?: number
+        }
+        Update: {
+          bundle_type?: string
+          created_at?: string | null
+          full_description?: string
+          id?: string
+          is_popular?: boolean | null
+          length?: string
+          popularity_rank?: number | null
+          species?: string
+          thickness?: string
+          unit_cost?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

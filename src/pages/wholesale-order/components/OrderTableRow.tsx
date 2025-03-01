@@ -1,10 +1,126 @@
+import {
+  CaretSort,
+  CheckCircled,
+  ChevronDown,
+  ChevronRight,
+  Copy,
+  Plus,
+  Trash,
+} from "lucide-react";
 
-import { TableCell, TableRow } from "@/components/ui/table";
-import { OrderItem, DropdownOptions } from "../types";
-import { OrderTableDropdownCell } from "./OrderTableDropdownCell";
-import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Plus, Copy, X, Maximize2, Minimize2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { TableCell, TableRow } from "@/components/ui/table";
+import { useState } from "react";
+import { OrderItem, DropdownOptions } from "../types";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { ProductSelector } from "./ProductSelector";
+import { WoodProduct } from "../types";
+
+interface OrderTableDropdownCellProps {
+  fieldName: keyof DropdownOptions;
+  value: string;
+  options: string[];
+  editingField: keyof DropdownOptions | null;
+  newOption: string;
+  onNewOptionChange: (value: string) => void;
+  onUpdateItem: (value: string) => void;
+  onUpdateOptions: (option: string) => void;
+  onPress: (event: any) => void;
+  isAdmin: boolean;
+  readOnly?: boolean;
+}
+
+function OrderTableDropdownCell({
+  fieldName,
+  value,
+  options,
+  editingField,
+  newOption,
+  onNewOptionChange,
+  onUpdateItem,
+  onUpdateOptions,
+  onPress,
+  isAdmin,
+  readOnly = false,
+}: OrderTableDropdownCellProps) {
+  const isEditing = editingField === fieldName;
+  const [showNewOptionInput, setShowNewOptionInput] = useState(false);
+
+  const handleKeyDown = (event: any) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      onPress(event);
+    }
+  };
+
+  return (
+    <div className="flex flex-col">
+      {isEditing ? (
+        <div className="flex space-x-2">
+          <Input
+            type="text"
+            value={newOption}
+            onChange={(e) => onNewOptionChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="h-8"
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              onUpdateOptions(newOption);
+              setShowNewOptionInput(false);
+            }}
+          >
+            <CheckCircled className="h-4 w-4 mr-2" />
+            Save
+          </Button>
+        </div>
+      ) : (
+        <Select
+          onValueChange={onUpdateItem}
+          defaultValue={value}
+          disabled={readOnly}
+        >
+          <SelectTrigger className="w-[180px] h-8">
+            <SelectValue placeholder={value || `Select ${fieldName}`} />
+          </SelectTrigger>
+          <SelectContent>
+            {options.map((option) => (
+              <SelectItem key={option} value={option}>
+                {option}
+              </SelectItem>
+            ))}
+            {isAdmin && (
+              <SelectItem
+                value="new"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowNewOptionInput(true);
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <span>Add new {fieldName}</span>
+                  <Plus className="h-4 w-4" />
+                </div>
+              </SelectItem>
+            )}
+          </SelectContent>
+        </Select>
+      )}
+    </div>
+  );
+}
 
 interface OrderTableRowProps {
   item: OrderItem;
@@ -12,16 +128,16 @@ interface OrderTableRowProps {
   isAdmin: boolean;
   editingField: keyof DropdownOptions | null;
   newOption: string;
-  isCompressed: boolean;
   onNewOptionChange: (value: string) => void;
-  onKeyPress: (e: React.KeyboardEvent<HTMLInputElement>, field: keyof DropdownOptions) => void;
-  onUpdateItem: (id: number, field: keyof OrderItem, value: string | number) => void;
+  onKeyPress: (event: any) => void;
+  onUpdateItem: (item: OrderItem) => void;
   onRemoveRow: (id: number) => void;
   onCopyRow: (item: OrderItem) => void;
-  onUpdateOptions: (field: keyof DropdownOptions, options: string[]) => void;
-  onToggleCompressed: (id: number) => void;
-  generateItemName: (item: OrderItem) => string;
   onAddItem: () => void;
+  generateItemName: (item: OrderItem) => string;
+  onUpdateOptions: (field: keyof DropdownOptions, option: string) => void;
+  isCompressed: boolean;
+  onToggleCompressed: (id: number) => void;
   readOnly?: boolean;
 }
 
@@ -31,138 +147,174 @@ export function OrderTableRow({
   isAdmin,
   editingField,
   newOption,
-  isCompressed,
   onNewOptionChange,
   onKeyPress,
   onUpdateItem,
   onRemoveRow,
   onCopyRow,
+  onAddItem,
   generateItemName,
   onUpdateOptions,
+  isCompressed,
   onToggleCompressed,
-  onAddItem,
   readOnly = false,
 }: OrderTableRowProps) {
-  const totalCost = (item.pallets || 0) * (item.unitCost || 0);
+  const optionFields = Object.keys(options) as Array<keyof typeof options>;
+  const [showProductSelector, setShowProductSelector] = useState(false);
+
+  const handleProductSelect = (product: WoodProduct) => {
+    onUpdateItem({
+      ...item,
+      species: product.species,
+      length: product.length,
+      bundleType: product.bundle_type,
+      thickness: product.thickness,
+      unitCost: product.unit_cost,
+      productId: product.id
+    });
+    setShowProductSelector(false);
+  };
+  
+  // Function to handle opening the product selector
+  const openProductSelector = () => {
+    if (!readOnly) {
+      setShowProductSelector(true);
+    }
+  };
 
   return (
     <TableRow>
-      <TableCell className="w-[20%] text-base md:text-sm px-2">
-        {generateItemName(item) || (
-          <div className="h-6 bg-muted/20 rounded animate-pulse" />
-        )}
-      </TableCell>
-      {!isCompressed && Object.keys(options).map((field) => (
-        <TableCell key={field} className="w-[13%] px-2">
-          <OrderTableDropdownCell
-            field={field as keyof DropdownOptions}
-            item={item}
-            options={options}
-            isAdmin={isAdmin}
-            editingField={editingField}
-            newOption={newOption}
-            onNewOptionChange={onNewOptionChange}
-            onKeyPress={onKeyPress}
-            onUpdateItem={onUpdateItem}
-            onUpdateOptions={onUpdateOptions}
-            readOnly={readOnly}
-          />
-        </TableCell>
-      ))}
-      {!isCompressed && (
-        <>
-          <TableCell className="w-[6%] px-2">
-            {readOnly ? (
-              <div className="px-3 py-2 border border-input bg-background rounded-md text-sm">
-                {item.pallets || 0}
-              </div>
-            ) : (
-              <Input
-                type="number"
-                min="0"
-                value={item.pallets || ""}
-                onChange={(e) => onUpdateItem(item.id, "pallets", parseInt(e.target.value) || 0)}
-                className="min-w-[50px] max-w-full"
-                placeholder="Qty"
-                disabled={readOnly}
-              />
-            )}
-          </TableCell>
-          <TableCell className="w-[10%] px-2">
-            {readOnly ? (
-              <div className="px-3 py-2 border border-input bg-background rounded-md text-sm">
-                {item.unitCost || 0}
-              </div>
-            ) : (
-              <Input
-                type="number"
-                min="0"
-                value={item.unitCost || ""}
-                onChange={(e) => onUpdateItem(item.id, "unitCost", parseFloat(e.target.value) || 0)}
-                className="min-w-[60px] max-w-full"
-                placeholder="Cost"
-                disabled={readOnly}
-              />
-            )}
-          </TableCell>
-          <TableCell className="w-[8%] px-2">
-            <div className="text-right">
-              ${totalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+      <TableCell
+        className={cn("font-medium whitespace-nowrap", isCompressed && "w-1/2")}
+      >
+        <div className="flex items-center space-x-2">
+          {isCompressed ? (
+            <div
+              className={cn(
+                "cursor-pointer hover:text-blue-600",
+                "flex space-x-2 items-center"
+              )}
+              onClick={() => onToggleCompressed(item.id)}
+            >
+              <ChevronRight className="h-4 w-4" />
+              <span>{generateItemName(item)}</span>
             </div>
-          </TableCell>
-        </>
-      )}
-      <TableCell className="w-[10%] px-2">
-        {!readOnly && (
-          <div className="flex gap-0.5 items-center justify-end md:justify-start">
-            <Button 
-              variant="customAction"
-              size="sm" 
-              onClick={() => onRemoveRow(item.id)} 
-              className="rounded-full w-6 h-6 sm:w-7 sm:h-7 p-0 text-pink-100 bg-red-800 hover:bg-pink-100 hover:text-red-800"
-              disabled={readOnly}
+          ) : (
+            <div
+              className={cn(
+                "cursor-pointer hover:text-blue-600",
+                "flex space-x-2 items-center"
+              )}
+              onClick={() => onToggleCompressed(item.id)}
             >
-              <X className="h-3 w-3" />
-            </Button>
-            <Button 
-              variant="customAction"
-              size="sm" 
-              onClick={() => onCopyRow(item)} 
-              className="rounded-full w-6 h-6 sm:w-7 sm:h-7 p-0 text-sky-100 bg-blue-700 hover:bg-sky-100 hover:text-blue-700"
-              disabled={readOnly}
-            >
-              <Copy className="h-3 w-3" />
-            </Button>
-            <Button 
-              variant="customAction"
-              size="sm" 
-              onClick={onAddItem}
-              className="rounded-full w-6 h-6 sm:w-7 sm:h-7 p-0 bg-[#2A4131] hover:bg-slate-50 text-slate-50 hover:text-[#2A4131]"
-              disabled={readOnly}
-            >
-              <Plus className="h-3 w-3" />
-            </Button>
-            <Button 
-              variant="customAction"
-              size="sm" 
-              onClick={() => onToggleCompressed(item.id)} 
-              className="rounded-full w-6 h-6 sm:w-7 sm:h-7 p-0 bg-black hover:bg-slate-50 text-slate-50 hover:text-black md:hidden"
-            >
-              {isCompressed ? <Maximize2 className="h-3 w-3" /> : <Minimize2 className="h-3 w-3" />}
-            </Button>
-          </div>
-        )}
-        {readOnly && (
-          <Button 
-            variant="customAction"
-            size="sm" 
-            onClick={() => onToggleCompressed(item.id)} 
-            className="rounded-full w-6 h-6 sm:w-7 sm:h-7 p-0 bg-black hover:bg-slate-50 text-slate-50 hover:text-black md:hidden"
-          >
-            {isCompressed ? <Maximize2 className="h-3 w-3" /> : <Minimize2 className="h-3 w-3" />}
-          </Button>
-        )}
+              <ChevronDown className="h-4 w-4" />
+              <div className="cursor-pointer hover:underline text-blue-600" onClick={(e) => {
+                e.stopPropagation();
+                openProductSelector();
+              }}>
+                {generateItemName(item) || "Select product"}
+              </div>
+            </div>
+          )}
+        </div>
       </TableCell>
+
+      {/* Column cells for each option field */}
+      {!isCompressed && !readOnly &&
+        optionFields.map((field) => (
+          <TableCell key={field}>
+            <OrderTableDropdownCell
+              fieldName={field}
+              value={item[field] as string}
+              options={options[field]}
+              editingField={editingField}
+              newOption={newOption}
+              onNewOptionChange={onNewOptionChange}
+              onUpdateItem={(value) => onUpdateItem({ ...item, [field]: value })}
+              onUpdateOptions={(option) => onUpdateOptions(field, option)}
+              onPress={onKeyPress}
+              isAdmin={isAdmin}
+              readOnly={readOnly}
+            />
+          </TableCell>
+        ))}
+
+      {/* Pallets input */}
+      <TableCell className={isCompressed ? "hidden" : ""}>
+        <Input
+          type="number"
+          min="0"
+          step="1"
+          value={item.pallets || ""}
+          onChange={(e) =>
+            onUpdateItem({ ...item, pallets: Number(e.target.value) })
+          }
+          className="h-8"
+          disabled={readOnly}
+        />
+      </TableCell>
+
+      {/* Unit Cost input */}
+      <TableCell className={isCompressed ? "hidden" : ""}>
+        <Input
+          type="number"
+          min="0"
+          step="0.01"
+          value={item.unitCost || ""}
+          onChange={(e) =>
+            onUpdateItem({ ...item, unitCost: Number(e.target.value) })
+          }
+          className="h-8"
+          disabled={readOnly}
+        />
+      </TableCell>
+
+      {/* Total Cost (calculated) */}
+      <TableCell className="text-right">
+        ${((Number(item.pallets) || 0) * (Number(item.unitCost) || 0)).toFixed(2)}
+      </TableCell>
+
+      {/* Actions column */}
+      <TableCell className={isCompressed ? "hidden" : ""}>
+        <div className="flex space-x-1">
+          {!readOnly && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onCopyRow(item)}
+                aria-label="Copy row"
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onRemoveRow(item.id)}
+                aria-label="Remove row"
+              >
+                <Trash className="h-4 w-4" />
+              </Button>
+            </>
+          )}
+        </div>
+      </TableCell>
+      
+      {/* Product Selector Dialog */}
+      <Dialog open={showProductSelector} onOpenChange={setShowProductSelector}>
+        <DialogContent className="sm:max-w-[600px]">
+          <ProductSelector 
+            onSelect={handleProductSelect}
+            onCancel={() => setShowProductSelector(false)}
+            initialValues={{
+              species: item.species,
+              length: item.length,
+              bundleType: item.bundleType,
+              thickness: item.thickness
+            }}
+          />
+        </DialogContent>
+      </Dialog>
     </TableRow>
   );
 }

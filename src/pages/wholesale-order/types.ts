@@ -1,4 +1,3 @@
-
 export interface OrderItem {
   id: number;
   species: string;
@@ -6,8 +5,9 @@ export interface OrderItem {
   bundleType: string;
   thickness: string;
   packaging: string;
-  pallets: number;
-  unitCost: number;  // Renamed from cost to unitCost
+  pallets: number | string;
+  unitCost: number | string;
+  productId?: string; // Reference to wood_products table
 }
 
 export interface DropdownOptions {
@@ -36,9 +36,24 @@ export const serializeOrderItem = (item: OrderItem): Record<string, string | num
   packaging: item.packaging,
   pallets: item.pallets,
   unitCost: item.unitCost,
+  productId: item.productId,
 });
 
 // Helper function to serialize OrderItem array for Supabase
 export const serializeOrderItems = (items: OrderItem[]): Record<string, string | number>[] => {
   return items.map(serializeOrderItem);
 };
+
+// New type for wood products from the database
+export interface WoodProduct {
+  id: string;
+  species: string;
+  length: string;
+  bundle_type: string;
+  thickness: string;
+  full_description: string;
+  is_popular: boolean;
+  popularity_rank: number | null;
+  unit_cost: number;
+  created_at?: string;
+}

@@ -1,37 +1,31 @@
 
+import { useCallback } from "react";
 import { OrderItem } from "../../types";
-import { useWholesaleOrder } from "../../context/WholesaleOrderContext";
 
 export function useOrderCalculations() {
-  const { items = [] } = useWholesaleOrder();
-
-  const calculateTotalPallets = () => {
-    return items.reduce((sum, item) => sum + (Number(item.pallets) || 0), 0);
-  };
-
-  const calculateTotalCost = () => {
-    return items.reduce((sum, item) => sum + ((Number(item.pallets) || 0) * (Number(item.unitCost) || 0)), 0);
-  };
-
-  const generateItemName = (item: OrderItem) => {
-    if (!item) return "New Item";
-    const parts = [];
-
-    if (item.pallets && item.packaging) {
-      parts.push(`${item.pallets} ${item.packaging} of`);
+  const generateItemName = useCallback((item: OrderItem) => {
+    if (!item || !item.species || !item.thickness || !item.length || !item.bundleType) {
+      return "";
     }
+    
+    return `${item.length} ${item.species} ${item.bundleType} ${item.thickness}`;
+  }, []);
 
-    if (item.species) parts.push(item.species);
-    if (item.length) parts.push(item.length);
-    if (item.bundleType) parts.push(item.bundleType);
-    if (item.thickness) parts.push(item.thickness);
+  const calculateTotalPallets = useCallback((items: OrderItem[]) => {
+    return items.reduce((sum, item) => sum + (Number(item.pallets) || 0), 0);
+  }, []);
 
-    return parts.join(" ") || "New Item";
-  };
+  const calculateTotalCost = useCallback((items: OrderItem[]) => {
+    return items.reduce(
+      (sum, item) =>
+        sum + (Number(item.pallets) || 0) * (Number(item.unitCost) || 0),
+      0
+    );
+  }, []);
 
   return {
+    generateItemName,
     calculateTotalPallets,
     calculateTotalCost,
-    generateItemName
   };
 }
