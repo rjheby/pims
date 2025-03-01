@@ -74,7 +74,8 @@ export function useOrderActions() {
       return;
     }
 
-    // Fixed: Add the new option to the dropdown with proper DropdownOptions type
+    // Use the existing options as a base and just update the specific field
+    // This ensures all required properties of DropdownOptions are present
     setOptions({
       ...options,
       [field]: [...(options[field] || []), option],
