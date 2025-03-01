@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -122,9 +121,10 @@ export const useTemplates = (): UseTemplatesReturn => {
         setError(null);
         
         // Process items if they exist
-        const updateData = { ...data };
+        const updateData: Record<string, any> = { ...data };
         if (updateData.items) {
-          // Fix: The items array needs to be properly stringified
+          // Fix: Use type assertion to tell TypeScript we know what we're doing
+          // We need to store items as a JSON string in the database
           updateData.items = JSON.stringify(updateData.items);
         }
 
