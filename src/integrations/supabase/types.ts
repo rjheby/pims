@@ -89,6 +89,36 @@ export type Database = {
           },
         ]
       }
+      wholesale_order_options: {
+        Row: {
+          bundleType: string[]
+          created_at: string
+          id: number
+          length: string[]
+          packaging: string[]
+          species: string[]
+          thickness: string[]
+        }
+        Insert: {
+          bundleType?: string[]
+          created_at?: string
+          id?: number
+          length?: string[]
+          packaging?: string[]
+          species?: string[]
+          thickness?: string[]
+        }
+        Update: {
+          bundleType?: string[]
+          created_at?: string
+          id?: number
+          length?: string[]
+          packaging?: string[]
+          species?: string[]
+          thickness?: string[]
+        }
+        Relationships: []
+      }
       wholesale_orders: {
         Row: {
           admin_editable: boolean | null

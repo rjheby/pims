@@ -7,7 +7,6 @@ import { useOrderFiltering } from "./orderTable/useOrderFiltering";
 import { useOrderDisplay } from "./orderTable/useOrderDisplay";
 import { useOrderValidation } from "./orderTable/useOrderValidation";
 import { useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 
 export function useOrderTable() {
   // Get context values first to maintain hook order

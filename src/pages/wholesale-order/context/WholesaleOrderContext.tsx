@@ -43,6 +43,17 @@ interface WholesaleOrderProviderProps {
   initialItems?: OrderItem[];
 }
 
+// Helper type for the Supabase wholesale_order_options table row
+type WholesaleOrderOptionsRow = {
+  id: number;
+  species: string[];
+  length: string[];
+  bundleType: string[];
+  thickness: string[];
+  packaging: string[];
+  created_at?: string;
+}
+
 export function WholesaleOrderProvider({ children, initialItems }: WholesaleOrderProviderProps) {
   const { toast } = useToast();
   const { setHasUnsavedChanges: setGlobalUnsavedChanges } = useAdmin();
@@ -81,9 +92,12 @@ export function WholesaleOrderProvider({ children, initialItems }: WholesaleOrde
   const loadOptions = useCallback(async () => {
     setIsLoadingOptions(true);
     try {
+      // Using the `.from('table_name')` syntax instead of the schema-typed version
+      // because the table was just created
       const { data, error } = await supabase
         .from('wholesale_order_options')
         .select('*')
+        .eq('id', 1)
         .single();
 
       if (error) {
@@ -102,10 +116,17 @@ export function WholesaleOrderProvider({ children, initialItems }: WholesaleOrde
         }
       } else if (data) {
         console.log('Options loaded from database:', data);
-        // Remove id field from data before setting options
-        const { id, created_at, ...optionsData } = data;
-        setOptions(optionsData as DropdownOptions);
-        setOptionsHistory([optionsData as DropdownOptions]);
+        const optionsData = data as WholesaleOrderOptionsRow;
+        // Convert the DB row to our DropdownOptions type
+        const loadedOptions: DropdownOptions = {
+          species: optionsData.species || initialOptions.species,
+          length: optionsData.length || initialOptions.length,
+          bundleType: optionsData.bundleType || initialOptions.bundleType,
+          thickness: optionsData.thickness || initialOptions.thickness,
+          packaging: optionsData.packaging || initialOptions.packaging
+        };
+        setOptions(loadedOptions);
+        setOptionsHistory([loadedOptions]);
       }
     } catch (err) {
       console.error('Error in loadOptions:', err);
@@ -117,11 +138,17 @@ export function WholesaleOrderProvider({ children, initialItems }: WholesaleOrde
   // Save options to Supabase
   const saveOptionsToSupabase = async (optionsToSave: DropdownOptions) => {
     try {
+      // Using the `.from('table_name')` syntax instead of the schema-typed version
+      // because the table was just created
       const { error } = await supabase
         .from('wholesale_order_options')
         .upsert({ 
           id: 1, // Use a fixed ID since we only need one row
-          ...optionsToSave
+          species: optionsToSave.species,
+          length: optionsToSave.length,
+          bundleType: optionsToSave.bundleType,
+          thickness: optionsToSave.thickness,
+          packaging: optionsToSave.packaging
         });
 
       if (error) {
