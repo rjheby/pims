@@ -8,7 +8,7 @@ export function useOrderActions() {
   const { 
     items = [], 
     setItems, 
-    options = {}, 
+    options = initialOptions, // Ensure options has a default value of initialOptions
     setOptions, 
     setEditingField 
   } = useWholesaleOrder();
@@ -75,12 +75,19 @@ export function useOrderActions() {
     }
 
     // Create a properly typed DropdownOptions object with all required fields
-    // Start with initialOptions as base, then apply current options, then update the specific field
-    setOptions({
-      ...initialOptions,  // Ensures all required properties exist
-      ...options,         // Applies current option values
-      [field]: [...(options[field] || []), option]  // Updates the specific field
-    });
+    const updatedOptions: DropdownOptions = {
+      species: [...(options.species || [])],
+      length: [...(options.length || [])],
+      bundleType: [...(options.bundleType || [])],
+      thickness: [...(options.thickness || [])],
+      packaging: [...(options.packaging || [])]
+    };
+    
+    // Update the specific field
+    updatedOptions[field] = [...(options[field] || []), option];
+    
+    // Set the updated options
+    setOptions(updatedOptions);
 
     setEditingField(null);
   };
