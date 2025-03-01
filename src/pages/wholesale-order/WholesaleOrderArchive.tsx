@@ -1,8 +1,9 @@
+
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { FileText, Plus } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { OrderList } from "./components/OrderList";
@@ -157,15 +158,22 @@ export function WholesaleOrderArchive() {
     <div className="flex-1">
       <Card className="shadow-sm">
         <CardHeader className="flex flex-col space-y-4">
-          <div className="flex flex-col space-y-4">
+          <div className="flex flex-col space-y-4 md:flex-row md:justify-between md:items-center md:space-y-0">
             <div>
               <CardTitle>Supplier Orders Archive</CardTitle>
             </div>
-            <div>
+            <div className="flex flex-wrap gap-2">
               <Link to="/wholesale-order">
                 <Button className="bg-[#2A4131] hover:bg-[#2A4131]/90">
                   <Plus className="mr-2 h-4 w-4" />
                   New Order
+                </Button>
+              </Link>
+              
+              <Link to="/wholesale-orders/templates">
+                <Button variant="outline">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Templates
                 </Button>
               </Link>
             </div>

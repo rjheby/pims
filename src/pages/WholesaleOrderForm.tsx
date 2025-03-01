@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
@@ -11,6 +12,7 @@ import { BaseOrderDetails } from "@/components/templates/BaseOrderDetails";
 import { OrderTable } from "./wholesale-order/OrderTable";
 import { WholesaleOrderProvider } from "./wholesale-order/context/WholesaleOrderContext";
 import { BaseOrderSummary } from "@/components/templates/BaseOrderSummary";
+import { OrderFormTemplateControls } from "./wholesale-order/components/OrderFormTemplateControls";
 
 interface DatabaseOrderData {
   id: string;
@@ -21,6 +23,7 @@ interface DatabaseOrderData {
   admin_editable: boolean | null;
   created_at: string | null;
   order_name: string | null;
+  template_id: string | null;
 }
 
 interface WholesaleOrderData {
@@ -29,6 +32,7 @@ interface WholesaleOrderData {
   order_date: string;
   delivery_date: string;
   items: OrderItem[];
+  template_id: string | null;
 }
 
 const formatDateForInput = (dateString: string | null): string => {
@@ -96,6 +100,7 @@ export function WholesaleOrderForm() {
             order_date: formattedOrderDate,
             delivery_date: formattedDeliveryDate,
             items: parsedItems,
+            template_id: rawData.template_id
           });
           
           if ('status' in rawData && rawData.status) {
@@ -239,6 +244,7 @@ export function WholesaleOrderForm() {
           order_date: formattedOrderDate,
           delivery_date: formattedDeliveryDate,
           items: parsedItems,
+          template_id: refreshedData.template_id
         });
       }
 
@@ -338,6 +344,26 @@ export function WholesaleOrderForm() {
     }
   };
 
+  const handleTemplateSelected = (templateItems: OrderItem[]) => {
+    if (orderData) {
+      // Confirm with user if they want to replace existing items
+      if (orderData.items.length > 0) {
+        const shouldReplace = window.confirm("This will replace your current items. Continue?");
+        if (!shouldReplace) return;
+      }
+      
+      setOrderData(prev => ({
+        ...prev!,
+        items: templateItems
+      }));
+      
+      toast({
+        title: "Template Loaded",
+        description: `${templateItems.length} items added from template`,
+      });
+    }
+  };
+
   const renderCustomSummary = () => {
     const totalPallets = calculateTotalPallets();
     
@@ -391,12 +417,26 @@ export function WholesaleOrderForm() {
       <div>
         <Card className="shadow-sm">
           <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle>Supplier Order #{orderData?.order_number}</CardTitle>
-              {isSubmitted && (
-                <div className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-                  Submitted
-                </div>
+            <div className="flex flex-col space-y-4 md:flex-row md:justify-between md:items-center md:space-y-0">
+              <div>
+                <CardTitle>Supplier Order #{orderData?.order_number}</CardTitle>
+                {isSubmitted && (
+                  <div className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium inline-block mt-2">
+                    Submitted
+                  </div>
+                )}
+                {orderData.template_id && (
+                  <div className="text-sm text-muted-foreground mt-1">
+                    Created from template
+                  </div>
+                )}
+              </div>
+              
+              {!isSubmitted && (
+                <OrderFormTemplateControls 
+                  items={orderData.items}
+                  onTemplateSelected={handleTemplateSelected}
+                />
               )}
             </div>
           </CardHeader>
@@ -408,14 +448,14 @@ export function WholesaleOrderForm() {
                 deliveryDate={orderData.delivery_date}
                 onOrderDateChange={handleOrderDateChange}
                 onDeliveryDateChange={handleDeliveryDateChange}
-                disabled={false}
+                disabled={isSubmitted}
               />
               
               <WholesaleOrderProvider 
                 initialItems={orderData.items}
               >
                 <OrderTable 
-                  readOnly={false}
+                  readOnly={isSubmitted}
                   onItemsChange={handleOrderItemsChange} 
                 />
               </WholesaleOrderProvider>
@@ -437,7 +477,7 @@ export function WholesaleOrderForm() {
                   <Button 
                     onClick={handleSave} 
                     className="bg-gray-600 hover:bg-gray-700"
-                    disabled={isSaving}
+                    disabled={isSaving || isSubmitted}
                   >
                     {isSaving ? (
                       <>
