@@ -3,7 +3,7 @@ import { OrderTableRow } from "./components/OrderTableRow";
 import { OrderTableMobileRow } from "./components/OrderTableMobileRow";
 import { useOrderTable } from "./hooks/useOrderTable";
 import { BaseOrderTable } from "@/components/templates/BaseOrderTable";
-import { OrderItem } from "./types";
+import { OrderItem, safeNumber, calculateItemTotal } from "./types";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -59,7 +59,7 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
   const tableData = items.map(item => ({
     ...item,
     name: generateItemName(item),
-    totalCost: (item.pallets || 0) * (item.unitCost || 0)
+    totalCost: calculateItemTotal(item.pallets, item.unitCost)
   }));
 
   const handleSortChange = (key: string, direction: 'asc' | 'desc') => {
@@ -89,7 +89,7 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
                 editingField={editingField}
                 newOption={newOption}
                 onNewOptionChange={setNewOption}
-                onKeyPress={handleKeyPress}
+                onKeyPress={(e) => handleKeyPress(e)}
                 onUpdateItem={handleUpdateItem}
                 onRemoveRow={handleRemoveRow}
                 onCopyRow={handleCopyRow}

@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { BaseOrderDetails } from "@/components/templates/BaseOrderDetails";
 import { BaseOrderSummary } from "@/components/templates/BaseOrderSummary";
@@ -9,7 +8,7 @@ import { useWholesaleOrder } from "./wholesale-order/context/WholesaleOrderConte
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { serializeOrderItems } from "./wholesale-order/types";
+import { serializeOrderItems, safeNumber } from "./wholesale-order/types";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -48,12 +47,12 @@ function WholesaleOrderContent() {
   const calculateTotals = () => {
     const quantityByPackaging = items.reduce((acc, item) => {
       const packaging = item.packaging || 'Unspecified';
-      acc[packaging] = (acc[packaging] || 0) + (item.pallets || 0);
+      acc[packaging] = (acc[packaging] || 0) + safeNumber(item.pallets);
       return acc;
     }, {} as Record<string, number>);
 
     const totalQuantity = Object.values(quantityByPackaging).reduce((sum, qty) => sum + qty, 0);
-    const totalValue = items.reduce((sum, item) => sum + ((item.pallets || 0) * (item.unitCost || 0)), 0);
+    const totalValue = items.reduce((sum, item) => sum + (safeNumber(item.pallets) * safeNumber(item.unitCost)), 0);
 
     return {
       quantityByPackaging,
@@ -68,7 +67,7 @@ function WholesaleOrderContent() {
     }
 
     const validItems = items.filter(item => 
-      item.species && item.length && item.bundleType && item.thickness && Number(item.pallets) > 0
+      item.species && item.length && item.bundleType && item.thickness && safeNumber(item.pallets) > 0
     );
     
     if (validItems.length === 0) {

@@ -1,4 +1,3 @@
-
 import {
   ChevronDown,
   ChevronRight,
@@ -174,7 +173,6 @@ export function OrderTableRow({
     setShowProductSelector(false);
   };
   
-  // Function to handle opening the product selector
   const openProductSelector = () => {
     if (!readOnly) {
       setShowProductSelector(true);
@@ -218,7 +216,6 @@ export function OrderTableRow({
         </div>
       </TableCell>
 
-      {/* Column cells for each option field */}
       {!isCompressed && !readOnly &&
         optionFields.map((field) => (
           <TableCell key={field}>
@@ -238,7 +235,6 @@ export function OrderTableRow({
           </TableCell>
         ))}
 
-      {/* Pallets input */}
       <TableCell className={isCompressed ? "hidden" : ""}>
         <Input
           type="number"
@@ -253,7 +249,6 @@ export function OrderTableRow({
         />
       </TableCell>
 
-      {/* Unit Cost input */}
       <TableCell className={isCompressed ? "hidden" : ""}>
         <Input
           type="number"
@@ -268,12 +263,10 @@ export function OrderTableRow({
         />
       </TableCell>
 
-      {/* Total Cost (calculated) */}
       <TableCell className="text-right">
         ${(safeNumber(item.pallets) * safeNumber(item.unitCost)).toFixed(2)}
       </TableCell>
 
-      {/* Actions column */}
       <TableCell className={isCompressed ? "hidden" : ""}>
         <div className="flex space-x-1">
           {!readOnly && (
@@ -299,7 +292,6 @@ export function OrderTableRow({
         </div>
       </TableCell>
       
-      {/* Product Selector Dialog */}
       <Dialog open={showProductSelector} onOpenChange={setShowProductSelector}>
         <DialogContent className="sm:max-w-[600px]">
           <ProductSelector 
