@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { OrderItem } from "./types";
+import { OrderItem, safeNumber } from "./types";
 
 interface WholesaleOrderData {
   id: string;
@@ -85,9 +85,9 @@ export function WholesaleOrderForm() {
 
   // Calculate summary information
   const summaryInfo = orderData.items.reduce((acc, item) => {
-    const totalCost = item.pallets * item.unitCost;
+    const totalCost = safeNumber(item.pallets) * safeNumber(item.unitCost);
     return {
-      totalPallets: acc.totalPallets + item.pallets,
+      totalPallets: acc.totalPallets + safeNumber(item.pallets),
       totalCost: acc.totalCost + totalCost,
       totalItems: acc.totalItems + 1
     };
@@ -138,7 +138,7 @@ export function WholesaleOrderForm() {
                         <td className="py-2">{item.packaging}</td>
                         <td className="py-2">{item.pallets}</td>
                         <td className="py-2">${item.unitCost}</td>
-                        <td className="py-2">${(item.pallets * item.unitCost).toFixed(2)}</td>
+                        <td className="py-2">${(safeNumber(item.pallets) * safeNumber(item.unitCost)).toFixed(2)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -151,14 +151,14 @@ export function WholesaleOrderForm() {
                   <div className="text-center">
                     <div className="text-gray-600 text-lg mb-1">Total Pallets</div>
                     <div className="text-2xl font-semibold">
-                      {orderData.items.reduce((sum, item) => sum + (Number(item.pallets) || 0), 0)}
+                      {orderData.items.reduce((sum, item) => sum + safeNumber(item.pallets), 0)}
                     </div>
                   </div>
                   <div className="text-center">
                     <div className="text-gray-600 text-lg mb-1">Total Order Value</div>
                     <div className="text-2xl font-semibold">
                       ${orderData.items.reduce((sum, item) => {
-                        return sum + ((Number(item.pallets) || 0) * (Number(item.unitCost) || 0));
+                        return sum + (safeNumber(item.pallets) * safeNumber(item.unitCost));
                       }, 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                     </div>
                   </div>
