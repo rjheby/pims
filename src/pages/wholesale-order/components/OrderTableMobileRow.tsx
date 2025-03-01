@@ -76,24 +76,29 @@ export function OrderTableMobileRow({
     <Card className="w-full">
       <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0">
         <div
-          className="flex items-center space-x-2 cursor-pointer"
+          className="flex items-start gap-2 cursor-pointer w-full"
           onClick={() => onToggleCompressed(item.id)}
         >
-          {isCompressed ? (
-            <ChevronRight className="h-4 w-4 flex-shrink-0" />
-          ) : (
-            <ChevronDown className="h-4 w-4 flex-shrink-0" />
-          )}
-          <div className="font-medium truncate">
-            <div className="cursor-pointer hover:underline text-blue-600" onClick={(e) => {
-              e.stopPropagation();
-              openProductSelector();
-            }}>
+          <div className="flex-shrink-0 mt-1">
+            {isCompressed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+          </div>
+          <div className="font-medium break-words w-full">
+            <div 
+              className="cursor-pointer hover:underline text-blue-600 whitespace-normal break-words" 
+              onClick={(e) => {
+                e.stopPropagation();
+                openProductSelector();
+              }}
+            >
               {generateItemName(item) || "Select product"}
             </div>
           </div>
         </div>
-        <div className="flex items-center space-x-1">
+        <div className="flex items-center space-x-1 flex-shrink-0 ml-2">
           {!readOnly && (
             <>
               <Button
