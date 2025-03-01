@@ -5,49 +5,42 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Archive, Save, SendHorizontal } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { OrderItem, serializeOrderItems } from "./wholesale-order/types";
+import { OrderItem, serializeOrderItems, safeNumber } from "./wholesale-order/types";
 import { useToast } from "@/hooks/use-toast";
 import { BaseOrderDetails } from "@/components/templates/BaseOrderDetails";
 import { OrderTable } from "./wholesale-order/OrderTable";
 import { WholesaleOrderProvider } from "./wholesale-order/context/WholesaleOrderContext";
 import { BaseOrderSummary } from "@/components/templates/BaseOrderSummary";
 
-// Database type that represents the actual schema
 interface DatabaseOrderData {
   id: string;
   order_number: string;
   order_date: string;
   delivery_date: string | null;
-  items: unknown; // This could be a string or JSON object
+  items: unknown;
   admin_editable: boolean | null;
   created_at: string | null;
   order_name: string | null;
-  // status and submitted_at might be missing from the database
 }
 
-// Application type that we use in our component
 interface WholesaleOrderData {
   id: string;
   order_number: string;
   order_date: string;
   delivery_date: string;
   items: OrderItem[];
-  // Status is tracked separately
 }
 
-// Function to format date string to YYYY-MM-DD format for input elements
 const formatDateForInput = (dateString: string | null): string => {
   if (!dateString) return '';
   
   try {
-    // If it's already in YYYY-MM-DD format, return it
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
       return dateString;
     }
     
-    // Otherwise parse it and format it
     const date = new Date(dateString);
-    if (isNaN(date.getTime())) return ''; // Invalid date
+    if (isNaN(date.getTime())) return '';
     
     return date.toISOString().split('T')[0];
   } catch (error) {
@@ -81,17 +74,14 @@ export function WholesaleOrderForm() {
         }
 
         if (data) {
-          // Type cast data to access potential status field safely
           const rawData = data as any;
           
           console.log('Fetched order data:', rawData);
           
-          // Parse items whether it's a string or already an object
           const parsedItems = typeof rawData.items === 'string' 
             ? JSON.parse(rawData.items) 
             : rawData.items;
           
-          // Format dates for input fields
           const formattedOrderDate = formatDateForInput(rawData.order_date);
           const formattedDeliveryDate = formatDateForInput(rawData.delivery_date);
           
@@ -100,7 +90,6 @@ export function WholesaleOrderForm() {
             deliveryDate: formattedDeliveryDate
           });
           
-          // Create our application model
           setOrderData({
             id: rawData.id,
             order_number: rawData.order_number,
@@ -109,7 +98,6 @@ export function WholesaleOrderForm() {
             items: parsedItems,
           });
           
-          // Check if status exists before trying to use it
           if ('status' in rawData && rawData.status) {
             setOrderStatus(rawData.status);
           }
@@ -151,15 +139,14 @@ export function WholesaleOrderForm() {
 
   const calculateTotalPallets = () => {
     if (!orderData?.items) return 0;
-    return orderData.items.reduce((sum, item) => sum + (Number(item.pallets) || 0), 0);
+    return orderData.items.reduce((sum, item) => sum + safeNumber(item.pallets), 0);
   };
 
   const calculateTotalCost = () => {
     if (!orderData?.items) return 0;
-    return orderData.items.reduce((sum, item) => sum + ((Number(item.pallets) || 0) * (Number(item.unitCost) || 0)), 0);
+    return orderData.items.reduce((sum, item) => sum + (safeNumber(item.pallets) * safeNumber(item.unitCost)), 0);
   };
 
-  // Calculate quantities by species for the order summary
   const calculateQuantityBySpecies = () => {
     if (!orderData?.items) return {};
     
@@ -168,7 +155,7 @@ export function WholesaleOrderForm() {
     orderData.items.forEach(item => {
       if (item.species && item.pallets) {
         const species = item.species;
-        speciesMap[species] = (speciesMap[species] || 0) + (Number(item.pallets) || 0);
+        speciesMap[species] = (speciesMap[species] || 0) + safeNumber(item.pallets);
       }
     });
     
@@ -181,7 +168,7 @@ export function WholesaleOrderForm() {
     }
 
     const validItems = orderData.items.filter(item => 
-      item.species && item.length && item.bundleType && item.thickness && Number(item.pallets) > 0
+      item.species && item.length && item.bundleType && item.thickness && safeNumber(item.pallets) > 0
     );
     
     if (validItems.length === 0) {
@@ -198,22 +185,18 @@ export function WholesaleOrderForm() {
     try {
       validateOrder();
 
-      // Log the current data we're about to save
       console.log('Saving order with ID:', id);
       console.log('Current order data:', orderData);
 
-      // Prepare data for update
       let updateData: Record<string, any> = {
         items: serializeOrderItems(orderData.items),
         status: 'draft'
       };
       
-      // Add order_date if it exists
       if (orderData.order_date) {
         updateData.order_date = orderData.order_date;
       }
       
-      // Handle delivery_date, converting empty string to null for database
       if (orderData.delivery_date && orderData.delivery_date.trim() !== '') {
         updateData.delivery_date = orderData.delivery_date;
       } else {
@@ -222,7 +205,6 @@ export function WholesaleOrderForm() {
 
       console.log('Update data being sent to database:', updateData);
 
-      // Update the order in the database
       const { error: updateError } = await supabase
         .from('wholesale_orders')
         .update(updateData)
@@ -233,7 +215,6 @@ export function WholesaleOrderForm() {
         throw updateError;
       }
 
-      // Refresh the order data from the server to ensure everything is up to date
       const { data: refreshedData, error: refreshError } = await supabase
         .from("wholesale_orders")
         .select("*")
@@ -245,12 +226,10 @@ export function WholesaleOrderForm() {
       } else if (refreshedData) {
         console.log('Refreshed data from server:', refreshedData);
         
-        // Update our local state with the refreshed data
         const parsedItems = typeof refreshedData.items === 'string' 
           ? JSON.parse(refreshedData.items) 
           : refreshedData.items;
         
-        // Format dates for input fields
         const formattedOrderDate = formatDateForInput(refreshedData.order_date);
         const formattedDeliveryDate = formatDateForInput(refreshedData.delivery_date);
         
@@ -297,23 +276,19 @@ export function WholesaleOrderForm() {
     try {
       validateOrder();
 
-      // Log the current data we're about to submit
       console.log('Submitting order with ID:', id);
       console.log('Current order data for submission:', orderData);
 
-      // Prepare data for update
       let updateData: Record<string, any> = {
         items: serializeOrderItems(orderData.items),
         status: 'submitted',
         submitted_at: new Date().toISOString()
       };
       
-      // Add order_date if it exists
       if (orderData.order_date) {
         updateData.order_date = orderData.order_date;
       }
       
-      // Handle delivery_date, converting empty string to null for database
       if (orderData.delivery_date && orderData.delivery_date.trim() !== '') {
         updateData.delivery_date = orderData.delivery_date;
       } else {
@@ -332,7 +307,6 @@ export function WholesaleOrderForm() {
         throw updateError;
       }
 
-      // Update local state regardless of database schema
       setOrderStatus('submitted');
 
       toast({
@@ -353,10 +327,8 @@ export function WholesaleOrderForm() {
     }
   };
 
-  // This function is called when the order items change within the WholesaleOrderProvider
   const handleOrderItemsChange = (updatedItems: OrderItem[]) => {
     if (orderData) {
-      // Update the local state with the new items
       setOrderData(prev => ({
         ...prev!,
         items: updatedItems
@@ -407,8 +379,6 @@ export function WholesaleOrderForm() {
       <div className="text-gray-500">Order not found</div>
     </div>
   );
-
-  console.log('Rendering with orderData:', orderData);
 
   const totalPallets = calculateTotalPallets();
   const totalCost = calculateTotalCost();

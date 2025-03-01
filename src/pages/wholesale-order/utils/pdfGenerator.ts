@@ -1,7 +1,6 @@
-
 import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
-import { OrderItem } from "../types";
+import { OrderItem, safeNumber } from "../types";
 
 // Extend jsPDF type to include autoTable
 interface jsPDFWithAutoTable extends jsPDF {
@@ -113,10 +112,10 @@ export const generateOrderPDF = (orderData: OrderData) => {
 
   // Calculate totals if not provided
   const totalPallets = orderData.totalPallets || 
-    orderData.items.reduce((sum, item) => sum + (Number(item.pallets) || 0), 0);
+    orderData.items.reduce((sum, item) => sum + safeNumber(item.pallets), 0);
   
   const totalValue = orderData.totalValue || 
-    orderData.items.reduce((sum, item) => sum + ((Number(item.pallets) || 0) * (Number(item.unitCost) || 0)), 0);
+    orderData.items.reduce((sum, item) => sum + (safeNumber(item.pallets) * safeNumber(item.unitCost)), 0);
   
   yPos += 5;
   
@@ -131,11 +130,15 @@ export const generateOrderPDF = (orderData: OrderData) => {
       item.packaging // Added packaging to the description
     ].filter(Boolean).join(' - ');
     
+    const itemUnitCost = safeNumber(item.unitCost);
+    const itemPallets = safeNumber(item.pallets);
+    const itemTotal = itemPallets * itemUnitCost;
+    
     return [
-      item.pallets?.toString() || '0',                      // Qty
-      name,                                                  // Name
-      item.unitCost ? `$${item.unitCost.toFixed(2)}` : '$0.00',  // Unit Cost
-      item.unitCost ? `$${((item.pallets || 0) * (item.unitCost || 0)).toFixed(2)}` : '$0.00'  // Total Cost
+      itemPallets.toString(),                         // Qty
+      name,                                           // Name
+      itemUnitCost ? `$${itemUnitCost.toFixed(2)}` : '$0.00',  // Unit Cost
+      itemTotal ? `$${itemTotal.toFixed(2)}` : '$0.00'  // Total Cost
     ];
   });
   

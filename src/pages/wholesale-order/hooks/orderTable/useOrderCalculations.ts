@@ -12,6 +12,23 @@ export function useOrderCalculations() {
     }, 0);
   };
 
+  // Added function for calculating total pallets (alias for calculateTotalQuantity)
+  const calculateTotalPallets = (items: OrderItem[]): number => {
+    return calculateTotalQuantity(items);
+  };
+
+  // Added function to generate item name
+  const generateItemName = (item: OrderItem): string => {
+    const nameParts = [
+      item.species,
+      item.length,
+      item.bundleType,
+      item.thickness
+    ].filter(Boolean);
+    
+    return nameParts.join(' - ');
+  };
+
   const formatCurrency = (value: number): string => {
     return value.toFixed(2);
   };
@@ -19,6 +36,8 @@ export function useOrderCalculations() {
   return {
     calculateTotalQuantity,
     calculateTotalCost,
-    formatCurrency
+    formatCurrency,
+    generateItemName,
+    calculateTotalPallets
   };
 }
