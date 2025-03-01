@@ -124,6 +124,7 @@ export const useTemplates = (): UseTemplatesReturn => {
         // Process items if they exist
         const updateData = { ...data };
         if (updateData.items) {
+          // Fix: The items array needs to be properly stringified
           updateData.items = JSON.stringify(updateData.items);
         }
 
