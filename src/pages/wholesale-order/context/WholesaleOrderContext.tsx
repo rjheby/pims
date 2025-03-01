@@ -1,5 +1,5 @@
 
-import { createContext, useContext, useState, ReactNode, Dispatch, SetStateAction, useEffect } from "react";
+import { createContext, useContext, useState, ReactNode, Dispatch, SetStateAction, useEffect, useCallback } from "react";
 import { OrderItem, DropdownOptions, initialOptions } from "../types";
 import { useToast } from "@/hooks/use-toast";
 import { useAdmin } from "@/context/AdminContext";
@@ -32,6 +32,8 @@ interface WholesaleOrderContextType {
   undoLastChange: () => void;
   handleOrderDateChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   generateOrderNumber: (date: string) => Promise<string>;
+  loadOptions: () => Promise<void>;
+  isLoadingOptions: boolean;
 }
 
 const WholesaleOrderContext = createContext<WholesaleOrderContextType | undefined>(undefined);
@@ -70,9 +72,69 @@ export function WholesaleOrderProvider({ children, initialItems }: WholesaleOrde
     pallets: 0,
     unitCost: 250,
   }]);
+  const [isLoadingOptions, setIsLoadingOptions] = useState(false);
   
   // Track initial items to detect changes
   const [initialItemsState] = useState<OrderItem[]>(JSON.parse(JSON.stringify(initialItems || [])));
+
+  // Load options from Supabase
+  const loadOptions = useCallback(async () => {
+    setIsLoadingOptions(true);
+    try {
+      const { data, error } = await supabase
+        .from('wholesale_order_options')
+        .select('*')
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // No data found, use initial options
+          console.log('No options found in database, using default options');
+          // Save initial options to database for future use
+          await saveOptionsToSupabase(initialOptions);
+        } else {
+          console.error('Error loading options:', error);
+          toast({
+            title: "Error loading options",
+            description: error.message,
+            variant: "destructive"
+          });
+        }
+      } else if (data) {
+        console.log('Options loaded from database:', data);
+        // Remove id field from data before setting options
+        const { id, created_at, ...optionsData } = data;
+        setOptions(optionsData as DropdownOptions);
+        setOptionsHistory([optionsData as DropdownOptions]);
+      }
+    } catch (err) {
+      console.error('Error in loadOptions:', err);
+    } finally {
+      setIsLoadingOptions(false);
+    }
+  }, [toast]);
+
+  // Save options to Supabase
+  const saveOptionsToSupabase = async (optionsToSave: DropdownOptions) => {
+    try {
+      const { error } = await supabase
+        .from('wholesale_order_options')
+        .upsert({ 
+          id: 1, // Use a fixed ID since we only need one row
+          ...optionsToSave
+        });
+
+      if (error) {
+        console.error('Error saving options to database:', error);
+        throw error;
+      }
+      
+      console.log('Options saved to database');
+    } catch (err) {
+      console.error('Error in saveOptionsToSupabase:', err);
+      throw err;
+    }
+  };
 
   // Custom setItems function that tracks history
   const handleSetItems = (newItemsOrUpdater: OrderItem[] | ((prevItems: OrderItem[]) => OrderItem[])) => {
@@ -96,6 +158,7 @@ export function WholesaleOrderProvider({ children, initialItems }: WholesaleOrde
   const handleSetOptions = (newOptions: DropdownOptions) => {
     const prevOptions = { ...options };
     setOptions(newOptions);
+    setHasUnsavedChanges(true);
     
     // Record this action in history
     addAction({
@@ -158,15 +221,26 @@ export function WholesaleOrderProvider({ children, initialItems }: WholesaleOrde
     setOrderNumber(newOrderNumber);
   };
 
-  const saveChanges = () => {
+  const saveChanges = async () => {
     if (hasUnsavedChanges) {
-      setOptionsHistory([...optionsHistory, options]);
-      setHasUnsavedChanges(false);
-      setGlobalUnsavedChanges(false);
-      toast({
-        title: "Changes saved",
-        description: "Your changes have been saved successfully.",
-      });
+      try {
+        // Save the options to Supabase
+        await saveOptionsToSupabase(options);
+        
+        setOptionsHistory([...optionsHistory, options]);
+        setHasUnsavedChanges(false);
+        setGlobalUnsavedChanges(false);
+        toast({
+          title: "Changes saved",
+          description: "Your changes have been saved successfully.",
+        });
+      } catch (err: any) {
+        toast({
+          title: "Error saving changes",
+          description: err.message || "Failed to save changes",
+          variant: "destructive"
+        });
+      }
     }
   };
 
@@ -222,6 +296,8 @@ export function WholesaleOrderProvider({ children, initialItems }: WholesaleOrde
     undoLastChange,
     handleOrderDateChange,
     generateOrderNumber,
+    loadOptions,
+    isLoadingOptions,
   };
 
   return (

@@ -6,6 +6,8 @@ import { useOrderCalculations } from "./orderTable/useOrderCalculations";
 import { useOrderFiltering } from "./orderTable/useOrderFiltering";
 import { useOrderDisplay } from "./orderTable/useOrderDisplay";
 import { useOrderValidation } from "./orderTable/useOrderValidation";
+import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 export function useOrderTable() {
   // Get context values first to maintain hook order
@@ -18,7 +20,9 @@ export function useOrderTable() {
     setNewOption, 
     setEditingField,
     setItems,
-    setOptions 
+    setOptions,
+    loadOptions,
+    isLoadingOptions
   } = useWholesaleOrder();
   
   const safeOptions = {
@@ -32,6 +36,11 @@ export function useOrderTable() {
   const orderFiltering = useOrderFiltering();
   const orderDisplay = useOrderDisplay();
   const { hasValidItems } = useOrderValidation(items);
+
+  // Load options from Supabase when component mounts
+  useEffect(() => {
+    loadOptions();
+  }, [loadOptions]);
 
   // Process items with sorting and filtering
   const processedItems = orderFiltering.applyFiltersAndSorting(items, orderCalculations.generateItemName);
@@ -61,5 +70,6 @@ export function useOrderTable() {
     setSortConfig: orderFiltering.setSortConfig,
     filterValue: orderFiltering.filterValue,
     setFilterValue: orderFiltering.setFilterValue,
+    isLoadingOptions,
   };
 }
