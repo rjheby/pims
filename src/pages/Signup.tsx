@@ -1,26 +1,33 @@
 
-import { useState } from "react";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { useNavigate, Link } from "react-router-dom";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 
-export default function Signup() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+const Signup = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const { signup } = useAuth();
   const navigate = useNavigate();
 
-  const handleSignup = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password || !firstName || !lastName) {
-      setError("All fields are required");
+    if (!firstName || !lastName || !email || !password) {
+      setError("Please fill in all fields");
+      return;
+    }
+    
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
       return;
     }
     
@@ -31,110 +38,104 @@ export default function Signup() {
     
     try {
       setError("");
-      setIsLoading(true);
+      setIsSubmitting(true);
       await signup(email, password, firstName, lastName);
-      navigate("/login", { 
-        state: { message: "Please check your email to verify your account" }
-      });
+      // Redirecting to dashboard happens automatically after signup 
+      // since we're auto-signing in for testing
     } catch (err: any) {
-      setError(err.message || "Failed to create an account");
+      setError(err.message || "Failed to create account");
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#F2E9D2]/30 px-4">
-      <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-md">
-        <div className="mb-6 flex justify-center">
-          <img 
-            src="/lovable-uploads/21d56fd9-ffa2-4b0c-9d82-b10f7d03a546.png"
-            alt="Woodbourne Logo"
-            className="h-16"
-          />
-        </div>
-        
-        <h1 className="mb-6 text-center text-2xl font-bold text-[#2A4131]">Create an Account</h1>
-        
-        {error && (
-          <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-500">
-            {error}
-          </div>
-        )}
-        
-        <form onSubmit={handleSignup}>
-          <div className="mb-4 grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="firstName" className="text-[#2A4131]">First Name</Label>
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
+          <CardDescription>
+            Enter your details to create your account
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {error && (
+            <div className="mb-4 rounded-md bg-red-50 p-4 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First Name</Label>
+                <Input
+                  id="firstName"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name</Label>
+                <Input
+                  id="lastName"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="firstName"
-                type="text"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                placeholder="John"
-                className="mt-1"
+                id="email"
+                type="email"
+                placeholder="name@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
-            <div>
-              <Label htmlFor="lastName" className="text-[#2A4131]">Last Name</Label>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
               <Input
-                id="lastName"
-                type="text"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                placeholder="Doe"
-                className="mt-1"
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 required
               />
             </div>
-          </div>
-          
-          <div className="mb-4">
-            <Label htmlFor="email" className="text-[#2A4131]">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              className="mt-1"
-              required
-            />
-          </div>
-          
-          <div className="mb-6">
-            <Label htmlFor="password" className="text-[#2A4131]">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="mt-1"
-              required
-            />
-            <p className="mt-1 text-xs text-[#2A4131]/60">
-              Password must be at least 6 characters
-            </p>
-          </div>
-          
-          <Button
-            type="submit"
-            className="w-full bg-[#2A4131] text-white hover:bg-[#2A4131]/90"
-            disabled={isLoading}
-          >
-            {isLoading ? "Creating account..." : "Create Account"}
-          </Button>
-        </form>
-        
-        <div className="mt-6 text-center text-sm">
-          <span className="text-[#2A4131]/70">Already have an account?</span>{" "}
-          <Link to="/login" className="font-medium text-[#2A4131] hover:underline">
-            Sign in
-          </Link>
-        </div>
-      </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+              />
+            </div>
+            <Button
+              type="submit"
+              className="w-full bg-[#2A4131] hover:bg-[#2A4131]/90"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Creating account..." : "Sign up"}
+            </Button>
+          </form>
+        </CardContent>
+        <CardFooter>
+          <p className="text-center text-sm text-gray-600 w-full">
+            Already have an account?{" "}
+            <Link to="/login" className="font-medium text-[#2A4131] hover:underline">
+              Login
+            </Link>
+          </p>
+        </CardFooter>
+      </Card>
     </div>
   );
-}
+};
+
+export default Signup;

@@ -9,7 +9,7 @@ import Inventory from "./pages/Inventory";
 import DriverPayments from "./pages/DriverPayments";
 import TeamSettings from "./pages/TeamSettings";
 import WholesaleOrderForm from "./pages/WholesaleOrderForm";
-import WholesaleOrderForms from "./pages/WholesaleOrderForms";
+import { WholesaleOrderForms } from "./pages/WholesaleOrderForms";
 import DispatchDelivery from "./pages/DispatchDelivery";
 import ClientOrder from "./pages/ClientOrder";
 import NotFound from "./pages/NotFound";

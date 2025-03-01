@@ -1,76 +1,45 @@
 
-import { createContext, useContext, ReactNode } from "react";
-import { UserRole, LegacyUserRole, mapLegacyRole } from "@/types/user";
-import { useAuth } from "./AuthContext";
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useAuth } from './AuthContext';
+import { Permissions } from '@/types/permissions';
 
-// For compatibility with existing code using UserContext
+// This context is for backward compatibility
 interface UserContextType {
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    role: LegacyUserRole;
-  } | null;
-  setUser: (user: any) => void;
-  hasPermission: (requiredRole: LegacyUserRole) => boolean;
+  hasPermission: (permission: string) => boolean;
+  isAdmin: () => boolean;
+  isSuperAdmin: () => boolean;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
-export const UserProvider = ({ children }: { children: ReactNode }) => {
-  // Use the new AuthContext under the hood
-  const { currentUser, hasPermission: newHasPermission, logout } = useAuth();
+export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const auth = useAuth();
   
-  // Legacy role hierarchy for backward compatibility
-  const roleHierarchy: Record<LegacyUserRole, number> = {
-    superadmin: 4,
-    admin: 3,
-    staff: 2,
-    client: 1,
-    customer: 0,
+  // Map old permission strings to new permissions system
+  const hasPermission = (permission: string) => {
+    // Map legacy permissions to new system
+    const permissionMap: Record<string, string> = {
+      'admin': Permissions.ADMIN_ACCESS,
+      'view_orders': Permissions.VIEW_ALL_PAGES,
+      'edit_orders': Permissions.EDIT_DATA,
+      'create_orders': Permissions.SUBMIT_ORDERS,
+      'driver': Permissions.ACCESS_DISPATCH,
+    };
+    
+    const mappedPermission = permissionMap[permission] || permission;
+    return auth.hasPermission(mappedPermission);
   };
-
-  // Map new User to old user format
-  const legacyUser = currentUser ? {
-    id: currentUser.id,
-    name: `${currentUser.firstName} ${currentUser.lastName}`,
-    email: currentUser.email || "",
-    role: getLegacyRole(currentUser.role)
-  } : null;
-
-  // Convert new role to legacy role
-  function getLegacyRole(role: UserRole): LegacyUserRole {
-    switch (role) {
-      case UserRole.SUPER_ADMIN:
-        return "superadmin";
-      case UserRole.ADMIN:
-        return "admin";
-      case UserRole.MANAGER:
-        return "staff";
-      case UserRole.DRIVER:
-      case UserRole.CLIENT:
-        return "client";
-      default:
-        return "customer";
-    }
-  }
-
-  // Legacy hasPermission for backward compatibility
-  const hasPermission = (requiredRole: LegacyUserRole) => {
-    if (!legacyUser) return false;
-    return roleHierarchy[legacyUser.role] >= roleHierarchy[requiredRole];
+  
+  const isAdmin = () => {
+    return auth.isAdminOrAbove();
   };
-
-  // This function is now just a wrapper around logout
-  const setUser = (user: any) => {
-    if (user === null) {
-      logout();
-    }
-    // Ignore other cases as we're using AuthContext now
+  
+  const isSuperAdmin = () => {
+    return auth.isSuperAdmin();
   };
 
   return (
-    <UserContext.Provider value={{ user: legacyUser, setUser, hasPermission }}>
+    <UserContext.Provider value={{ hasPermission, isAdmin, isSuperAdmin }}>
       {children}
     </UserContext.Provider>
   );
@@ -79,7 +48,44 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 export const useUser = () => {
   const context = useContext(UserContext);
   if (context === undefined) {
-    throw new Error("useUser must be used within a UserProvider");
+    // If we're not in a UserProvider, try to use the global state set by AuthContext
+    if (window.currentAuthUser) {
+      return {
+        hasPermission: (permission: string) => {
+          // Map old permissions to new permissions system
+          const permissionMap: Record<string, string> = {
+            'admin': Permissions.ADMIN_ACCESS,
+            'view_orders': Permissions.VIEW_ALL_PAGES,
+            'edit_orders': Permissions.EDIT_DATA,
+            'create_orders': Permissions.SUBMIT_ORDERS,
+            'driver': Permissions.ACCESS_DISPATCH,
+          };
+          
+          const mappedPermission = permissionMap[permission] || permission;
+          const role = window.currentAuthUser.role;
+          const permissions = rolePermissions[role];
+          return permissions.includes(mappedPermission);
+        },
+        isAdmin: () => {
+          const role = window.currentAuthUser.role;
+          return role === 'ADMIN' || role === 'SUPER_ADMIN';
+        },
+        isSuperAdmin: () => {
+          return window.currentAuthUser.role === 'SUPER_ADMIN';
+        }
+      };
+    }
+    throw new Error('useUser must be used within a UserProvider');
   }
   return context;
 };
+
+// Add to window for global access
+declare global {
+  interface Window {
+    currentAuthUser: any;
+  }
+}
+
+// Initialize global user
+window.currentAuthUser = null;

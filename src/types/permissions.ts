@@ -1,9 +1,8 @@
 
-import { UserRole } from "./user";
-
+// Permission-based system to control access
 export const Permissions = {
   // Admin-only permissions
-  ADMIN_ACCESS: 'ADMIN_ACCESS',
+  ADMIN_ACCESS: 'ADMIN_ACCESS', // Base admin access
   MODIFY_SETTINGS: 'MODIFY_SETTINGS',
   MANAGE_USERS: 'MANAGE_USERS',
   DELETE_USERS: 'DELETE_USERS',
@@ -26,10 +25,10 @@ export const Permissions = {
 
 // Define which permissions each role has
 export const rolePermissions = {
-  [UserRole.SUPER_ADMIN]: [
+  'SUPER_ADMIN': [
     ...Object.values(Permissions) // Super admin has all permissions
   ],
-  [UserRole.ADMIN]: [
+  'ADMIN': [
     Permissions.ADMIN_ACCESS,
     Permissions.MANAGE_USERS,
     Permissions.VIEW_ALL_PAGES,
@@ -41,7 +40,8 @@ export const rolePermissions = {
     Permissions.SUBMIT_ORDERS,
     Permissions.VIEW_OWN_ORDERS,
   ],
-  [UserRole.MANAGER]: [
+  'MANAGER': [
+    // NO ADMIN_ACCESS permission for manager and below
     Permissions.VIEW_ALL_PAGES,
     Permissions.EDIT_DATA,
     Permissions.ACCESS_DISPATCH,
@@ -51,13 +51,13 @@ export const rolePermissions = {
     Permissions.SUBMIT_ORDERS,
     Permissions.VIEW_OWN_ORDERS,
   ],
-  [UserRole.DRIVER]: [
+  'DRIVER': [
     Permissions.ACCESS_DISPATCH,
     Permissions.UPDATE_DELIVERY_STATUS,
     Permissions.UPLOAD_DELIVERY_PHOTOS,
     Permissions.VIEW_PAYMENTS,
   ],
-  [UserRole.CLIENT]: [
+  'CLIENT': [
     Permissions.SUBMIT_ORDERS,
     Permissions.VIEW_OWN_ORDERS,
   ],

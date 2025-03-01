@@ -1,10 +1,4 @@
-import React, {
-  useState,
-  useEffect,
-  useCallback,
-  useRef,
-  useMemo,
-} from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import { useTemplates } from "./wholesale-order/hooks/useTemplates";
@@ -51,6 +45,7 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
+  SheetFooter,
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { useUser } from "@/context/UserContext";
@@ -182,29 +177,25 @@ const WholesaleOrderForm = () => {
 
   const handleSaveOrder = async () => {
     try {
-      // Perform validation first
       const validationErrors = validateOrder(currentOrder);
       if (validationErrors.length > 0) {
         setOrderSubmissionErrors(validationErrors);
         return;
       }
 
-      // Reset errors
       setOrderSubmissionErrors([]);
       setIsSubmitting(true);
 
-      // Format order data
       const orderData = {
         order_name: orderName,
         order_number: orderNumber || generateOrderNumber(),
         order_date: new Date().toISOString(),
-        items: currentOrder,
+        items: JSON.stringify(currentOrder),
         status: "pending",
         admin_editable: true,
         ...(selectedTemplateId ? { template_id: selectedTemplateId } : {})
       };
 
-      // Save to database
       const { data, error } = await supabase
         .from("wholesale_orders")
         .insert(orderData)
@@ -215,16 +206,13 @@ const WholesaleOrderForm = () => {
         throw error;
       }
 
-      // Update order number for next use
       setLastOrderNumber(orderData.order_number);
 
-      // Show success message
       toast({
         title: "Order Created",
         description: `Order ${orderData.order_number} has been created successfully.`,
       });
 
-      // Redirect to order view page
       navigate(`/wholesale-order/${data.id}`);
     } catch (error) {
       console.error("Failed to save order:", error);
@@ -346,7 +334,6 @@ const WholesaleOrderForm = () => {
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-semibold mb-4">Wholesale Order Form</h1>
 
-      {/* Order Submission Errors */}
       {orderSubmissionErrors.length > 0 && (
         <div className="mb-4 p-3 bg-red-100 text-red-800 rounded">
           <h2 className="font-semibold">Please correct the following errors:</h2>
@@ -358,7 +345,6 @@ const WholesaleOrderForm = () => {
         </div>
       )}
 
-      {/* Order Details */}
       <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="orderName">Order Name</Label>
@@ -393,7 +379,6 @@ const WholesaleOrderForm = () => {
         </div>
       </div>
 
-      {/* New Item Form */}
       <div className="mb-4 grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
           <Label htmlFor="newItemName">Item Name</Label>
@@ -444,7 +429,6 @@ const WholesaleOrderForm = () => {
         Add Item
       </Button>
 
-      {/* Order Items Table */}
       <div className="overflow-x-auto">
         <Table>
           <TableCaption>A list of your recent invoices.</TableCaption>
@@ -556,7 +540,6 @@ const WholesaleOrderForm = () => {
         </Table>
       </div>
 
-      {/* Save Order Button */}
       <div className="mt-4 flex gap-4">
         <Button
           className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white"
@@ -566,7 +549,6 @@ const WholesaleOrderForm = () => {
           {isSubmitting ? "Submitting..." : "Save Order"}
         </Button>
 
-        {/* Template Actions */}
         <Sheet open={isTemplateSheetOpen} onOpenChange={setIsTemplateSheetOpen}>
           <SheetTrigger asChild>
             <Button variant="outline">Template Actions</Button>

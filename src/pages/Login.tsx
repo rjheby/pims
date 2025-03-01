@@ -1,24 +1,24 @@
 
-import { useState } from "react";
+import React, { useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { useNavigate, Link, useLocation } from "react-router-dom";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 
-export default function Login() {
+const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Get the page user was trying to access before being redirected to login
-  const from = location.state?.from?.pathname || "/";
+  const from = location.state?.from?.pathname || "/dashboard";
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email || !password) {
@@ -28,83 +28,81 @@ export default function Login() {
     
     try {
       setError("");
-      setIsLoading(true);
+      setIsSubmitting(true);
       await login(email, password);
       navigate(from, { replace: true });
     } catch (err: any) {
-      setError(err.message || "Failed to log in");
+      setError(err.message || "Failed to login");
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#F2E9D2]/30 px-4">
-      <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-md">
-        <div className="mb-6 flex justify-center">
-          <img 
-            src="/lovable-uploads/21d56fd9-ffa2-4b0c-9d82-b10f7d03a546.png"
-            alt="Woodbourne Logo"
-            className="h-16"
-          />
-        </div>
-        
-        <h1 className="mb-6 text-center text-2xl font-bold text-[#2A4131]">Sign In</h1>
-        
-        {error && (
-          <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-500">
-            {error}
-          </div>
-        )}
-        
-        <form onSubmit={handleLogin}>
-          <div className="mb-4">
-            <Label htmlFor="email" className="text-[#2A4131]">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              className="mt-1"
-              required
-            />
-          </div>
-          
-          <div className="mb-6">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="password" className="text-[#2A4131]">Password</Label>
-              <Link to="/forgot-password" className="text-sm text-[#2A4131]/80 hover:text-[#2A4131]">
-                Forgot password?
-              </Link>
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl font-bold">Login</CardTitle>
+          <CardDescription>
+            Enter your email and password to access your account
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {error && (
+            <div className="mb-4 rounded-md bg-red-50 p-4 text-sm text-red-700">
+              {error}
             </div>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="mt-1"
-              required
-            />
-          </div>
-          
-          <Button
-            type="submit"
-            className="w-full bg-[#2A4131] text-white hover:bg-[#2A4131]/90"
-            disabled={isLoading}
-          >
-            {isLoading ? "Signing in..." : "Sign In"}
-          </Button>
-        </form>
-        
-        <div className="mt-6 text-center text-sm">
-          <span className="text-[#2A4131]/70">Don't have an account?</span>{" "}
-          <Link to="/signup" className="font-medium text-[#2A4131] hover:underline">
-            Sign up
-          </Link>
-        </div>
-      </div>
+          )}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="name@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <Link
+                  to="/forgot-password"
+                  className="text-sm font-medium text-[#2A4131] hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+            <Button
+              type="submit"
+              className="w-full bg-[#2A4131] hover:bg-[#2A4131]/90"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Logging in..." : "Login"}
+            </Button>
+          </form>
+        </CardContent>
+        <CardFooter>
+          <p className="text-center text-sm text-gray-600 w-full">
+            Don't have an account?{" "}
+            <Link to="/signup" className="font-medium text-[#2A4131] hover:underline">
+              Sign up
+            </Link>
+          </p>
+        </CardFooter>
+      </Card>
     </div>
   );
-}
+};
+
+export default Login;
