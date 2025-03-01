@@ -1,15 +1,15 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Copy, Trash, ChevronDown, ChevronRight } from "lucide-react";
-import { OrderTableDropdownCell } from "./OrderTableDropdownCell";
-import { OrderItem, DropdownOptions } from "../types";
+import { OrderItem, DropdownOptions, WoodProduct, safeNumber } from "../types";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ProductSelector } from "./ProductSelector";
-import { WoodProduct } from "../types";
+import { OrderTableDropdownCell } from "./OrderTableDropdownCell";
 
 interface OrderTableMobileRowProps {
   item: OrderItem;
@@ -22,7 +22,7 @@ interface OrderTableMobileRowProps {
   onNewOptionChange: (value: string) => void;
   onKeyPress: (event: any, fieldName: string) => void;
   onUpdateItem: (item: OrderItem) => void;
-  onUpdateOptions: (field: string, option: string) => void;
+  onUpdateOptions: (field: keyof DropdownOptions, option: string) => void;
   onRemoveRow: (id: number) => void;
   onCopyRow: (item: OrderItem) => void;
   onAddItem: () => void;
@@ -123,15 +123,15 @@ export function OrderTableMobileRow({
             <div key={field} className="grid grid-cols-2 gap-2 items-center">
               <Label htmlFor={`${field}-${item.id}`}>{field}</Label>
               <OrderTableDropdownCell
-                fieldName={field}
-                value={item[field] as string}
-                options={options[field]}
-                editingField={editingField}
+                fieldName={field as keyof DropdownOptions}
+                value={item[field as keyof OrderItem] as string}
+                options={options[field as keyof DropdownOptions]}
+                editingField={editingField as keyof DropdownOptions}
                 newOption={newOption}
                 onNewOptionChange={onNewOptionChange}
                 onUpdateItem={(value) => onUpdateItem({ ...item, [field]: value })}
-                onUpdateOptions={(option) => onUpdateOptions(field, option)}
-                onPress={onKeyPress}
+                onUpdateOptions={(option) => onUpdateOptions(field as keyof DropdownOptions, option)}
+                onPress={(e) => onKeyPress(e, field)}
                 isAdmin={isAdmin}
                 readOnly={readOnly}
               />
@@ -173,7 +173,7 @@ export function OrderTableMobileRow({
           <div className="grid grid-cols-2 gap-2 items-center">
             <Label>Total Cost</Label>
             <div className="text-right font-medium">
-              ${((Number(item.pallets) || 0) * (Number(item.unitCost) || 0)).toFixed(2)}
+              ${(safeNumber(item.pallets) * safeNumber(item.unitCost)).toFixed(2)}
             </div>
           </div>
         </CardContent>

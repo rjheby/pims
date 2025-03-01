@@ -1,6 +1,6 @@
 
 import { useCallback } from "react";
-import { OrderItem } from "../../types";
+import { OrderItem, safeNumber } from "../../types";
 
 export function useOrderCalculations() {
   const generateItemName = useCallback((item: OrderItem) => {
@@ -12,13 +12,12 @@ export function useOrderCalculations() {
   }, []);
 
   const calculateTotalPallets = useCallback((items: OrderItem[]) => {
-    return items.reduce((sum, item) => sum + (Number(item.pallets) || 0), 0);
+    return items.reduce((sum, item) => sum + safeNumber(item.pallets), 0);
   }, []);
 
   const calculateTotalCost = useCallback((items: OrderItem[]) => {
     return items.reduce(
-      (sum, item) =>
-        sum + (Number(item.pallets) || 0) * (Number(item.unitCost) || 0),
+      (sum, item) => sum + safeNumber(item.pallets) * safeNumber(item.unitCost),
       0
     );
   }, []);

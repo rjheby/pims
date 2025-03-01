@@ -8,13 +8,15 @@ export function useOrderActions() {
     items = [], 
     setItems,
     options,
-    setOptions 
+    setOptions,
+    setEditingField,
+    setNewOption
   } = useWholesaleOrder();
   
   const { addAction } = useHistory();
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>, field: keyof DropdownOptions) => {
-    const { newOption, setNewOption, setEditingField } = useWholesaleOrder();
+    const { newOption } = useWholesaleOrder();
     if (e.key === "Enter" && newOption?.trim()) {
       const prevOptions = { ...options };
       const updatedOptions = [...(options[field] || []), newOption.trim()];
@@ -42,30 +44,24 @@ export function useOrderActions() {
     }
   };
 
-  const handleUpdateItem = (id: number, field: keyof OrderItem, value: string | number) => {
+  const handleUpdateItem = (updatedItem: OrderItem) => {
     const prevItems = [...items];
+    const index = items.findIndex(item => item.id === updatedItem.id);
     
-    setItems(prev => 
-      prev.map((item) =>
-        item.id === id ? { 
-          ...item, 
-          [field]: value,
-          // Set default unit cost when species is updated
-          ...(field === 'species' ? { unitCost: 250 } : {})
-        } : item
-      )
-    );
-    
-    // Record this action in history
-    addAction({
-      payload: { 
-        type: 'updateItem', 
-        itemId: id, 
-        field, 
-        value 
-      },
-      reverse: () => setItems(prevItems)
-    });
+    if (index !== -1) {
+      const newItems = [...items];
+      newItems[index] = updatedItem;
+      setItems(newItems);
+      
+      // Record this action in history
+      addAction({
+        payload: { 
+          type: 'updateItem', 
+          itemId: updatedItem.id
+        },
+        reverse: () => setItems(prevItems)
+      });
+    }
   };
 
   const handleRemoveRow = (id: number) => {
@@ -125,12 +121,13 @@ export function useOrderActions() {
     });
   };
 
-  const handleUpdateOptions = (field: keyof DropdownOptions, newOptions: string[]) => {
+  const handleUpdateOptions = (field: keyof DropdownOptions, option: string) => {
     const prevOptions = { ...options };
+    const updatedOptions = [...options[field], option];
     
     setOptions({
       ...options,
-      [field]: newOptions,
+      [field]: updatedOptions,
     });
     
     // Record this action in history
@@ -138,7 +135,7 @@ export function useOrderActions() {
       payload: { 
         type: 'updateOptions', 
         field, 
-        newOptions 
+        option 
       },
       reverse: () => setOptions(prevOptions)
     });

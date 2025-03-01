@@ -1,3 +1,4 @@
+
 export interface OrderItem {
   id: number;
   species: string;
@@ -57,3 +58,15 @@ export interface WoodProduct {
   unit_cost: number;
   created_at?: string;
 }
+
+// Helper functions to handle numeric operations safely
+export const safeNumber = (value: string | number): number => {
+  if (typeof value === 'string') {
+    return parseFloat(value) || 0;
+  }
+  return value || 0;
+};
+
+export const calculateItemTotal = (pallets: string | number, unitCost: string | number): number => {
+  return safeNumber(pallets) * safeNumber(unitCost);
+};

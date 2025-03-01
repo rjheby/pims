@@ -1,11 +1,11 @@
+
 import {
-  CaretSort,
-  CheckCircled,
   ChevronDown,
   ChevronRight,
   Copy,
   Plus,
   Trash,
+  CheckCircle,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -21,10 +21,9 @@ import {
 } from "@/components/ui/select";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { useState } from "react";
-import { OrderItem, DropdownOptions } from "../types";
+import { OrderItem, DropdownOptions, WoodProduct, safeNumber } from "../types";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ProductSelector } from "./ProductSelector";
-import { WoodProduct } from "../types";
 
 interface OrderTableDropdownCellProps {
   fieldName: keyof DropdownOptions;
@@ -82,7 +81,7 @@ function OrderTableDropdownCell({
               setShowNewOptionInput(false);
             }}
           >
-            <CheckCircled className="h-4 w-4 mr-2" />
+            <CheckCircle className="h-4 w-4 mr-2" />
             Save
           </Button>
         </div>
@@ -271,7 +270,7 @@ export function OrderTableRow({
 
       {/* Total Cost (calculated) */}
       <TableCell className="text-right">
-        ${((Number(item.pallets) || 0) * (Number(item.unitCost) || 0)).toFixed(2)}
+        ${(safeNumber(item.pallets) * safeNumber(item.unitCost)).toFixed(2)}
       </TableCell>
 
       {/* Actions column */}
