@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { useWholesaleOrder } from "../../context/WholesaleOrderContext";
-import { DropdownOptions, OrderItem, safeNumber } from "../../types";
+import { DropdownOptions, OrderItem, initialOptions, safeNumber } from "../../types";
 import { generateEmptyOrderItem } from "../../utils";
 
 export function useOrderActions() {
@@ -74,11 +74,12 @@ export function useOrderActions() {
       return;
     }
 
-    // Use the existing options as a base and just update the specific field
-    // This ensures all required properties of DropdownOptions are present
+    // Create a properly typed DropdownOptions object with all required fields
+    // Start with initialOptions as base, then apply current options, then update the specific field
     setOptions({
-      ...options,
-      [field]: [...(options[field] || []), option],
+      ...initialOptions,  // Ensures all required properties exist
+      ...options,         // Applies current option values
+      [field]: [...(options[field] || []), option]  // Updates the specific field
     });
 
     setEditingField(null);
