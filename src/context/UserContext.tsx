@@ -1,13 +1,17 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from './AuthContext';
-import { Permissions } from '@/types/permissions';
+import { Permissions, rolePermissions } from '@/types/permissions';
 
 // This context is for backward compatibility
 interface UserContextType {
   hasPermission: (permission: string) => boolean;
   isAdmin: () => boolean;
   isSuperAdmin: () => boolean;
+  user: {
+    name?: string;
+    role?: string;
+  } | null;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -24,6 +28,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       'edit_orders': Permissions.EDIT_DATA,
       'create_orders': Permissions.SUBMIT_ORDERS,
       'driver': Permissions.ACCESS_DISPATCH,
+      'superadmin': Permissions.ADMIN_ACCESS, // Added for superadmin check
     };
     
     const mappedPermission = permissionMap[permission] || permission;
@@ -38,8 +43,14 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return auth.isSuperAdmin();
   };
 
+  // Add user object
+  const user = auth.currentUser ? {
+    name: `${auth.currentUser.firstName} ${auth.currentUser.lastName}`.trim(),
+    role: auth.currentUser.role
+  } : null;
+
   return (
-    <UserContext.Provider value={{ hasPermission, isAdmin, isSuperAdmin }}>
+    <UserContext.Provider value={{ hasPermission, isAdmin, isSuperAdmin, user }}>
       {children}
     </UserContext.Provider>
   );
@@ -59,6 +70,7 @@ export const useUser = () => {
             'edit_orders': Permissions.EDIT_DATA,
             'create_orders': Permissions.SUBMIT_ORDERS,
             'driver': Permissions.ACCESS_DISPATCH,
+            'superadmin': Permissions.ADMIN_ACCESS, // Added for superadmin check
           };
           
           const mappedPermission = permissionMap[permission] || permission;
@@ -72,6 +84,10 @@ export const useUser = () => {
         },
         isSuperAdmin: () => {
           return window.currentAuthUser.role === 'SUPER_ADMIN';
+        },
+        user: {
+          name: `${window.currentAuthUser.firstName || ''} ${window.currentAuthUser.lastName || ''}`.trim(),
+          role: window.currentAuthUser.role
         }
       };
     }

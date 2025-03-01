@@ -80,7 +80,7 @@ const WholesaleOrderForm = () => {
   const { templates, loadTemplate, saveTemplate, deleteTemplate, refreshTemplates } = useTemplates();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user } = useUser();
+  const { user, hasPermission } = useUser();
   const { templateId: selectedTemplateId } = useParams();
   const orderNumberInputRef = useRef<HTMLInputElement>(null);
 
