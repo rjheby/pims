@@ -1,6 +1,6 @@
 
 import { useWholesaleOrder } from "../context/WholesaleOrderContext";
-import { OrderItem, initialOptions } from "../types";
+import { OrderItem, initialOptions, safeNumber } from "../types";
 import { useOrderActions } from "./orderTable/useOrderActions";
 import { useOrderCalculations } from "./orderTable/useOrderCalculations";
 import { useOrderFiltering } from "./orderTable/useOrderFiltering";
@@ -71,5 +71,6 @@ export function useOrderTable() {
     filterValue: orderFiltering.filterValue,
     setFilterValue: orderFiltering.setFilterValue,
     isLoadingOptions,
+    safeNumber,
   };
 }

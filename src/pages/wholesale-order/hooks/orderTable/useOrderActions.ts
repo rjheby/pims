@@ -1,152 +1,94 @@
 
+import { useState } from "react";
 import { useWholesaleOrder } from "../../context/WholesaleOrderContext";
-import { OrderItem, DropdownOptions, safeNumber } from "../../types";
-import { useHistory } from "@/context/HistoryContext";
+import { DropdownOptions, OrderItem, safeNumber } from "../../types";
+import { generateEmptyOrderItem } from "../../utils";
 
 export function useOrderActions() {
   const { 
     items = [], 
-    setItems,
-    options,
-    setOptions,
-    setEditingField,
-    setNewOption
+    setItems, 
+    options = {}, 
+    setOptions, 
+    setEditingField 
   } = useWholesaleOrder();
-  
-  const { addAction } = useHistory();
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>, field: keyof DropdownOptions) => {
-    const { newOption } = useWholesaleOrder();
-    if (e.key === "Enter" && newOption?.trim()) {
-      const prevOptions = { ...options };
-      const updatedOptions = [...(options[field] || []), newOption.trim()];
-      
-      setOptions({
-        ...options,
-        [field]: updatedOptions,
-      });
-      
-      // Record this action in history
-      addAction({
-        payload: { 
-          type: 'options', 
-          field, 
-          data: { 
-            ...options,
-            [field]: updatedOptions 
-          } 
-        },
-        reverse: () => setOptions(prevOptions)
-      });
-      
-      setNewOption("");
-      setEditingField(null);
-    }
-  };
+  const [lastOptionField, setLastOptionField] = useState<keyof DropdownOptions | null>(null);
 
+  // Update an item in the order
   const handleUpdateItem = (updatedItem: OrderItem) => {
-    const prevItems = [...items];
-    const index = items.findIndex(item => item.id === updatedItem.id);
-    
-    if (index !== -1) {
-      const newItems = [...items];
-      newItems[index] = updatedItem;
-      setItems(newItems);
-      
-      // Record this action in history
-      addAction({
-        payload: { 
-          type: 'updateItem', 
-          itemId: updatedItem.id
-        },
-        reverse: () => setItems(prevItems)
-      });
+    setItems(
+      items.map((item) => (item.id === updatedItem.id ? updatedItem : item))
+    );
+  };
+
+  // Remove a row from the order
+  const handleRemoveRow = (id: number) => {
+    setItems(items.filter((item) => item.id !== id));
+  };
+
+  // Copy a row in the order
+  const handleCopyRow = (itemToCopy: OrderItem) => {
+    const newItem = {
+      ...itemToCopy,
+      id: Date.now(),
+    };
+    setItems([...items, newItem]);
+  };
+
+  // Add a new empty item to the order
+  const handleAddItem = () => {
+    const newItem = generateEmptyOrderItem();
+    setItems([...items, newItem]);
+  };
+
+  // Handle key press events in the form
+  const handleKeyPress = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    fieldName: string
+  ) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+
+      // Get the new option from the input
+      const target = e.target as HTMLInputElement;
+      const value = target.value.trim();
+
+      if (fieldName && value && lastOptionField) {
+        handleUpdateOptions(lastOptionField, value);
+        setLastOptionField(null);
+      }
     }
   };
 
-  const handleRemoveRow = (id: number) => {
-    const prevItems = [...items];
-    setItems(prev => prev.filter((item) => item.id !== id));
-    
-    // Record this action in history
-    addAction({
-      payload: { 
-        type: 'removeRow', 
-        itemId: id 
-      },
-      reverse: () => setItems(prevItems)
-    });
-  };
+  // Update dropdown options
+  const handleUpdateOptions = (
+    field: keyof DropdownOptions,
+    option: string
+  ) => {
+    if (!option || option.trim() === "") return;
 
-  const handleCopyRow = (item: OrderItem) => {
-    const prevItems = [...items];
-    const maxId = Math.max(...items.map((item) => item.id), 0);
-    const newItem = { ...item, id: maxId + 1 };
-    
-    setItems(prev => [...prev, newItem]);
-    
-    // Record this action in history
-    addAction({
-      payload: { 
-        type: 'copyRow', 
-        newItem 
-      },
-      reverse: () => setItems(prevItems)
-    });
-  };
+    // Check if the option already exists
+    if (options[field]?.includes(option)) {
+      setEditingField(null);
+      return;
+    }
 
-  const handleAddItem = () => {
-    const prevItems = [...items];
-    const maxId = Math.max(...items.map((item) => item.id), 0);
-    const newItem = {
-      id: maxId + 1,
-      species: "",
-      length: "",
-      bundleType: "",
-      thickness: "",
-      packaging: "Pallets",
-      pallets: 0,
-      unitCost: 250, // Default unit cost
-    };
-    
-    setItems(prev => [...prev, newItem]);
-    
-    // Record this action in history
-    addAction({
-      payload: { 
-        type: 'addItem', 
-        newItem 
-      },
-      reverse: () => setItems(prevItems)
-    });
-  };
-
-  const handleUpdateOptions = (field: keyof DropdownOptions, option: string) => {
-    const prevOptions = { ...options };
-    const updatedOptions = [...options[field], option];
-    
+    // Add the new option to the dropdown
     setOptions({
       ...options,
-      [field]: updatedOptions,
+      [field]: [...(options[field] || []), option],
     });
-    
-    // Record this action in history
-    addAction({
-      payload: { 
-        type: 'updateOptions', 
-        field, 
-        option 
-      },
-      reverse: () => setOptions(prevOptions)
-    });
+
+    setEditingField(null);
   };
 
   return {
-    handleKeyPress,
     handleUpdateItem,
     handleRemoveRow,
     handleCopyRow,
     handleAddItem,
+    handleKeyPress,
     handleUpdateOptions,
   };
 }

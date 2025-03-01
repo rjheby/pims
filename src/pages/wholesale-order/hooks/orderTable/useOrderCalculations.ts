@@ -38,6 +38,7 @@ export function useOrderCalculations() {
     calculateTotalCost,
     formatCurrency,
     generateItemName,
-    calculateTotalPallets
+    calculateTotalPallets,
+    safeNumber
   };
 }

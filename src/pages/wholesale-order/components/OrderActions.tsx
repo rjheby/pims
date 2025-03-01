@@ -1,336 +1,169 @@
 import { Button } from "@/components/ui/button";
-import { Plus, FileText } from "lucide-react";
-import { useWholesaleOrder } from "../context/WholesaleOrderContext";
-import { useToast } from "@/hooks/use-toast";
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { Check, Save, SendHorizontal, Upload } from "lucide-react";
+import { useState } from "react";
+import { OrderItem, safeNumber } from "../types";
 
-interface GeneratedOrder {
-  id: string;
-  orderNumber: string;
-  orderDate: string;
-  url: string;
+interface OrderActionsProps {
+  items: OrderItem[];
+  onSave?: () => Promise<void>;
+  onSubmit?: () => Promise<void>;
+  isSubmitDisabled?: boolean;
+  allowSendingWithWarnings?: boolean;
 }
 
-export function OrderActions() {
-  const { items, setItems, orderNumber, orderDate, deliveryDate } = useWholesaleOrder();
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const [generatedOrders, setGeneratedOrders] = useState<GeneratedOrder[]>([]);
+export function OrderActions({
+  items,
+  onSave,
+  onSubmit,
+  isSubmitDisabled = false,
+  allowSendingWithWarnings = false,
+}: OrderActionsProps) {
+  const [isSaving, setIsSaving] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [debugInfo, setDebugInfo] = useState({
-    hasOrderNumber: !!orderNumber,
-    hasOrderDate: !!orderDate,
-    itemsCount: items.length,
-    hasValidItems: false,
-    totalPallets: 0,
-    totalCost: 0
-  });
+  const [showWarning, setShowWarning] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
   
-  const totalPallets = items.reduce((sum, item) => {
-    const pallets = Number(item.pallets) || 0;
-    console.log(`Item ${item.id} pallets:`, pallets);
-    return sum + pallets;
-  }, 0);
-
-  const totalCost = items.reduce((sum, item) => {
-    const itemTotal = (Number(item.pallets) || 0) * (Number(item.unitCost) || 0);
-    console.log(`Item ${item.id} total cost:`, itemTotal);
-    return sum + itemTotal;
-  }, 0);
-
-  const hasValidItems = items.some(item => {
-    const isValid = item.species && 
-                   item.length && 
-                   item.bundleType && 
-                   item.thickness && 
-                   item.pallets > 0;
+  // Calculate pallets using safeNumber for all comparisons
+  const totalPallets = items.reduce((total, item) => total + safeNumber(item.pallets), 0);
+  const hasValidItems = items.some(item => 
+    safeNumber(item.pallets) > 0 && item.species && item.length && item.bundleType
+  );
+  
+  const handleSave = async () => {
+    if (!onSave) return;
     
-    if (!isValid) {
-      console.log('Invalid item:', {
-        id: item.id,
-        species: !!item.species,
-        length: !!item.length,
-        bundleType: !!item.bundleType,
-        thickness: !!item.thickness,
-        pallets: item.pallets > 0
-      });
+    setIsSaving(true);
+    try {
+      await onSave();
+    } finally {
+      setIsSaving(false);
     }
-    
-    return isValid;
-  });
-
-  useEffect(() => {
-    const newDebugInfo = {
-      hasOrderNumber: !!orderNumber,
-      hasOrderDate: !!orderDate,
-      itemsCount: items.length,
-      hasValidItems,
-      totalPallets,
-      totalCost
-    };
-    
-    console.log('Debug Info Updated:', newDebugInfo);
-    setDebugInfo(newDebugInfo);
-  }, [orderNumber, orderDate, items, hasValidItems, totalPallets, totalCost]);
-
-  const addItem = () => {
-    const newTotalPallets = totalPallets + 1;
-    console.log('Adding new item:', {
-      currentTotalPallets: totalPallets,
-      newTotalPallets,
-      currentItemsCount: items.length
-    });
-    
-    if (newTotalPallets > 24) {
-      console.log('Warning: Shipment may be full');
-      toast({
-        title: "Warning",
-        description: "Shipment may already be full.",
-        variant: "destructive",
-      });
-    } else if (newTotalPallets < 24) {
-      console.log('Notice: Shipment not full');
-      toast({
-        title: "Notice",
-        description: "Shipment is not quite full. Consider adding more product to this order.",
-        variant: "default",
-      });
-    }
-
-    const newId = Math.max(...items.map(item => item.id), 0) + 1;
-    console.log('Creating new item with ID:', newId);
-    
-    setItems([
-      ...items,
-      {
-        id: newId,
-        species: "",
-        length: "",
-        bundleType: "",
-        thickness: "",
-        packaging: "Pallets",
-        pallets: 1,
-        unitCost: 250,
-      },
-    ]);
   };
-
+  
   const handleSubmit = async () => {
-    console.log("Submit button clicked");
-    console.log("Current state:", {
-      orderNumber,
-      orderDate,
-      deliveryDate,
-      itemsCount: items.length,
-      hasValidItems,
-      totalPallets,
-      totalCost
-    });
+    if (!onSubmit) return;
+    
+    // Check for warnings before submitting
+    if (safeNumber(totalPallets) > 24 && !confirmed) {
+      setShowWarning(true);
+      return;
+    }
     
     setIsSubmitting(true);
-    
     try {
-      if (!orderNumber || !orderDate) {
-        console.log("Missing required fields:", { orderNumber, orderDate });
-        toast({
-          title: "Error",
-          description: "Order number and date are required.",
-          variant: "destructive",
-        });
-        setIsSubmitting(false);
-        return;
-      }
-
-      console.log('Items before validation:', items);
-
-      const validItems = items.filter(item => {
-        const isValid = item.species && 
-                      item.length && 
-                      item.bundleType && 
-                      item.thickness && 
-                      item.pallets > 0;
-        
-        if (!isValid) {
-          console.log('Invalid item:', {
-            id: item.id,
-            species: !!item.species,
-            length: !!item.length,
-            bundleType: !!item.bundleType,
-            thickness: !!item.thickness,
-            pallets: item.pallets > 0
-          });
-        }
-        
-        return isValid;
-      });
-
-      console.log('Valid items:', validItems);
-
-      if (validItems.length === 0) {
-        console.log("No valid items found");
-        toast({
-          title: "Error",
-          description: "At least one valid item is required. All fields must be filled and quantities must be greater than 0.",
-          variant: "destructive",
-        });
-        setIsSubmitting(false);
-        return;
-      }
-
-      console.log("Attempting to save to Supabase", {
-        order_number: orderNumber,
-        order_date: new Date(orderDate).toISOString(),
-        delivery_date: deliveryDate ? new Date(deliveryDate).toISOString() : null,
-        items: validItems
-      });
-      
-      const { data, error } = await supabase
-        .from("wholesale_orders")
-        .insert({
-          order_number: orderNumber,
-          order_date: new Date(orderDate).toISOString(),
-          delivery_date: deliveryDate ? new Date(deliveryDate).toISOString() : null,
-          items: JSON.stringify(validItems),
-          admin_editable: true
-        })
-        .select("id")
-        .single();
-
-      if (error) {
-        console.error("Error saving wholesale order:", error);
-        toast({
-          title: "Error",
-          description: "Failed to generate wholesale order: " + error.message,
-          variant: "destructive",
-        });
-        setIsSubmitting(false);
-        return;
-      }
-
-      console.log("Order saved successfully:", data);
-
-      const url = `/wholesale-order-form/${data.id}`;
-      console.log("Generated URL:", url);
-
-      const newOrder: GeneratedOrder = {
-        id: data.id,
-        orderNumber,
-        orderDate,
-        url,
-      };
-
-      setGeneratedOrders(prev => [newOrder, ...prev]);
-
-      console.log("Navigating to:", url);
-      navigate(url);
-
-      toast({
-        title: "Success",
-        description: "Wholesale order generated successfully.",
-      });
-
-    } catch (error) {
-      console.error('Submit error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to generate the order. Please try again.",
-        variant: "destructive",
-      });
+      await onSubmit();
+      setConfirmed(false);
+      setShowWarning(false);
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  const isButtonDisabled = !hasValidItems || !orderNumber || !orderDate;
-
+  
+  const handleConfirmWarning = async () => {
+    setConfirmed(true);
+    setShowWarning(false);
+    await handleSubmit();
+  };
+  
+  const getPalletCountClass = () => {
+    if (safeNumber(totalPallets) > 24) return "text-red-500";
+    if (safeNumber(totalPallets) === 24) return "text-green-500";
+    return "text-amber-500";
+  };
+  
+  const getPalletCountMessage = () => {
+    if (safeNumber(totalPallets) > 24) {
+      return `Exceeds full load by ${safeNumber(totalPallets) - 24} pallets`;
+    }
+    if (safeNumber(totalPallets) === 24) {
+      return "Perfect load! Exactly 24 pallets.";
+    }
+    return `${24 - safeNumber(totalPallets)} pallets remaining for full load`;
+  };
+  
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between gap-4">
-        <Button 
-          onClick={addItem} 
-          className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white transition-all duration-300 w-full sm:w-auto"
-        >
-          <Plus className="mr-2 h-5 w-5" />
-          Add Item
-        </Button>
-        <div className="flex flex-col">
-          <Button 
-            onClick={handleSubmit}
-            className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white transition-all duration-300 w-full sm:w-auto"
-            disabled={isButtonDisabled}
-          >
-            {isSubmitting ? "Submitting..." : "Submit Order"}
-          </Button>
-          {isButtonDisabled && (
-            <div className="text-xs text-red-500 mt-1">
-              {!orderNumber && "Order number required. "}
-              {!orderDate && "Order date required. "}
-              {!hasValidItems && "At least one complete item required."}
+    <div className="space-y-4">
+      {showWarning && (
+        <div className="rounded-md border p-4 bg-amber-50 text-amber-700">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fillRule="evenodd" d="M8.485 2.495c.67-.759 1.785-.759 2.455 0l8.25 9.33a1 1 0 00-.216 1.588H2.391a1 1 0 00-.216-1.588L8.485 2.495zM10 11.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm-1 5.75a1.25 1.25 0 112.5 0v.75a.75.75 0 01-1.5 0v-.75z" clipRule="evenodd" />
+              </svg>
             </div>
-          )}
-        </div>
-      </div>
-
-      <div className="text-xs bg-gray-100 p-2 rounded">
-        <div>Order Number: {orderNumber || "missing"}</div>
-        <div>Order Date: {orderDate || "missing"}</div>
-        <div>Delivery Date: {deliveryDate || "missing"}</div>
-        <div>Items Count: {items.length}</div>
-        <div>Has Valid Items: {hasValidItems ? "Yes" : "No"}</div>
-        <div>Total Pallets: {totalPallets}</div>
-        <div>Total Cost: ${totalCost}</div>
-        <div>Button Disabled: {isButtonDisabled ? "Yes" : "No"}</div>
-      </div>
-
-      {generatedOrders.length > 0 && (
-        <div className="border-t pt-6">
-          <h3 className="text-lg font-medium mb-4">Generated Orders</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {generatedOrders.map((order) => (
-              <a
-                key={order.id}
-                href={order.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center p-4 border rounded-lg hover:bg-gray-50 transition-colors duration-200"
-              >
-                <FileText className="h-6 w-6 mr-3 text-[#2A4131]" />
-                <div>
-                  <div className="font-medium">{order.orderNumber}</div>
-                  <div className="text-sm text-gray-500">{order.orderDate}</div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-amber-700">
+                Order Exceeds Maximum Load
+              </h3>
+              <div className="mt-2 text-sm text-amber-700">
+                <p>
+                  This order exceeds the maximum load capacity of 24 pallets.
+                  Submitting it may result in additional shipping costs or logistical
+                  issues.
+                </p>
+              </div>
+              <div className="mt-4">
+                <div className="-mx-2 -my-1.5 flex">
+                  <Button
+                    type="button"
+                    className="bg-amber-700 hover:bg-amber-600 text-white px-3 py-2 rounded-md text-sm font-semibold"
+                    onClick={handleConfirmWarning}
+                  >
+                    Continue anyway
+                  </Button>
+                  <Button
+                    type="button"
+                    className="ml-3 bg-white hover:bg-gray-50 text-amber-700 px-3 py-2 rounded-md text-sm font-medium"
+                    onClick={() => setShowWarning(false)}
+                  >
+                    Cancel
+                  </Button>
                 </div>
-              </a>
-            ))}
+              </div>
+            </div>
           </div>
         </div>
       )}
-
-      <div className="border-t pt-6">
-        <h3 className="text-xl font-semibold mb-6 text-center">Order Summary</h3>
-        <div className="flex flex-col gap-4 p-6 bg-slate-50 rounded-lg">
-          <div className="text-center">
-            <div className="text-gray-600 text-lg mb-1">Total Pallets</div>
-            <div className="text-2xl font-semibold">{totalPallets}</div>
-            {totalPallets < 24 && (
-              <div className="text-sm text-amber-600 mt-1">
-                {24 - totalPallets} pallets remaining before full load
-              </div>
-            )}
-            {totalPallets > 24 && (
-              <div className="text-sm text-red-600 mt-1">
-                Exceeds maximum load by {totalPallets - 24} pallets
-              </div>
-            )}
-          </div>
-          <div className="text-center">
-            <div className="text-gray-600 text-lg mb-1">Total Order Value</div>
-            <div className="text-2xl font-semibold">
-              ${totalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-          </div>
-        </div>
+      <div className="flex justify-end gap-4">
+        <Button
+          onClick={handleSave}
+          className="bg-gray-600 hover:bg-gray-700"
+          disabled={isSaving}
+        >
+          {isSaving ? (
+            <>
+              <div className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="mr-2 h-4 w-4" />
+              Save Draft
+            </>
+          )}
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          className="bg-[#2A4131] hover:bg-[#2A4131]/90"
+          disabled={isSubmitting || isSubmitDisabled || !hasValidItems}
+        >
+          {isSubmitting ? (
+            <>
+              <div className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
+              Submitting...
+            </>
+          ) : (
+            <>
+              <SendHorizontal className="mr-2 h-4 w-4" />
+              Submit Order
+            </>
+          )}
+        </Button>
+      </div>
+      <div className="text-sm text-muted-foreground text-right">
+        <span className={getPalletCountClass()}>
+          {getPalletCountMessage()}
+        </span>
       </div>
     </div>
   );
