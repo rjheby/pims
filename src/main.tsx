@@ -4,11 +4,14 @@ import { UserProvider } from './context/UserContext'
 import App from './App.tsx'
 import './index.css'
 import { HistoryProvider } from './context/HistoryContext'
+import { AuthProvider } from './context/AuthContext'
 
 createRoot(document.getElementById("root")!).render(
-  <UserProvider>
-    <HistoryProvider>
-      <App />
-    </HistoryProvider>
-  </UserProvider>
+  <AuthProvider>
+    <UserProvider>
+      <HistoryProvider>
+        <App />
+      </HistoryProvider>
+    </UserProvider>
+  </AuthProvider>
 );

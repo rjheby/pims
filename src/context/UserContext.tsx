@@ -76,7 +76,7 @@ export const useUser = () => {
           const mappedPermission = permissionMap[permission] || permission;
           const role = window.currentAuthUser.role;
           const permissions = rolePermissions[role];
-          return permissions.includes(mappedPermission);
+          return permissions?.includes(mappedPermission) || false;
         },
         isAdmin: () => {
           const role = window.currentAuthUser.role;
