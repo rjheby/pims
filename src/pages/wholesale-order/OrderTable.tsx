@@ -89,7 +89,7 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
                 editingField={editingField}
                 newOption={newOption}
                 onNewOptionChange={setNewOption}
-                onKeyPress={(e) => handleKeyPress(e)}
+                onKeyPress={(e) => handleKeyPress(e, editingField)}
                 onUpdateItem={handleUpdateItem}
                 onRemoveRow={handleRemoveRow}
                 onCopyRow={handleCopyRow}

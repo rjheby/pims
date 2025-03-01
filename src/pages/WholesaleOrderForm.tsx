@@ -263,10 +263,10 @@ export function WholesaleOrderForm() {
 
     const totalPallets = calculateTotalPallets();
     
-    if (totalPallets > 24) {
+    if (safeNumber(totalPallets) > 24) {
       toast({
         title: "Warning",
-        description: `Order exceeds maximum load by ${totalPallets - 24} pallets. Consider reducing the pallet count.`,
+        description: `Order exceeds maximum load by ${safeNumber(totalPallets) - 24} pallets. Consider reducing the pallet count.`,
         variant: "destructive",
       });
       return;

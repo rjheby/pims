@@ -31,7 +31,7 @@ export function useOrderTable() {
 
   // Import all the smaller hooks in a consistent order to prevent React hook ordering issues
   const orderActions = useOrderActions();
-  const { generateItemName, calculateTotalPallets, calculateTotalCost } = useOrderCalculations();
+  const { generateItemName, calculateTotalPallets, calculateTotalCost, formatCurrency } = useOrderCalculations();
   const orderFiltering = useOrderFiltering();
   const orderDisplay = useOrderDisplay();
   const { hasValidItems } = useOrderValidation(items);
@@ -65,6 +65,7 @@ export function useOrderTable() {
     hasValidItems,
     calculateTotalPallets,
     calculateTotalCost,
+    formatCurrency,
     sortConfig: orderFiltering.sortConfig,
     setSortConfig: orderFiltering.setSortConfig,
     filterValue: orderFiltering.filterValue,
