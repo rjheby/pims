@@ -1,532 +1,676 @@
-
-import React from "react";
-import { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Archive, Save, SendHorizontal } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { OrderItem, serializeOrderItems, safeNumber } from "./wholesale-order/types";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useMemo,
+} from "react";
+import { useNavigate, useParams, Link } from "react-router-dom";
+import { v4 as uuidv4 } from "uuid";
+import { useTemplates } from "./wholesale-order/hooks/useTemplates";
 import { useToast } from "@/hooks/use-toast";
-import { BaseOrderDetails } from "@/components/templates/BaseOrderDetails";
-import { OrderTable } from "./wholesale-order/OrderTable";
-import { WholesaleOrderProvider } from "./wholesale-order/context/WholesaleOrderContext";
-import { BaseOrderSummary } from "@/components/templates/BaseOrderSummary";
-import { OrderFormTemplateControls } from "./wholesale-order/components/OrderFormTemplateControls";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MoreVertical, Copy, Edit, Trash2, Plus, Save } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
+import { useUser } from "@/context/UserContext";
+import { cn } from "@/lib/utils";
 
-interface DatabaseOrderData {
+interface OrderItem {
   id: string;
-  order_number: string;
-  order_date: string;
-  delivery_date: string | null;
-  items: unknown;
-  admin_editable: boolean | null;
-  created_at: string | null;
-  order_name: string | null;
-  template_id: string | null;
+  name: string;
+  description: string;
+  quantity: number;
+  price: number;
 }
 
-interface WholesaleOrderData {
-  id: string;
-  order_number: string;
-  order_date: string;
-  delivery_date: string;
-  items: OrderItem[];
-  template_id: string | null;
-}
-
-const formatDateForInput = (dateString: string | null): string => {
-  if (!dateString) return '';
-  
-  try {
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-      return dateString;
-    }
-    
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return '';
-    
-    return date.toISOString().split('T')[0];
-  } catch (error) {
-    console.error('Error formatting date:', error);
-    return '';
-  }
-};
-
-export function WholesaleOrderForm() {
-  const { id } = useParams();
-  const navigate = useNavigate();
+const WholesaleOrderForm = () => {
+  const [orderName, setOrderName] = useState<string>("");
+  const [orderNumber, setOrderNumber] = useState<string>("");
+  const [lastOrderNumber, setLastOrderNumber] = useState<string>("");
+  const [currentOrder, setCurrentOrder] = useState<OrderItem[]>([]);
+  const [newItemName, setNewItemName] = useState<string>("");
+  const [newItemDescription, setNewItemDescription] = useState<string>("");
+  const [newItemQuantity, setNewItemQuantity] = useState<number>(1);
+  const [newItemPrice, setNewItemPrice] = useState<number>(0);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [orderSubmissionErrors, setOrderSubmissionErrors] = useState<string[]>(
+    []
+  );
+  const [isTemplateSheetOpen, setIsTemplateSheetOpen] = useState<boolean>(false);
+  const [isSavingTemplate, setIsSavingTemplate] = useState<boolean>(false);
+  const [templateName, setTemplateName] = useState<string>("");
+  const [templateDescription, setTemplateDescription] = useState<string>("");
+  const [isDeletingTemplate, setIsDeletingTemplate] = useState<boolean>(false);
+  const { templates, loadTemplate, saveTemplate, deleteTemplate, refreshTemplates } = useTemplates();
   const { toast } = useToast();
-  const [orderData, setOrderData] = useState<WholesaleOrderData | null>(null);
-  const [orderStatus, setOrderStatus] = useState<string>('draft');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate();
+  const { user } = useUser();
+  const { templateId: selectedTemplateId } = useParams();
+  const orderNumberInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    async function fetchOrderData() {
+    refreshTemplates();
+  }, [refreshTemplates]);
+
+  useEffect(() => {
+    if (selectedTemplateId) {
+      loadSelectedTemplate(selectedTemplateId);
+    }
+  }, [selectedTemplateId, loadTemplate]);
+
+  useEffect(() => {
+    const fetchLastOrderNumber = async () => {
       try {
         const { data, error } = await supabase
           .from("wholesale_orders")
-          .select("*")
-          .eq("id", id)
-          .single();
+          .select("order_number")
+          .order("created_at", { ascending: false })
+          .limit(1);
 
         if (error) {
-          throw error;
+          console.error("Error fetching last order number:", error);
+        } else if (data && data.length > 0) {
+          setLastOrderNumber(data[0].order_number);
         }
-
-        if (data) {
-          const rawData = data as any;
-          
-          console.log('Fetched order data:', rawData);
-          
-          const parsedItems = typeof rawData.items === 'string' 
-            ? JSON.parse(rawData.items) 
-            : rawData.items;
-          
-          const formattedOrderDate = formatDateForInput(rawData.order_date);
-          const formattedDeliveryDate = formatDateForInput(rawData.delivery_date);
-          
-          console.log('Formatted dates:', {
-            orderDate: formattedOrderDate,
-            deliveryDate: formattedDeliveryDate
-          });
-          
-          setOrderData({
-            id: rawData.id,
-            order_number: rawData.order_number,
-            order_date: formattedOrderDate,
-            delivery_date: formattedDeliveryDate,
-            items: parsedItems,
-            template_id: rawData.template_id
-          });
-          
-          if ('status' in rawData && rawData.status) {
-            setOrderStatus(rawData.status);
-          }
-        }
-      } catch (err) {
-        console.error('Error fetching order:', err);
-        setError('Failed to load order data');
-      } finally {
-        setLoading(false);
+      } catch (error) {
+        console.error("Failed to fetch last order number:", error);
       }
-    }
+    };
 
-    if (id) {
-      fetchOrderData();
-    }
-  }, [id]);
+    fetchLastOrderNumber();
+  }, []);
 
-  const handleOrderDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (orderData) {
-      const newDate = e.target.value;
-      console.log('Order date changed to:', newDate);
-      setOrderData(prev => ({
-        ...prev!,
-        order_date: newDate
-      }));
-    }
-  };
-
-  const handleDeliveryDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (orderData) {
-      const newDate = e.target.value;
-      console.log('Delivery date changed to:', newDate);
-      setOrderData(prev => ({
-        ...prev!,
-        delivery_date: newDate
-      }));
-    }
-  };
-
-  const calculateTotalPallets = () => {
-    if (!orderData?.items) return 0;
-    return orderData.items.reduce((sum, item) => sum + safeNumber(item.pallets), 0);
-  };
-
-  const calculateTotalCost = () => {
-    if (!orderData?.items) return 0;
-    return orderData.items.reduce((sum, item) => sum + (safeNumber(item.pallets) * safeNumber(item.unitCost)), 0);
-  };
-
-  const calculateQuantityBySpecies = () => {
-    if (!orderData?.items) return {};
-    
-    const speciesMap: Record<string, number> = {};
-    
-    orderData.items.forEach(item => {
-      if (item.species && item.pallets) {
-        const species = item.species;
-        speciesMap[species] = (speciesMap[species] || 0) + safeNumber(item.pallets);
-      }
-    });
-    
-    return speciesMap;
-  };
-
-  const validateOrder = () => {
-    if (!orderData?.order_date) {
-      throw new Error("Order date is required");
-    }
-
-    const validItems = orderData.items.filter(item => 
-      item.species && item.length && item.bundleType && item.thickness && safeNumber(item.pallets) > 0
-    );
-    
-    if (validItems.length === 0) {
-      throw new Error("At least one valid item is required with all fields filled");
-    }
-
-    return true;
-  };
-
-  const handleSave = async () => {
-    if (!orderData || isSaving) return;
-    
-    setIsSaving(true);
-    try {
-      validateOrder();
-
-      console.log('Saving order with ID:', id);
-      console.log('Current order data:', orderData);
-
-      let updateData: Record<string, any> = {
-        items: serializeOrderItems(orderData.items),
-        status: 'draft'
-      };
-      
-      if (orderData.order_date) {
-        updateData.order_date = orderData.order_date;
-      }
-      
-      if (orderData.delivery_date && orderData.delivery_date.trim() !== '') {
-        updateData.delivery_date = orderData.delivery_date;
-      } else {
-        updateData.delivery_date = null;
-      }
-
-      console.log('Update data being sent to database:', updateData);
-
-      const { error: updateError } = await supabase
-        .from('wholesale_orders')
-        .update(updateData)
-        .eq('id', id);
-
-      if (updateError) {
-        console.error('Supabase update error:', updateError);
-        throw updateError;
-      }
-
-      const { data: refreshedData, error: refreshError } = await supabase
-        .from("wholesale_orders")
-        .select("*")
-        .eq("id", id)
-        .single();
-
-      if (refreshError) {
-        console.error("Error refreshing order data:", refreshError);
-      } else if (refreshedData) {
-        console.log('Refreshed data from server:', refreshedData);
-        
-        const parsedItems = typeof refreshedData.items === 'string' 
-          ? JSON.parse(refreshedData.items) 
-          : refreshedData.items;
-        
-        const formattedOrderDate = formatDateForInput(refreshedData.order_date);
-        const formattedDeliveryDate = formatDateForInput(refreshedData.delivery_date);
-        
-        setOrderData({
-          id: refreshedData.id,
-          order_number: refreshedData.order_number,
-          order_date: formattedOrderDate,
-          delivery_date: formattedDeliveryDate,
-          items: parsedItems,
-          template_id: refreshedData.template_id
-        });
-      }
-
+  const loadSelectedTemplate = async (templateId: string) => {
+    const template = await loadTemplate(templateId);
+    if (template) {
+      setCurrentOrder(template.items as OrderItem[]);
+      setTemplateName(template.name);
+      setTemplateDescription(template.description);
+    } else {
       toast({
-        title: "Success",
-        description: "Order draft saved successfully",
+        title: "Template Not Found",
+        description: "The selected template could not be loaded.",
+        variant: "destructive",
       });
-    } catch (err: any) {
-      console.error('Error saving order:', err);
+    }
+  };
+
+  const generateOrderNumber = () => {
+    const baseNumber = lastOrderNumber ? parseInt(lastOrderNumber.slice(3), 10) : 1000;
+    const newOrderNumber = `WB-${baseNumber + 1}`;
+    setOrderNumber(newOrderNumber);
+    return newOrderNumber;
+  };
+
+  const handleAddItem = () => {
+    if (!newItemName || !newItemDescription || !newItemQuantity || !newItemPrice) {
       toast({
         title: "Error",
-        description: err.message || "Failed to save order",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!orderData || isSubmitting) return;
-
-    const totalPallets = calculateTotalPallets();
-    
-    if (safeNumber(totalPallets) > 24) {
-      toast({
-        title: "Warning",
-        description: `Order exceeds maximum load by ${safeNumber(totalPallets) - 24} pallets. Consider reducing the pallet count.`,
+        description: "Please fill in all item details.",
         variant: "destructive",
       });
       return;
     }
 
-    setIsSubmitting(true);
+    const newItem: OrderItem = {
+      id: uuidv4(),
+      name: newItemName,
+      description: newItemDescription,
+      quantity: newItemQuantity,
+      price: newItemPrice,
+    };
+
+    setCurrentOrder([...currentOrder, newItem]);
+    setNewItemName("");
+    setNewItemDescription("");
+    setNewItemQuantity(1);
+    setNewItemPrice(0);
+  };
+
+  const handleRemoveItem = (id: string) => {
+    setCurrentOrder(currentOrder.filter((item) => item.id !== id));
+  };
+
+  const handleUpdateItem = (id: string, field: string, value: any) => {
+    setCurrentOrder(
+      currentOrder.map((item) =>
+        item.id === id ? { ...item, [field]: value } : item
+      )
+    );
+  };
+
+  const handleSaveOrder = async () => {
     try {
-      validateOrder();
+      // Perform validation first
+      const validationErrors = validateOrder(currentOrder);
+      if (validationErrors.length > 0) {
+        setOrderSubmissionErrors(validationErrors);
+        return;
+      }
 
-      console.log('Submitting order with ID:', id);
-      console.log('Current order data for submission:', orderData);
+      // Reset errors
+      setOrderSubmissionErrors([]);
+      setIsSubmitting(true);
 
-      let updateData: Record<string, any> = {
-        items: serializeOrderItems(orderData.items),
-        status: 'submitted',
-        submitted_at: new Date().toISOString()
+      // Format order data
+      const orderData = {
+        order_name: orderName,
+        order_number: orderNumber || generateOrderNumber(),
+        order_date: new Date().toISOString(),
+        items: currentOrder,
+        status: "pending",
+        admin_editable: true,
+        ...(selectedTemplateId ? { template_id: selectedTemplateId } : {})
       };
-      
-      if (orderData.order_date) {
-        updateData.order_date = orderData.order_date;
-      }
-      
-      if (orderData.delivery_date && orderData.delivery_date.trim() !== '') {
-        updateData.delivery_date = orderData.delivery_date;
-      } else {
-        updateData.delivery_date = null;
-      }
 
-      console.log('Update data being sent to database for submission:', updateData);
+      // Save to database
+      const { data, error } = await supabase
+        .from("wholesale_orders")
+        .insert(orderData)
+        .select()
+        .single();
 
-      const { error: updateError } = await supabase
-        .from('wholesale_orders')
-        .update(updateData)
-        .eq('id', id);
-
-      if (updateError) {
-        console.error('Supabase submit error:', updateError);
-        throw updateError;
+      if (error) {
+        throw error;
       }
 
-      setOrderStatus('submitted');
+      // Update order number for next use
+      setLastOrderNumber(orderData.order_number);
 
+      // Show success message
       toast({
-        title: "Success",
-        description: "Order submitted successfully",
+        title: "Order Created",
+        description: `Order ${orderData.order_number} has been created successfully.`,
       });
 
-      navigate('/wholesale-orders');
-    } catch (err: any) {
-      console.error('Error submitting order:', err);
+      // Redirect to order view page
+      navigate(`/wholesale-order/${data.id}`);
+    } catch (error) {
+      console.error("Failed to save order:", error);
       toast({
         title: "Error",
-        description: err.message || "Failed to submit order",
-        variant: "destructive"
+        description: "Failed to save order. Please try again.",
+        variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleOrderItemsChange = (updatedItems: OrderItem[]) => {
-    if (orderData) {
-      setOrderData(prev => ({
-        ...prev!,
-        items: updatedItems
-      }));
-      
-      console.log("Order items updated:", updatedItems);
+  const validateOrder = (order: OrderItem[]) => {
+    const errors: string[] = [];
+    if (!orderName) {
+      errors.push("Order name is required.");
+    }
+    if (order.length === 0) {
+      errors.push("Order must contain at least one item.");
+    }
+    return errors;
+  };
+
+  const calculateTotal = () => {
+    return currentOrder.reduce(
+      (total, item) => total + item.quantity * item.price,
+      0
+    );
+  };
+
+  const handleOpenTemplateSheet = () => {
+    setIsTemplateSheetOpen(true);
+  };
+
+  const handleCloseTemplateSheet = () => {
+    setIsTemplateSheetOpen(false);
+  };
+
+  const handleSaveAsTemplate = async () => {
+    if (!templateName) {
+      toast({
+        title: "Error",
+        description: "Template name is required.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSavingTemplate(true);
+    try {
+      await saveTemplate(templateName, templateDescription, currentOrder);
+      toast({
+        title: "Template Saved",
+        description: "Template saved successfully.",
+      });
+      handleCloseTemplateSheet();
+    } catch (error) {
+      console.error("Error saving template:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save template. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingTemplate(false);
     }
   };
 
-  const handleTemplateSelected = (templateItems: OrderItem[]) => {
-    if (orderData) {
-      // Confirm with user if they want to replace existing items
-      if (orderData.items.length > 0) {
-        const shouldReplace = window.confirm("This will replace your current items. Continue?");
-        if (!shouldReplace) return;
-      }
-      
-      setOrderData(prev => ({
-        ...prev!,
-        items: templateItems
-      }));
-      
+  const handleDeleteTemplate = async (templateId: string) => {
+    setIsDeletingTemplate(true);
+    try {
+      await deleteTemplate(templateId);
+      toast({
+        title: "Template Deleted",
+        description: "Template deleted successfully.",
+      });
+    } catch (error) {
+      console.error("Error deleting template:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete template. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeletingTemplate(false);
+    }
+  };
+
+  const handleLoadTemplate = async (templateId: string) => {
+    const template = await loadTemplate(templateId);
+    if (template) {
+      setCurrentOrder(template.items as OrderItem[]);
       toast({
         title: "Template Loaded",
-        description: `${templateItems.length} items added from template`,
+        description: `Template "${template.name}" loaded successfully.`,
+      });
+      handleCloseTemplateSheet();
+    } else {
+      toast({
+        title: "Error",
+        description: "Failed to load template. Please try again.",
+        variant: "destructive",
       });
     }
   };
 
-  const renderCustomSummary = () => {
-    const totalPallets = calculateTotalPallets();
-    
-    return (
-      <div className="mt-4 pt-4 border-t border-gray-200">
-        {safeNumber(totalPallets) < 24 && (
-          <div className="text-sm text-amber-600 text-center">
-            {24 - safeNumber(totalPallets)} pallets remaining before full load
-          </div>
-        )}
-        {safeNumber(totalPallets) > 24 && (
-          <div className="text-sm text-red-600 text-center">
-            Exceeds maximum load by {safeNumber(totalPallets) - 24} pallets
-          </div>
-        )}
-        {safeNumber(totalPallets) === 24 && (
-          <div className="text-sm text-green-600 text-center">
-            Perfect load! Exactly 24 pallets.
-          </div>
-        )}
-      </div>
-    );
+  const handleDuplicateItem = (item: OrderItem) => {
+    const newItem: OrderItem = {
+      ...item,
+      id: uuidv4(),
+    };
+    setCurrentOrder([...currentOrder, newItem]);
   };
 
-  if (loading) return (
-    <div className="flex justify-center items-center min-h-screen">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2A4131]"></div>
-    </div>
-  );
-
-  if (error) return (
-    <div className="flex justify-center items-center min-h-screen">
-      <div className="text-red-500">{error}</div>
-    </div>
-  );
-
-  if (!orderData) return (
-    <div className="flex justify-center items-center min-h-screen">
-      <div className="text-gray-500">Order not found</div>
-    </div>
-  );
-
-  const totalPallets = calculateTotalPallets();
-  const totalCost = calculateTotalCost();
-  const speciesBreakdown = calculateQuantityBySpecies();
-
-  const isSubmitted = orderStatus === 'submitted';
+  const memoizedTotal = useMemo(() => calculateTotal(), [currentOrder]);
 
   return (
-    <div className="flex-1">
-      <div>
-        <Card className="shadow-sm">
-          <CardHeader>
-            <div className="flex flex-col space-y-4 md:flex-row md:justify-between md:items-center md:space-y-0">
-              <div>
-                <CardTitle>Supplier Order #{orderData?.order_number}</CardTitle>
-                {isSubmitted && (
-                  <div className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium inline-block mt-2">
-                    Submitted
-                  </div>
-                )}
-                {orderData.template_id && (
-                  <div className="text-sm text-muted-foreground mt-1">
-                    Created from template
-                  </div>
-                )}
-              </div>
-              
-              {!isSubmitted && (
-                <OrderFormTemplateControls 
-                  items={orderData.items}
-                  onTemplateSelected={handleTemplateSelected}
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-semibold mb-4">Wholesale Order Form</h1>
+
+      {/* Order Submission Errors */}
+      {orderSubmissionErrors.length > 0 && (
+        <div className="mb-4 p-3 bg-red-100 text-red-800 rounded">
+          <h2 className="font-semibold">Please correct the following errors:</h2>
+          <ul className="list-disc pl-5">
+            {orderSubmissionErrors.map((error, index) => (
+              <li key={index}>{error}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Order Details */}
+      <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="orderName">Order Name</Label>
+          <Input
+            type="text"
+            id="orderName"
+            placeholder="Enter order name"
+            value={orderName}
+            onChange={(e) => setOrderName(e.target.value)}
+          />
+        </div>
+        <div>
+          <Label htmlFor="orderNumber">Order Number</Label>
+          <div className="relative">
+            <Input
+              type="text"
+              id="orderNumber"
+              placeholder="Auto-generated"
+              value={orderNumber}
+              ref={orderNumberInputRef}
+              readOnly
+            />
+            <Button
+              type="button"
+              size="sm"
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-[#2A4131] hover:bg-[#2A4131]/90 text-white"
+              onClick={generateOrderNumber}
+            >
+              Generate
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* New Item Form */}
+      <div className="mb-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+          <Label htmlFor="newItemName">Item Name</Label>
+          <Input
+            type="text"
+            id="newItemName"
+            placeholder="Item name"
+            value={newItemName}
+            onChange={(e) => setNewItemName(e.target.value)}
+          />
+        </div>
+        <div>
+          <Label htmlFor="newItemDescription">Description</Label>
+          <Input
+            type="text"
+            id="newItemDescription"
+            placeholder="Description"
+            value={newItemDescription}
+            onChange={(e) => setNewItemDescription(e.target.value)}
+          />
+        </div>
+        <div>
+          <Label htmlFor="newItemQuantity">Quantity</Label>
+          <Input
+            type="number"
+            id="newItemQuantity"
+            placeholder="1"
+            value={newItemQuantity}
+            onChange={(e) => setNewItemQuantity(Number(e.target.value))}
+          />
+        </div>
+        <div>
+          <Label htmlFor="newItemPrice">Price</Label>
+          <Input
+            type="number"
+            id="newItemPrice"
+            placeholder="0.00"
+            value={newItemPrice}
+            onChange={(e) => setNewItemPrice(Number(e.target.value))}
+          />
+        </div>
+      </div>
+      <Button
+        type="button"
+        className="mb-4 bg-[#2A4131] hover:bg-[#2A4131]/90 text-white"
+        onClick={handleAddItem}
+      >
+        Add Item
+      </Button>
+
+      {/* Order Items Table */}
+      <div className="overflow-x-auto">
+        <Table>
+          <TableCaption>A list of your recent invoices.</TableCaption>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[100px]">Name</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead>Quantity</TableHead>
+              <TableHead>Price</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {currentOrder.map((item) => (
+              <TableRow key={item.id}>
+                <TableCell>
+                  <Input
+                    type="text"
+                    value={item.name}
+                    onChange={(e) =>
+                      handleUpdateItem(item.id, "name", e.target.value)
+                    }
+                  />
+                </TableCell>
+                <TableCell>
+                  <Input
+                    type="text"
+                    value={item.description}
+                    onChange={(e) =>
+                      handleUpdateItem(item.id, "description", e.target.value)
+                    }
+                  />
+                </TableCell>
+                <TableCell>
+                  <Input
+                    type="number"
+                    value={item.quantity}
+                    onChange={(e) =>
+                      handleUpdateItem(item.id, "quantity", Number(e.target.value))
+                    }
+                  />
+                </TableCell>
+                <TableCell>
+                  <Input
+                    type="number"
+                    value={item.price}
+                    onChange={(e) =>
+                      handleUpdateItem(item.id, "price", Number(e.target.value))
+                    }
+                  />
+                </TableCell>
+                <TableCell className="text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="h-8 w-8 p-0">
+                        <span className="sr-only">Open menu</span>
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      <DropdownMenuItem
+                        onClick={() => handleDuplicateItem(item)}
+                      >
+                        <Copy className="mr-2 h-4 w-4" /> Duplicate
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <DropdownMenuItem className="text-red-500 focus:text-red-500">
+                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                          </DropdownMenuItem>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will permanently delete
+                              the item from the order.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleRemoveItem(item.id)}
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+          <TableFooter>
+            <TableRow>
+              <TableCell colSpan={3}>Total</TableCell>
+              <TableCell>
+                {memoizedTotal.toLocaleString("en-US", {
+                  style: "currency",
+                  currency: "USD",
+                })}
+              </TableCell>
+            </TableRow>
+          </TableFooter>
+        </Table>
+      </div>
+
+      {/* Save Order Button */}
+      <div className="mt-4 flex gap-4">
+        <Button
+          className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white"
+          onClick={handleSaveOrder}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Submitting..." : "Save Order"}
+        </Button>
+
+        {/* Template Actions */}
+        <Sheet open={isTemplateSheetOpen} onOpenChange={setIsTemplateSheetOpen}>
+          <SheetTrigger asChild>
+            <Button variant="outline">Template Actions</Button>
+          </SheetTrigger>
+          <SheetContent className="sm:max-w-md">
+            <SheetHeader>
+              <SheetTitle>Template Actions</SheetTitle>
+              <SheetDescription>
+                Manage your order templates here. You can save the current order
+                as a template or load an existing template.
+              </SheetDescription>
+            </SheetHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="templateName" className="text-right">
+                  Name
+                </Label>
+                <Input
+                  type="text"
+                  id="templateName"
+                  value={templateName}
+                  onChange={(e) => setTemplateName(e.target.value)}
+                  className="col-span-3"
                 />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="templateDescription" className="text-right">
+                  Description
+                </Label>
+                <Textarea
+                  id="templateDescription"
+                  value={templateDescription}
+                  onChange={(e) => setTemplateDescription(e.target.value)}
+                  className="col-span-3"
+                />
+              </div>
+            </div>
+            <SheetFooter>
+              <Button
+                type="button"
+                className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white"
+                onClick={handleSaveAsTemplate}
+                disabled={isSavingTemplate}
+              >
+                {isSavingTemplate ? "Saving..." : "Save as Template"}
+              </Button>
+            </SheetFooter>
+            <Separator className="my-4" />
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Load Template</h3>
+              {templates && templates.length > 0 ? (
+                <ul className="space-y-2">
+                  {templates.map((template) => (
+                    <li
+                      key={template.id}
+                      className="flex items-center justify-between"
+                    >
+                      <span>{template.name}</span>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleLoadTemplate(template.id)}
+                        >
+                          Load
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="destructive" size="sm">
+                              Delete
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This action cannot be undone. This will permanently
+                                delete the template from your templates.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeleteTemplate(template.id)}
+                                disabled={isDeletingTemplate}
+                              >
+                                {isDeletingTemplate ? "Deleting..." : "Delete"}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>No templates saved yet.</p>
               )}
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              <BaseOrderDetails
-                orderNumber={orderData.order_number}
-                orderDate={orderData.order_date}
-                deliveryDate={orderData.delivery_date}
-                onOrderDateChange={handleOrderDateChange}
-                onDeliveryDateChange={handleDeliveryDateChange}
-                disabled={isSubmitted}
-              />
-              
-              <WholesaleOrderProvider 
-                initialItems={orderData.items}
-              >
-                <OrderTable 
-                  readOnly={isSubmitted}
-                  onItemsChange={handleOrderItemsChange} 
-                />
-              </WholesaleOrderProvider>
-
-              <BaseOrderSummary 
-                items={{
-                  totalQuantity: totalPallets,
-                  totalValue: totalCost,
-                  quantityByPackaging: {
-                    'Pallets': totalPallets,
-                    ...speciesBreakdown
-                  }
-                }}
-                renderCustomSummary={renderCustomSummary}
-              />
-
-              <div className="flex flex-col space-y-4">
-                <div className="flex justify-end gap-4">
-                  <Button 
-                    onClick={handleSave} 
-                    className="bg-gray-600 hover:bg-gray-700"
-                    disabled={isSaving || isSubmitted}
-                  >
-                    {isSaving ? (
-                      <>
-                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" />
-                        Save Draft
-                      </>
-                    )}
-                  </Button>
-                  
-                  <Button 
-                    onClick={handleSubmit} 
-                    className="bg-[#2A4131] hover:bg-[#2A4131]/90"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
-                        Submitting...
-                      </>
-                    ) : (
-                      <>
-                        <SendHorizontal className="mr-2 h-4 w-4" />
-                        {isSubmitted ? "Resubmit Order" : "Submit Order"}
-                      </>
-                    )}
-                  </Button>
-                </div>
-                
-                <div className="flex justify-center pt-6 border-t">
-                  <Button
-                    asChild
-                    className="bg-[#f1e8c7] text-[#222222] hover:bg-[#f1e8c7]/90"
-                  >
-                    <Link to="/wholesale-orders" className="flex items-center gap-2">
-                      <Archive className="h-5 w-5" />
-                      <span>View All Orders</span>
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+          </SheetContent>
+        </Sheet>
       </div>
     </div>
   );
-}
+};
+
+export default WholesaleOrderForm;

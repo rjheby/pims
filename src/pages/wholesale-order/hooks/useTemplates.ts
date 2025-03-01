@@ -1,180 +1,182 @@
 
-import { useState, useEffect } from "react";
+import { useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/components/ui/use-toast";
-import { OrderItem, serializeOrderItems } from "../types";
+import { useToast } from "@/hooks/use-toast";
+import { v4 as uuidv4 } from "uuid";
 
-export type OrderTemplate = {
+export interface Template {
   id: string;
   name: string;
-  description: string | null;
-  items: OrderItem[];
-  created_at: string;
-  updated_at: string;
-};
+  description: string;
+  items: Record<string, any>[];
+  created_at?: string;
+  updated_at?: string;
+}
 
-export function useTemplates() {
-  const [templates, setTemplates] = useState<OrderTemplate[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export interface UseTemplatesReturn {
+  templates: Template[];
+  isLoading: boolean;
+  error: string | null;
+  saveTemplate: (name: string, description: string, items: Record<string, any>[]) => Promise<string>;
+  loadTemplate: (templateId: string) => Promise<Template | null>;
+  deleteTemplate: (templateId: string) => Promise<void>;
+  refreshTemplates: () => Promise<void>;
+}
+
+export function useTemplates(): UseTemplatesReturn {
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  const fetchTemplates = async () => {
-    setIsLoading(true);
+  // Fetch all templates
+  const refreshTemplates = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from('wholesale_order_templates')
-        .select('*')
-        .order('name', { ascending: true });
+      setIsLoading(true);
+      setError(null);
+
+      // Use RPC instead of direct query to work around TypeScript limitations
+      const { data, error } = await supabase.rpc('get_templates', {});
 
       if (error) {
-        throw error;
+        throw new Error(error.message);
       }
 
-      // Parse items from each template
-      const parsedTemplates = data.map((template: any) => ({
-        ...template,
-        items: typeof template.items === 'string' 
-          ? JSON.parse(template.items) 
-          : template.items
-      }));
-
-      setTemplates(parsedTemplates);
-      setError(null);
+      setTemplates(data || []);
     } catch (err: any) {
-      console.error('Error fetching templates:', err);
-      setError(err.message || 'Failed to fetch templates');
+      console.error("Error fetching templates:", err);
+      setError(err.message);
       toast({
-        title: "Error",
-        description: "Failed to load templates. Please try again.",
-        variant: "destructive"
+        title: "Error fetching templates",
+        description: err.message,
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
 
-  const saveTemplate = async (name: string, description: string | null, items: OrderItem[]) => {
-    try {
-      // Validate inputs
-      if (!name.trim()) {
-        throw new Error("Template name is required");
+  // Save template
+  const saveTemplate = useCallback(
+    async (
+      name: string,
+      description: string,
+      items: Record<string, any>[]
+    ): Promise<string> => {
+      try {
+        setError(null);
+        
+        // Generate a new UUID for the template
+        const templateId = uuidv4();
+        
+        // Use RPC instead of direct query to work around TypeScript limitations
+        const { error } = await supabase.rpc('save_template', {
+          template_id: templateId,
+          template_name: name,
+          template_description: description,
+          template_items: items
+        });
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        toast({
+          title: "Template saved",
+          description: `"${name}" has been saved successfully.`,
+        });
+
+        await refreshTemplates();
+        return templateId;
+      } catch (err: any) {
+        console.error("Error saving template:", err);
+        setError(err.message);
+        toast({
+          title: "Error saving template",
+          description: err.message,
+          variant: "destructive",
+        });
+        throw err;
       }
-      
-      if (!items || items.length === 0) {
-        throw new Error("Template must contain at least one item");
+    },
+    [refreshTemplates, toast]
+  );
+
+  // Load a specific template
+  const loadTemplate = useCallback(
+    async (templateId: string): Promise<Template | null> => {
+      try {
+        setError(null);
+
+        // Use RPC instead of direct query to work around TypeScript limitations
+        const { data, error } = await supabase.rpc('get_template_by_id', {
+          template_id: templateId
+        });
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        if (data) {
+          return data as Template;
+        }
+        
+        return null;
+      } catch (err: any) {
+        console.error("Error loading template:", err);
+        setError(err.message);
+        toast({
+          title: "Error loading template",
+          description: err.message,
+          variant: "destructive",
+        });
+        return null;
       }
+    },
+    [toast]
+  );
 
-      const serializedItems = serializeOrderItems(items);
-      
-      const { data, error } = await supabase
-        .from('wholesale_order_templates')
-        .insert([
-          { 
-            name, 
-            description, 
-            items: serializedItems
-          }
-        ])
-        .select()
-        .single();
+  // Delete a template
+  const deleteTemplate = useCallback(
+    async (templateId: string): Promise<void> => {
+      try {
+        setError(null);
 
-      if (error) {
-        throw error;
+        // Use RPC instead of direct query to work around TypeScript limitations
+        const { error } = await supabase.rpc('delete_template', {
+          template_id: templateId
+        });
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        toast({
+          title: "Template deleted",
+          description: "Template has been deleted successfully.",
+        });
+
+        await refreshTemplates();
+      } catch (err: any) {
+        console.error("Error deleting template:", err);
+        setError(err.message);
+        toast({
+          title: "Error deleting template",
+          description: err.message,
+          variant: "destructive",
+        });
       }
-
-      await fetchTemplates();
-
-      toast({
-        title: "Success",
-        description: "Template saved successfully",
-      });
-
-      return data;
-    } catch (err: any) {
-      console.error('Error saving template:', err);
-      toast({
-        title: "Error",
-        description: err.message || "Failed to save template",
-        variant: "destructive"
-      });
-      throw err;
-    }
-  };
-
-  const updateTemplate = async (id: string, updates: Partial<Omit<OrderTemplate, 'id'>>) => {
-    try {
-      let updateData: Record<string, any> = { ...updates };
-      
-      // Serialize items if they exist in the updates
-      if (updates.items) {
-        updateData.items = serializeOrderItems(updates.items);
-      }
-      
-      const { error } = await supabase
-        .from('wholesale_order_templates')
-        .update(updateData)
-        .eq('id', id);
-
-      if (error) {
-        throw error;
-      }
-
-      await fetchTemplates();
-
-      toast({
-        title: "Success",
-        description: "Template updated successfully",
-      });
-    } catch (err: any) {
-      console.error('Error updating template:', err);
-      toast({
-        title: "Error",
-        description: err.message || "Failed to update template",
-        variant: "destructive"
-      });
-      throw err;
-    }
-  };
-
-  const deleteTemplate = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('wholesale_order_templates')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        throw error;
-      }
-
-      setTemplates(templates.filter(template => template.id !== id));
-
-      toast({
-        title: "Success",
-        description: "Template deleted successfully",
-      });
-    } catch (err: any) {
-      console.error('Error deleting template:', err);
-      toast({
-        title: "Error",
-        description: err.message || "Failed to delete template",
-        variant: "destructive"
-      });
-      throw err;
-    }
-  };
-
-  useEffect(() => {
-    fetchTemplates();
-  }, []);
+    },
+    [refreshTemplates, toast]
+  );
 
   return {
     templates,
     isLoading,
     error,
-    fetchTemplates,
     saveTemplate,
-    updateTemplate,
-    deleteTemplate
+    loadTemplate,
+    deleteTemplate,
+    refreshTemplates,
   };
 }

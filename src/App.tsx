@@ -1,95 +1,163 @@
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import { ThemeProvider } from "./components/theme-provider";
-import { AppLayout } from "./components/layouts/AppLayout";
-import { Index } from "./pages/Index";
-import { Customers } from "./pages/Customers";
-import { Dashboard } from "./pages/Dashboard";
-import { Production } from "./pages/Production";
-import { Inventory } from "./pages/Inventory";
-import { DriverPayments } from "./pages/DriverPayments";
-import { TeamSettings } from "./pages/TeamSettings";
-import { WholesaleOrderArchive } from "./pages/wholesale-order/WholesaleOrderArchive";
-import { WholesaleOrderForm } from "./pages/WholesaleOrderForm";
-import { OrderView } from "./pages/wholesale-order/OrderView";
-import { WholesaleOrder } from "./pages/WholesaleOrder";
-import { DispatchDelivery } from "./pages/DispatchDelivery";
-import { ClientOrder } from "./pages/ClientOrder";
-import { NotFound } from "./pages/NotFound";
-import { TemplateManagement } from "./pages/wholesale-order/TemplateManagement";
-import { Toaster } from "./components/ui/toaster";
 
-const Router = createBrowserRouter([
-  {
-    path: "/",
-    element: <AppLayout />,
-    errorElement: <NotFound />,
-    children: [
-      {
-        path: "/",
-        element: <Index />,
-      },
-      {
-        path: "/customers",
-        element: <Customers />,
-      },
-      {
-        path: "/dashboard",
-        element: <Dashboard />,
-      },
-      {
-        path: "/production",
-        element: <Production />,
-      },
-      {
-        path: "/inventory",
-        element: <Inventory />,
-      },
-      {
-        path: "/drivers-payments",
-        element: <DriverPayments />,
-      },
-      {
-        path: "/team-settings",
-        element: <TeamSettings />,
-      },
-      {
-        path: "/wholesale-orders",
-        element: <WholesaleOrderArchive />,
-      },
-      {
-        path: "/wholesale-orders/:id",
-        element: <WholesaleOrderForm />,
-      },
-      {
-        path: "/wholesale-orders/:id/view",
-        element: <OrderView />,
-      },
-      {
-        path: "/wholesale-order",
-        element: <WholesaleOrder />,
-      },
-      {
-        path: "/dispatch-delivery",
-        element: <DispatchDelivery />,
-      },
-      {
-        path: "/client-order",
-        element: <ClientOrder />,
-      },
-      {
-        path: "/wholesale-orders/templates",
-        element: <TemplateManagement />,
-      },
-    ],
-  },
-]);
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import AppLayout from "./components/layouts/AppLayout";
+import Index from "./pages/Index";
+import Customers from "./pages/Customers";
+import Dashboard from "./pages/Dashboard";
+import Production from "./pages/Production";
+import Inventory from "./pages/Inventory";
+import DriverPayments from "./pages/DriverPayments";
+import TeamSettings from "./pages/TeamSettings";
+import WholesaleOrderForm from "./pages/WholesaleOrderForm";
+import WholesaleOrderForms from "./pages/WholesaleOrderForms";
+import DispatchDelivery from "./pages/DispatchDelivery";
+import ClientOrder from "./pages/ClientOrder";
+import NotFound from "./pages/NotFound";
+
+// Auth pages
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import UnauthorizedPage from "./pages/UnauthorizedPage";
+
+// Auth provider
+import { AuthProvider } from "./context/AuthContext";
+import { ProtectedRoute } from "./components/ProtectedRoute";
+import { Permissions } from "./types/permissions";
 
 function App() {
   return (
-    <ThemeProvider defaultTheme="system" storageKey="vite-react-theme">
-      <RouterProvider router={Router} />
-      <Toaster />
-    </ThemeProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          {/* Auth Routes */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/unauthorized" element={<UnauthorizedPage />} />
+          
+          {/* Main App Routes - Protected by Authentication */}
+          <Route
+            path="/"
+            element={
+              <AppLayout>
+                <Index />
+              </AppLayout>
+            }
+          />
+          
+          <Route
+            path="/dashboard"
+            element={
+              <AppLayout>
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              </AppLayout>
+            }
+          />
+          
+          <Route
+            path="/customers"
+            element={
+              <AppLayout>
+                <ProtectedRoute requiredPermission={Permissions.VIEW_ALL_PAGES}>
+                  <Customers />
+                </ProtectedRoute>
+              </AppLayout>
+            }
+          />
+          
+          <Route
+            path="/production"
+            element={
+              <AppLayout>
+                <ProtectedRoute requiredPermission={Permissions.VIEW_ALL_PAGES}>
+                  <Production />
+                </ProtectedRoute>
+              </AppLayout>
+            }
+          />
+          
+          <Route
+            path="/inventory"
+            element={
+              <AppLayout>
+                <ProtectedRoute requiredPermission={Permissions.VIEW_ALL_PAGES}>
+                  <Inventory />
+                </ProtectedRoute>
+              </AppLayout>
+            }
+          />
+          
+          <Route
+            path="/driver-payments"
+            element={
+              <AppLayout>
+                <ProtectedRoute requiredPermission={Permissions.VIEW_PAYMENTS}>
+                  <DriverPayments />
+                </ProtectedRoute>
+              </AppLayout>
+            }
+          />
+          
+          <Route
+            path="/team-settings"
+            element={
+              <AppLayout>
+                <ProtectedRoute requiredPermission={Permissions.ADMIN_ACCESS}>
+                  <TeamSettings />
+                </ProtectedRoute>
+              </AppLayout>
+            }
+          />
+          
+          <Route
+            path="/dispatch"
+            element={
+              <AppLayout>
+                <ProtectedRoute requiredPermission={Permissions.ACCESS_DISPATCH}>
+                  <DispatchDelivery />
+                </ProtectedRoute>
+              </AppLayout>
+            }
+          />
+          
+          <Route
+            path="/client-order"
+            element={
+              <AppLayout>
+                <ProtectedRoute requiredPermission={Permissions.SUBMIT_ORDERS}>
+                  <ClientOrder />
+                </ProtectedRoute>
+              </AppLayout>
+            }
+          />
+          
+          <Route
+            path="/wholesale-order"
+            element={
+              <AppLayout>
+                <ProtectedRoute requiredPermission={Permissions.SUBMIT_ORDERS}>
+                  <WholesaleOrderForm />
+                </ProtectedRoute>
+              </AppLayout>
+            }
+          />
+          
+          <Route
+            path="/wholesale-orders"
+            element={
+              <AppLayout>
+                <ProtectedRoute requiredPermission={Permissions.VIEW_ALL_PAGES}>
+                  <WholesaleOrderForms />
+                </ProtectedRoute>
+              </AppLayout>
+            }
+          />
+          
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 
