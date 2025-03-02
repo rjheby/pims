@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -6,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
+import { AppSidebar } from "@/components/AppSidebar"; 
+import { SidebarProvider } from "@/components/ui/sidebar";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -88,98 +91,105 @@ const Login = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <div className="mx-auto mb-4 flex justify-center">
-            <img 
-              src="/public/lovable-uploads/2928b0a2-c7b1-43a0-8d17-f9230de4d3b5.png" 
-              alt="Company Logo" 
-              className="h-16 w-auto"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.src = "/placeholder.svg";
-                target.alt = "Logo not found";
-              }} 
-            />
-          </div>
-          <CardTitle className="text-2xl font-bold">Login</CardTitle>
-          <CardDescription>
-            Enter your email and password to access your account
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {error && (
-            <div className="mb-4 rounded-md bg-red-50 p-4 text-sm text-red-700">
-              {error}
-            </div>
-          )}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                <Link
-                  to="/forgot-password"
-                  className="text-sm font-medium text-[#2A4131] hover:underline"
+    <SidebarProvider>
+      <div className="min-h-screen bg-gray-50">
+        {/* Add AppSidebar component */}
+        <AppSidebar />
+        
+        <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+          <Card className="w-full max-w-md">
+            <CardHeader className="space-y-1">
+              <div className="mx-auto mb-4 flex justify-center">
+                <img 
+                  src="/lovable-uploads/2928b0a2-c7b1-43a0-8d17-f9230de4d3b5.png" 
+                  alt="Company Logo" 
+                  className="h-16 w-auto"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = "/placeholder.svg";
+                    target.alt = "Logo not found";
+                  }} 
+                />
+              </div>
+              <CardTitle className="text-2xl font-bold">Login</CardTitle>
+              <CardDescription>
+                Enter your email and password to access your account
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {error && (
+                <div className="mb-4 rounded-md bg-red-50 p-4 text-sm text-red-700">
+                  {error}
+                </div>
+              )}
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="name@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password">Password</Label>
+                    <Link
+                      to="/forgot-password"
+                      className="text-sm font-medium text-[#2A4131] hover:underline"
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  className="w-full bg-[#2A4131] hover:bg-[#2A4131]/90"
+                  disabled={isSubmitting}
                 >
-                  Forgot password?
+                  {isSubmitting ? "Logging in..." : "Login"}
+                </Button>
+                
+                <div className="mt-4 text-center">
+                  <span className="text-xs text-gray-500">Testing? Use:</span>
+                  <div className="mt-1 flex flex-col gap-1 text-xs text-gray-500">
+                    <div>Email: test@example.com</div>
+                    <div>Password: password123</div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="mt-2 w-full border-[#2A4131] text-[#2A4131]"
+                    onClick={handleTestLogin}
+                    disabled={isSubmitting}
+                  >
+                    Quick Test Login
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+            <CardFooter>
+              <p className="text-center text-sm text-gray-600 w-full">
+                Don't have an account?{" "}
+                <Link to="/signup" className="font-medium text-[#2A4131] hover:underline">
+                  Sign up
                 </Link>
-              </div>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            <Button
-              type="submit"
-              className="w-full bg-[#2A4131] hover:bg-[#2A4131]/90"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Logging in..." : "Login"}
-            </Button>
-            
-            <div className="mt-4 text-center">
-              <span className="text-xs text-gray-500">Testing? Use:</span>
-              <div className="mt-1 flex flex-col gap-1 text-xs text-gray-500">
-                <div>Email: test@example.com</div>
-                <div>Password: password123</div>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                className="mt-2 w-full border-[#2A4131] text-[#2A4131]"
-                onClick={handleTestLogin}
-                disabled={isSubmitting}
-              >
-                Quick Test Login
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-        <CardFooter>
-          <p className="text-center text-sm text-gray-600 w-full">
-            Don't have an account?{" "}
-            <Link to="/signup" className="font-medium text-[#2A4131] hover:underline">
-              Sign up
-            </Link>
-          </p>
-        </CardFooter>
-      </Card>
-    </div>
+              </p>
+            </CardFooter>
+          </Card>
+        </div>
+      </div>
+    </SidebarProvider>
   );
 };
 

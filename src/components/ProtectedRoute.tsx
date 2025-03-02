@@ -2,6 +2,8 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Permissions } from "@/types/permissions";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/AppSidebar";
 
 // Development bypass flag - REMOVE BEFORE PRODUCTION
 // You can toggle this constant to enable/disable auth bypass during development
@@ -48,9 +50,14 @@ export const ProtectedRoute = ({
   if (isLoading && !bypassAuth) {
     console.log('Auth loading, showing spinner');
     // Show loading spinner while checking authentication
-    return <div className="flex h-screen w-full items-center justify-center">
-      <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-[#2A4131]"></div>
-    </div>;
+    return (
+      <SidebarProvider>
+        <AppSidebar />
+        <div className="flex h-screen w-full items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-[#2A4131]"></div>
+        </div>
+      </SidebarProvider>
+    );
   }
 
   // Not logged in and not bypassing auth
