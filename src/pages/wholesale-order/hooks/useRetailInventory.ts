@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { RetailInventoryItem, FirewoodProduct, ProcessingRecord } from "../types";
+import { RetailInventoryItem, FirewoodProduct, ProcessingRecord, supabaseTable } from "../types";
 
 export function useRetailInventory() {
   const [retailInventory, setRetailInventory] = useState<RetailInventoryItem[]>([]);
@@ -15,7 +15,7 @@ export function useRetailInventory() {
       
       // Fetch retail inventory
       const { data: inventoryData, error: inventoryError } = await supabase
-        .from("retail_inventory")
+        .from(supabaseTable.retail_inventory as string)
         .select("*")
         .order('last_updated', { ascending: false });
 
@@ -26,7 +26,7 @@ export function useRetailInventory() {
       
       // Fetch firewood products
       const { data: productsData, error: productsError } = await supabase
-        .from("firewood_products")
+        .from(supabaseTable.firewood_products)
         .select("*");
 
       if (productsError) {
@@ -36,7 +36,7 @@ export function useRetailInventory() {
       
       // Fetch processing history
       const { data: historyData, error: historyError } = await supabase
-        .from("processing_records")
+        .from(supabaseTable.processing_records as string)
         .select("*")
         .order('processed_date', { ascending: false })
         .limit(50); // Limit to recent records
@@ -47,9 +47,9 @@ export function useRetailInventory() {
       }
       
       // Cast the data to the correct types
-      setRetailInventory(inventoryData as RetailInventoryItem[] || []);
+      setRetailInventory(inventoryData as unknown as RetailInventoryItem[] || []);
       setFirewoodProducts(productsData as FirewoodProduct[] || []);
-      setProcessingHistory(historyData as ProcessingRecord[] || []);
+      setProcessingHistory(historyData as unknown as ProcessingRecord[] || []);
     } catch (err) {
       console.error("Error:", err);
     } finally {
@@ -64,7 +64,7 @@ export function useRetailInventory() {
   ): Promise<{ success: boolean; error?: any }> => {
     try {
       const { data: inventory, error } = await supabase
-        .from('retail_inventory')
+        .from(supabaseTable.retail_inventory as string)
         .select('*')
         .eq('firewood_product_id', firewoodProductId)
         .single();
@@ -74,7 +74,7 @@ export function useRetailInventory() {
         return { success: false, error };
       }
       
-      const typedInventory = inventory as RetailInventoryItem;
+      const typedInventory = inventory as unknown as RetailInventoryItem;
       
       if (!typedInventory || typedInventory.packages_available < quantity) {
         return { 
@@ -84,12 +84,12 @@ export function useRetailInventory() {
       }
       
       const { error: updateError } = await supabase
-        .from('retail_inventory')
+        .from(supabaseTable.retail_inventory as string)
         .update({ 
           packages_available: typedInventory.packages_available - quantity,
           packages_allocated: typedInventory.packages_allocated + quantity,
           last_updated: new Date().toISOString()
-        })
+        } as any)
         .eq('firewood_product_id', firewoodProductId);
       
       if (updateError) {
@@ -114,7 +114,7 @@ export function useRetailInventory() {
   ): Promise<{ success: boolean; error?: any }> => {
     try {
       const { data: inventory, error } = await supabase
-        .from('retail_inventory')
+        .from(supabaseTable.retail_inventory as string)
         .select('*')
         .eq('firewood_product_id', firewoodProductId)
         .single();
@@ -124,7 +124,7 @@ export function useRetailInventory() {
         return { success: false, error };
       }
       
-      const typedInventory = inventory as RetailInventoryItem;
+      const typedInventory = inventory as unknown as RetailInventoryItem;
       
       if (!typedInventory || typedInventory.packages_allocated < quantity) {
         return { 
@@ -134,12 +134,12 @@ export function useRetailInventory() {
       }
       
       const { error: updateError } = await supabase
-        .from('retail_inventory')
+        .from(supabaseTable.retail_inventory as string)
         .update({ 
           packages_available: typedInventory.packages_available + quantity,
           packages_allocated: typedInventory.packages_allocated - quantity,
           last_updated: new Date().toISOString()
-        })
+        } as any)
         .eq('firewood_product_id', firewoodProductId);
       
       if (updateError) {
@@ -164,11 +164,11 @@ export function useRetailInventory() {
   ): Promise<{ success: boolean; error?: any }> => {
     try {
       const { error } = await supabase
-        .from('retail_inventory')
+        .from(supabaseTable.retail_inventory as string)
         .update({ 
           ...adjustment,
           last_updated: new Date().toISOString()
-        })
+        } as any)
         .eq('firewood_product_id', firewoodProductId);
       
       if (error) {

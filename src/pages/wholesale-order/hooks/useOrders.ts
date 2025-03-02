@@ -1,7 +1,14 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { safeNumber, ProcessingRecord, RetailInventoryItem, InventoryItem } from "../types";
+import { 
+  safeNumber, 
+  ProcessingRecord, 
+  RetailInventoryItem, 
+  InventoryItem, 
+  supabaseTable,
+  supabaseFunction
+} from "../types";
 
 export function useOrders() {
   const [orders, setOrders] = useState([]);
@@ -11,7 +18,7 @@ export function useOrders() {
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from("wholesale_orders")
+        .from(supabaseTable.wholesale_orders)
         .select("id, order_number, order_date, delivery_date, items, status, submitted_at")
         .order('order_number', { ascending: false }); // Z to A sorting
 
@@ -73,12 +80,12 @@ export function useOrders() {
       
       // Insert the processing record
       const { data, error } = await supabase
-        .from('processing_records')
+        .from(supabaseTable.processing_records as string)
         .insert([{ 
           ...processingRecord,
           actual_conversion_ratio: actualRatio,
           processed_date: new Date().toISOString()
-        }])
+        }] as any)
         .select();
       
       if (error) {
@@ -88,14 +95,14 @@ export function useOrders() {
       
       // Update the wholesale inventory
       const { error: wholesaleError } = await supabase
-        .from('inventory_items')
+        .from(supabaseTable.inventory_items as string)
         .update({ 
-          pallets_available: supabase.rpc('decrement_inventory', { 
+          pallets_available: supabase.rpc(supabaseFunction.decrement_inventory as string, { 
             product_id: processingRecord.wood_product_id,
             amount: processingRecord.wholesale_pallets_used
-          }),
+          } as any),
           last_updated: new Date().toISOString()
-        })
+        } as any)
         .eq('wood_product_id', processingRecord.wood_product_id);
       
       if (wholesaleError) {
@@ -105,7 +112,7 @@ export function useOrders() {
       
       // Update or insert retail inventory
       const { data: retailInventory, error: retailError } = await supabase
-        .from('retail_inventory')
+        .from(supabaseTable.retail_inventory as string)
         .select('*')
         .eq('firewood_product_id', processingRecord.firewood_product_id)
         .single();
@@ -117,14 +124,14 @@ export function useOrders() {
       
       if (retailInventory) {
         // Update existing retail inventory
-        const typedRetailInventory = retailInventory as RetailInventoryItem;
+        const typedRetailInventory = retailInventory as unknown as RetailInventoryItem;
         const { error: updateError } = await supabase
-          .from('retail_inventory')
+          .from(supabaseTable.retail_inventory as string)
           .update({ 
             total_packages: typedRetailInventory.total_packages + processingRecord.retail_packages_created,
             packages_available: typedRetailInventory.packages_available + processingRecord.retail_packages_created,
             last_updated: new Date().toISOString()
-          })
+          } as any)
           .eq('firewood_product_id', processingRecord.firewood_product_id);
         
         if (updateError) {
@@ -134,14 +141,14 @@ export function useOrders() {
       } else {
         // Create new retail inventory record
         const { error: retailInsertError } = await supabase
-          .from('retail_inventory')
+          .from(supabaseTable.retail_inventory as string)
           .insert([{
             firewood_product_id: processingRecord.firewood_product_id,
             total_packages: processingRecord.retail_packages_created,
             packages_available: processingRecord.retail_packages_created,
             packages_allocated: 0,
             last_updated: new Date().toISOString()
-          }]);
+          }] as any);
         
         if (retailInsertError) {
           console.error("Error creating retail inventory:", retailInsertError);
@@ -150,16 +157,16 @@ export function useOrders() {
       }
       
       // Check if we need to update the conversion ratio based on actual results
-      if (Math.abs(actualRatio - processingRecord.expected_ratio) > 0.1) {
+      if (Math.abs(actualRatio - (processingRecord.expected_ratio || 0)) > 0.1) {
         // The actual ratio differs significantly from expected, consider updating
         const { error: conversionError } = await supabase
-          .from('product_conversions')
+          .from(supabaseTable.product_conversions as string)
           .update({ 
             conversion_ratio: actualRatio,
             last_updated: new Date().toISOString(),
             adjusted_by: processingRecord.processed_by,
             notes: `Automatically adjusted based on processing batch on ${new Date().toLocaleDateString()}`
-          })
+          } as any)
           .eq('wood_product_id', processingRecord.wood_product_id)
           .eq('firewood_product_id', processingRecord.firewood_product_id);
         
@@ -180,7 +187,7 @@ export function useOrders() {
   const getRetailInventory = useCallback(async (firewoodProductId: number): Promise<RetailInventoryItem | null> => {
     try {
       const { data, error } = await supabase
-        .from('retail_inventory')
+        .from(supabaseTable.retail_inventory as string)
         .select('*')
         .eq('firewood_product_id', firewoodProductId)
         .single();
@@ -190,7 +197,7 @@ export function useOrders() {
         return null;
       }
       
-      return data as RetailInventoryItem;
+      return data as unknown as RetailInventoryItem;
     } catch (err) {
       console.error("Error in getRetailInventory:", err);
       return null;
@@ -201,7 +208,7 @@ export function useOrders() {
   const getWholesaleInventory = useCallback(async (woodProductId: string): Promise<InventoryItem | null> => {
     try {
       const { data, error } = await supabase
-        .from('inventory_items')
+        .from(supabaseTable.inventory_items as string)
         .select('*')
         .eq('wood_product_id', woodProductId)
         .single();
@@ -211,7 +218,7 @@ export function useOrders() {
         return null;
       }
       
-      return data as InventoryItem;
+      return data as unknown as InventoryItem;
     } catch (err) {
       console.error("Error in getWholesaleInventory:", err);
       return null;

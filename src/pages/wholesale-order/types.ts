@@ -1,3 +1,4 @@
+
 export interface OrderItem {
   id: number;
   species: string;
@@ -183,3 +184,28 @@ export const calculateActualConversionRatio = (
   if (wholesalePalletsUsed <= 0) return 0;
   return retailPackagesCreated / wholesalePalletsUsed;
 };
+
+// Helper to type-safely access Supabase tables
+export const supabaseTable = {
+  // Original tables
+  firewood_products: 'firewood_products',
+  product_pricing: 'product_pricing',
+  profiles: 'profiles',
+  wholesale_order_options: 'wholesale_order_options',
+  wholesale_order_templates: 'wholesale_order_templates',
+  wholesale_orders: 'wholesale_orders',
+  wood_products: 'wood_products',
+  
+  // New tables
+  retail_inventory: 'retail_inventory',
+  processing_records: 'processing_records',
+  inventory_items: 'inventory_items',
+  product_conversions: 'product_conversions'
+} as const;
+
+// Type for functions
+export const supabaseFunction = {
+  is_admin: 'is_admin',
+  is_super_admin: 'is_super_admin',
+  decrement_inventory: 'decrement_inventory'
+} as const;
