@@ -1,3 +1,4 @@
+
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import AppLayout from "./components/layouts/AppLayout";
 import Index from "./pages/Index";
@@ -21,6 +22,8 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { Permissions } from "./types/permissions";
 
 function App() {
+  console.log("App rendering");
+  
   return (
     <BrowserRouter>
       <Routes>

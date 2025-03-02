@@ -6,7 +6,13 @@ import './index.css'
 import { HistoryProvider } from './context/HistoryContext'
 import { AuthProvider } from './context/AuthContext'
 
-createRoot(document.getElementById("root")!).render(
+// Create root first
+const rootElement = document.getElementById("root");
+if (!rootElement) throw new Error("Failed to find the root element");
+const root = createRoot(rootElement);
+
+// Then render with properly nested providers
+root.render(
   <AuthProvider>
     <UserProvider>
       <HistoryProvider>

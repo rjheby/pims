@@ -7,16 +7,21 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon, UserPlus, Settings } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUser } from "@/context/UserContext";
 import { useToast } from "@/components/ui/use-toast";
 
 const Index = () => {
+  console.log("Index page rendering");
   const [date, setDate] = useState<Date>();
   const [scheduleType, setScheduleType] = useState<"one-time" | "recurring" | "bi-weekly">("one-time");
   const [recurringDay, setRecurringDay] = useState<string>();
   const { user, hasPermission } = useUser();
   const { toast } = useToast();
+  
+  useEffect(() => {
+    console.log("Index page mounted, current user:", user);
+  }, [user]);
 
   const handleAddUser = () => {
     toast({
@@ -92,8 +97,8 @@ const Index = () => {
     <div className="container mx-auto py-8 px-4">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Howdy, {user?.name}</h1>
-          <p className="text-muted-foreground">Role: {user?.role}</p>
+          <h1 className="text-2xl font-bold">Howdy, {user?.name || 'Guest'}</h1>
+          <p className="text-muted-foreground">Role: {user?.role || 'Not logged in'}</p>
         </div>
         {hasPermission("superadmin") && (
           <div className="flex gap-2">

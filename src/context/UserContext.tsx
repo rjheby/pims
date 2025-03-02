@@ -21,6 +21,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   // Map old permission strings to new permissions system
   const hasPermission = (permission: string) => {
+    if (!auth || !auth.currentUser) return false;
+    
     // Map legacy permissions to new system
     const permissionMap: Record<string, string> = {
       'admin': Permissions.ADMIN_ACCESS,
