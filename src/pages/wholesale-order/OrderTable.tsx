@@ -1,12 +1,15 @@
+import { useEffect } from "react";
+import { Plus } from "lucide-react";
 
+// Components
 import { OrderTableRow } from "./components/OrderTableRow";
 import { OrderTableMobileRow } from "./components/OrderTableMobileRow";
-import { useOrderTable } from "./hooks/useOrderTable";
 import { BaseOrderTable } from "@/components/templates/BaseOrderTable";
-import { OrderItem, safeNumber, calculateItemTotal } from "./types";
-import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+
+// Hooks and Types
+import { useOrderTable } from "./hooks/useOrderTable";
+import { OrderItem, calculateItemTotal } from "./types";
 
 interface OrderTableProps {
   readOnly?: boolean;
@@ -20,7 +23,6 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
     isAdmin,
     editingField,
     newOption,
-    compressedStates,
     optionFields,
     handleKeyPress,
     handleUpdateItem,
@@ -71,8 +73,30 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
     setFilterValue(filter);
   };
 
+  const AddRowButton = ({ fullWidth = false, text = "Add Row" }) => (
+    <Button 
+      onClick={handleAddItem}
+      className={`bg-[#2A4131] hover:bg-[#2A4131]/90 ${fullWidth ? 'w-full' : ''}`}
+    >
+      <Plus className="mr-2 h-4 w-4" />
+      {text}
+    </Button>
+  );
+
+  const EmptyState = () => (
+    <div className="text-center py-10 border rounded-md bg-gray-50">
+      <p className="text-gray-500 mb-4">No items added yet</p>
+      <AddRowButton text="Add Your First Row" />
+    </div>
+  );
+
+  if (items.length === 0 && !readOnly) {
+    return <EmptyState />;
+  }
+
   return (
     <>
+      {/* Desktop View */}
       <div className="hidden md:block">
         <div className="w-full p-4 md:p-6 lg:p-8 overflow-visible">
           <BaseOrderTable
@@ -105,20 +129,14 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
           </BaseOrderTable>
           
           {!readOnly && (
-            <div className="mt-4 flex justify-between">
-              <div></div> {/* Empty div to create space on left side */}
-              <Button 
-                onClick={handleAddItem}
-                className="bg-[#2A4131] hover:bg-[#2A4131]/90"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Row
-              </Button>
+            <div className="mt-4 flex justify-end">
+              <AddRowButton />
             </div>
           )}
         </div>
       </div>
 
+      {/* Mobile View */}
       <div className="md:hidden w-full">
         <div className="grid gap-4 w-full">
           {items.map(item => (
@@ -146,30 +164,11 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
           
           {!readOnly && (
             <div className="mt-4">
-              <Button 
-                onClick={handleAddItem}
-                className="w-full bg-[#2A4131] hover:bg-[#2A4131]/90"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Row
-              </Button>
+              <AddRowButton fullWidth={true} />
             </div>
           )}
         </div>
       </div>
-      
-      {items.length === 0 && !readOnly && (
-        <div className="text-center py-10 border rounded-md bg-gray-50">
-          <p className="text-gray-500 mb-4">No items added yet</p>
-          <Button 
-            onClick={handleAddItem}
-            className="bg-[#2A4131] hover:bg-[#2A4131]/90"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Add Your First Row
-          </Button>
-        </div>
-      )}
     </>
   );
 }
