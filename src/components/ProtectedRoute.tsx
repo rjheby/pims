@@ -25,14 +25,17 @@ export const ProtectedRoute = ({
   const isDevelopment = import.meta.env.DEV; // Vite's way to detect development mode
   const bypassAuth = BYPASS_AUTH && isDevelopment;
 
-  // Log authentication status for debugging
-  console.log('Auth status:', { 
+  // More detailed logging for debugging bypass issues
+  console.log('Auth bypass debug:', { 
     currentUser: currentUser?.email || 'none', 
     isLoading, 
-    isDevelopment, 
+    isDevelopment,
     bypassAuth,
     requireAdmin,
-    requiredPermission
+    requiredPermission,
+    currentPath: location.pathname,
+    metaDev: import.meta.env.DEV,
+    importMetaEnv: import.meta.env
   });
 
   // Show bypass indicator if active
@@ -85,10 +88,11 @@ export const ProtectedRoute = ({
 
   console.log('Access granted to protected route');
   return (
-    <>
+    <SidebarProvider>
+      <AppSidebar />
       <AuthBypassIndicator />
       {children}
-    </>
+    </SidebarProvider>
   );
 };
 

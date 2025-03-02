@@ -29,7 +29,16 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isDevelopment = import.meta.env.DEV;
   const bypassAuth = BYPASS_AUTH && isDevelopment;
   
-  console.log("UserProvider rendering with auth:", auth);
+  console.log("UserProvider bypass debug:", { 
+    auth: {
+      currentUser: auth.currentUser?.email || 'none',
+      isLoading: auth.isLoading
+    },
+    isDevelopment,
+    bypassAuth,
+    DEV: import.meta.env.DEV,
+    NODE_ENV: import.meta.env.MODE
+  });
   
   useEffect(() => {
     if (bypassAuth && !auth.currentUser) {
