@@ -1,5 +1,4 @@
 
-
 export interface OrderItem {
   id: number;
   species: string;
@@ -75,7 +74,7 @@ export interface FirewoodProduct {
   created_at?: string;
 }
 
-// Inventory tracking interface
+// Inventory tracking interface for wholesale products
 export interface InventoryItem {
   id: string;
   wood_product_id: string;
@@ -87,12 +86,39 @@ export interface InventoryItem {
   notes?: string;
 }
 
+// Retail inventory tracking interface for processed packages
+export interface RetailInventoryItem {
+  id: string;
+  firewood_product_id: number;
+  total_packages: number;
+  packages_available: number;
+  packages_allocated: number;
+  last_updated: string;
+  warehouse_location?: string;
+  notes?: string;
+}
+
 // Conversion formula interface for translating between wholesale and retail
 export interface ProductConversion {
   id: string;
   wood_product_id: string;
   firewood_product_id: number;
   conversion_ratio: number; // How many retail units come from one wholesale pallet
+  last_updated: string;
+  adjusted_by?: string; // User who last adjusted the ratio
+  notes?: string;
+}
+
+// Processing record to track conversion from wholesale to retail
+export interface ProcessingRecord {
+  id: string;
+  wood_product_id: string;
+  firewood_product_id: number;
+  wholesale_pallets_used: number;
+  retail_packages_created: number;
+  actual_conversion_ratio: number; // The actual ratio achieved in this processing batch
+  processed_date: string;
+  processed_by: string;
   notes?: string;
 }
 
@@ -124,3 +150,36 @@ export const calculateWholesalePalletsNeeded = (
   return Math.ceil(retailUnits / conversionRatio);
 };
 
+// Helper function to update retail inventory after processing wholesale inventory
+export const updateRetailInventoryAfterProcessing = (
+  retailInventory: RetailInventoryItem,
+  newPackages: number
+): RetailInventoryItem => {
+  return {
+    ...retailInventory,
+    total_packages: retailInventory.total_packages + newPackages,
+    packages_available: retailInventory.packages_available + newPackages,
+    last_updated: new Date().toISOString()
+  };
+};
+
+// Helper function to update wholesale inventory after processing
+export const updateWholesaleInventoryAfterProcessing = (
+  wholesaleInventory: InventoryItem,
+  palletsUsed: number
+): InventoryItem => {
+  return {
+    ...wholesaleInventory,
+    pallets_available: Math.max(0, wholesaleInventory.pallets_available - palletsUsed),
+    last_updated: new Date().toISOString()
+  };
+};
+
+// Helper function to calculate actual conversion ratio from a processing batch
+export const calculateActualConversionRatio = (
+  retailPackagesCreated: number,
+  wholesalePalletsUsed: number
+): number => {
+  if (wholesalePalletsUsed <= 0) return 0;
+  return retailPackagesCreated / wholesalePalletsUsed;
+};
