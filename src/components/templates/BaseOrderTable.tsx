@@ -1,4 +1,3 @@
-
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -14,26 +13,29 @@ interface BaseOrderTableProps {
     key: string;
     label: string;
     sortable?: boolean;
+    className?: string;
   }>;
   data: Array<Record<string, any>>;
   onSortChange?: (key: string, direction: 'asc' | 'desc') => void;
   onFilterChange?: (filter: string) => void;
 }
 
-function getColumnWidth(key: string): string {
+function getColumnWidth(key: string, className?: string): string {
+  if (className) return className;
+  
   const widths: Record<string, string> = {
-    name: '22%',       // Longest - needs most space for item descriptions
-    species: '10%',    // Medium importance
-    length: '6%',      // Very short values - minimal space needed
-    bundleType: '10%', // Medium importance
-    thickness: '10%',  // Medium importance
-    packaging: '8%',   // Short values
-    pallets: '5%',     // Very short numeric values
-    unitCost: '7%',    // Short currency values
-    totalCost: '8%',   // Medium currency values
-    actions: '14%'     // Second longest - needs space for multiple action buttons
+    name: 'min-w-[250px] w-[22%]',
+    species: 'min-w-[150px] w-[10%]',
+    length: 'min-w-[100px] w-[6%]',
+    bundleType: 'min-w-[150px] w-[10%]',
+    thickness: 'min-w-[150px] w-[10%]',
+    packaging: 'min-w-[120px] w-[8%]',
+    pallets: 'min-w-[100px] w-[5%]',
+    unitCost: 'min-w-[150px] w-[7%]',
+    totalCost: 'min-w-[150px] w-[8%]',
+    actions: 'min-w-[150px] w-[14%]'
   };
-  return widths[key] || '10%';
+  return widths[key] || 'min-w-[150px] w-[10%]';
 }
 
 export function BaseOrderTable({ 
@@ -68,7 +70,6 @@ export function BaseOrderTable({
     onFilterChange?.(value);
   };
 
-  // Apply column filters
   const handleColumnFilterChange = (key: string, value: string) => {
     const newFilters = { ...columnFilters };
     
@@ -81,14 +82,12 @@ export function BaseOrderTable({
     setColumnFilters(newFilters);
   };
 
-  // Clear a specific column filter
   const clearColumnFilter = (key: string) => {
     const newFilters = { ...columnFilters };
     delete newFilters[key];
     setColumnFilters(newFilters);
   };
 
-  // Clear all filters
   const clearAllFilters = () => {
     setColumnFilters({});
     setFilter('');
@@ -98,7 +97,6 @@ export function BaseOrderTable({
   const filteredData = useMemo(() => {
     let processedData = [...data];
 
-    // Apply global search filter
     if (filter) {
       processedData = processedData.filter(item => 
         Object.values(item).some(value => 
@@ -107,7 +105,6 @@ export function BaseOrderTable({
       );
     }
 
-    // Apply column-specific filters
     Object.entries(columnFilters).forEach(([key, filterValue]) => {
       processedData = processedData.filter(item => {
         const value = String(item[key] || '').toLowerCase();
@@ -115,7 +112,6 @@ export function BaseOrderTable({
       });
     });
 
-    // Apply sorting
     if (sortConfig) {
       processedData.sort((a, b) => {
         const aValue = a[sortConfig.key];
@@ -150,7 +146,6 @@ export function BaseOrderTable({
   return (
     <div className="space-y-4 w-full">
       <div className="flex flex-col sm:flex-row sm:justify-between gap-2">
-        {/* Search Input */}
         <div className="relative w-full sm:w-72">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -171,7 +166,6 @@ export function BaseOrderTable({
           )}
         </div>
         
-        {/* Filters Button */}
         <Button 
           variant={hasActiveFilters ? "default" : "outline"}
           size="sm" 
@@ -188,7 +182,6 @@ export function BaseOrderTable({
         </Button>
       </div>
 
-      {/* Active Filters Display */}
       {hasActiveFilters && (
         <div className="flex flex-wrap gap-2 items-center">
           <span className="text-sm text-muted-foreground">Active filters:</span>
@@ -232,7 +225,6 @@ export function BaseOrderTable({
         </div>
       )}
 
-      {/* Filters Sidebar */}
       <Sheet open={showFiltersPanel} onOpenChange={setShowFiltersPanel}>
         <SheetContent className="sm:max-w-md">
           <SheetHeader>
@@ -243,7 +235,6 @@ export function BaseOrderTable({
           </SheetHeader>
           
           <div className="py-6 space-y-6">
-            {/* Global Search */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">Search All Fields</Label>
               <div className="relative">
@@ -257,7 +248,6 @@ export function BaseOrderTable({
               </div>
             </div>
             
-            {/* Column Filters */}
             <div className="space-y-4">
               <h3 className="text-sm font-medium">Filter by Column</h3>
               <div className="space-y-4">
@@ -299,19 +289,14 @@ export function BaseOrderTable({
         </SheetContent>
       </Sheet>
 
-      <div className="overflow-x-auto rounded-md border" style={{width: '100%'}}>
-        <Table className="w-full table-fixed" style={{width: '100%'}}>
+      <div className="w-full rounded-md border overflow-visible" style={{width: '100%'}}>
+        <Table className="w-full">
           <TableHeader>
             <TableRow>
               {headers.map((header) => (
                 <TableHead 
                   key={header.key}
-                  style={{
-                    width: getColumnWidth(header.key),
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis'
-                  }}
+                  className={getColumnWidth(header.key, header.className)}
                 >
                   <div className="flex items-center justify-between">
                     <span>

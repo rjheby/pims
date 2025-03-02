@@ -1,3 +1,4 @@
+
 import {
   ChevronDown,
   ChevronRight,
@@ -70,7 +71,7 @@ function OrderTableDropdownCell({
             value={newOption}
             onChange={(e) => onNewOptionChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="h-8"
+            className="h-8 min-w-[150px]"
           />
           <Button
             variant="outline"
@@ -90,7 +91,7 @@ function OrderTableDropdownCell({
           defaultValue={value}
           disabled={readOnly}
         >
-          <SelectTrigger className="w-[180px] h-8">
+          <SelectTrigger className="min-w-[150px] w-full h-8">
             <SelectValue placeholder={value || `Select ${fieldName}`} />
           </SelectTrigger>
           <SelectContent>
@@ -182,7 +183,7 @@ export function OrderTableRow({
   return (
     <TableRow>
       <TableCell
-        className={cn("font-medium whitespace-nowrap", isCompressed && "w-1/2")}
+        className={cn("font-medium whitespace-nowrap min-w-[250px]", isCompressed && "w-1/2")}
       >
         <div className="flex items-center space-x-2">
           {isCompressed ? (
@@ -218,7 +219,7 @@ export function OrderTableRow({
 
       {!isCompressed && !readOnly &&
         optionFields.map((field) => (
-          <TableCell key={field}>
+          <TableCell key={field} className="min-w-[150px]">
             <OrderTableDropdownCell
               fieldName={field}
               value={item[field] as string}
@@ -235,7 +236,7 @@ export function OrderTableRow({
           </TableCell>
         ))}
 
-      <TableCell className={isCompressed ? "hidden" : ""}>
+      <TableCell className={isCompressed ? "hidden" : "min-w-[100px]"}>
         <Input
           type="number"
           min="0"
@@ -244,12 +245,12 @@ export function OrderTableRow({
           onChange={(e) =>
             onUpdateItem({ ...item, pallets: Number(e.target.value) })
           }
-          className="h-8"
+          className="h-8 w-full"
           disabled={readOnly}
         />
       </TableCell>
 
-      <TableCell className={isCompressed ? "hidden" : ""}>
+      <TableCell className={isCompressed ? "hidden" : "min-w-[150px]"}>
         <Input
           type="number"
           min="0"
@@ -258,16 +259,16 @@ export function OrderTableRow({
           onChange={(e) =>
             onUpdateItem({ ...item, unitCost: Number(e.target.value) })
           }
-          className="h-8"
+          className="h-8 w-full"
           disabled={readOnly}
         />
       </TableCell>
 
-      <TableCell className="text-right">
+      <TableCell className="text-right min-w-[150px]">
         ${(safeNumber(item.pallets) * safeNumber(item.unitCost)).toFixed(2)}
       </TableCell>
 
-      <TableCell className={isCompressed ? "hidden" : ""}>
+      <TableCell className={isCompressed ? "hidden" : "min-w-[150px]"}>
         <div className="flex space-x-1">
           {!readOnly && (
             <>

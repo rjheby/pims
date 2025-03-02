@@ -44,16 +44,17 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
   }, [items, onItemsChange]);
 
   const headers = [
-    { key: 'name', label: 'Name', sortable: true },
+    { key: 'name', label: 'Name', sortable: true, className: 'w-[250px]' },
     ...optionFields.map(field => ({
       key: field,
       label: field.charAt(0).toUpperCase() + field.slice(1),
-      sortable: true
+      sortable: true,
+      className: 'w-[150px]'
     })),
-    { key: 'pallets', label: 'Qty', sortable: true },
-    { key: 'unitCost', label: 'Unit Cost', sortable: true },
-    { key: 'totalCost', label: 'Total Cost', sortable: true },
-    { key: 'actions', label: 'Actions' }
+    { key: 'pallets', label: 'Qty', sortable: true, className: 'w-[100px]' },
+    { key: 'unitCost', label: 'Unit Cost', sortable: true, className: 'w-[150px]' },
+    { key: 'totalCost', label: 'Total Cost', sortable: true, className: 'w-[150px]' },
+    { key: 'actions', label: 'Actions', className: 'w-[150px]' }
   ];
 
   const tableData = items.map(item => ({
@@ -73,7 +74,7 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
   return (
     <>
       <div className="hidden md:block">
-        <div className="overflow-x-auto w-full">
+        <div className="w-full p-4 md:p-6 lg:p-8 overflow-visible">
           <BaseOrderTable
             headers={headers}
             data={tableData}
@@ -96,7 +97,7 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
                 onAddItem={handleAddItem}
                 generateItemName={generateItemName}
                 onUpdateOptions={handleUpdateOptions}
-                isCompressed={!!compressedStates[item.id]}
+                isCompressed={false}
                 onToggleCompressed={toggleCompressed}
                 readOnly={readOnly}
               />
@@ -104,7 +105,8 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
           </BaseOrderTable>
           
           {!readOnly && (
-            <div className="mt-4 flex justify-end">
+            <div className="mt-4 flex justify-between">
+              <div></div> {/* Empty div to create space on left side */}
               <Button 
                 onClick={handleAddItem}
                 className="bg-[#2A4131] hover:bg-[#2A4131]/90"
@@ -127,7 +129,7 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
               isAdmin={isAdmin}
               editingField={editingField}
               newOption={newOption}
-              isCompressed={!!compressedStates[item.id]}
+              isCompressed={false}
               optionFields={optionFields}
               onNewOptionChange={setNewOption}
               onKeyPress={handleKeyPress}
