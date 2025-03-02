@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/use-toast";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -15,6 +16,7 @@ const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { toast } = useToast();
   
   const from = location.state?.from?.pathname || "/dashboard";
 
@@ -33,6 +35,25 @@ const Login = () => {
       navigate(from, { replace: true });
     } catch (err: any) {
       setError(err.message || "Failed to login");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleTestLogin = async () => {
+    try {
+      setError("");
+      setIsSubmitting(true);
+      // Use your test credentials here
+      await login("test@example.com", "password123");
+      toast({
+        title: "Test Login",
+        description: "Logged in with test account",
+      });
+      navigate(from, { replace: true });
+    } catch (err: any) {
+      setError("Test login failed. Please make sure to create the test account first.");
+      console.error("Test login error:", err);
     } finally {
       setIsSubmitting(false);
     }
@@ -90,6 +111,23 @@ const Login = () => {
             >
               {isSubmitting ? "Logging in..." : "Login"}
             </Button>
+            
+            <div className="mt-4 text-center">
+              <span className="text-xs text-gray-500">Testing? Use:</span>
+              <div className="mt-1 flex flex-col gap-1 text-xs text-gray-500">
+                <div>Email: test@example.com</div>
+                <div>Password: password123</div>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-2 w-full border-[#2A4131] text-[#2A4131]"
+                onClick={handleTestLogin}
+                disabled={isSubmitting}
+              >
+                Quick Test Login
+              </Button>
+            </div>
           </form>
         </CardContent>
         <CardFooter>
