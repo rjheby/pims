@@ -89,39 +89,6 @@ export type Database = {
           },
         ]
       }
-      profiles: {
-        Row: {
-          company_id: string | null
-          created_at: string | null
-          first_name: string | null
-          id: string
-          is_active: boolean | null
-          last_name: string | null
-          role: Database["public"]["Enums"]["user_role"]
-          updated_at: string | null
-        }
-        Insert: {
-          company_id?: string | null
-          created_at?: string | null
-          first_name?: string | null
-          id: string
-          is_active?: boolean | null
-          last_name?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
-          updated_at?: string | null
-        }
-        Update: {
-          company_id?: string | null
-          created_at?: string | null
-          first_name?: string | null
-          id?: string
-          is_active?: boolean | null
-          last_name?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       wholesale_order_options: {
         Row: {
           bundleType: string[]
@@ -152,36 +119,6 @@ export type Database = {
         }
         Relationships: []
       }
-      wholesale_order_templates: {
-        Row: {
-          created_at: string | null
-          created_by: string | null
-          description: string | null
-          id: string
-          items: Json
-          name: string
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          id?: string
-          items: Json
-          name: string
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          id?: string
-          items?: Json
-          name?: string
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       wholesale_orders: {
         Row: {
           admin_editable: boolean | null
@@ -194,7 +131,6 @@ export type Database = {
           order_number: string
           status: string | null
           submitted_at: string | null
-          template_id: string | null
         }
         Insert: {
           admin_editable?: boolean | null
@@ -207,7 +143,6 @@ export type Database = {
           order_number: string
           status?: string | null
           submitted_at?: string | null
-          template_id?: string | null
         }
         Update: {
           admin_editable?: boolean | null
@@ -220,17 +155,8 @@ export type Database = {
           order_number?: string
           status?: string | null
           submitted_at?: string | null
-          template_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "wholesale_orders_template_id_fkey"
-            columns: ["template_id"]
-            isOneToOne: false
-            referencedRelation: "wholesale_order_templates"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       wood_products: {
         Row: {
@@ -276,17 +202,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      is_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_super_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
-      user_role: "SUPER_ADMIN" | "ADMIN" | "MANAGER" | "DRIVER" | "CLIENT"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never

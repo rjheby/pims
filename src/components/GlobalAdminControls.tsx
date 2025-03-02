@@ -5,8 +5,6 @@ import { cn } from "@/lib/utils";
 import { useAdmin } from "@/context/AdminContext";
 import { useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/context/AuthContext";
-import { Permissions } from "@/types/permissions";
 
 export function GlobalAdminControls() {
   const { 
@@ -15,12 +13,8 @@ export function GlobalAdminControls() {
     handleAdminToggle,
     setHasUnsavedChanges
   } = useAdmin();
-  const { hasPermission } = useAuth();
   const location = useLocation();
   const { toast } = useToast();
-
-  // Check if user has permission to edit
-  const canEdit = hasPermission(Permissions.EDIT_DATA);
 
   const handleSave = () => {
     toast({
@@ -37,11 +31,6 @@ export function GlobalAdminControls() {
     });
     setHasUnsavedChanges(false);
   };
-
-  // Don't render controls if user doesn't have edit permission
-  if (!canEdit) {
-    return null;
-  }
 
   return (
     <div className="flex gap-2">

@@ -8,13 +8,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useAuth } from "@/context/AuthContext";
-import { Permissions } from "@/types/permissions";
+import { useUser } from "@/context/UserContext";
 
 export default function TeamSettings() {
-  const { hasPermission } = useAuth();
+  const { hasPermission } = useUser();
 
-  if (!hasPermission(Permissions.ADMIN_ACCESS)) {
+  if (!hasPermission("admin")) {
     return <div>You don't have permission to access this page.</div>;
   }
 

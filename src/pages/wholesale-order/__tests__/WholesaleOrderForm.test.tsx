@@ -1,7 +1,7 @@
 
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import WholesaleOrderForm from '../../WholesaleOrderForm';
+import { WholesaleOrderForm } from '../../WholesaleOrderForm';
 import { supabase } from '@/integrations/supabase/client';
 import { BrowserRouter } from 'react-router-dom';
 

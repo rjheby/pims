@@ -1,122 +1,38 @@
 
-import React, { createContext, useContext, useEffect } from 'react';
-import { useAuth } from './AuthContext';
-import { Permissions, rolePermissions } from '@/types/permissions';
+import { createContext, useContext, useState, ReactNode } from "react";
+import { User, UserRole } from "@/types/user";
 
-// This context is for backward compatibility
 interface UserContextType {
-  hasPermission: (permission: string) => boolean;
-  isAdmin: () => boolean;
-  isSuperAdmin: () => boolean;
-  user: {
-    name?: string;
-    role?: string;
-  } | null;
+  user: User | null;
+  setUser: (user: User | null) => void;
+  hasPermission: (requiredRole: UserRole) => boolean;
 }
 
-const UserContext = createContext<UserContextType>({
-  hasPermission: () => false,
-  isAdmin: () => false,
-  isSuperAdmin: () => false,
-  user: null
-});
+const UserContext = createContext<UserContextType | undefined>(undefined);
 
-// Development bypass flag - MUST match the value in ProtectedRoute.tsx
-const BYPASS_AUTH = true; // Ensure this is set to true for development
+const roleHierarchy: Record<UserRole, number> = {
+  superadmin: 4,
+  admin: 3,
+  staff: 2,
+  client: 1,
+  customer: 0,
+};
 
-export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const auth = useAuth();
-  const isDevelopment = import.meta.env.DEV;
-  const bypassAuth = BYPASS_AUTH && isDevelopment;
-  
-  console.log("UserProvider bypass debug:", { 
-    auth: {
-      currentUser: auth.currentUser?.email || 'none',
-      isLoading: auth.isLoading
-    },
-    isDevelopment,
-    bypassAuth,
-    DEV: import.meta.env.DEV,
-    NODE_ENV: import.meta.env.MODE
+export const UserProvider = ({ children }: { children: ReactNode }) => {
+  const [user, setUser] = useState<User | null>({
+    id: "1",
+    name: "Super Admin",
+    email: "super@admin.com",
+    role: "superadmin"
   });
-  
-  useEffect(() => {
-    if (bypassAuth && !auth.currentUser) {
-      console.log("DEV MODE: Using mock user in UserContext with bypass enabled");
-      // Set global user if bypassing auth
-      window.currentAuthUser = {
-        id: 'dev-user-id',
-        email: 'dev@example.com',
-        firstName: 'Dev',
-        lastName: 'User',
-        role: 'SUPER_ADMIN',
-        isActive: true
-      };
-    }
-  }, [auth.currentUser, bypassAuth]);
-  
-  // Map old permission strings to new permissions system
-  const hasPermission = (permission: string) => {
-    // If we're bypassing auth in development, all permissions are granted
-    if (bypassAuth && isDevelopment) {
-      console.log(`DEV BYPASS: Permission check for ${permission} auto-granted`);
-      return true;
-    }
-    
-    if (!auth || !auth.currentUser) {
-      console.log("No auth user found for permission check:", permission);
-      return false;
-    }
-    
-    // Map legacy permissions to new system
-    const permissionMap: Record<string, string> = {
-      'admin': Permissions.ADMIN_ACCESS,
-      'view_orders': Permissions.VIEW_ALL_PAGES,
-      'edit_orders': Permissions.EDIT_DATA,
-      'create_orders': Permissions.SUBMIT_ORDERS,
-      'driver': Permissions.ACCESS_DISPATCH,
-      'superadmin': Permissions.ADMIN_ACCESS, // Added for superadmin check
-    };
-    
-    const mappedPermission = permissionMap[permission] || permission;
-    const result = auth.hasPermission(mappedPermission);
-    console.log(`Permission check for ${permission} (mapped to ${mappedPermission}): ${result}`);
-    return result;
-  };
-  
-  const isAdmin = () => {
-    if (bypassAuth && isDevelopment) {
-      console.log("DEV BYPASS: isAdmin check auto-granted");
-      return true;
-    }
-    
-    if (!auth || !auth.currentUser) return false;
-    return auth.isAdminOrAbove();
-  };
-  
-  const isSuperAdmin = () => {
-    if (bypassAuth && isDevelopment) {
-      console.log("DEV BYPASS: isSuperAdmin check auto-granted");
-      return true;
-    }
-    
-    if (!auth || !auth.currentUser) return false;
-    return auth.isSuperAdmin();
-  };
 
-  // Add user object with mock user when bypassing
-  const user = auth.currentUser ? {
-    name: `${auth.currentUser.firstName || ''} ${auth.currentUser.lastName || ''}`.trim() || 'User',
-    role: auth.currentUser.role
-  } : bypassAuth ? {
-    name: 'Developer (Bypassed Auth)',
-    role: 'SUPER_ADMIN'
-  } : null;
-
-  console.log("UserProvider providing user:", user);
+  const hasPermission = (requiredRole: UserRole) => {
+    if (!user) return false;
+    return roleHierarchy[user.role] >= roleHierarchy[requiredRole];
+  };
 
   return (
-    <UserContext.Provider value={{ hasPermission, isAdmin, isSuperAdmin, user }}>
+    <UserContext.Provider value={{ user, setUser, hasPermission }}>
       {children}
     </UserContext.Provider>
   );
@@ -125,58 +41,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 export const useUser = () => {
   const context = useContext(UserContext);
   if (context === undefined) {
-    console.warn("useUser called outside of UserProvider, falling back to window.currentAuthUser");
-    // If we're not in a UserProvider, try to use the global state set by AuthContext
-    if (window.currentAuthUser) {
-      return {
-        hasPermission: (permission: string) => {
-          // Map old permissions to new permissions system
-          const permissionMap: Record<string, string> = {
-            'admin': Permissions.ADMIN_ACCESS,
-            'view_orders': Permissions.VIEW_ALL_PAGES,
-            'edit_orders': Permissions.EDIT_DATA,
-            'create_orders': Permissions.SUBMIT_ORDERS,
-            'driver': Permissions.ACCESS_DISPATCH,
-            'superadmin': Permissions.ADMIN_ACCESS, // Added for superadmin check
-          };
-          
-          const mappedPermission = permissionMap[permission] || permission;
-          const role = window.currentAuthUser.role;
-          const permissions = rolePermissions[role];
-          return permissions?.includes(mappedPermission) || false;
-        },
-        isAdmin: () => {
-          const role = window.currentAuthUser.role;
-          return role === 'ADMIN' || role === 'SUPER_ADMIN';
-        },
-        isSuperAdmin: () => {
-          return window.currentAuthUser.role === 'SUPER_ADMIN';
-        },
-        user: {
-          name: `${window.currentAuthUser.firstName || ''} ${window.currentAuthUser.lastName || ''}`.trim() || 'User',
-          role: window.currentAuthUser.role
-        }
-      };
-    }
-    console.error("useUser must be used within a UserProvider and no fallback available");
-    // Return default values instead of throwing error to prevent app crashes
-    return {
-      hasPermission: () => false,
-      isAdmin: () => false,
-      isSuperAdmin: () => false,
-      user: null
-    };
+    throw new Error("useUser must be used within a UserProvider");
   }
   return context;
 };
-
-// Add to window for global access
-declare global {
-  interface Window {
-    currentAuthUser: any;
-  }
-}
-
-// Initialize global user
-window.currentAuthUser = null;
-

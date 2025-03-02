@@ -1,85 +1,120 @@
 
-import { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import AppLayout from '@/components/layouts/AppLayout';
-import Index from '@/pages/Index';
-import Login from '@/pages/Login';
-import Signup from '@/pages/Signup';
-import Dashboard from '@/pages/Dashboard';
-import { WholesaleOrder } from '@/pages/WholesaleOrder';
-import NotFound from '@/pages/NotFound';
-import UnauthorizedPage from '@/pages/UnauthorizedPage';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { useAuth } from '@/context/AuthContext';
-import { GeneratedOrder } from '@/pages/GeneratedOrder'; // Fix the import to use named export
-import './App.css';
+import { useEffect } from "react";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { Toaster } from "@/components/ui/toaster";
+import AppLayout from "@/components/layouts/AppLayout";
+import Dashboard from "@/pages/Dashboard";
+import { WholesaleOrder } from "@/pages/WholesaleOrder";
+import { WholesaleOrderForm } from "@/pages/WholesaleOrderForm";
+import { WholesaleOrderArchive } from "@/pages/wholesale-order/WholesaleOrderArchive";
+import { OrderView } from "@/pages/wholesale-order/OrderView";
+import NotFound from "@/pages/NotFound";
+import { AdminProvider, useAdmin } from "@/context/AdminContext";
+import { UserProvider } from "@/context/UserContext";
+import "./App.css";
 
-function App() {
-  const auth = useAuth();
-  
-  // Debug app rendering and auth state
+function PageWrapper({ children }: { children: React.ReactNode }) {
+  const { isAdmin } = useAdmin();
+
   useEffect(() => {
-    console.log("App component mounted, auth state:", auth?.currentUser ? "Logged in" : "Not logged in");
-  }, [auth]);
+    document.body.style.backgroundColor = "#F7F7F7";
+  }, []);
 
   return (
-    <Router>
-      <Routes>
-        {/* Public routes */}
-        <Route 
-          path="/login" 
-          element={
-            auth?.currentUser ? <Navigate to="/" /> : <Login />
-          } 
-        />
-        <Route 
-          path="/signup" 
-          element={
-            auth?.currentUser ? <Navigate to="/" /> : <Signup />
-          } 
-        />
-        <Route path="/unauthorized" element={<UnauthorizedPage />} />
-        
-        {/* Public generated order routes - accessible without login */}
-        <Route path="/order/:encodedContent" element={<GeneratedOrder />} />
-
-        {/* Protected routes - wrapped in AppLayout */}
-        <Route 
-          path="/" 
-          element={
-            <ProtectedRoute>
-              <AppLayout>
-                <Index />
-              </AppLayout>
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/dashboard" 
-          element={
-            <ProtectedRoute>
-              <AppLayout>
-                <Dashboard />
-              </AppLayout>
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/wholesale-order" 
-          element={
-            <ProtectedRoute>
-              <AppLayout isAdminMode={true}>
-                <WholesaleOrder />
-              </AppLayout>
-            </ProtectedRoute>
-          } 
-        />
-
-        {/* Catch-all route */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </Router>
+    <AppLayout isAdminMode={isAdmin}>
+      {children}
+      <Toaster />
+    </AppLayout>
   );
 }
 
-export default App;
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: (
+      <UserProvider>
+        <AdminProvider>
+          <PageWrapper>
+            <Dashboard />
+          </PageWrapper>
+        </AdminProvider>
+      </UserProvider>
+    ),
+  },
+  {
+    path: "/wholesale-order",
+    element: (
+      <UserProvider>
+        <AdminProvider>
+          <PageWrapper>
+            <WholesaleOrder />
+          </PageWrapper>
+        </AdminProvider>
+      </UserProvider>
+    ),
+  },
+  {
+    path: "/wholesale-order/:id",
+    element: (
+      <UserProvider>
+        <AdminProvider>
+          <PageWrapper>
+            <WholesaleOrderForm />
+          </PageWrapper>
+        </AdminProvider>
+      </UserProvider>
+    ),
+  },
+  {
+    path: "/wholesale-orders",
+    element: (
+      <UserProvider>
+        <AdminProvider>
+          <PageWrapper>
+            <WholesaleOrderArchive />
+          </PageWrapper>
+        </AdminProvider>
+      </UserProvider>
+    ),
+  },
+  {
+    path: "/wholesale-orders/:id",
+    element: (
+      <UserProvider>
+        <AdminProvider>
+          <PageWrapper>
+            <WholesaleOrderForm />
+          </PageWrapper>
+        </AdminProvider>
+      </UserProvider>
+    ),
+  },
+  {
+    path: "/wholesale-orders/:id/view",
+    element: (
+      <UserProvider>
+        <AdminProvider>
+          <PageWrapper>
+            <OrderView />
+          </PageWrapper>
+        </AdminProvider>
+      </UserProvider>
+    ),
+  },
+  {
+    path: "*",
+    element: (
+      <UserProvider>
+        <AdminProvider>
+          <PageWrapper>
+            <NotFound />
+          </PageWrapper>
+        </AdminProvider>
+      </UserProvider>
+    ),
+  },
+]);
+
+export default function App() {
+  return <RouterProvider router={router} />;
+}

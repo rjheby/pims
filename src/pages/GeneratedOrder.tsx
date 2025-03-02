@@ -63,3 +63,4 @@ export function GeneratedOrder() {
     return <div>Error loading order content</div>;
   }
 }
+

@@ -1,5 +1,4 @@
 
-import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -8,24 +7,16 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon, UserPlus, Settings } from "lucide-react";
+import { useState } from "react";
 import { useUser } from "@/context/UserContext";
 import { useToast } from "@/components/ui/use-toast";
 
 const Index = () => {
-  console.log("Index page rendering START");
   const [date, setDate] = useState<Date>();
   const [scheduleType, setScheduleType] = useState<"one-time" | "recurring" | "bi-weekly">("one-time");
   const [recurringDay, setRecurringDay] = useState<string>();
-  
-  // Add error handling around context usage
-  const userContext = useUser();
+  const { user, hasPermission } = useUser();
   const { toast } = useToast();
-  
-  console.log("Index: User context:", userContext);
-  
-  useEffect(() => {
-    console.log("Index page mounted, current user:", userContext.user);
-  }, [userContext.user]);
 
   const handleAddUser = () => {
     toast({
@@ -97,17 +88,14 @@ const Index = () => {
     </div>
   );
 
-  // Add render confirmation logging
-  console.log("Index page rendering COMPLETE");
-
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Howdy, {userContext.user?.name || 'Guest'}</h1>
-          <p className="text-muted-foreground">Role: {userContext.user?.role || 'Not logged in'}</p>
+          <h1 className="text-2xl font-bold">Howdy, {user?.name}</h1>
+          <p className="text-muted-foreground">Role: {user?.role}</p>
         </div>
-        {userContext.hasPermission("superadmin") && (
+        {hasPermission("superadmin") && (
           <div className="flex gap-2">
             <Button onClick={handleAddUser}>
               <UserPlus className="mr-2 h-4 w-4" />
