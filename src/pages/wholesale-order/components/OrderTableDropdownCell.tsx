@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -50,7 +49,7 @@ export function OrderTableDropdownCell({
   };
 
   return (
-    <div className="flex flex-col w-full max-w-full">
+    <div className="flex flex-col w-full">
       {isEditing ? (
         <div className="flex space-x-2 w-full">
           <Input
@@ -74,20 +73,23 @@ export function OrderTableDropdownCell({
         </div>
       ) : (
         <Select
+          value={value}
           onValueChange={onUpdateItem}
-          defaultValue={value}
           disabled={readOnly}
         >
-          <SelectTrigger className="w-full h-8 max-w-full">
-            <SelectValue placeholder={value || `${fieldName}`} className="truncate max-w-[calc(100%-20px)]" />
+          <SelectTrigger className="h-8 w-full">
+            <SelectValue 
+              placeholder={fieldName} 
+              className="text-ellipsis overflow-hidden" 
+            />
           </SelectTrigger>
-          <SelectContent className="min-w-[100px] w-[var(--radix-select-trigger-width)] max-w-[200px]">
+          <SelectContent className="min-w-[120px] max-h-[300px]">
             {options.map((option) => (
               <SelectItem key={option} value={option} className="truncate">
                 {option}
               </SelectItem>
             ))}
-            {isAdmin && (
+            {isAdmin && !showNewOptionInput && (
               <SelectItem
                 value="new"
                 onClick={(e) => {
