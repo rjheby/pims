@@ -187,7 +187,7 @@ export const calculateActualConversionRatio = (
 
 // Helper to type-safely access Supabase tables
 export const supabaseTable = {
-  // Original tables
+  // Original tables defined in Supabase types
   firewood_products: 'firewood_products',
   product_pricing: 'product_pricing',
   profiles: 'profiles',
@@ -196,7 +196,7 @@ export const supabaseTable = {
   wholesale_orders: 'wholesale_orders',
   wood_products: 'wood_products',
   
-  // New tables
+  // New tables not yet in the Supabase types
   retail_inventory: 'retail_inventory',
   processing_records: 'processing_records',
   inventory_items: 'inventory_items',
@@ -212,13 +212,34 @@ export const supabaseFunction = {
 
 // Type for Supabase typed tables
 export type SupabaseTableType = typeof supabaseTable[keyof typeof supabaseTable];
+export type SupabaseFunctionType = typeof supabaseFunction[keyof typeof supabaseFunction];
 
-// Helper function to safely access new tables with type assertion
-export const supabaseSafeFrom = (supabase: any, table: string) => {
+// Improved type assertion function for tables
+export const supabaseSafeFrom = (supabase: any, table: SupabaseTableType) => {
+  // For tables in the Supabase types, we don't need to do anything special
+  const knownTables = [
+    'firewood_products', 'product_pricing', 'profiles', 
+    'wholesale_order_options', 'wholesale_order_templates', 
+    'wholesale_orders', 'wood_products'
+  ];
+  
+  if (knownTables.includes(table)) {
+    return supabase.from(table);
+  }
+  
+  // For tables not in the types, we need to use 'any' to bypass type checking
   return supabase.from(table as any);
 };
 
-// Helper function for typed RPC calls
-export const supabaseSafeRpc = (supabase: any, fnName: string, params: any) => {
+// Improved type assertion function for RPC functions
+export const supabaseSafeRpc = (supabase: any, fnName: SupabaseFunctionType, params: any) => {
+  // For functions in the Supabase types, we don't need to do anything special
+  const knownFunctions = ['is_admin', 'is_super_admin'];
+  
+  if (knownFunctions.includes(fnName)) {
+    return supabase.rpc(fnName, params);
+  }
+  
+  // For functions not in the types, we need to use 'any' to bypass type checking
   return supabase.rpc(fnName as any, params);
 };
