@@ -7,13 +7,15 @@ import { WholesaleOrderProvider } from "@/pages/wholesale-order/context/Wholesal
 import { useLocation, Link } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { GlobalControls } from "@/components/GlobalControls";
-import { HistoryProvider } from "@/context/HistoryContext";
 import { useHistory } from "@/context/HistoryContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 // Component to handle keyboard shortcuts
 function KeyboardShortcuts() {
-  const { undo, redo, canUndo, canRedo } = useHistory();
+  const history = useHistory();
+  
+  // Only proceed if history is available
+  const { undo, redo, canUndo, canRedo } = history || { undo: () => {}, redo: () => {}, canUndo: false, canRedo: false };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -64,12 +66,14 @@ export default function AppLayout({
     };
   }, [isMobile]);
 
-  // Make sure we're actually rendering the content
+  // Add a debug log to check if the AppLayout is rendering
   console.log("AppLayout rendering with children:", children);
 
   return (
     <SidebarProvider>
       <div className="relative min-h-screen overflow-x-hidden">
+        <KeyboardShortcuts />
+        
         {/* Admin Mode Overlay */}
         <div
           className={cn(

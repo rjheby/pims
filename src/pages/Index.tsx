@@ -16,12 +16,14 @@ const Index = () => {
   const [date, setDate] = useState<Date>();
   const [scheduleType, setScheduleType] = useState<"one-time" | "recurring" | "bi-weekly">("one-time");
   const [recurringDay, setRecurringDay] = useState<string>();
-  const { user, hasPermission } = useUser();
+  const userContext = useUser();
   const { toast } = useToast();
   
+  console.log("Index: User context:", userContext);
+  
   useEffect(() => {
-    console.log("Index page mounted, current user:", user);
-  }, [user]);
+    console.log("Index page mounted, current user:", userContext.user);
+  }, [userContext.user]);
 
   const handleAddUser = () => {
     toast({
@@ -97,10 +99,10 @@ const Index = () => {
     <div className="container mx-auto py-8 px-4">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Howdy, {user?.name || 'Guest'}</h1>
-          <p className="text-muted-foreground">Role: {user?.role || 'Not logged in'}</p>
+          <h1 className="text-2xl font-bold">Howdy, {userContext.user?.name || 'Guest'}</h1>
+          <p className="text-muted-foreground">Role: {userContext.user?.role || 'Not logged in'}</p>
         </div>
-        {hasPermission("superadmin") && (
+        {userContext.hasPermission("superadmin") && (
           <div className="flex gap-2">
             <Button onClick={handleAddUser}>
               <UserPlus className="mr-2 h-4 w-4" />

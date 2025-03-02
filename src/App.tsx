@@ -22,7 +22,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { Permissions } from "./types/permissions";
 
 function App() {
-  console.log("App rendering");
+  console.log("App component rendering");
   
   return (
     <BrowserRouter>
