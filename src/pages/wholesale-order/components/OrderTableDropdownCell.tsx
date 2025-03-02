@@ -77,13 +77,13 @@ export function OrderTableDropdownCell({
           onValueChange={onUpdateItem}
           disabled={readOnly}
         >
-          <SelectTrigger className="h-8 w-full">
+          <SelectTrigger className="h-8 w-full !min-w-0">
             <SelectValue 
-              placeholder={fieldName} 
+              placeholder={fieldName}
               className="text-ellipsis overflow-hidden" 
             />
           </SelectTrigger>
-          <SelectContent className="min-w-[120px] max-h-[300px]">
+          <SelectContent className="max-h-[300px]">
             {options.map((option) => (
               <SelectItem key={option} value={option} className="truncate">
                 {option}
