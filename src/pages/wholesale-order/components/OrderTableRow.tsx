@@ -1,4 +1,3 @@
-
 import {
   ChevronDown,
   ChevronRight,
@@ -90,9 +89,7 @@ export function OrderTableRow({
 
   return (
     <TableRow>
-      <TableCell
-        className={cn("font-medium whitespace-nowrap min-w-[250px]", isCompressed && "w-1/2")}
-      >
+      <TableCell className="font-medium whitespace-nowrap">
         <div className="flex items-center space-x-2">
           {isCompressed ? (
             <div
@@ -130,7 +127,7 @@ export function OrderTableRow({
 
       {!isCompressed && !readOnly &&
         optionFields.map((field) => (
-          <TableCell key={field} className="min-w-[120px] max-w-[150px] w-[150px]">
+          <TableCell key={field}>
             <OrderTableDropdownCell
               fieldName={field}
               value={item[field] as string}
@@ -147,7 +144,7 @@ export function OrderTableRow({
           </TableCell>
         ))}
 
-      <TableCell className={isCompressed ? "hidden" : "min-w-[80px] max-w-[100px] w-[100px]"}>
+      <TableCell className={isCompressed ? "hidden" : ""}>
         <Input
           type="number"
           min="0"
@@ -161,7 +158,7 @@ export function OrderTableRow({
         />
       </TableCell>
 
-      <TableCell className={isCompressed ? "hidden" : "min-w-[120px] max-w-[150px] w-[150px]"}>
+      <TableCell className={isCompressed ? "hidden" : ""}>
         <Input
           type="number"
           min="0"
@@ -175,11 +172,11 @@ export function OrderTableRow({
         />
       </TableCell>
 
-      <TableCell className="text-right min-w-[120px] max-w-[150px] w-[150px]">
+      <TableCell className="text-right">
         ${(safeNumber(item.pallets) * safeNumber(item.unitCost)).toFixed(2)}
       </TableCell>
 
-      <TableCell className={isCompressed ? "hidden" : "min-w-[100px] max-w-[150px] w-[150px]"}>
+      <TableCell className={isCompressed ? "hidden" : ""}>
         <div className="flex space-x-1">
           {!readOnly && (
             <>
