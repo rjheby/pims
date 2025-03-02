@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -59,14 +60,7 @@ const Login = () => {
       setError("");
       setIsSubmitting(true);
       
-      try {
-        await fetch('/api/create-test-account', {
-          method: 'POST',
-        });
-      } catch (e) {
-        console.log("Test account may already exist", e);
-      }
-      
+      // Skip the account creation attempt since it may be failing
       await login("test@example.com", "password123");
       
       toast({
@@ -76,12 +70,15 @@ const Login = () => {
       
       navigate(from, { replace: true });
     } catch (err: any) {
-      setError("Test login failed. The test account may not exist yet.");
       console.error("Test login error:", err);
+      
+      // More informative error message
+      const errorMessage = "Test login failed. Please make sure the test account exists in Supabase.";
+      setError(errorMessage);
       
       toast({
         title: "Test login failed",
-        description: "Could not log in with test account. Please try signing up with these credentials first.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -95,7 +92,7 @@ const Login = () => {
         <AppSidebar />
         
         <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
-          <Card className="w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl">
+          <Card className="w-full mx-auto max-w-[90%] sm:max-w-[80%] md:max-w-[70%] lg:max-w-[60%] xl:max-w-[50%] 2xl:max-w-[40%]">
             <CardHeader className="space-y-1">
               <div className="mx-auto mb-4 flex justify-center">
                 <img 
@@ -109,8 +106,8 @@ const Login = () => {
                   }} 
                 />
               </div>
-              <CardTitle className="text-2xl font-bold">Login</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-2xl font-bold text-center">Login</CardTitle>
+              <CardDescription className="text-center">
                 Enter your email and password to access your account
               </CardDescription>
             </CardHeader>
@@ -158,21 +155,25 @@ const Login = () => {
                   {isSubmitting ? "Logging in..." : "Login"}
                 </Button>
                 
-                <div className="mt-4 text-center">
-                  <span className="text-xs text-gray-500">Testing? Use:</span>
-                  <div className="mt-1 flex flex-col gap-1 text-xs text-gray-500">
-                    <div>Email: test@example.com</div>
-                    <div>Password: password123</div>
+                <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-100">
+                  <div className="text-center">
+                    <span className="text-sm text-gray-700 font-medium">Testing?</span>
+                    <div className="mt-2 grid grid-cols-2 gap-2 text-sm text-gray-600">
+                      <div className="text-right">Email:</div>
+                      <div className="text-left font-mono">test@example.com</div>
+                      <div className="text-right">Password:</div>
+                      <div className="text-left font-mono">password123</div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="mt-3 w-full border-[#2A4131] text-[#2A4131]"
+                      onClick={handleTestLogin}
+                      disabled={isSubmitting}
+                    >
+                      Quick Test Login
+                    </Button>
                   </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="mt-2 w-full border-[#2A4131] text-[#2A4131]"
-                    onClick={handleTestLogin}
-                    disabled={isSubmitting}
-                  >
-                    Quick Test Login
-                  </Button>
                 </div>
               </form>
             </CardContent>
