@@ -21,12 +21,30 @@ const UserContext = createContext<UserContextType>({
   user: null
 });
 
+// Development bypass flag - MUST match the value in ProtectedRoute.tsx
+const BYPASS_AUTH = true; // Set to false to disable bypass
+
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const auth = useAuth();
+  const isDevelopment = import.meta.env.DEV;
+  const bypassAuth = BYPASS_AUTH && isDevelopment;
+  
   console.log("UserProvider rendering with auth:", auth);
+  
+  useEffect(() => {
+    if (bypassAuth && !auth.currentUser) {
+      console.log("DEV MODE: Using mock user in UserContext with bypass enabled");
+    }
+  }, [auth.currentUser, bypassAuth]);
   
   // Map old permission strings to new permissions system
   const hasPermission = (permission: string) => {
+    // If we're bypassing auth in development, all permissions are granted
+    if (bypassAuth && isDevelopment) {
+      console.log(`DEV BYPASS: Permission check for ${permission} auto-granted`);
+      return true;
+    }
+    
     if (!auth || !auth.currentUser) {
       console.log("No auth user found for permission check:", permission);
       return false;
@@ -49,19 +67,32 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
   
   const isAdmin = () => {
+    if (bypassAuth && isDevelopment) {
+      console.log("DEV BYPASS: isAdmin check auto-granted");
+      return true;
+    }
+    
     if (!auth || !auth.currentUser) return false;
     return auth.isAdminOrAbove();
   };
   
   const isSuperAdmin = () => {
+    if (bypassAuth && isDevelopment) {
+      console.log("DEV BYPASS: isSuperAdmin check auto-granted");
+      return true;
+    }
+    
     if (!auth || !auth.currentUser) return false;
     return auth.isSuperAdmin();
   };
 
-  // Add user object
+  // Add user object with mock user when bypassing
   const user = auth.currentUser ? {
     name: `${auth.currentUser.firstName || ''} ${auth.currentUser.lastName || ''}`.trim() || 'User',
     role: auth.currentUser.role
+  } : bypassAuth ? {
+    name: 'Developer (Bypassed Auth)',
+    role: 'SUPER_ADMIN'
   } : null;
 
   console.log("UserProvider providing user:", user);

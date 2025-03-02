@@ -4,6 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Permissions } from "@/types/permissions";
 
 // Development bypass flag - REMOVE BEFORE PRODUCTION
+// You can toggle this constant to enable/disable auth bypass during development
 const BYPASS_AUTH = true; // Set to false to disable bypass
 
 interface ProtectedRouteProps {
@@ -22,6 +23,16 @@ export const ProtectedRoute = ({
   const isDevelopment = import.meta.env.DEV; // Vite's way to detect development mode
   const bypassAuth = BYPASS_AUTH && isDevelopment;
 
+  // Log authentication status for debugging
+  console.log('Auth status:', { 
+    currentUser: currentUser?.email || 'none', 
+    isLoading, 
+    isDevelopment, 
+    bypassAuth,
+    requireAdmin,
+    requiredPermission
+  });
+
   // Show bypass indicator if active
   const AuthBypassIndicator = () => {
     if (bypassAuth) {
@@ -35,6 +46,7 @@ export const ProtectedRoute = ({
   };
 
   if (isLoading && !bypassAuth) {
+    console.log('Auth loading, showing spinner');
     // Show loading spinner while checking authentication
     return <div className="flex h-screen w-full items-center justify-center">
       <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-[#2A4131]"></div>
@@ -43,19 +55,28 @@ export const ProtectedRoute = ({
 
   // Not logged in and not bypassing auth
   if (!currentUser && !bypassAuth) {
+    console.log('Not authenticated - redirecting to login');
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   // Check admin access if required and not bypassing
   if (requireAdmin && !isAdminOrAbove() && !bypassAuth) {
+    console.log('Insufficient admin privileges - redirecting to unauthorized');
     return <Navigate to="/unauthorized" replace />;
   }
 
   // Check specific permission if required and not bypassing
   if (requiredPermission && !hasPermission(requiredPermission) && !bypassAuth) {
+    console.log(`Missing required permission: ${requiredPermission} - redirecting to unauthorized`);
     return <Navigate to="/unauthorized" replace />;
   }
 
+  // If bypassing auth with no user, log this information
+  if (bypassAuth && !currentUser) {
+    console.log('DEV MODE: Authentication bypassed - would normally require login');
+  }
+
+  console.log('Access granted to protected route');
   return (
     <>
       <AuthBypassIndicator />
