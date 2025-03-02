@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Download, Copy, Share, MoreHorizontal, Phone, Mail, Link, Trash2 } from "lucide-react";
+import { Edit, Download, Copy, Share, MoreHorizontal, Phone, Mail, Link, Trash2, Calendar } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -126,6 +126,19 @@ export function OrderCard({
                 {searchTerm ? 
                   highlightText(order.customer, searchTerm) :
                   order.customer
+                }
+              </span>
+            </div>
+          )}
+          
+          {order.delivery_date && (
+            <div className="flex items-center text-sm">
+              <span className="text-muted-foreground mr-2">Delivery:</span>
+              <span className="flex items-center">
+                <Calendar className="h-3 w-3 mr-1" />
+                {searchTerm ? 
+                  highlightText(formatDate(order.delivery_date), searchTerm) :
+                  formatDate(order.delivery_date)
                 }
               </span>
             </div>
