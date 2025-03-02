@@ -74,13 +74,11 @@ export function useOrders() {
       // Insert the processing record
       const { data, error } = await supabase
         .from('processing_records')
-        .insert([
-          { 
-            ...processingRecord,
-            actual_conversion_ratio: actualRatio,
-            processed_date: new Date().toISOString()
-          }
-        ])
+        .insert([{ 
+          ...processingRecord,
+          actual_conversion_ratio: actualRatio,
+          processed_date: new Date().toISOString()
+        }])
         .select();
       
       if (error) {
@@ -106,26 +104,32 @@ export function useOrders() {
       }
       
       // Update or insert retail inventory
-      const { data: retailInventory } = await supabase
+      const { data: retailInventory, error: retailError } = await supabase
         .from('retail_inventory')
         .select('*')
         .eq('firewood_product_id', processingRecord.firewood_product_id)
         .single();
       
+      if (retailError && retailError.code !== 'PGRST116') { // PGRST116 is "no rows returned" 
+        console.error("Error checking retail inventory:", retailError);
+        return { success: false, error: retailError };
+      }
+      
       if (retailInventory) {
         // Update existing retail inventory
-        const { error: retailError } = await supabase
+        const typedRetailInventory = retailInventory as RetailInventoryItem;
+        const { error: updateError } = await supabase
           .from('retail_inventory')
           .update({ 
-            total_packages: retailInventory.total_packages + processingRecord.retail_packages_created,
-            packages_available: retailInventory.packages_available + processingRecord.retail_packages_created,
+            total_packages: typedRetailInventory.total_packages + processingRecord.retail_packages_created,
+            packages_available: typedRetailInventory.packages_available + processingRecord.retail_packages_created,
             last_updated: new Date().toISOString()
           })
           .eq('firewood_product_id', processingRecord.firewood_product_id);
         
-        if (retailError) {
-          console.error("Error updating retail inventory:", retailError);
-          return { success: false, error: retailError };
+        if (updateError) {
+          console.error("Error updating retail inventory:", updateError);
+          return { success: false, error: updateError };
         }
       } else {
         // Create new retail inventory record
@@ -146,7 +150,7 @@ export function useOrders() {
       }
       
       // Check if we need to update the conversion ratio based on actual results
-      if (Math.abs(actualRatio - processingRecord.retail_packages_created / processingRecord.wholesale_pallets_used) > 0.1) {
+      if (Math.abs(actualRatio - processingRecord.expected_ratio) > 0.1) {
         // The actual ratio differs significantly from expected, consider updating
         const { error: conversionError } = await supabase
           .from('product_conversions')
@@ -186,7 +190,7 @@ export function useOrders() {
         return null;
       }
       
-      return data;
+      return data as RetailInventoryItem;
     } catch (err) {
       console.error("Error in getRetailInventory:", err);
       return null;
@@ -207,7 +211,7 @@ export function useOrders() {
         return null;
       }
       
-      return data;
+      return data as InventoryItem;
     } catch (err) {
       console.error("Error in getWholesaleInventory:", err);
       return null;

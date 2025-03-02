@@ -1,4 +1,3 @@
-
 export interface OrderItem {
   id: number;
   species: string;
@@ -119,6 +118,7 @@ export interface ProcessingRecord {
   actual_conversion_ratio: number; // The actual ratio achieved in this processing batch
   processed_date: string;
   processed_by: string;
+  expected_ratio?: number; // Optional expected ratio for comparison
   notes?: string;
 }
 

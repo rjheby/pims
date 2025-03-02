@@ -46,9 +46,10 @@ export function useRetailInventory() {
         return;
       }
       
-      setRetailInventory(inventoryData || []);
-      setFirewoodProducts(productsData || []);
-      setProcessingHistory(historyData || []);
+      // Cast the data to the correct types
+      setRetailInventory(inventoryData as RetailInventoryItem[] || []);
+      setFirewoodProducts(productsData as FirewoodProduct[] || []);
+      setProcessingHistory(historyData as ProcessingRecord[] || []);
     } catch (err) {
       console.error("Error:", err);
     } finally {
@@ -73,18 +74,20 @@ export function useRetailInventory() {
         return { success: false, error };
       }
       
-      if (!inventory || inventory.packages_available < quantity) {
+      const typedInventory = inventory as RetailInventoryItem;
+      
+      if (!typedInventory || typedInventory.packages_available < quantity) {
         return { 
           success: false, 
-          error: `Not enough inventory available. Requested: ${quantity}, Available: ${inventory?.packages_available || 0}` 
+          error: `Not enough inventory available. Requested: ${quantity}, Available: ${typedInventory?.packages_available || 0}` 
         };
       }
       
       const { error: updateError } = await supabase
         .from('retail_inventory')
         .update({ 
-          packages_available: inventory.packages_available - quantity,
-          packages_allocated: inventory.packages_allocated + quantity,
+          packages_available: typedInventory.packages_available - quantity,
+          packages_allocated: typedInventory.packages_allocated + quantity,
           last_updated: new Date().toISOString()
         })
         .eq('firewood_product_id', firewoodProductId);
@@ -121,18 +124,20 @@ export function useRetailInventory() {
         return { success: false, error };
       }
       
-      if (!inventory || inventory.packages_allocated < quantity) {
+      const typedInventory = inventory as RetailInventoryItem;
+      
+      if (!typedInventory || typedInventory.packages_allocated < quantity) {
         return { 
           success: false, 
-          error: `Cannot deallocate more than allocated. Requested: ${quantity}, Allocated: ${inventory?.packages_allocated || 0}` 
+          error: `Cannot deallocate more than allocated. Requested: ${quantity}, Allocated: ${typedInventory?.packages_allocated || 0}` 
         };
       }
       
       const { error: updateError } = await supabase
         .from('retail_inventory')
         .update({ 
-          packages_available: inventory.packages_available + quantity,
-          packages_allocated: inventory.packages_allocated - quantity,
+          packages_available: typedInventory.packages_available + quantity,
+          packages_allocated: typedInventory.packages_allocated - quantity,
           last_updated: new Date().toISOString()
         })
         .eq('firewood_product_id', firewoodProductId);
