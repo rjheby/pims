@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { Permissions, rolePermissions } from '@/types/permissions';
 
@@ -14,7 +14,12 @@ interface UserContextType {
   } | null;
 }
 
-const UserContext = createContext<UserContextType | undefined>(undefined);
+const UserContext = createContext<UserContextType>({
+  hasPermission: () => false,
+  isAdmin: () => false,
+  isSuperAdmin: () => false,
+  user: null
+});
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const auth = useAuth();

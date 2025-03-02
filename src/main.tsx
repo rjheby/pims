@@ -14,7 +14,7 @@ const root = createRoot(rootElement);
 // Add debug logging
 console.log("Initializing application with providers");
 
-// Then render with properly nested providers
+// Then render with properly nested providers - AuthProvider must be outermost
 root.render(
   <AuthProvider>
     <UserProvider>

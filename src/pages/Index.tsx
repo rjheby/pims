@@ -1,4 +1,5 @@
 
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -7,15 +8,16 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon, UserPlus, Settings } from "lucide-react";
-import { useState, useEffect } from "react";
 import { useUser } from "@/context/UserContext";
 import { useToast } from "@/components/ui/use-toast";
 
 const Index = () => {
-  console.log("Index page rendering");
+  console.log("Index page rendering START");
   const [date, setDate] = useState<Date>();
   const [scheduleType, setScheduleType] = useState<"one-time" | "recurring" | "bi-weekly">("one-time");
   const [recurringDay, setRecurringDay] = useState<string>();
+  
+  // Add error handling around context usage
   const userContext = useUser();
   const { toast } = useToast();
   
@@ -94,6 +96,9 @@ const Index = () => {
       )}
     </div>
   );
+
+  // Add render confirmation logging
+  console.log("Index page rendering COMPLETE");
 
   return (
     <div className="container mx-auto py-8 px-4">
