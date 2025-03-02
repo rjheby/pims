@@ -32,7 +32,6 @@ const Login = () => {
       setIsSubmitting(true);
       await login(email, password);
       
-      // Show success message
       toast({
         title: "Login successful",
         description: "You have been logged in successfully",
@@ -43,7 +42,6 @@ const Login = () => {
       console.error("Login error:", err);
       setError(err.message || "Invalid login credentials. Please check your email and password.");
       
-      // Show error toast
       toast({
         title: "Login failed",
         description: "Invalid login credentials. Please check your email and password.",
@@ -59,7 +57,6 @@ const Login = () => {
       setError("");
       setIsSubmitting(true);
       
-      // First create a test account if it doesn't exist
       try {
         await fetch('/api/create-test-account', {
           method: 'POST',
@@ -68,7 +65,6 @@ const Login = () => {
         console.log("Test account may already exist", e);
       }
       
-      // Then login with test credentials
       await login("test@example.com", "password123");
       
       toast({
@@ -95,6 +91,18 @@ const Login = () => {
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
+          <div className="mx-auto mb-4 flex justify-center">
+            <img 
+              src="/public/lovable-uploads/2928b0a2-c7b1-43a0-8d17-f9230de4d3b5.png" 
+              alt="Company Logo" 
+              className="h-16 w-auto"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = "/placeholder.svg";
+                target.alt = "Logo not found";
+              }} 
+            />
+          </div>
           <CardTitle className="text-2xl font-bold">Login</CardTitle>
           <CardDescription>
             Enter your email and password to access your account

@@ -11,6 +11,7 @@ import NotFound from '@/pages/NotFound';
 import UnauthorizedPage from '@/pages/UnauthorizedPage';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useAuth } from '@/context/AuthContext';
+import GeneratedOrder from '@/pages/GeneratedOrder'; // Add this import
 import './App.css';
 
 function App() {
