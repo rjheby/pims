@@ -6,10 +6,10 @@ import Index from '@/pages/Index';
 import Login from '@/pages/Login';
 import Signup from '@/pages/Signup';
 import Dashboard from '@/pages/Dashboard';
-import WholesaleOrder from '@/pages/WholesaleOrder';
+import { WholesaleOrder } from '@/pages/WholesaleOrder';
 import NotFound from '@/pages/NotFound';
 import UnauthorizedPage from '@/pages/UnauthorizedPage';
-import ProtectedRoute from '@/components/ProtectedRoute';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useAuth } from '@/context/AuthContext';
 import './App.css';
 
