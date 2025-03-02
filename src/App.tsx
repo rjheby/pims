@@ -38,6 +38,9 @@ function App() {
           } 
         />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
+        
+        {/* Public generated order routes - accessible without login */}
+        <Route path="/order/:encodedContent" element={<GeneratedOrder />} />
 
         {/* Protected routes - wrapped in AppLayout */}
         <Route 

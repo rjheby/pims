@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -32,9 +31,24 @@ const Login = () => {
       setError("");
       setIsSubmitting(true);
       await login(email, password);
+      
+      // Show success message
+      toast({
+        title: "Login successful",
+        description: "You have been logged in successfully",
+      });
+      
       navigate(from, { replace: true });
     } catch (err: any) {
-      setError(err.message || "Failed to login");
+      console.error("Login error:", err);
+      setError(err.message || "Invalid login credentials. Please check your email and password.");
+      
+      // Show error toast
+      toast({
+        title: "Login failed",
+        description: "Invalid login credentials. Please check your email and password.",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -44,16 +58,34 @@ const Login = () => {
     try {
       setError("");
       setIsSubmitting(true);
-      // Use your test credentials here
+      
+      // First create a test account if it doesn't exist
+      try {
+        await fetch('/api/create-test-account', {
+          method: 'POST',
+        });
+      } catch (e) {
+        console.log("Test account may already exist", e);
+      }
+      
+      // Then login with test credentials
       await login("test@example.com", "password123");
+      
       toast({
         title: "Test Login",
         description: "Logged in with test account",
       });
+      
       navigate(from, { replace: true });
     } catch (err: any) {
-      setError("Test login failed. Please make sure to create the test account first.");
+      setError("Test login failed. The test account may not exist yet.");
       console.error("Test login error:", err);
+      
+      toast({
+        title: "Test login failed",
+        description: "Could not log in with test account. Please try signing up with these credentials first.",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
