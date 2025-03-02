@@ -1,4 +1,6 @@
+
 import { InvoicesDueCard } from "@/components/dashboard/InvoicesDueCard";
+import { RetailInventoryCard } from "@/components/dashboard/RetailInventoryCard";
 
 export default function Dashboard() {
   return (
@@ -6,6 +8,7 @@ export default function Dashboard() {
       <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <InvoicesDueCard />
+        <RetailInventoryCard />
         {/* Add other dashboard cards here */}
       </div>
     </div>
