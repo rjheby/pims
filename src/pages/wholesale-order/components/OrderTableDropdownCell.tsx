@@ -58,7 +58,7 @@ export function OrderTableDropdownCell({
             value={newOption}
             onChange={(e) => onNewOptionChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="h-8"
+            className="h-8 min-w-[150px]"
           />
           <Button
             variant="outline"
@@ -78,8 +78,8 @@ export function OrderTableDropdownCell({
           defaultValue={value}
           disabled={readOnly}
         >
-          <SelectTrigger className="w-full h-8">
-            <SelectValue placeholder={value || `Select ${fieldName}`} />
+          <SelectTrigger className="min-w-[150px] w-full h-8">
+            <SelectValue placeholder={value || `${fieldName}`} />
           </SelectTrigger>
           <SelectContent>
             {options.map((option) => (
