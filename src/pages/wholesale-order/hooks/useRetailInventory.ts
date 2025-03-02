@@ -1,7 +1,13 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { RetailInventoryItem, FirewoodProduct, ProcessingRecord, supabaseTable } from "../types";
+import { 
+  RetailInventoryItem, 
+  FirewoodProduct, 
+  ProcessingRecord, 
+  supabaseTable,
+  supabaseSafeFrom 
+} from "../types";
 
 export function useRetailInventory() {
   const [retailInventory, setRetailInventory] = useState<RetailInventoryItem[]>([]);
@@ -14,8 +20,7 @@ export function useRetailInventory() {
       setLoading(true);
       
       // Fetch retail inventory
-      const { data: inventoryData, error: inventoryError } = await supabase
-        .from(supabaseTable.retail_inventory as string)
+      const { data: inventoryData, error: inventoryError } = await supabaseSafeFrom(supabase, supabaseTable.retail_inventory)
         .select("*")
         .order('last_updated', { ascending: false });
 
@@ -35,8 +40,7 @@ export function useRetailInventory() {
       }
       
       // Fetch processing history
-      const { data: historyData, error: historyError } = await supabase
-        .from(supabaseTable.processing_records as string)
+      const { data: historyData, error: historyError } = await supabaseSafeFrom(supabase, supabaseTable.processing_records)
         .select("*")
         .order('processed_date', { ascending: false })
         .limit(50); // Limit to recent records
@@ -63,8 +67,7 @@ export function useRetailInventory() {
     quantity: number
   ): Promise<{ success: boolean; error?: any }> => {
     try {
-      const { data: inventory, error } = await supabase
-        .from(supabaseTable.retail_inventory as string)
+      const { data: inventory, error } = await supabaseSafeFrom(supabase, supabaseTable.retail_inventory)
         .select('*')
         .eq('firewood_product_id', firewoodProductId)
         .single();
@@ -83,13 +86,12 @@ export function useRetailInventory() {
         };
       }
       
-      const { error: updateError } = await supabase
-        .from(supabaseTable.retail_inventory as string)
+      const { error: updateError } = await supabaseSafeFrom(supabase, supabaseTable.retail_inventory)
         .update({ 
           packages_available: typedInventory.packages_available - quantity,
           packages_allocated: typedInventory.packages_allocated + quantity,
           last_updated: new Date().toISOString()
-        } as any)
+        })
         .eq('firewood_product_id', firewoodProductId);
       
       if (updateError) {
@@ -113,8 +115,7 @@ export function useRetailInventory() {
     quantity: number
   ): Promise<{ success: boolean; error?: any }> => {
     try {
-      const { data: inventory, error } = await supabase
-        .from(supabaseTable.retail_inventory as string)
+      const { data: inventory, error } = await supabaseSafeFrom(supabase, supabaseTable.retail_inventory)
         .select('*')
         .eq('firewood_product_id', firewoodProductId)
         .single();
@@ -133,13 +134,12 @@ export function useRetailInventory() {
         };
       }
       
-      const { error: updateError } = await supabase
-        .from(supabaseTable.retail_inventory as string)
+      const { error: updateError } = await supabaseSafeFrom(supabase, supabaseTable.retail_inventory)
         .update({ 
           packages_available: typedInventory.packages_available + quantity,
           packages_allocated: typedInventory.packages_allocated - quantity,
           last_updated: new Date().toISOString()
-        } as any)
+        })
         .eq('firewood_product_id', firewoodProductId);
       
       if (updateError) {
@@ -163,12 +163,11 @@ export function useRetailInventory() {
     adjustment: Partial<RetailInventoryItem>
   ): Promise<{ success: boolean; error?: any }> => {
     try {
-      const { error } = await supabase
-        .from(supabaseTable.retail_inventory as string)
+      const { error } = await supabaseSafeFrom(supabase, supabaseTable.retail_inventory)
         .update({ 
           ...adjustment,
           last_updated: new Date().toISOString()
-        } as any)
+        })
         .eq('firewood_product_id', firewoodProductId);
       
       if (error) {

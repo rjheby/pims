@@ -5,9 +5,11 @@ import {
   safeNumber, 
   ProcessingRecord, 
   RetailInventoryItem, 
-  InventoryItem, 
+  InventoryItem,
   supabaseTable,
-  supabaseFunction
+  supabaseFunction,
+  supabaseSafeFrom,
+  supabaseSafeRpc
 } from "../types";
 
 export function useOrders() {
@@ -79,13 +81,12 @@ export function useOrders() {
       const actualRatio = processingRecord.retail_packages_created / processingRecord.wholesale_pallets_used;
       
       // Insert the processing record
-      const { data, error } = await supabase
-        .from(supabaseTable.processing_records as string)
+      const { data, error } = await supabaseSafeFrom(supabase, supabaseTable.processing_records)
         .insert([{ 
           ...processingRecord,
           actual_conversion_ratio: actualRatio,
           processed_date: new Date().toISOString()
-        }] as any)
+        }])
         .select();
       
       if (error) {
@@ -94,15 +95,14 @@ export function useOrders() {
       }
       
       // Update the wholesale inventory
-      const { error: wholesaleError } = await supabase
-        .from(supabaseTable.inventory_items as string)
+      const { error: wholesaleError } = await supabaseSafeFrom(supabase, supabaseTable.inventory_items)
         .update({ 
-          pallets_available: supabase.rpc(supabaseFunction.decrement_inventory as string, { 
+          pallets_available: supabaseSafeRpc(supabase, supabaseFunction.decrement_inventory, { 
             product_id: processingRecord.wood_product_id,
             amount: processingRecord.wholesale_pallets_used
-          } as any),
+          }),
           last_updated: new Date().toISOString()
-        } as any)
+        })
         .eq('wood_product_id', processingRecord.wood_product_id);
       
       if (wholesaleError) {
@@ -111,8 +111,7 @@ export function useOrders() {
       }
       
       // Update or insert retail inventory
-      const { data: retailInventory, error: retailError } = await supabase
-        .from(supabaseTable.retail_inventory as string)
+      const { data: retailInventory, error: retailError } = await supabaseSafeFrom(supabase, supabaseTable.retail_inventory)
         .select('*')
         .eq('firewood_product_id', processingRecord.firewood_product_id)
         .single();
@@ -125,13 +124,12 @@ export function useOrders() {
       if (retailInventory) {
         // Update existing retail inventory
         const typedRetailInventory = retailInventory as unknown as RetailInventoryItem;
-        const { error: updateError } = await supabase
-          .from(supabaseTable.retail_inventory as string)
+        const { error: updateError } = await supabaseSafeFrom(supabase, supabaseTable.retail_inventory)
           .update({ 
             total_packages: typedRetailInventory.total_packages + processingRecord.retail_packages_created,
             packages_available: typedRetailInventory.packages_available + processingRecord.retail_packages_created,
             last_updated: new Date().toISOString()
-          } as any)
+          })
           .eq('firewood_product_id', processingRecord.firewood_product_id);
         
         if (updateError) {
@@ -140,15 +138,14 @@ export function useOrders() {
         }
       } else {
         // Create new retail inventory record
-        const { error: retailInsertError } = await supabase
-          .from(supabaseTable.retail_inventory as string)
+        const { error: retailInsertError } = await supabaseSafeFrom(supabase, supabaseTable.retail_inventory)
           .insert([{
             firewood_product_id: processingRecord.firewood_product_id,
             total_packages: processingRecord.retail_packages_created,
             packages_available: processingRecord.retail_packages_created,
             packages_allocated: 0,
             last_updated: new Date().toISOString()
-          }] as any);
+          }]);
         
         if (retailInsertError) {
           console.error("Error creating retail inventory:", retailInsertError);
@@ -159,14 +156,13 @@ export function useOrders() {
       // Check if we need to update the conversion ratio based on actual results
       if (Math.abs(actualRatio - (processingRecord.expected_ratio || 0)) > 0.1) {
         // The actual ratio differs significantly from expected, consider updating
-        const { error: conversionError } = await supabase
-          .from(supabaseTable.product_conversions as string)
+        const { error: conversionError } = await supabaseSafeFrom(supabase, supabaseTable.product_conversions)
           .update({ 
             conversion_ratio: actualRatio,
             last_updated: new Date().toISOString(),
             adjusted_by: processingRecord.processed_by,
             notes: `Automatically adjusted based on processing batch on ${new Date().toLocaleDateString()}`
-          } as any)
+          })
           .eq('wood_product_id', processingRecord.wood_product_id)
           .eq('firewood_product_id', processingRecord.firewood_product_id);
         
@@ -186,8 +182,7 @@ export function useOrders() {
   // Get retail inventory status for a specific firewood product
   const getRetailInventory = useCallback(async (firewoodProductId: number): Promise<RetailInventoryItem | null> => {
     try {
-      const { data, error } = await supabase
-        .from(supabaseTable.retail_inventory as string)
+      const { data, error } = await supabaseSafeFrom(supabase, supabaseTable.retail_inventory)
         .select('*')
         .eq('firewood_product_id', firewoodProductId)
         .single();
@@ -207,8 +202,7 @@ export function useOrders() {
   // Get wholesale inventory status for a specific wood product
   const getWholesaleInventory = useCallback(async (woodProductId: string): Promise<InventoryItem | null> => {
     try {
-      const { data, error } = await supabase
-        .from(supabaseTable.inventory_items as string)
+      const { data, error } = await supabaseSafeFrom(supabase, supabaseTable.inventory_items)
         .select('*')
         .eq('wood_product_id', woodProductId)
         .single();

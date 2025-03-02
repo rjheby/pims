@@ -209,3 +209,16 @@ export const supabaseFunction = {
   is_super_admin: 'is_super_admin',
   decrement_inventory: 'decrement_inventory'
 } as const;
+
+// Type for Supabase typed tables
+export type SupabaseTableType = typeof supabaseTable[keyof typeof supabaseTable];
+
+// Helper function to safely access new tables with type assertion
+export const supabaseSafeFrom = (supabase: any, table: string) => {
+  return supabase.from(table as any);
+};
+
+// Helper function for typed RPC calls
+export const supabaseSafeRpc = (supabase: any, fnName: string, params: any) => {
+  return supabase.rpc(fnName as any, params);
+};
