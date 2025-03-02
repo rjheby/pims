@@ -79,9 +79,9 @@ export function OrderTableDropdownCell({
           disabled={readOnly}
         >
           <SelectTrigger className="w-full h-8 max-w-full">
-            <SelectValue placeholder={value || `${fieldName}`} className="truncate" />
+            <SelectValue placeholder={value || `${fieldName}`} className="truncate max-w-[calc(100%-20px)]" />
           </SelectTrigger>
-          <SelectContent className="min-w-[100px] max-w-[200px]">
+          <SelectContent className="min-w-[100px] w-[var(--radix-select-trigger-width)] max-w-[200px]">
             {options.map((option) => (
               <SelectItem key={option} value={option} className="truncate">
                 {option}
@@ -96,8 +96,8 @@ export function OrderTableDropdownCell({
                 }}
               >
                 <div className="flex items-center justify-between">
-                  <span>Add new {fieldName}</span>
-                  <Plus className="h-4 w-4" />
+                  <span className="truncate">Add new {fieldName}</span>
+                  <Plus className="h-4 w-4 ml-1 flex-shrink-0" />
                 </div>
               </SelectItem>
             )}

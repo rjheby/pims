@@ -1,3 +1,4 @@
+
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -24,18 +25,18 @@ function getColumnWidth(key: string, className?: string): string {
   if (className) return className;
   
   const widths: Record<string, string> = {
-    name: 'min-w-[250px] w-[22%]',
-    species: 'min-w-[120px] max-w-[150px] w-[10%]',
-    length: 'min-w-[80px] max-w-[100px] w-[6%]',
-    bundleType: 'min-w-[120px] max-w-[150px] w-[10%]',
-    thickness: 'min-w-[120px] max-w-[150px] w-[10%]',
-    packaging: 'min-w-[120px] max-w-[150px] w-[8%]',
-    pallets: 'min-w-[80px] max-w-[100px] w-[5%]',
-    unitCost: 'min-w-[120px] max-w-[150px] w-[7%]',
-    totalCost: 'min-w-[120px] max-w-[150px] w-[8%]',
-    actions: 'min-w-[100px] max-w-[150px] w-[14%]'
+    name: 'w-[22%] max-w-[250px]',
+    species: 'w-[10%] max-w-[150px]',
+    length: 'w-[6%] max-w-[100px]',
+    bundleType: 'w-[10%] max-w-[150px]',
+    thickness: 'w-[10%] max-w-[150px]',
+    packaging: 'w-[8%] max-w-[150px]',
+    pallets: 'w-[5%] max-w-[100px]',
+    unitCost: 'w-[7%] max-w-[150px]',
+    totalCost: 'w-[8%] max-w-[150px]',
+    actions: 'w-[14%] max-w-[150px]'
   };
-  return widths[key] || 'min-w-[120px] max-w-[150px] w-[10%]';
+  return widths[key] || 'w-[10%] max-w-[150px]';
 }
 
 export function BaseOrderTable({ 
@@ -289,7 +290,7 @@ export function BaseOrderTable({
         </SheetContent>
       </Sheet>
 
-      <div className="w-full rounded-md border overflow-visible" style={{width: '100%'}}>
+      <div className="w-full rounded-md border overflow-hidden" style={{width: '100%'}}>
         <Table className="w-full">
           <TableHeader>
             <TableRow>
@@ -299,7 +300,7 @@ export function BaseOrderTable({
                   className={getColumnWidth(header.key, header.className)}
                 >
                   <div className="flex items-center justify-between">
-                    <span>
+                    <span className="truncate pr-1">
                       {header.label}
                       {columnFilters[header.key] && (
                         <Badge className="ml-1 text-xs bg-primary/20 text-primary py-0.5 px-1">
@@ -311,7 +312,7 @@ export function BaseOrderTable({
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-8 w-8 p-0"
+                        className="h-8 w-8 p-0 flex-shrink-0"
                         onClick={() => handleSort(header.key)}
                       >
                         {getSortIcon(header.key)}
