@@ -88,7 +88,7 @@ export function OrderTableMobileRow({
           </div>
           <div className="font-medium break-words w-full">
             <div 
-              className="cursor-pointer hover:underline text-blue-600 whitespace-normal break-words" 
+              className="cursor-pointer hover:underline text-blue-600 whitespace-normal break-words truncate" 
               onClick={(e) => {
                 e.stopPropagation();
                 openProductSelector();
@@ -127,19 +127,21 @@ export function OrderTableMobileRow({
           {optionFields.map((field) => (
             <div key={field} className="grid grid-cols-2 gap-2 items-center">
               <Label htmlFor={`${field}-${item.id}`}>{field}</Label>
-              <OrderTableDropdownCell
-                fieldName={field as keyof DropdownOptions}
-                value={item[field as keyof OrderItem] as string}
-                options={options[field as keyof DropdownOptions]}
-                editingField={editingField as keyof DropdownOptions}
-                newOption={newOption}
-                onNewOptionChange={onNewOptionChange}
-                onUpdateItem={(value) => onUpdateItem({ ...item, [field]: value })}
-                onUpdateOptions={(option) => onUpdateOptions(field as keyof DropdownOptions, option)}
-                onPress={(e) => onKeyPress(e, field)}
-                isAdmin={isAdmin}
-                readOnly={readOnly}
-              />
+              <div className="w-full">
+                <OrderTableDropdownCell
+                  fieldName={field as keyof DropdownOptions}
+                  value={item[field as keyof OrderItem] as string}
+                  options={options[field as keyof DropdownOptions]}
+                  editingField={editingField as keyof DropdownOptions}
+                  newOption={newOption}
+                  onNewOptionChange={onNewOptionChange}
+                  onUpdateItem={(value) => onUpdateItem({ ...item, [field]: value })}
+                  onUpdateOptions={(option) => onUpdateOptions(field as keyof DropdownOptions, option)}
+                  onPress={(e) => onKeyPress(e, field)}
+                  isAdmin={isAdmin}
+                  readOnly={readOnly}
+                />
+              </div>
             </div>
           ))}
 
@@ -154,7 +156,7 @@ export function OrderTableMobileRow({
               onChange={(e) =>
                 onUpdateItem({ ...item, pallets: Number(e.target.value) })
               }
-              className="h-8"
+              className="h-8 w-full"
               disabled={readOnly}
             />
           </div>
@@ -170,7 +172,7 @@ export function OrderTableMobileRow({
               onChange={(e) =>
                 onUpdateItem({ ...item, unitCost: Number(e.target.value) })
               }
-              className="h-8"
+              className="h-8 w-full"
               disabled={readOnly}
             />
           </div>

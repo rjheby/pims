@@ -25,17 +25,17 @@ function getColumnWidth(key: string, className?: string): string {
   
   const widths: Record<string, string> = {
     name: 'min-w-[250px] w-[22%]',
-    species: 'min-w-[150px] w-[10%]',
-    length: 'min-w-[100px] w-[6%]',
-    bundleType: 'min-w-[150px] w-[10%]',
-    thickness: 'min-w-[150px] w-[10%]',
-    packaging: 'min-w-[120px] w-[8%]',
-    pallets: 'min-w-[100px] w-[5%]',
-    unitCost: 'min-w-[150px] w-[7%]',
-    totalCost: 'min-w-[150px] w-[8%]',
-    actions: 'min-w-[150px] w-[14%]'
+    species: 'min-w-[120px] max-w-[150px] w-[10%]',
+    length: 'min-w-[80px] max-w-[100px] w-[6%]',
+    bundleType: 'min-w-[120px] max-w-[150px] w-[10%]',
+    thickness: 'min-w-[120px] max-w-[150px] w-[10%]',
+    packaging: 'min-w-[120px] max-w-[150px] w-[8%]',
+    pallets: 'min-w-[80px] max-w-[100px] w-[5%]',
+    unitCost: 'min-w-[120px] max-w-[150px] w-[7%]',
+    totalCost: 'min-w-[120px] max-w-[150px] w-[8%]',
+    actions: 'min-w-[100px] max-w-[150px] w-[14%]'
   };
-  return widths[key] || 'min-w-[150px] w-[10%]';
+  return widths[key] || 'min-w-[120px] max-w-[150px] w-[10%]';
 }
 
 export function BaseOrderTable({ 

@@ -50,15 +50,15 @@ export function OrderTableDropdownCell({
   };
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col w-full max-w-full">
       {isEditing ? (
-        <div className="flex space-x-2">
+        <div className="flex space-x-2 w-full">
           <Input
             type="text"
             value={newOption}
             onChange={(e) => onNewOptionChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="h-8 min-w-[150px]"
+            className="h-8 w-full"
           />
           <Button
             variant="outline"
@@ -78,12 +78,12 @@ export function OrderTableDropdownCell({
           defaultValue={value}
           disabled={readOnly}
         >
-          <SelectTrigger className="min-w-[150px] w-full h-8">
-            <SelectValue placeholder={value || `${fieldName}`} />
+          <SelectTrigger className="w-full h-8 max-w-full">
+            <SelectValue placeholder={value || `${fieldName}`} className="truncate" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="min-w-[100px] max-w-[200px]">
             {options.map((option) => (
-              <SelectItem key={option} value={option}>
+              <SelectItem key={option} value={option} className="truncate">
                 {option}
               </SelectItem>
             ))}
