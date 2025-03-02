@@ -45,18 +45,20 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
     }
   }, [items, onItemsChange]);
 
+  // Use the same key names that BaseOrderTable is expecting to ensure
+  // widths are calculated correctly
   const headers = [
-    { key: 'name', label: 'Name', sortable: true, className: 'w-[220px] min-w-[180px]' },
+    { key: 'name', label: 'Name', sortable: true, className: 'w-[22%]' },
     ...optionFields.map(field => ({
       key: field,
       label: field.charAt(0).toUpperCase() + field.slice(1),
       sortable: true,
-      className: 'w-[120px] min-w-[120px]'
+      className: `w-[10%]`
     })),
-    { key: 'pallets', label: 'Qty', sortable: true, className: 'w-[80px] min-w-[80px]' },
-    { key: 'unitCost', label: 'Unit Cost', sortable: true, className: 'w-[120px] min-w-[120px]' },
-    { key: 'totalCost', label: 'Total Cost', sortable: true, className: 'w-[120px] min-w-[120px]' },
-    { key: 'actions', label: 'Actions', className: 'w-[120px] min-w-[100px]' }
+    { key: 'pallets', label: 'Qty', sortable: true, className: 'w-[5%]' },
+    { key: 'unitCost', label: 'Unit Cost', sortable: true, className: 'w-[7%]' },
+    { key: 'totalCost', label: 'Total Cost', sortable: true, className: 'w-[8%]' },
+    { key: 'actions', label: 'Actions', className: 'w-[14%]' }
   ];
 
   const tableData = items.map(item => ({
@@ -98,37 +100,35 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
     <>
       {/* Desktop View */}
       <div className="hidden md:block">
-        <div className="w-full p-4 md:p-6 lg:p-8 overflow-visible">
-          <div className="overflow-x-auto">
-            <BaseOrderTable
-              headers={headers}
-              data={tableData}
-              onSortChange={handleSortChange}
-              onFilterChange={handleFilterChange}
-            >
-              {tableData.map(item => (
-                <OrderTableRow
-                  key={item.id}
-                  item={item}
-                  options={options}
-                  isAdmin={isAdmin}
-                  editingField={editingField}
-                  newOption={newOption}
-                  onNewOptionChange={setNewOption}
-                  onKeyPress={(e) => handleKeyPress(e, editingField)}
-                  onUpdateItem={handleUpdateItem}
-                  onRemoveRow={handleRemoveRow}
-                  onCopyRow={handleCopyRow}
-                  onAddItem={handleAddItem}
-                  generateItemName={generateItemName}
-                  onUpdateOptions={handleUpdateOptions}
-                  isCompressed={false}
-                  onToggleCompressed={toggleCompressed}
-                  readOnly={readOnly}
-                />
-              ))}
-            </BaseOrderTable>
-          </div>
+        <div className="w-full p-4 md:p-6 lg:p-8">
+          <BaseOrderTable
+            headers={headers}
+            data={tableData}
+            onSortChange={handleSortChange}
+            onFilterChange={handleFilterChange}
+          >
+            {tableData.map(item => (
+              <OrderTableRow
+                key={item.id}
+                item={item}
+                options={options}
+                isAdmin={isAdmin}
+                editingField={editingField}
+                newOption={newOption}
+                onNewOptionChange={setNewOption}
+                onKeyPress={(e) => handleKeyPress(e, editingField)}
+                onUpdateItem={handleUpdateItem}
+                onRemoveRow={handleRemoveRow}
+                onCopyRow={handleCopyRow}
+                onAddItem={handleAddItem}
+                generateItemName={generateItemName}
+                onUpdateOptions={handleUpdateOptions}
+                isCompressed={false}
+                onToggleCompressed={toggleCompressed}
+                readOnly={readOnly}
+              />
+            ))}
+          </BaseOrderTable>
           
           {!readOnly && (
             <div className="mt-4 flex justify-end">
