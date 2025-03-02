@@ -22,7 +22,7 @@ const UserContext = createContext<UserContextType>({
 });
 
 // Development bypass flag - MUST match the value in ProtectedRoute.tsx
-const BYPASS_AUTH = true; // Set to false to disable bypass
+const BYPASS_AUTH = true; // Ensure this is set to true for development
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const auth = useAuth();

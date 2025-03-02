@@ -7,7 +7,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 
 // Development bypass flag - REMOVE BEFORE PRODUCTION
 // You can toggle this constant to enable/disable auth bypass during development
-const BYPASS_AUTH = true; // Set to false to disable bypass
+const BYPASS_AUTH = true; // Ensure this is set to true for development
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
