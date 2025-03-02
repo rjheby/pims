@@ -43,6 +43,15 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (bypassAuth && !auth.currentUser) {
       console.log("DEV MODE: Using mock user in UserContext with bypass enabled");
+      // Set global user if bypassing auth
+      window.currentAuthUser = {
+        id: 'dev-user-id',
+        email: 'dev@example.com',
+        firstName: 'Dev',
+        lastName: 'User',
+        role: 'SUPER_ADMIN',
+        isActive: true
+      };
     }
   }, [auth.currentUser, bypassAuth]);
   
@@ -170,3 +179,4 @@ declare global {
 
 // Initialize global user
 window.currentAuthUser = null;
+

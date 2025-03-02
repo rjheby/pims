@@ -4,6 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Permissions } from "@/types/permissions";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { AdminProvider } from "@/context/AdminContext";
 
 // Development bypass flag - REMOVE BEFORE PRODUCTION
 // You can toggle this constant to enable/disable auth bypass during development
@@ -88,11 +89,13 @@ export const ProtectedRoute = ({
 
   console.log('Access granted to protected route');
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <AuthBypassIndicator />
-      {children}
-    </SidebarProvider>
+    <AdminProvider>
+      <SidebarProvider>
+        <AppSidebar />
+        <AuthBypassIndicator />
+        {children}
+      </SidebarProvider>
+    </AdminProvider>
   );
 };
 
@@ -104,3 +107,4 @@ export const AdminRoute = ({ children }: { children: React.ReactNode }) => {
     </ProtectedRoute>
   );
 };
+
