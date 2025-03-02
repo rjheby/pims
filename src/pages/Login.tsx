@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -93,11 +92,10 @@ const Login = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen bg-gray-50">
-        {/* Add AppSidebar component */}
         <AppSidebar />
         
         <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
-          <Card className="w-full max-w-md">
+          <Card className="w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl">
             <CardHeader className="space-y-1">
               <div className="mx-auto mb-4 flex justify-center">
                 <img 
