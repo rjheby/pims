@@ -1,4 +1,5 @@
 
+
 export interface OrderItem {
   id: number;
   species: string;
@@ -59,6 +60,42 @@ export interface WoodProduct {
   created_at?: string;
 }
 
+// New type for retail firewood products
+export interface FirewoodProduct {
+  id: number;
+  item_name: string;
+  item_full_name: string;
+  product_type: string;
+  species: string;
+  length: string;
+  split_size: string;
+  package_size: string;
+  minimum_quantity: number;
+  image_reference?: string;
+  created_at?: string;
+}
+
+// Inventory tracking interface
+export interface InventoryItem {
+  id: string;
+  wood_product_id: string;
+  total_pallets: number;
+  pallets_available: number;
+  pallets_allocated: number;
+  last_updated: string;
+  location?: string;
+  notes?: string;
+}
+
+// Conversion formula interface for translating between wholesale and retail
+export interface ProductConversion {
+  id: string;
+  wood_product_id: string;
+  firewood_product_id: number;
+  conversion_ratio: number; // How many retail units come from one wholesale pallet
+  notes?: string;
+}
+
 // Helper functions to handle numeric operations safely
 export const safeNumber = (value: string | number): number => {
   if (typeof value === 'string') {
@@ -70,3 +107,20 @@ export const safeNumber = (value: string | number): number => {
 export const calculateItemTotal = (pallets: string | number, unitCost: string | number): number => {
   return safeNumber(pallets) * safeNumber(unitCost);
 };
+
+// Helper function to convert wholesale inventory to retail units
+export const calculateRetailUnits = (
+  wholesalePallets: number,
+  conversionRatio: number
+): number => {
+  return Math.floor(wholesalePallets * conversionRatio);
+};
+
+// Helper function to calculate how many wholesale pallets needed for retail demand
+export const calculateWholesalePalletsNeeded = (
+  retailUnits: number,
+  conversionRatio: number
+): number => {
+  return Math.ceil(retailUnits / conversionRatio);
+};
+
