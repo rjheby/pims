@@ -1,4 +1,5 @@
-import { SupabaseClient, PostgrestFilterBuilder } from "@supabase/supabase-js";
+
+import { SupabaseClient } from "@supabase/supabase-js";
 
 // Define types for Wholesale Order Form
 export interface WholesaleOrderItem {
@@ -26,7 +27,11 @@ export interface WoodProduct {
   species: string;
   length: string;
   thickness: string;
+  bundle_type: string;
   full_description: string;
+  unit_cost: number;
+  is_popular?: boolean;
+  popularity_rank?: number;
 }
 
 // Define types for Inventory Items
@@ -37,6 +42,8 @@ export interface InventoryItem {
   pallets_available: number;
   pallets_allocated: number;
   last_updated: string;
+  location?: string;
+  notes?: string;
 }
 
 // Define types for Retail Inventory
@@ -47,6 +54,8 @@ export interface RetailInventoryItem {
   packages_available: number;
   packages_allocated: number;
   last_updated: string;
+  warehouse_location?: string;
+  notes?: string;
 }
 
 // Define types for Firewood Products
@@ -56,6 +65,11 @@ export interface FirewoodProduct {
   length: string;
   package_size: string;
   item_full_name: string;
+  item_name: string;
+  split_size: string;
+  product_type: string;
+  minimum_quantity: number;
+  image_reference?: string;
 }
 
 // Define types for Processing Records
@@ -68,7 +82,8 @@ export interface ProcessingRecord {
   actual_conversion_ratio: number;
   processed_date: string;
   processed_by: string;
-  notes: string;
+  expected_ratio?: number;
+  notes?: string;
 }
 
 // Table names in Supabase
@@ -88,7 +103,7 @@ export enum supabaseTable {
 // Utility function for safer Supabase queries
 export function supabaseSafeFrom<T>(
   client: SupabaseClient,
-  table: supabaseTable
+  table: string
 ) {
-  return client.from(table) as unknown as PostgrestFilterBuilder<T>;
+  return client.from(table);
 }

@@ -4,8 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { 
   InventoryItem, 
   WoodProduct, 
-  supabaseTable,
-  supabaseSafeFrom 
+  supabaseTable
 } from "../types";
 
 export function useWholesaleInventory() {
@@ -19,7 +18,7 @@ export function useWholesaleInventory() {
       
       // Fetch wholesale inventory
       const { data: inventoryData, error: inventoryError } = await supabase
-        .from(supabaseTable.inventory_items)
+        .from('inventory_items')
         .select("*")
         .order('last_updated', { ascending: false });
 
@@ -30,7 +29,7 @@ export function useWholesaleInventory() {
       
       // Fetch wood products
       const { data: productsData, error: productsError } = await supabase
-        .from(supabaseTable.wood_products)
+        .from('wood_products')
         .select("*");
 
       if (productsError) {
@@ -40,7 +39,7 @@ export function useWholesaleInventory() {
       
       // Cast the data to the correct types
       setWholesaleInventory(inventoryData as unknown as InventoryItem[] || []);
-      setWoodProducts(productsData as WoodProduct[] || []);
+      setWoodProducts(productsData as unknown as WoodProduct[] || []);
     } catch (err) {
       console.error("Error:", err);
     } finally {
@@ -55,7 +54,7 @@ export function useWholesaleInventory() {
   ): Promise<{ success: boolean; error?: any }> => {
     try {
       const { error } = await supabase
-        .from(supabaseTable.inventory_items)
+        .from('inventory_items')
         .update({ 
           ...adjustment,
           last_updated: new Date().toISOString()
