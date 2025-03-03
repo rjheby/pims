@@ -3,8 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   InventoryItem, 
-  WoodProduct, 
-  supabaseTable
+  WoodProduct
 } from "../types";
 
 export function useWholesaleInventory() {
@@ -38,8 +37,8 @@ export function useWholesaleInventory() {
       }
       
       // Cast the data to the correct types
-      setWholesaleInventory(inventoryData as unknown as InventoryItem[] || []);
-      setWoodProducts(productsData as unknown as WoodProduct[] || []);
+      setWholesaleInventory(inventoryData as InventoryItem[] || []);
+      setWoodProducts(productsData as WoodProduct[] || []);
     } catch (err) {
       console.error("Error:", err);
     } finally {

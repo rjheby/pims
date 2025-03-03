@@ -9,7 +9,8 @@ import {
   RetailInventoryItem, 
   FirewoodProduct,
   InventoryItem,
-  WoodProduct
+  WoodProduct,
+  ProcessingRecord
 } from "./wholesale-order/types";
 import { useRetailInventory } from "./wholesale-order/hooks/useRetailInventory";
 import { useWholesaleInventory } from "./wholesale-order/hooks/useWholesaleInventory";
@@ -72,14 +73,19 @@ export default function InventoryManagement() {
       });
       
       // Step 2: Update wholesale inventory (reduce pallets)
+      const wholesaleItem = wholesaleInventory.find(i => i.wood_product_id === data.rawMaterialId);
+      if (!wholesaleItem) {
+        throw new Error("Wholesale inventory item not found");
+      }
+      
       const { error } = await supabase
         .from("inventory_items")
         .update({ 
-          pallets_available: wholesaleInventory.find(i => i.id === data.rawMaterialId)?.pallets_available - data.palletsUsed || 0,
-          total_pallets: wholesaleInventory.find(i => i.id === data.rawMaterialId)?.total_pallets - data.palletsUsed || 0,
+          pallets_available: wholesaleItem.pallets_available - data.palletsUsed,
+          total_pallets: wholesaleItem.total_pallets - data.palletsUsed,
           last_updated: new Date().toISOString() 
         })
-        .eq('id', data.rawMaterialId);
+        .eq('wood_product_id', data.rawMaterialId);
 
       if (error) throw error;
       
@@ -94,8 +100,9 @@ export default function InventoryManagement() {
           retail_packages_created: data.packagesProduced,
           actual_conversion_ratio: conversionRatio,
           processed_by: 'Admin', // Should be replaced with actual user name
-          notes: data.notes
-        });
+          notes: data.notes,
+          processed_date: new Date().toISOString()
+        } as ProcessingRecord);
         
       if (recordError) throw recordError;
       

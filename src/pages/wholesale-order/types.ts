@@ -1,5 +1,6 @@
 
 import { SupabaseClient } from "@supabase/supabase-js";
+import { Json } from "@/integrations/supabase/types";
 
 // Define types for Wholesale Order Form
 export interface WholesaleOrderItem {
@@ -31,6 +32,7 @@ export interface OrderItem {
   packaging: string;
   pallets: number;
   unitCost: number;
+  productId?: string; // Added to match usage in code
 }
 
 // OrderTable dropdown options
@@ -79,7 +81,7 @@ export interface ProductConversion {
   notes?: string;
 }
 
-// Define types for Wood Products
+// Define types for Wood Products (Raw Materials)
 export interface WoodProduct {
   id: string;
   species: string;
@@ -116,7 +118,7 @@ export interface RetailInventoryItem {
   notes?: string;
 }
 
-// Define types for Firewood Products
+// Define types for Firewood Products (Processed Retail Products)
 export interface FirewoodProduct {
   id: number;
   species: string;
@@ -124,7 +126,7 @@ export interface FirewoodProduct {
   package_size: string;
   item_full_name: string;
   item_name: string;
-  split_size: string;
+  split_size: string;  // Similar to thickness in wood products
   product_type: string;
   minimum_quantity: number;
   image_reference?: string;
@@ -144,7 +146,7 @@ export interface ProcessingRecord {
   notes?: string;
 }
 
-// Table names in Supabase
+// Table names in Supabase as literal strings
 export enum supabaseTable {
   firewood_products = "firewood_products",
   product_pricing = "product_pricing",
@@ -161,7 +163,8 @@ export enum supabaseTable {
 // Supabase functions
 export enum supabaseFunction {
   saveWholesaleOrder = "save-wholesale-order",
-  sendWholesaleOrderKlaviyo = "send-wholesale-order-klaviyo"
+  sendWholesaleOrderKlaviyo = "send-wholesale-order-klaviyo",
+  decrement_inventory = "decrement-inventory"
 }
 
 // Utility function for safer Supabase queries
