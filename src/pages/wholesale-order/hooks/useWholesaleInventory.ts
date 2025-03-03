@@ -3,7 +3,8 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   InventoryItem, 
-  WoodProduct
+  WoodProduct,
+  supabaseTable
 } from "../types";
 
 export function useWholesaleInventory() {
@@ -17,7 +18,7 @@ export function useWholesaleInventory() {
       
       // Fetch wholesale inventory
       const { data: inventoryData, error: inventoryError } = await supabase
-        .from('inventory_items')
+        .from(supabaseTable.inventory_items)
         .select("*")
         .order('last_updated', { ascending: false });
 
@@ -28,7 +29,7 @@ export function useWholesaleInventory() {
       
       // Fetch wood products
       const { data: productsData, error: productsError } = await supabase
-        .from('wood_products')
+        .from(supabaseTable.wood_products)
         .select("*");
 
       if (productsError) {
@@ -53,7 +54,7 @@ export function useWholesaleInventory() {
   ): Promise<{ success: boolean; error?: any }> => {
     try {
       const { error } = await supabase
-        .from('inventory_items')
+        .from(supabaseTable.inventory_items)
         .update({ 
           ...adjustment,
           last_updated: new Date().toISOString()

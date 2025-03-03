@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -13,7 +12,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { ProcessingRecord, WoodProduct, FirewoodProduct } from "@/pages/wholesale-order/types";
+import { 
+  ProcessingRecord, 
+  WoodProduct, 
+  FirewoodProduct,
+  supabaseTable
+} from "@/pages/wholesale-order/types";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -41,7 +45,7 @@ export function ProcessingRecordsCard() {
     try {
       // Fetch processing records
       const { data: recordsData, error: recordsError } = await supabase
-        .from("processing_records")
+        .from(supabaseTable.processing_records)
         .select('*')
         .order('processed_date', { ascending: false })
         .limit(5);
@@ -51,7 +55,7 @@ export function ProcessingRecordsCard() {
 
       // Fetch wood products
       const { data: woodData, error: woodError } = await supabase
-        .from("wood_products")
+        .from(supabaseTable.wood_products)
         .select('*');
 
       if (woodError) throw woodError;
@@ -59,7 +63,7 @@ export function ProcessingRecordsCard() {
 
       // Fetch firewood products
       const { data: firewoodData, error: firewoodError } = await supabase
-        .from("firewood_products")
+        .from(supabaseTable.firewood_products)
         .select('*');
 
       if (firewoodError) throw firewoodError;
@@ -105,7 +109,7 @@ export function ProcessingRecordsCard() {
       
       // Insert new processing record
       const { data, error } = await supabase
-        .from("processing_records")
+        .from(supabaseTable.processing_records)
         .insert([{
           wood_product_id: formData.wood_product_id,
           firewood_product_id: formData.firewood_product_id,
@@ -150,9 +154,9 @@ export function ProcessingRecordsCard() {
   };
 
   // Initialize data when component mounts
-  useState(() => {
+  useEffect(() => {
     fetchData();
-  });
+  }, []);
 
   return (
     <Card className="overflow-hidden">
