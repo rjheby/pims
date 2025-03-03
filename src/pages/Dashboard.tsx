@@ -12,7 +12,6 @@ export default function Dashboard() {
         <InvoicesDueCard />
         <RetailInventoryCard />
         <PalletsAvailableCard />
-        {/* Add other dashboard cards here */}
       </div>
       
       <div className="mt-8">

@@ -21,6 +21,64 @@ export interface WholesaleOrder {
   updated_at?: string;
 }
 
+// OrderItem type for OrderTable
+export interface OrderItem {
+  id: number;
+  species: string;
+  length: string;
+  bundleType: string;
+  thickness: string;
+  packaging: string;
+  pallets: number;
+  unitCost: number;
+}
+
+// OrderTable dropdown options
+export interface DropdownOptions {
+  species: string[];
+  length: string[];
+  bundleType: string[];
+  thickness: string[];
+  packaging: string[];
+}
+
+// Initial dropdown options
+export const initialOptions: DropdownOptions = {
+  species: ["Pine", "Oak", "Maple", "Cherry", "Mixed Hardwood"],
+  length: ["16\"", "18\"", "24\"", "36\"", "48\""],
+  bundleType: ["Standard", "Premium", "Loose"],
+  thickness: ["1\"", "2\"", "3\"", "4\""],
+  packaging: ["Pallets", "Crates", "Boxes"]
+};
+
+// Utility functions for OrderTable
+export const safeNumber = (value: any): number => {
+  const num = parseFloat(value);
+  return isNaN(num) ? 0 : num;
+};
+
+export const calculateItemTotal = (item: OrderItem): number => {
+  return safeNumber(item.pallets) * safeNumber(item.unitCost);
+};
+
+export const serializeOrderItems = (items: OrderItem[]): OrderItem[] => {
+  return items.map(item => ({
+    ...item,
+    pallets: safeNumber(item.pallets),
+    unitCost: safeNumber(item.unitCost)
+  }));
+};
+
+// Product conversion type
+export interface ProductConversion {
+  id: string;
+  wood_product_id: string;
+  firewood_product_id: number;
+  conversion_ratio: number;
+  expected_ratio: number;
+  notes?: string;
+}
+
 // Define types for Wood Products
 export interface WoodProduct {
   id: string;
@@ -100,10 +158,25 @@ export enum supabaseTable {
   processing_records = "processing_records"
 }
 
+// Supabase functions
+export enum supabaseFunction {
+  saveWholesaleOrder = "save-wholesale-order",
+  sendWholesaleOrderKlaviyo = "send-wholesale-order-klaviyo"
+}
+
 // Utility function for safer Supabase queries
 export function supabaseSafeFrom<T>(
   client: SupabaseClient,
   table: string
 ) {
   return client.from(table);
+}
+
+// Utility function for safer Supabase RPC calls
+export function supabaseSafeRpc<T>(
+  client: SupabaseClient,
+  procedure: string,
+  params?: Record<string, any>
+) {
+  return client.rpc(procedure, params);
 }

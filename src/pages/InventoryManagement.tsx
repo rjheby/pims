@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useUser } from "@/context/UserContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,8 +9,7 @@ import {
   RetailInventoryItem, 
   FirewoodProduct,
   InventoryItem,
-  WoodProduct,
-  supabaseTable
+  WoodProduct
 } from "./wholesale-order/types";
 import { useRetailInventory } from "./wholesale-order/hooks/useRetailInventory";
 import { useWholesaleInventory } from "./wholesale-order/hooks/useWholesaleInventory";
@@ -73,7 +73,7 @@ export default function InventoryManagement() {
       
       // Step 2: Update wholesale inventory (reduce pallets)
       const { error } = await supabase
-        .from(supabaseTable.inventory_items)
+        .from("inventory_items")
         .update({ 
           pallets_available: wholesaleInventory.find(i => i.id === data.rawMaterialId)?.pallets_available - data.palletsUsed || 0,
           total_pallets: wholesaleInventory.find(i => i.id === data.rawMaterialId)?.total_pallets - data.palletsUsed || 0,
@@ -86,7 +86,7 @@ export default function InventoryManagement() {
       // Step 3: Record the processing event
       const conversionRatio = data.packagesProduced / data.palletsUsed;
       const { error: recordError } = await supabase
-        .from(supabaseTable.processing_records)
+        .from("processing_records")
         .insert({
           wood_product_id: data.rawMaterialId,
           firewood_product_id: data.retailProductId,

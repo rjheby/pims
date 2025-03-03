@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { ProcessingRecord, WoodProduct, FirewoodProduct, supabaseTable } from "@/pages/wholesale-order/types";
+import { ProcessingRecord, WoodProduct, FirewoodProduct } from "@/pages/wholesale-order/types";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -41,29 +41,29 @@ export function ProcessingRecordsCard() {
     try {
       // Fetch processing records
       const { data: recordsData, error: recordsError } = await supabase
-        .from(supabaseTable.processing_records)
+        .from("processing_records")
         .select('*')
         .order('processed_date', { ascending: false })
         .limit(5);
 
       if (recordsError) throw recordsError;
-      setProcessingRecords(recordsData || []);
+      setProcessingRecords(recordsData as ProcessingRecord[] || []);
 
       // Fetch wood products
       const { data: woodData, error: woodError } = await supabase
-        .from(supabaseTable.wood_products)
+        .from("wood_products")
         .select('*');
 
       if (woodError) throw woodError;
-      setWoodProducts(woodData || []);
+      setWoodProducts(woodData as WoodProduct[] || []);
 
       // Fetch firewood products
       const { data: firewoodData, error: firewoodError } = await supabase
-        .from(supabaseTable.firewood_products)
+        .from("firewood_products")
         .select('*');
 
       if (firewoodError) throw firewoodError;
-      setFirewoodProducts(firewoodData || []);
+      setFirewoodProducts(firewoodData as FirewoodProduct[] || []);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast({
@@ -105,7 +105,7 @@ export function ProcessingRecordsCard() {
       
       // Insert new processing record
       const { data, error } = await supabase
-        .from(supabaseTable.processing_records)
+        .from("processing_records")
         .insert([{
           wood_product_id: formData.wood_product_id,
           firewood_product_id: formData.firewood_product_id,
