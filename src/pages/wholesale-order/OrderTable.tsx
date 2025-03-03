@@ -1,3 +1,4 @@
+
 import { useEffect } from "react";
 import { Plus } from "lucide-react";
 
@@ -64,7 +65,7 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
   const tableData = items.map(item => ({
     ...item,
     name: generateItemName(item),
-    totalCost: calculateItemTotal(item.pallets, item.unitCost)
+    totalCost: calculateItemTotal(item)  // Fix here - passing only the item instead of item.pallets, item.unitCost
   }));
 
   const handleSortChange = (key: string, direction: 'asc' | 'desc') => {
