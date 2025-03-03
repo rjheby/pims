@@ -2,6 +2,7 @@
 import { InvoicesDueCard } from "@/components/dashboard/InvoicesDueCard";
 import { RetailInventoryCard } from "@/components/dashboard/RetailInventoryCard";
 import { PalletsAvailableCard } from "@/components/dashboard/PalletsAvailableCard";
+import { ProcessingRecordsCard } from "@/components/dashboard/ProcessingRecordsCard";
 
 export default function Dashboard() {
   return (
@@ -12,6 +13,10 @@ export default function Dashboard() {
         <RetailInventoryCard />
         <PalletsAvailableCard />
         {/* Add other dashboard cards here */}
+      </div>
+      
+      <div className="mt-8">
+        <ProcessingRecordsCard />
       </div>
     </div>
   );
