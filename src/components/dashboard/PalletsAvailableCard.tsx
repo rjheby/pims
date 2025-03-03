@@ -1,14 +1,16 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useWholesaleInventory } from "@/pages/wholesale-order/hooks/useWholesaleInventory";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Package2 } from "lucide-react";
+import { Package2, RefreshCw } from "lucide-react";
 import { WoodProduct } from "@/pages/wholesale-order/types";
+import { Button } from "@/components/ui/button";
 
 export function PalletsAvailableCard() {
-  const { wholesaleInventory, woodProducts, loading: inventoryLoading } = useWholesaleInventory();
+  const { wholesaleInventory, woodProducts, loading: inventoryLoading, fetchWholesaleInventory } = useWholesaleInventory();
   const [showDetails, setShowDetails] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   // Calculate total available pallets
   const totalPalletsAvailable = wholesaleInventory.reduce((sum, item) => sum + item.pallets_available, 0);
@@ -26,15 +28,37 @@ export function PalletsAvailableCard() {
     return grouped;
   }, {} as Record<string, number>);
 
+  // Function to handle manual refresh
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchWholesaleInventory();
+    setIsRefreshing(false);
+  };
+
+  // Auto-refresh when component mounts
+  useEffect(() => {
+    fetchWholesaleInventory();
+  }, [fetchWholesaleInventory]);
+
   return (
     <Card className="overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">
           Available Raw Material Pallets
         </CardTitle>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={handleRefresh} 
+          disabled={isRefreshing || inventoryLoading}
+          className="h-8 w-8 p-0"
+        >
+          <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          <span className="sr-only">Refresh</span>
+        </Button>
       </CardHeader>
       <CardContent>
-        {inventoryLoading ? (
+        {inventoryLoading || isRefreshing ? (
           <Skeleton className="h-8 w-[100px]" />
         ) : (
           <>
@@ -50,16 +74,20 @@ export function PalletsAvailableCard() {
             {showDetails && (
               <div className="mt-4 space-y-2 text-sm">
                 <h4 className="font-semibold">Pallets by Wood Type:</h4>
-                <div className="grid grid-cols-1 gap-y-1">
-                  {Object.entries(palletsGroupedBySpecies)
-                    .sort(([, countA], [, countB]) => countB - countA)
-                    .map(([species, count]) => (
-                      <div key={species} className="flex justify-between items-center">
-                        <span>{species}</span>
-                        <span className="font-semibold">{count} pallets</span>
-                      </div>
-                    ))}
-                </div>
+                {Object.entries(palletsGroupedBySpecies).length > 0 ? (
+                  <div className="grid grid-cols-1 gap-y-1">
+                    {Object.entries(palletsGroupedBySpecies)
+                      .sort(([, countA], [, countB]) => countB - countA)
+                      .map(([species, count]) => (
+                        <div key={species} className="flex justify-between items-center">
+                          <span>{species}</span>
+                          <span className="font-semibold">{count} pallets</span>
+                        </div>
+                      ))}
+                  </div>
+                ) : (
+                  <div className="text-gray-500">No inventory details available</div>
+                )}
               </div>
             )}
           </>

@@ -14,6 +14,7 @@ import { WholesaleOrderProvider } from "./wholesale-order/context/WholesaleOrder
 import { BaseOrderSummary } from "@/components/templates/BaseOrderSummary";
 import { BaseOrderActions } from "@/components/templates/BaseOrderActions";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { updateInventoryFromOrder } from "./wholesale-order/utils/inventoryUtils";
 
 interface DatabaseOrderData {
   id: string;
@@ -313,10 +314,22 @@ export function WholesaleOrderForm() {
 
       setOrderStatus('submitted');
 
-      toast({
-        title: "Success",
-        description: "Order submitted successfully",
-      });
+      // Update inventory based on the order items
+      const updateResult = await updateInventoryFromOrder(orderData.items);
+      if (!updateResult.success) {
+        console.warn('Inventory was updated partially or not at all:', updateResult.error);
+        
+        toast({
+          title: "Order Submitted",
+          description: "Order submitted successfully, but inventory update was incomplete. Please check inventory.",
+          variant: "warning"
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Order submitted successfully and inventory updated",
+        });
+      }
 
       navigate('/wholesale-orders');
     } catch (err: any) {
