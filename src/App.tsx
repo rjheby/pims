@@ -42,6 +42,7 @@ function App() {
               <Route path="/wholesale-order" element={<AppLayout><WholesaleOrder /></AppLayout>} />
               <Route path="/wholesale-order-form" element={<AppLayout><WholesaleOrderForm /></AppLayout>} />
               <Route path="/wholesale-orders" element={<AppLayout><WholesaleOrderArchive /></AppLayout>} />
+              <Route path="/wholesale-orders/:id" element={<AppLayout><WholesaleOrderForm /></AppLayout>} />
               
               {/* Reports Routes */}
               <Route path="/production" element={<AppLayout><Production /></AppLayout>} />
