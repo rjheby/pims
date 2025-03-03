@@ -13,6 +13,16 @@ import AppLayout from './components/layouts/AppLayout';
 import Dashboard from './pages/Dashboard';
 import NotFound from './pages/NotFound';
 import InventoryManagement from './pages/InventoryManagement';
+import WholesaleOrder from './pages/WholesaleOrder';
+import WholesaleOrderForm from './pages/wholesale-order/WholesaleOrderForm';
+import WholesaleOrderArchive from './pages/wholesale-order/WholesaleOrderArchive';
+import ClientOrder from './pages/ClientOrder';
+import Dispatch from './pages/DispatchDelivery';
+import DriverPayments from './pages/DriverPayments';
+import Production from './pages/Production';
+import Customers from './pages/Customers';
+import Inventory from './pages/Inventory';
+import TeamSettings from './pages/TeamSettings';
 
 function App() {
   return (
@@ -21,18 +31,26 @@ function App() {
         <AdminProvider>
           <Router>
             <Routes>
-              {/* App Routes */}
+              {/* Dashboard */}
               <Route path="/" element={<AppLayout><Dashboard /></AppLayout>} />
               
-              {/* Inventory Management */}
-              <Route 
-                path="/inventory-management" 
-                element={
-                  <AppLayout>
-                    <InventoryManagement />
-                  </AppLayout>
-                } 
-              />
+              {/* Orders Routes */}
+              <Route path="/dispatch" element={<AppLayout><Dispatch /></AppLayout>} />
+              <Route path="/client-order" element={<AppLayout><ClientOrder /></AppLayout>} />
+              <Route path="/wholesale-order" element={<AppLayout><WholesaleOrder /></AppLayout>} />
+              <Route path="/wholesale-orders" element={<AppLayout><WholesaleOrderArchive /></AppLayout>} />
+              
+              {/* Reports Routes */}
+              <Route path="/production" element={<AppLayout><Production /></AppLayout>} />
+              <Route path="/driver-payments" element={<AppLayout><DriverPayments /></AppLayout>} />
+              
+              {/* Databases Routes */}
+              <Route path="/customers" element={<AppLayout><Customers /></AppLayout>} />
+              <Route path="/inventory" element={<AppLayout><Inventory /></AppLayout>} />
+              <Route path="/inventory-management" element={<AppLayout><InventoryManagement /></AppLayout>} />
+              
+              {/* Settings */}
+              <Route path="/team-settings" element={<AppLayout><TeamSettings /></AppLayout>} />
               
               {/* 404 Route */}
               <Route path="*" element={<NotFound />} />
