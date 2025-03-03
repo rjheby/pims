@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './components/theme-provider';
 import { Toaster } from './components/ui/toaster';
 import { UserProvider } from './context/UserContext';
+import { AdminProvider } from './context/AdminContext';
 
 // Layouts
 import AppLayout from './components/layouts/AppLayout';
@@ -17,26 +18,28 @@ function App() {
   return (
     <ThemeProvider defaultTheme="light" storageKey="ui-theme">
       <UserProvider>
-        <Router>
-          <Routes>
-            {/* App Routes */}
-            <Route path="/" element={<AppLayout><Dashboard /></AppLayout>} />
-            
-            {/* Inventory Management */}
-            <Route 
-              path="/inventory-management" 
-              element={
-                <AppLayout>
-                  <InventoryManagement />
-                </AppLayout>
-              } 
-            />
-            
-            {/* 404 Route */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Router>
-        <Toaster />
+        <AdminProvider>
+          <Router>
+            <Routes>
+              {/* App Routes */}
+              <Route path="/" element={<AppLayout><Dashboard /></AppLayout>} />
+              
+              {/* Inventory Management */}
+              <Route 
+                path="/inventory-management" 
+                element={
+                  <AppLayout>
+                    <InventoryManagement />
+                  </AppLayout>
+                } 
+              />
+              
+              {/* 404 Route */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Router>
+          <Toaster />
+        </AdminProvider>
       </UserProvider>
     </ThemeProvider>
   );
