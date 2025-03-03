@@ -1,120 +1,66 @@
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { ThemeProvider } from './components/theme-provider';
+import { Toaster } from './components/ui/toaster';
+import { UserProvider } from './context/UserContext';
 
-import { useEffect } from "react";
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import { Toaster } from "@/components/ui/toaster";
-import AppLayout from "@/components/layouts/AppLayout";
-import Dashboard from "@/pages/Dashboard";
-import { WholesaleOrder } from "@/pages/WholesaleOrder";
-import { WholesaleOrderForm } from "@/pages/WholesaleOrderForm";
-import { WholesaleOrderArchive } from "@/pages/wholesale-order/WholesaleOrderArchive";
-import { OrderView } from "@/pages/wholesale-order/OrderView";
-import NotFound from "@/pages/NotFound";
-import { AdminProvider, useAdmin } from "@/context/AdminContext";
-import { UserProvider } from "@/context/UserContext";
-import "./App.css";
+// Layouts
+import AppLayout from './components/layouts/AppLayout';
+import AuthLayout from './components/layouts/AuthLayout';
 
-function PageWrapper({ children }: { children: React.ReactNode }) {
-  const { isAdmin } = useAdmin();
+// Pages
+import Dashboard from './pages/Dashboard';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import Profile from './pages/Profile';
+import Settings from './pages/Settings';
+import NotFound from './pages/NotFound';
+import WholesaleOrder from './pages/wholesale-order/WholesaleOrder';
+import WholesaleOrderList from './pages/wholesale-order/WholesaleOrderList';
+import InventoryManagement from './pages/InventoryManagement';
 
-  useEffect(() => {
-    document.body.style.backgroundColor = "#F7F7F7";
-  }, []);
-
+function App() {
   return (
-    <AppLayout isAdminMode={isAdmin}>
-      {children}
-      <Toaster />
-    </AppLayout>
+    <ThemeProvider defaultTheme="light" storageKey="ui-theme">
+      <UserProvider>
+        <Router>
+          <Routes>
+            {/* Auth Routes */}
+            <Route path="/login" element={<AuthLayout><Login /></AuthLayout>} />
+            <Route path="/register" element={<AuthLayout><Register /></AuthLayout>} />
+            <Route path="/forgot-password" element={<AuthLayout><ForgotPassword /></AuthLayout>} />
+            <Route path="/reset-password" element={<AuthLayout><ResetPassword /></AuthLayout>} />
+            
+            {/* App Routes */}
+            <Route path="/" element={<AppLayout><Dashboard /></AppLayout>} />
+            <Route path="/profile" element={<AppLayout><Profile /></AppLayout>} />
+            <Route path="/settings" element={<AppLayout><Settings /></AppLayout>} />
+            
+            {/* Wholesale Order Routes */}
+            <Route path="/wholesale-order" element={<AppLayout><WholesaleOrder /></AppLayout>} />
+            <Route path="/wholesale-order/:id" element={<AppLayout><WholesaleOrder /></AppLayout>} />
+            <Route path="/wholesale-orders" element={<AppLayout><WholesaleOrderList /></AppLayout>} />
+            
+            {/* Inventory Management */}
+            <Route 
+              path="/inventory-management" 
+              element={
+                <AppLayout>
+                  <InventoryManagement />
+                </AppLayout>
+              } 
+            />
+            
+            {/* 404 Route */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Router>
+        <Toaster />
+      </UserProvider>
+    </ThemeProvider>
   );
 }
 
-const router = createBrowserRouter([
-  {
-    path: "/",
-    element: (
-      <UserProvider>
-        <AdminProvider>
-          <PageWrapper>
-            <Dashboard />
-          </PageWrapper>
-        </AdminProvider>
-      </UserProvider>
-    ),
-  },
-  {
-    path: "/wholesale-order",
-    element: (
-      <UserProvider>
-        <AdminProvider>
-          <PageWrapper>
-            <WholesaleOrder />
-          </PageWrapper>
-        </AdminProvider>
-      </UserProvider>
-    ),
-  },
-  {
-    path: "/wholesale-order/:id",
-    element: (
-      <UserProvider>
-        <AdminProvider>
-          <PageWrapper>
-            <WholesaleOrderForm />
-          </PageWrapper>
-        </AdminProvider>
-      </UserProvider>
-    ),
-  },
-  {
-    path: "/wholesale-orders",
-    element: (
-      <UserProvider>
-        <AdminProvider>
-          <PageWrapper>
-            <WholesaleOrderArchive />
-          </PageWrapper>
-        </AdminProvider>
-      </UserProvider>
-    ),
-  },
-  {
-    path: "/wholesale-orders/:id",
-    element: (
-      <UserProvider>
-        <AdminProvider>
-          <PageWrapper>
-            <WholesaleOrderForm />
-          </PageWrapper>
-        </AdminProvider>
-      </UserProvider>
-    ),
-  },
-  {
-    path: "/wholesale-orders/:id/view",
-    element: (
-      <UserProvider>
-        <AdminProvider>
-          <PageWrapper>
-            <OrderView />
-          </PageWrapper>
-        </AdminProvider>
-      </UserProvider>
-    ),
-  },
-  {
-    path: "*",
-    element: (
-      <UserProvider>
-        <AdminProvider>
-          <PageWrapper>
-            <NotFound />
-          </PageWrapper>
-        </AdminProvider>
-      </UserProvider>
-    ),
-  },
-]);
-
-export default function App() {
-  return <RouterProvider router={router} />;
-}
+export default App;
