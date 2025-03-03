@@ -1,6 +1,7 @@
 
 import { InvoicesDueCard } from "@/components/dashboard/InvoicesDueCard";
 import { RetailInventoryCard } from "@/components/dashboard/RetailInventoryCard";
+import { PalletsAvailableCard } from "@/components/dashboard/PalletsAvailableCard";
 
 export default function Dashboard() {
   return (
@@ -9,6 +10,7 @@ export default function Dashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <InvoicesDueCard />
         <RetailInventoryCard />
+        <PalletsAvailableCard />
         {/* Add other dashboard cards here */}
       </div>
     </div>

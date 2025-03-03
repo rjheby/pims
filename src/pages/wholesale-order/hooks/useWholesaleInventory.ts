@@ -18,7 +18,8 @@ export function useWholesaleInventory() {
       setLoading(true);
       
       // Fetch wholesale inventory
-      const { data: inventoryData, error: inventoryError } = await supabaseSafeFrom(supabase, supabaseTable.inventory_items)
+      const { data: inventoryData, error: inventoryError } = await supabase
+        .from(supabaseTable.inventory_items)
         .select("*")
         .order('last_updated', { ascending: false });
 
@@ -53,7 +54,8 @@ export function useWholesaleInventory() {
     adjustment: Partial<InventoryItem>
   ): Promise<{ success: boolean; error?: any }> => {
     try {
-      const { error } = await supabaseSafeFrom(supabase, supabaseTable.inventory_items)
+      const { error } = await supabase
+        .from(supabaseTable.inventory_items)
         .update({ 
           ...adjustment,
           last_updated: new Date().toISOString()

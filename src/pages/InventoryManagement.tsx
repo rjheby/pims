@@ -1,17 +1,15 @@
-
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useUser } from "@/context/UserContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { 
   RetailInventoryItem, 
   FirewoodProduct,
   InventoryItem,
-  WoodProduct
+  WoodProduct,
+  supabaseTable
 } from "./wholesale-order/types";
 import { useRetailInventory } from "./wholesale-order/hooks/useRetailInventory";
 import { useWholesaleInventory } from "./wholesale-order/hooks/useWholesaleInventory";
@@ -75,18 +73,10 @@ export default function InventoryManagement() {
       
       // Step 2: Update wholesale inventory (reduce pallets)
       const { error } = await supabase
-        .from('inventory_items')
+        .from(supabaseTable.inventory_items)
         .update({ 
-          pallets_available: supabase.rpc('decrement', { 
-            x: data.palletsUsed,
-            row_id: data.rawMaterialId,
-            column_name: 'pallets_available'
-          }),
-          total_pallets: supabase.rpc('decrement', { 
-            x: data.palletsUsed,
-            row_id: data.rawMaterialId,
-            column_name: 'total_pallets'
-          }),
+          pallets_available: wholesaleInventory.find(i => i.id === data.rawMaterialId)?.pallets_available - data.palletsUsed || 0,
+          total_pallets: wholesaleInventory.find(i => i.id === data.rawMaterialId)?.total_pallets - data.palletsUsed || 0,
           last_updated: new Date().toISOString() 
         })
         .eq('id', data.rawMaterialId);
@@ -96,7 +86,7 @@ export default function InventoryManagement() {
       // Step 3: Record the processing event
       const conversionRatio = data.packagesProduced / data.palletsUsed;
       const { error: recordError } = await supabase
-        .from('processing_records')
+        .from(supabaseTable.processing_records)
         .insert({
           wood_product_id: data.rawMaterialId,
           firewood_product_id: data.retailProductId,

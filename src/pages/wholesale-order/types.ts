@@ -1,80 +1,35 @@
+import { SupabaseClient, PostgrestFilterBuilder } from "@supabase/supabase-js";
 
-export interface OrderItem {
-  id: number;
-  species: string;
-  length: string;
-  bundleType: string;
-  thickness: string;
-  packaging: string;
-  pallets: number | string;
-  unitCost: number | string;
-  productId?: string; // Reference to wood_products table
+// Define types for Wholesale Order Form
+export interface WholesaleOrderItem {
+  wood_product_id: string;
+  product_description: string;
+  unitCost: number;
+  pallets: number;
 }
 
-export interface DropdownOptions {
-  species: string[];
-  length: string[];
-  bundleType: string[];
-  thickness: string[];
-  packaging: string[];
+export interface WholesaleOrder {
+  id?: string;
+  customer_id: string;
+  order_date: string;
+  delivery_date: string;
+  items: WholesaleOrderItem[];
+  notes?: string;
+  submitted_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
-export const initialOptions: DropdownOptions = {
-  species: ["Mixed Hardwood", "Cherry", "Oak", "Hickory", "Ash"],
-  length: ["12\"", "16\""],
-  bundleType: ["Loose", "Bundled"],
-  thickness: ["Standard Split", "Thick Split"],
-  packaging: ["Pallets"],
-};
-
-// Helper function to serialize OrderItem for Supabase
-export const serializeOrderItem = (item: OrderItem): Record<string, string | number> => ({
-  id: item.id,
-  species: item.species,
-  length: item.length,
-  bundleType: item.bundleType,
-  thickness: item.thickness,
-  packaging: item.packaging,
-  pallets: item.pallets,
-  unitCost: item.unitCost,
-  productId: item.productId,
-});
-
-// Helper function to serialize OrderItem array for Supabase
-export const serializeOrderItems = (items: OrderItem[]): Record<string, string | number>[] => {
-  return items.map(serializeOrderItem);
-};
-
-// New type for wood products from the database
+// Define types for Wood Products
 export interface WoodProduct {
   id: string;
   species: string;
   length: string;
-  bundle_type: string;
   thickness: string;
   full_description: string;
-  is_popular: boolean;
-  popularity_rank: number | null;
-  unit_cost: number;
-  created_at?: string;
 }
 
-// New type for retail firewood products
-export interface FirewoodProduct {
-  id: number;
-  item_name: string;
-  item_full_name: string;
-  product_type: string;
-  species: string;
-  length: string;
-  split_size: string;
-  package_size: string;
-  minimum_quantity: number;
-  image_reference?: string;
-  created_at?: string;
-}
-
-// Inventory tracking interface for wholesale products
+// Define types for Inventory Items
 export interface InventoryItem {
   id: string;
   wood_product_id: string;
@@ -82,11 +37,9 @@ export interface InventoryItem {
   pallets_available: number;
   pallets_allocated: number;
   last_updated: string;
-  location?: string;
-  notes?: string;
 }
 
-// Retail inventory tracking interface for processed packages
+// Define types for Retail Inventory
 export interface RetailInventoryItem {
   id: string;
   firewood_product_id: number;
@@ -94,152 +47,48 @@ export interface RetailInventoryItem {
   packages_available: number;
   packages_allocated: number;
   last_updated: string;
-  warehouse_location?: string;
-  notes?: string;
 }
 
-// Conversion formula interface for translating between wholesale and retail
-export interface ProductConversion {
-  id: string;
-  wood_product_id: string;
-  firewood_product_id: number;
-  conversion_ratio: number; // How many retail units come from one wholesale pallet
-  last_updated: string;
-  adjusted_by?: string; // User who last adjusted the ratio
-  notes?: string;
+// Define types for Firewood Products
+export interface FirewoodProduct {
+  id: number;
+  species: string;
+  length: string;
+  package_size: string;
+  item_full_name: string;
 }
 
-// Processing record to track conversion from wholesale to retail
+// Define types for Processing Records
 export interface ProcessingRecord {
   id: string;
   wood_product_id: string;
   firewood_product_id: number;
   wholesale_pallets_used: number;
   retail_packages_created: number;
-  actual_conversion_ratio: number; // The actual ratio achieved in this processing batch
+  actual_conversion_ratio: number;
   processed_date: string;
   processed_by: string;
-  expected_ratio?: number; // Optional expected ratio for comparison
-  notes?: string;
+  notes: string;
 }
 
-// Helper functions to handle numeric operations safely
-export const safeNumber = (value: string | number): number => {
-  if (typeof value === 'string') {
-    return parseFloat(value) || 0;
-  }
-  return value || 0;
-};
+// Table names in Supabase
+export enum supabaseTable {
+  firewood_products = "firewood_products",
+  product_pricing = "product_pricing",
+  profiles = "profiles",
+  wholesale_order_options = "wholesale_order_options",
+  wholesale_order_templates = "wholesale_order_templates",
+  wholesale_orders = "wholesale_orders",
+  wood_products = "wood_products",
+  inventory_items = "inventory_items",
+  retail_inventory = "retail_inventory",
+  processing_records = "processing_records"
+}
 
-export const calculateItemTotal = (pallets: string | number, unitCost: string | number): number => {
-  return safeNumber(pallets) * safeNumber(unitCost);
-};
-
-// Helper function to convert wholesale inventory to retail units
-export const calculateRetailUnits = (
-  wholesalePallets: number,
-  conversionRatio: number
-): number => {
-  return Math.floor(wholesalePallets * conversionRatio);
-};
-
-// Helper function to calculate how many wholesale pallets needed for retail demand
-export const calculateWholesalePalletsNeeded = (
-  retailUnits: number,
-  conversionRatio: number
-): number => {
-  return Math.ceil(retailUnits / conversionRatio);
-};
-
-// Helper function to update retail inventory after processing wholesale inventory
-export const updateRetailInventoryAfterProcessing = (
-  retailInventory: RetailInventoryItem,
-  newPackages: number
-): RetailInventoryItem => {
-  return {
-    ...retailInventory,
-    total_packages: retailInventory.total_packages + newPackages,
-    packages_available: retailInventory.packages_available + newPackages,
-    last_updated: new Date().toISOString()
-  };
-};
-
-// Helper function to update wholesale inventory after processing
-export const updateWholesaleInventoryAfterProcessing = (
-  wholesaleInventory: InventoryItem,
-  palletsUsed: number
-): InventoryItem => {
-  return {
-    ...wholesaleInventory,
-    pallets_available: Math.max(0, wholesaleInventory.pallets_available - palletsUsed),
-    last_updated: new Date().toISOString()
-  };
-};
-
-// Helper function to calculate actual conversion ratio from a processing batch
-export const calculateActualConversionRatio = (
-  retailPackagesCreated: number,
-  wholesalePalletsUsed: number
-): number => {
-  if (wholesalePalletsUsed <= 0) return 0;
-  return retailPackagesCreated / wholesalePalletsUsed;
-};
-
-// Helper to type-safely access Supabase tables
-export const supabaseTable = {
-  // Original tables defined in Supabase types
-  firewood_products: 'firewood_products',
-  product_pricing: 'product_pricing',
-  profiles: 'profiles',
-  wholesale_order_options: 'wholesale_order_options',
-  wholesale_order_templates: 'wholesale_order_templates',
-  wholesale_orders: 'wholesale_orders',
-  wood_products: 'wood_products',
-  
-  // New tables not yet in the Supabase types
-  retail_inventory: 'retail_inventory',
-  processing_records: 'processing_records',
-  inventory_items: 'inventory_items',
-  product_conversions: 'product_conversions'
-} as const;
-
-// Type for functions
-export const supabaseFunction = {
-  is_admin: 'is_admin',
-  is_super_admin: 'is_super_admin',
-  decrement_inventory: 'decrement_inventory'
-} as const;
-
-// Type for Supabase typed tables
-export type SupabaseTableType = typeof supabaseTable[keyof typeof supabaseTable];
-export type SupabaseFunctionType = typeof supabaseFunction[keyof typeof supabaseFunction];
-
-// Improved type assertion function for tables
-export const supabaseSafeFrom = (supabase: any, table: SupabaseTableType) => {
-  // For tables in the Supabase types, we don't need to do anything special
-  const knownTables = [
-    'firewood_products', 'product_pricing', 'profiles', 
-    'wholesale_order_options', 'wholesale_order_templates', 
-    'wholesale_orders', 'wood_products'
-  ];
-  
-  if (knownTables.includes(table)) {
-    return supabase.from(table);
-  }
-  
-  // For tables not in the types, we need to use 'any' to bypass type checking
-  return supabase.from(table as any);
-};
-
-// Improved type assertion function for RPC functions
-export const supabaseSafeRpc = (supabase: any, fnName: SupabaseFunctionType, params: any) => {
-  // For functions in the Supabase types, we don't need to do anything special
-  const knownFunctions = ['is_admin', 'is_super_admin'];
-  
-  if (knownFunctions.includes(fnName)) {
-    return supabase.rpc(fnName, params);
-  }
-  
-  // For functions not in the types, we need to use 'any' to bypass type checking
-  return supabase.rpc(fnName as any, params);
-};
+// Utility function for safer Supabase queries
+export function supabaseSafeFrom<T>(
+  client: SupabaseClient,
+  table: supabaseTable
+) {
+  return client.from(table) as unknown as PostgrestFilterBuilder<T>;
+}
