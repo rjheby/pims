@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
@@ -322,7 +321,7 @@ export function WholesaleOrderForm() {
         toast({
           title: "Order Submitted",
           description: "Order submitted successfully, but inventory update was incomplete. Please check inventory.",
-          variant: "warning"
+          variant: "default",
         });
       } else {
         toast({
