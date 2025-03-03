@@ -13,7 +13,7 @@ import AppLayout from './components/layouts/AppLayout';
 import Dashboard from './pages/Dashboard';
 import NotFound from './pages/NotFound';
 import InventoryManagement from './pages/InventoryManagement';
-import WholesaleOrder from './pages/WholesaleOrder';
+import { WholesaleOrder } from './pages/WholesaleOrder';
 import ClientOrder from './pages/ClientOrder';
 import Dispatch from './pages/DispatchDelivery';
 import DriverPayments from './pages/DriverPayments';
@@ -23,8 +23,8 @@ import Inventory from './pages/Inventory';
 import TeamSettings from './pages/TeamSettings';
 
 // Import WholesaleOrderForm and WholesaleOrderArchive correctly
-import WholesaleOrderForm from './pages/WholesaleOrderForm'; 
-import WholesaleOrderArchive from './pages/WholesaleOrderArchive';
+import { WholesaleOrderForm } from './pages/WholesaleOrderForm';
+import { WholesaleOrderArchive } from './pages/WholesaleOrderArchive';
 
 function App() {
   return (
