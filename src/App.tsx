@@ -5,6 +5,7 @@ import { ThemeProvider } from './components/theme-provider';
 import { Toaster } from './components/ui/toaster';
 import { UserProvider } from './context/UserContext';
 import { AdminProvider } from './context/AdminContext';
+import { HistoryProvider } from './context/HistoryContext';
 
 // Layouts
 import AppLayout from './components/layouts/AppLayout';
@@ -31,36 +32,38 @@ function App() {
     <ThemeProvider defaultTheme="light" storageKey="ui-theme">
       <UserProvider>
         <AdminProvider>
-          <Router>
-            <Routes>
-              {/* Dashboard */}
-              <Route path="/" element={<AppLayout><Dashboard /></AppLayout>} />
-              
-              {/* Orders Routes */}
-              <Route path="/dispatch" element={<AppLayout><Dispatch /></AppLayout>} />
-              <Route path="/client-order" element={<AppLayout><ClientOrder /></AppLayout>} />
-              <Route path="/wholesale-order" element={<AppLayout><WholesaleOrder /></AppLayout>} />
-              <Route path="/wholesale-order-form" element={<AppLayout><WholesaleOrderForm /></AppLayout>} />
-              <Route path="/wholesale-orders" element={<AppLayout><WholesaleOrderArchive /></AppLayout>} />
-              <Route path="/wholesale-orders/:id" element={<AppLayout><WholesaleOrderForm /></AppLayout>} />
-              
-              {/* Reports Routes */}
-              <Route path="/production" element={<AppLayout><Production /></AppLayout>} />
-              <Route path="/driver-payments" element={<AppLayout><DriverPayments /></AppLayout>} />
-              
-              {/* Databases Routes */}
-              <Route path="/customers" element={<AppLayout><Customers /></AppLayout>} />
-              <Route path="/inventory" element={<AppLayout><Inventory /></AppLayout>} />
-              <Route path="/inventory-management" element={<AppLayout><InventoryManagement /></AppLayout>} />
-              
-              {/* Settings */}
-              <Route path="/team-settings" element={<AppLayout><TeamSettings /></AppLayout>} />
-              
-              {/* 404 Route */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Router>
-          <Toaster />
+          <HistoryProvider>
+            <Router>
+              <Routes>
+                {/* Dashboard */}
+                <Route path="/" element={<AppLayout><Dashboard /></AppLayout>} />
+                
+                {/* Orders Routes */}
+                <Route path="/dispatch" element={<AppLayout><Dispatch /></AppLayout>} />
+                <Route path="/client-order" element={<AppLayout><ClientOrder /></AppLayout>} />
+                <Route path="/wholesale-order" element={<AppLayout><WholesaleOrder /></AppLayout>} />
+                <Route path="/wholesale-order-form" element={<AppLayout><WholesaleOrderForm /></AppLayout>} />
+                <Route path="/wholesale-orders" element={<AppLayout><WholesaleOrderArchive /></AppLayout>} />
+                <Route path="/wholesale-orders/:id" element={<AppLayout><WholesaleOrderForm /></AppLayout>} />
+                
+                {/* Reports Routes */}
+                <Route path="/production" element={<AppLayout><Production /></AppLayout>} />
+                <Route path="/driver-payments" element={<AppLayout><DriverPayments /></AppLayout>} />
+                
+                {/* Databases Routes */}
+                <Route path="/customers" element={<AppLayout><Customers /></AppLayout>} />
+                <Route path="/inventory" element={<AppLayout><Inventory /></AppLayout>} />
+                <Route path="/inventory-management" element={<AppLayout><InventoryManagement /></AppLayout>} />
+                
+                {/* Settings */}
+                <Route path="/team-settings" element={<AppLayout><TeamSettings /></AppLayout>} />
+                
+                {/* 404 Route */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Router>
+            <Toaster />
+          </HistoryProvider>
         </AdminProvider>
       </UserProvider>
     </ThemeProvider>

@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { BaseOrderDetails } from "@/components/templates/BaseOrderDetails";
 import { BaseOrderSummary } from "@/components/templates/BaseOrderSummary";
@@ -106,7 +107,7 @@ function WholesaleOrderContent() {
       });
       
       if (data && data[0]) {
-        navigate(`/wholesale-order/${data[0].id}`);
+        navigate(`/wholesale-orders/${data[0].id}`);
       } else {
         navigate("/wholesale-orders");
       }
