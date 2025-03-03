@@ -14,8 +14,6 @@ import Dashboard from './pages/Dashboard';
 import NotFound from './pages/NotFound';
 import InventoryManagement from './pages/InventoryManagement';
 import WholesaleOrder from './pages/WholesaleOrder';
-import WholesaleOrderForm from './pages/wholesale-order/WholesaleOrderForm';
-import WholesaleOrderArchive from './pages/wholesale-order/WholesaleOrderArchive';
 import ClientOrder from './pages/ClientOrder';
 import Dispatch from './pages/DispatchDelivery';
 import DriverPayments from './pages/DriverPayments';
@@ -23,6 +21,10 @@ import Production from './pages/Production';
 import Customers from './pages/Customers';
 import Inventory from './pages/Inventory';
 import TeamSettings from './pages/TeamSettings';
+
+// Import WholesaleOrderForm and WholesaleOrderArchive correctly
+import WholesaleOrderForm from './pages/WholesaleOrderForm'; 
+import WholesaleOrderArchive from './pages/WholesaleOrderArchive';
 
 function App() {
   return (
@@ -38,6 +40,7 @@ function App() {
               <Route path="/dispatch" element={<AppLayout><Dispatch /></AppLayout>} />
               <Route path="/client-order" element={<AppLayout><ClientOrder /></AppLayout>} />
               <Route path="/wholesale-order" element={<AppLayout><WholesaleOrder /></AppLayout>} />
+              <Route path="/wholesale-order-form" element={<AppLayout><WholesaleOrderForm /></AppLayout>} />
               <Route path="/wholesale-orders" element={<AppLayout><WholesaleOrderArchive /></AppLayout>} />
               
               {/* Reports Routes */}
