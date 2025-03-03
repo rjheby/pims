@@ -4,13 +4,14 @@ import { useWholesaleInventory } from "@/pages/wholesale-order/hooks/useWholesal
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Package2, RefreshCw } from "lucide-react";
-import { WoodProduct } from "@/pages/wholesale-order/types";
 import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export function PalletsAvailableCard() {
   const { wholesaleInventory, woodProducts, loading: inventoryLoading, fetchWholesaleInventory } = useWholesaleInventory();
   const [showDetails, setShowDetails] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const isMobile = useIsMobile();
   
   // Calculate total available pallets
   const totalPalletsAvailable = wholesaleInventory.reduce((sum, item) => sum + item.pallets_available, 0);
@@ -41,7 +42,7 @@ export function PalletsAvailableCard() {
   }, [fetchWholesaleInventory]);
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden h-full">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">
           Available Raw Material Pallets
@@ -59,29 +60,39 @@ export function PalletsAvailableCard() {
       </CardHeader>
       <CardContent>
         {inventoryLoading || isRefreshing ? (
-          <Skeleton className="h-8 w-[100px]" />
+          <Skeleton className="h-8 w-full max-w-[100px]" />
+        ) : totalPalletsAvailable === 0 ? (
+          <div className="text-center py-2">
+            <div className="text-2xl font-bold text-gray-400 flex items-center justify-center">
+              <Package2 className="h-5 w-5 mr-2" />
+              No pallets available
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Submit a supplier order to add inventory</p>
+          </div>
         ) : (
           <>
             <div 
               className="text-2xl font-bold text-blue-600 flex items-center cursor-pointer" 
               onClick={() => setShowDetails(!showDetails)}
             >
-              <Package2 className="h-5 w-5 mr-2" />
-              {totalPalletsAvailable.toLocaleString()} pallets
-              <span className="text-xs ml-2 text-gray-500">(click for details)</span>
+              <Package2 className="h-5 w-5 mr-2 flex-shrink-0" />
+              <div className="flex flex-wrap items-center">
+                <span>{totalPalletsAvailable.toLocaleString()} pallets</span>
+                <span className="text-xs ml-2 text-gray-500">(click for details)</span>
+              </div>
             </div>
             
             {showDetails && (
               <div className="mt-4 space-y-2 text-sm">
                 <h4 className="font-semibold">Pallets by Wood Type:</h4>
                 {Object.entries(palletsGroupedBySpecies).length > 0 ? (
-                  <div className="grid grid-cols-1 gap-y-1">
+                  <div className="grid grid-cols-1 gap-y-1 max-h-[200px] overflow-y-auto pr-1">
                     {Object.entries(palletsGroupedBySpecies)
                       .sort(([, countA], [, countB]) => countB - countA)
                       .map(([species, count]) => (
                         <div key={species} className="flex justify-between items-center">
-                          <span>{species}</span>
-                          <span className="font-semibold">{count} pallets</span>
+                          <span className="truncate mr-2">{species}</span>
+                          <span className="font-semibold whitespace-nowrap">{count} pallets</span>
                         </div>
                       ))}
                   </div>
