@@ -29,11 +29,11 @@ import { WholesaleOrderArchive } from './pages/WholesaleOrderArchive';
 
 function App() {
   return (
-    <ThemeProvider defaultTheme="light" storageKey="ui-theme">
-      <UserProvider>
-        <AdminProvider>
-          <HistoryProvider>
-            <Router>
+    <Router>
+      <ThemeProvider defaultTheme="light" storageKey="ui-theme">
+        <UserProvider>
+          <AdminProvider>
+            <HistoryProvider>
               <Routes>
                 {/* Dashboard */}
                 <Route path="/" element={<AppLayout><Dashboard /></AppLayout>} />
@@ -61,12 +61,12 @@ function App() {
                 {/* 404 Route */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
-            </Router>
-            <Toaster />
-          </HistoryProvider>
-        </AdminProvider>
-      </UserProvider>
-    </ThemeProvider>
+              <Toaster />
+            </HistoryProvider>
+          </AdminProvider>
+        </UserProvider>
+      </ThemeProvider>
+    </Router>
   );
 }
 

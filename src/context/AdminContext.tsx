@@ -2,7 +2,7 @@
 import { createContext, useContext, useState, ReactNode, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "./UserContext";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 interface AdminContextType {
   isAdmin: boolean;
@@ -25,7 +25,17 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const { hasPermission } = useUser();
   const { toast } = useToast();
-  const location = useLocation();
+  
+  // Check if we're in a browser context and handle router hooks safely
+  let currentPath = '/';
+  try {
+    // This will throw an error if not in a Router context
+    const location = useLocation();
+    currentPath = location.pathname;
+  } catch (error) {
+    // Handle the error gracefully - we're not in a router context
+    console.warn('AdminProvider: Router context not available');
+  }
 
   const enterAdminMode = useCallback(() => {
     if (!hasPermission("admin")) {
@@ -64,7 +74,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       onDiscard?: () => void;
       confirmMessage?: string;
     }) => {
-      const isWholesaleOrder = location.pathname === "/wholesale-order";
+      const isWholesaleOrder = currentPath === "/wholesale-order";
       
       if (isAdmin) {
         if (hasUnsavedChanges) {
@@ -94,7 +104,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         enterAdminMode();
       }
     },
-    [isAdmin, hasUnsavedChanges, exitAdminMode, enterAdminMode, location.pathname, toast]
+    [isAdmin, hasUnsavedChanges, exitAdminMode, enterAdminMode, currentPath, toast]
   );
 
   return (
