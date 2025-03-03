@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -156,7 +155,7 @@ export function useOrders() {
       // Check if we need to update the conversion ratio based on actual results
       if (Math.abs(actualRatio - (processingRecord.expected_ratio || 0)) > 0.1) {
         // The actual ratio differs significantly from expected, consider updating
-        const { error: conversionError } = await supabaseSafeFrom(supabase, supabaseTable.product_conversions)
+        const { error: conversionError } = await supabaseSafeFrom(supabase, supabaseTable.firewood_products)
           .update({ 
             conversion_ratio: actualRatio,
             last_updated: new Date().toISOString(),

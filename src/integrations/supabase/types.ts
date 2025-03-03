@@ -51,6 +51,101 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory_items: {
+        Row: {
+          id: string
+          last_updated: string
+          location: string | null
+          notes: string | null
+          pallets_allocated: number
+          pallets_available: number
+          total_pallets: number
+          wood_product_id: string
+        }
+        Insert: {
+          id?: string
+          last_updated?: string
+          location?: string | null
+          notes?: string | null
+          pallets_allocated?: number
+          pallets_available?: number
+          total_pallets?: number
+          wood_product_id: string
+        }
+        Update: {
+          id?: string
+          last_updated?: string
+          location?: string | null
+          notes?: string | null
+          pallets_allocated?: number
+          pallets_available?: number
+          total_pallets?: number
+          wood_product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_items_wood_product_id_fkey"
+            columns: ["wood_product_id"]
+            isOneToOne: false
+            referencedRelation: "wood_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processing_records: {
+        Row: {
+          actual_conversion_ratio: number
+          expected_ratio: number | null
+          firewood_product_id: number
+          id: string
+          notes: string | null
+          processed_by: string
+          processed_date: string
+          retail_packages_created: number
+          wholesale_pallets_used: number
+          wood_product_id: string
+        }
+        Insert: {
+          actual_conversion_ratio: number
+          expected_ratio?: number | null
+          firewood_product_id: number
+          id?: string
+          notes?: string | null
+          processed_by: string
+          processed_date?: string
+          retail_packages_created: number
+          wholesale_pallets_used: number
+          wood_product_id: string
+        }
+        Update: {
+          actual_conversion_ratio?: number
+          expected_ratio?: number | null
+          firewood_product_id?: number
+          id?: string
+          notes?: string | null
+          processed_by?: string
+          processed_date?: string
+          retail_packages_created?: number
+          wholesale_pallets_used?: number
+          wood_product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_records_firewood_product_id_fkey"
+            columns: ["firewood_product_id"]
+            isOneToOne: false
+            referencedRelation: "firewood_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_records_wood_product_id_fkey"
+            columns: ["wood_product_id"]
+            isOneToOne: false
+            referencedRelation: "wood_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_pricing: {
         Row: {
           created_at: string | null

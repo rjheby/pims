@@ -37,7 +37,7 @@ export function useWholesaleInventory() {
         return;
       }
       
-      // Cast the data to the correct types
+      // Use type assertions for safety
       setWholesaleInventory(inventoryData as InventoryItem[] || []);
       setWoodProducts(productsData as WoodProduct[] || []);
     } catch (err) {

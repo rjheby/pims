@@ -93,7 +93,7 @@ function WholesaleOrderContent() {
           order_number: currentOrderNumber,
           order_date: orderDate,
           delivery_date: deliveryDate || null,
-          items: serializeOrderItems(items),
+          items: JSON.stringify(items),
           status: 'draft'
         })
         .select();
@@ -149,7 +149,7 @@ function WholesaleOrderContent() {
           order_number: currentOrderNumber,
           order_date: orderDate,
           delivery_date: deliveryDate || null,
-          items: serializeOrderItems(items),
+          items: JSON.stringify(items),
           status: 'submitted',
           submitted_at: new Date().toISOString()
         })
