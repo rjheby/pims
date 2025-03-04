@@ -28,16 +28,85 @@ function DateBasedScheduleCreatorContent() {
   const navigate = useNavigate();
   const { toast } = useToast();
   
+  // Generate schedule number based on date and drivers
+  const generateScheduleNumber = (dateString: string, driverIds: string[] = []) => {
+    // Create date objects
+    const creationDate = new Date();
+    const deliveryDate = new Date(dateString);
+    
+    // Format creation date as YYMMDD
+    const creationFormatted = creationDate.toISOString().slice(2, 10).replace(/-/g, '');
+    
+    // Get day of week for delivery
+    const daysOfWeek = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+    const deliveryDOW = daysOfWeek[deliveryDate.getDay()];
+    
+    // Generate driver code
+    const driverCode = driverIds.length > 0 
+      ? `D${driverIds.map(id => id.replace('driver-', '')).join('')}` 
+      : 'D00';
+    
+    // Generate the schedule number
+    return `DS-${creationFormatted}-${deliveryDOW}-${driverCode}`;
+  };
+  
   // States
-  const [schedule, setSchedule] = useState<ScheduleData>({
-    schedule_number: `DS-${new Date().getTime().toString().slice(-8)}`,
-    schedule_date: new Date().toISOString().split('T')[0], // Default to today
+  const [schedule, setSchedule] = useState<ScheduleData>(() => {
+    const today = new Date();
+    const defaultDate = today.toISOString().split('T')[0];
+    
+    return {
+      schedule_number: generateScheduleNumber(defaultDate),
+      schedule_date: defaultDate
+    };
   });
   
   const [stops, setStops] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Update schedule number when date changes
+  useEffect(() => {
+    if (schedule.schedule_date) {
+      // Get current driver IDs from stops
+      const driverIds = stops
+        .map(stop => stop.driver_id)
+        .filter((id): id is string => Boolean(id)) // Type guard to filter out null/undefined
+        .filter((id, index, array) => array.indexOf(id) === index) // Unique values
+        .sort();
+      
+      const newScheduleNumber = generateScheduleNumber(schedule.schedule_date, driverIds);
+      
+      if (newScheduleNumber !== schedule.schedule_number) {
+        setSchedule(prev => ({
+          ...prev,
+          schedule_number: newScheduleNumber
+        }));
+      }
+    }
+  }, [schedule.schedule_date]);
+  
+  // Update schedule number when drivers change
+  useEffect(() => {
+    if (stops.length > 0 && schedule.schedule_date) {
+      // Extract unique driver IDs from stops
+      const driverIds = stops
+        .map(stop => stop.driver_id)
+        .filter((id): id is string => Boolean(id)) // Type guard to filter out null/undefined
+        .filter((id, index, array) => array.indexOf(id) === index) // Unique values
+        .sort();
+      
+      const newScheduleNumber = generateScheduleNumber(schedule.schedule_date, driverIds);
+      
+      if (newScheduleNumber !== schedule.schedule_number) {
+        setSchedule(prev => ({
+          ...prev,
+          schedule_number: newScheduleNumber
+        }));
+      }
+    }
+  }, [stops]);
   
   // Handle schedule date change
   const handleScheduleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -268,6 +337,9 @@ function DateBasedScheduleCreatorContent() {
                     readOnly
                     className="border rounded-md px-3 py-2 w-full bg-gray-50"
                   />
+                  <p className="text-sm text-gray-500">
+                    Auto-generated based on date and assigned drivers
+                  </p>
                 </div>
               </div>
             </div>
