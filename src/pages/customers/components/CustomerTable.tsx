@@ -31,6 +31,7 @@ export function CustomerTable({
   };
 
   const handleEdit = (customer: Customer) => {
+    console.log("Editing customer:", customer);
     setSelectedCustomer(customer);
     setEditDialogOpen(true);
   };
@@ -47,8 +48,10 @@ export function CustomerTable({
 
   const handleSave = (customerData: Partial<Customer>) => {
     if (selectedCustomer) {
+      console.log("Updating customer:", selectedCustomer.id, customerData);
       onUpdateCustomer(selectedCustomer.id, customerData);
     } else {
+      console.log("Adding new customer:", customerData);
       onAddCustomer(customerData);
     }
     setEditDialogOpen(false);

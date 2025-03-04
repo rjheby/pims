@@ -45,6 +45,8 @@ export function useCustomers() {
 
   const addCustomer = useCallback(async (customer: Omit<Customer, 'id' | 'created_at' | 'updated_at'>) => {
     try {
+      console.log("Adding customer:", customer);
+      
       const { data, error } = await supabase
         .from("customers")
         .insert(customer)
@@ -82,6 +84,9 @@ export function useCustomers() {
 
   const updateCustomer = useCallback(async (id: string, updates: Partial<Customer>) => {
     try {
+      console.log("Updating customer with ID:", id);
+      console.log("Update data:", updates);
+      
       const { error } = await supabase
         .from("customers")
         .update(updates)
@@ -91,7 +96,7 @@ export function useCustomers() {
         console.error("Error updating customer:", error);
         toast({
           title: "Error",
-          description: "Failed to update customer",
+          description: "Failed to update customer: " + error.message,
           variant: "destructive",
         });
         return { success: false, error };
@@ -119,6 +124,8 @@ export function useCustomers() {
 
   const deleteCustomer = useCallback(async (id: string) => {
     try {
+      console.log("Deleting customer with ID:", id);
+      
       const { error } = await supabase
         .from("customers")
         .delete()

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,29 @@ export function CustomerEditDialog({ customer, isOpen, onClose, onSave }: Custom
       notes: "",
     }
   );
+
+  // Reset form data when customer prop changes
+  useEffect(() => {
+    if (customer) {
+      setFormData({
+        name: customer.name || "",
+        phone: customer.phone || "",
+        email: customer.email || "",
+        address: customer.address || "",
+        type: customer.type || "residential",
+        notes: customer.notes || "",
+      });
+    } else {
+      setFormData({
+        name: "",
+        phone: "",
+        email: "",
+        address: "",
+        type: "residential",
+        notes: "",
+      });
+    }
+  }, [customer, isOpen]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
