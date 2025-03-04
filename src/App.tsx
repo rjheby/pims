@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './components/theme-provider';
@@ -33,6 +32,9 @@ import { WholesaleOrderArchive } from './pages/WholesaleOrderArchive';
 import DriversView from './pages/DriversView';
 import DriverSchedule from './pages/DriverSchedule';
 
+// Import new DispatchScheduleView component
+import DispatchScheduleView from './pages/DispatchScheduleView';
+
 function App() {
   return (
     <Router>
@@ -48,6 +50,8 @@ function App() {
                 <Route path="/dispatch" element={<AppLayout><Dispatch /></AppLayout>} />
                 <Route path="/dispatch-archive" element={<AppLayout><DispatchArchive /></AppLayout>} />
                 <Route path="/dispatch-form/:id" element={<AppLayout><DispatchForm /></AppLayout>} />
+                {/* New dispatch schedule view route */}
+                <Route path="/dispatch-schedule" element={<AppLayout><DispatchScheduleView /></AppLayout>} />
                 <Route path="/client-order" element={<AppLayout><ClientOrder /></AppLayout>} />
                 <Route path="/wholesale-order" element={<AppLayout><WholesaleOrder /></AppLayout>} />
                 <Route path="/wholesale-order-form" element={<AppLayout><WholesaleOrderForm /></AppLayout>} />
