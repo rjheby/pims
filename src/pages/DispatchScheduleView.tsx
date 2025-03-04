@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { format, addDays, parseISO, isToday, isYesterday, isTomorrow } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, Filter, Download } from "lucide-react";
+import { Loader2, Plus, Filter, Download, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -33,7 +33,6 @@ export default function DispatchScheduleView() {
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  // States
   const [activeTab, setActiveTab] = useState<string>("today");
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split('T')[0]
@@ -49,12 +48,10 @@ export default function DispatchScheduleView() {
     }
   });
 
-  // Fetch delivery schedules based on selected date/tab
   useEffect(() => {
     fetchSchedules();
   }, [selectedDate, activeTab, filters]);
 
-  // Calculate date range based on active tab
   const getDateRange = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -63,7 +60,6 @@ export default function DispatchScheduleView() {
     
     let startDate, endDate;
     
-    // If we have explicit filter dates, use those instead of tabs
     if (filters.dateRange.from) {
       startDate = format(filters.dateRange.from, "yyyy-MM-dd");
       endDate = filters.dateRange.to 
@@ -97,7 +93,6 @@ export default function DispatchScheduleView() {
     return { startDate, endDate };
   };
 
-  // Fetch schedules from the database
   const fetchSchedules = async () => {
     try {
       setLoading(true);
@@ -113,7 +108,6 @@ export default function DispatchScheduleView() {
         .gte('delivery_date', startDate)
         .lte('delivery_date', endDate);
       
-      // Apply status filter if specified
       if (filters.status) {
         query = query.eq('status', filters.status);
       }
@@ -124,7 +118,6 @@ export default function DispatchScheduleView() {
         throw error;
       }
       
-      // Group schedules by date
       setSchedules(data || []);
     } catch (error) {
       console.error("Error fetching schedules:", error);
@@ -138,7 +131,6 @@ export default function DispatchScheduleView() {
     }
   };
 
-  // Format date for display
   const formatDisplayDate = (dateString: string) => {
     try {
       const date = parseISO(dateString);
@@ -153,31 +145,29 @@ export default function DispatchScheduleView() {
     }
   };
 
-  // Handle date selection
   const handleDateSelect = (date: string) => {
     setSelectedDate(date);
     setActiveTab("custom");
   };
 
-  // Create a new dispatch
   const handleCreateNew = () => {
     navigate('/dispatch');
   };
-  
-  // Handle applying filters
+
+  const handleCreateDateSchedule = () => {
+    navigate('/schedule-creator');
+  };
+
   const handleApplyFilters = (newFilters: any) => {
     setFilters(newFilters);
   };
-  
-  // Handle viewing schedule details
+
   const handleViewSchedule = (masterId: number) => {
     navigate(`/dispatch-form/${masterId}`);
   };
-  
-  // Generate and download PDF for a schedule
+
   const handleDownloadPDF = async (masterId: number) => {
     try {
-      // Fetch the master schedule and its stops
       const { data: masterData, error: masterError } = await supabase
         .from('dispatch_schedules')
         .select('*')
@@ -220,7 +210,6 @@ export default function DispatchScheduleView() {
     }
   };
 
-  // Group schedules by master_schedule_id
   const groupSchedulesByMaster = () => {
     const groupedSchedules: Record<number, DeliverySchedule[]> = {};
     
@@ -234,8 +223,7 @@ export default function DispatchScheduleView() {
     
     return groupedSchedules;
   };
-  
-  // Get unique delivery dates from schedules
+
   const getUniqueDates = () => {
     const dates = new Set<string>();
     schedules.forEach(schedule => {
@@ -244,7 +232,6 @@ export default function DispatchScheduleView() {
     return Array.from(dates).sort();
   };
 
-  // Render tab button with active state
   const TabButton = ({ 
     id, 
     label, 
@@ -289,6 +276,14 @@ export default function DispatchScheduleView() {
                 Filters
               </Button>
               <Button 
+                variant="outline"
+                onClick={handleCreateDateSchedule}
+                className="bg-white text-[#2A4131] border-[#2A4131] hover:bg-[#F2E9D2]"
+              >
+                <Clock className="mr-2 h-4 w-4" />
+                Date Schedule
+              </Button>
+              <Button 
                 onClick={handleCreateNew}
                 className="bg-[#2A4131] hover:bg-[#2A4131]/90"
               >
@@ -300,13 +295,11 @@ export default function DispatchScheduleView() {
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-            {/* Date Filter Tabs */}
             <div className="flex flex-wrap gap-2">
               <TabButton id="today" label="Today" active={activeTab === "today"} />
               <TabButton id="tomorrow" label="Tomorrow" active={activeTab === "tomorrow"} />
               <TabButton id="next7days" label="Next 7 Days" active={activeTab === "next7days"} />
               
-              {/* Date Selector */}
               <div className="flex items-center ml-auto">
                 <input 
                   type="date" 
@@ -317,7 +310,6 @@ export default function DispatchScheduleView() {
               </div>
             </div>
             
-            {/* Current View Description */}
             <div className="text-lg font-medium">
               {activeTab === "today" ? "Today's Deliveries" : 
                activeTab === "tomorrow" ? "Tomorrow's Deliveries" :
@@ -331,7 +323,6 @@ export default function DispatchScheduleView() {
               )}
             </div>
             
-            {/* Display schedules by date */}
             {uniqueDates.length > 0 ? (
               <div className="space-y-8">
                 {uniqueDates.map(date => (
@@ -412,7 +403,6 @@ export default function DispatchScheduleView() {
         </CardContent>
       </Card>
       
-      {/* Filters Sheet */}
       <DispatchFilters 
         open={showFilters}
         onClose={() => setShowFilters(false)}

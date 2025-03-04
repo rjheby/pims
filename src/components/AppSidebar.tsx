@@ -1,3 +1,4 @@
+
 import { Link, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -11,7 +12,7 @@ import {
 } from "@/components/ui/sidebar";
 import {
   FileText, Users, Settings, BarChart, Truck, ClipboardList, 
-  DollarSign, Menu, X, ArrowLeft, Warehouse, ChevronDown, Home, Archive, Calendar
+  DollarSign, Menu, X, ArrowLeft, Warehouse, ChevronDown, Home, Archive, Calendar, Clock
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -33,10 +34,11 @@ const menuGroups = {
       { title: "Payments", icon: DollarSign, path: "/driver-payments" },
     ],
   },
-  dispatch: {  // New dispatch group
+  dispatch: {  // Updated dispatch group
     title: "Dispatch",
     items: [
       { title: "Create Schedule", icon: Truck, path: "/dispatch" },
+      { title: "Date-Based Schedule", icon: Clock, path: "/schedule-creator" },
       { title: "Schedule View", icon: Calendar, path: "/dispatch-schedule" },
       { title: "Archive", icon: Archive, path: "/dispatch-archive" },
     ],
