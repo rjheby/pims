@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -12,7 +11,7 @@ import {
 } from "@/components/ui/sidebar";
 import {
   FileText, Users, Settings, BarChart, Truck, ClipboardList, 
-  DollarSign, Menu, X, ArrowLeft, Warehouse, ChevronDown, Home, Archive
+  DollarSign, Menu, X, ArrowLeft, Warehouse, ChevronDown, Home, Archive, Calendar
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -34,10 +33,17 @@ const menuGroups = {
       { title: "Payments", icon: DollarSign, path: "/driver-payments" },
     ],
   },
+  dispatch: {  // New dispatch group
+    title: "Dispatch",
+    items: [
+      { title: "Create Schedule", icon: Truck, path: "/dispatch" },
+      { title: "Schedule View", icon: Calendar, path: "/dispatch-schedule" },
+      { title: "Archive", icon: Archive, path: "/dispatch-archive" },
+    ],
+  },
   orders: {
     title: "Orders",
     items: [
-      { title: "Dispatch", icon: Truck, path: "/dispatch" },
       { title: "Client Orders", icon: FileText, path: "/client-order" },
       { title: "Supplier Form", icon: ClipboardList, path: "/wholesale-order" },
       { title: "Supplier Archives", icon: Archive, path: "/wholesale-orders" },
@@ -198,7 +204,7 @@ export function AppSidebar() {
       <Sheet open={openMobile} onOpenChange={setOpenMobile}>
         <SheetContent 
           side="left" 
-          className="p-0 w-full sm:w-[300px] h-[100dvh] overflow-y-auto transition-transform duration-300 ease-in-out"
+          className="p-0 w-full sm:w-[300px] h-[100dvh] overflow-y-auto overflow-x-hidden transition-transform duration-300 ease-in-out"
         >
           <SidebarContent />
         </SheetContent>
