@@ -11,14 +11,18 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, Loader2, Plus, Save, Archive, Trash } from "lucide-react";
+import { Calendar as CalendarIcon, Loader2, Archive, Trash, SendHorizontal } from "lucide-react";
 import { Customer } from "./customers/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Link } from "react-router-dom";
+import { BaseOrderActions } from "@/components/templates/BaseOrderActions";
 
 interface DeliverySchedule {
   id?: string;
@@ -40,6 +44,7 @@ export default function DispatchDelivery() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
@@ -101,6 +106,57 @@ export default function DispatchDelivery() {
       });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    try {
+      setIsSubmitting(true);
+      
+      if (!deliverySchedule.customer_id) {
+        toast({
+          title: "Error",
+          description: "Please select a customer",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      if (!deliverySchedule.delivery_date && deliverySchedule.schedule_type === "one-time") {
+        toast({
+          title: "Error",
+          description: "Please select a delivery date",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      if (!deliverySchedule.recurring_day && 
+          (deliverySchedule.schedule_type === "recurring" || deliverySchedule.schedule_type === "bi-weekly")) {
+        toast({
+          title: "Error",
+          description: "Please select a day for recurring delivery",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // In a real application, you would submit to database here
+      console.log("Submitting delivery schedule:", deliverySchedule);
+      
+      toast({
+        title: "Success",
+        description: "Delivery schedule submitted successfully"
+      });
+    } catch (error) {
+      console.error("Error submitting delivery schedule:", error);
+      toast({
+        title: "Error",
+        description: "Failed to submit delivery schedule",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -195,6 +251,19 @@ export default function DispatchDelivery() {
     </div>
   );
 
+  const renderNoteField = () => (
+    <div className="space-y-2">
+      <Label htmlFor="notes">Delivery Notes</Label>
+      <Input 
+        id="notes" 
+        placeholder="Enter delivery notes or special instructions..."
+        value={deliverySchedule.notes || ""}
+        onChange={(e) => setDeliverySchedule(prev => ({ ...prev, notes: e.target.value }))}
+        className="min-h-[60px]"
+      />
+    </div>
+  );
+
   return (
     <div className="space-y-6 pb-10">
       <h1 className="text-3xl font-bold">Dispatch & Delivery Schedule</h1>
@@ -208,25 +277,6 @@ export default function DispatchDelivery() {
                 Track and manage deliveries, drivers, and order details
               </CardDescription>
             </div>
-            <div className="flex items-center space-x-2">
-              <Button 
-                onClick={handleSave} 
-                disabled={isSaving}
-                className="h-9"
-              >
-                {isSaving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Save Schedule
-                  </>
-                )}
-              </Button>
-            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -235,10 +285,10 @@ export default function DispatchDelivery() {
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : isMobile ? (
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div className="grid gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Client</label>
+                  <Label>Client</Label>
                   {renderClientCell()}
                 </div>
                 
@@ -256,9 +306,11 @@ export default function DispatchDelivery() {
                 )}
                 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Delivery Schedule</label>
+                  <Label>Delivery Schedule</Label>
                   {renderScheduleCell()}
                 </div>
+                
+                {renderNoteField()}
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -281,62 +333,65 @@ export default function DispatchDelivery() {
                     <div className="p-2 border rounded">-</div>
                   </div>
                 </div>
-                
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Notes</label>
-                  <div className="p-2 border rounded">-</div>
-                </div>
               </div>
               
-              <div className="flex justify-end space-x-2 pt-4 border-t">
-                <Button variant="outline" className="h-9">
-                  <Archive className="mr-2 h-4 w-4" />
-                  Archive
-                </Button>
-                <Button variant="destructive" className="h-9">
-                  <Trash className="mr-2 h-4 w-4" />
-                  Delete
-                </Button>
-              </div>
+              <BaseOrderActions 
+                onSave={handleSave}
+                onSubmit={handleSubmit}
+                archiveLink="/dispatch-archive"
+                isSaving={isSaving}
+                isSubmitting={isSubmitting}
+                submitLabel="Submit Schedule"
+              />
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Client</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Delivery Schedule</TableHead>
-                    <TableHead>Order</TableHead>
-                    <TableHead>Driver</TableHead>
-                    <TableHead>Items</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead>Notes</TableHead>
-                    <TableHead>Address</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  <TableRow>
-                    <TableCell className="font-medium">{renderClientCell()}</TableCell>
-                    <TableCell>{selectedCustomer?.phone || '-'}</TableCell>
-                    <TableCell>{renderScheduleCell()}</TableCell>
-                    <TableCell>-</TableCell>
-                    <TableCell>-</TableCell>
-                    <TableCell>-</TableCell>
-                    <TableCell>-</TableCell>
-                    <TableCell>-</TableCell>
-                    <TableCell className="max-w-[200px] truncate" title={selectedCustomer?.address || '-'}>
-                      {selectedCustomer?.address || '-'}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm">
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
+            <div className="space-y-6">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Client</TableHead>
+                      <TableHead>Phone</TableHead>
+                      <TableHead>Delivery Schedule</TableHead>
+                      <TableHead>Notes</TableHead>
+                      <TableHead>Address</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell className="font-medium">{renderClientCell()}</TableCell>
+                      <TableCell>{selectedCustomer?.phone || '-'}</TableCell>
+                      <TableCell>{renderScheduleCell()}</TableCell>
+                      <TableCell>
+                        <Input 
+                          placeholder="Delivery notes..."
+                          value={deliverySchedule.notes || ""}
+                          onChange={(e) => setDeliverySchedule(prev => ({ ...prev, notes: e.target.value }))}
+                          className="min-h-[40px] w-full"
+                        />
+                      </TableCell>
+                      <TableCell className="max-w-[200px] truncate" title={selectedCustomer?.address || '-'}>
+                        {selectedCustomer?.address || '-'}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm">
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+              
+              <BaseOrderActions 
+                onSave={handleSave}
+                onSubmit={handleSubmit}
+                archiveLink="/dispatch-archive"
+                isSaving={isSaving}
+                isSubmitting={isSubmitting}
+                submitLabel="Submit Schedule"
+              />
             </div>
           )}
         </CardContent>
