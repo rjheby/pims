@@ -25,9 +25,6 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ProductSelector } from "./ProductSelector";
 import { OrderTableDropdownCell } from "./OrderTableDropdownCell";
 
-// Using the external OrderTableDropdownCell component to maintain DRY principle
-// and fix the dropdown sizing issue in a single place
-
 interface OrderTableRowProps {
   item: OrderItem;
   options: DropdownOptions;
@@ -127,7 +124,7 @@ export function OrderTableRow({
 
       {!isCompressed && !readOnly &&
         optionFields.map((field) => (
-          <TableCell key={field}>
+          <TableCell key={field} className="p-1">
             <OrderTableDropdownCell
               fieldName={field}
               value={item[field] as string}
@@ -144,7 +141,7 @@ export function OrderTableRow({
           </TableCell>
         ))}
 
-      <TableCell className={isCompressed ? "hidden" : ""}>
+      <TableCell className={isCompressed ? "hidden" : "p-1"}>
         <Input
           type="number"
           min="0"
@@ -153,12 +150,12 @@ export function OrderTableRow({
           onChange={(e) =>
             onUpdateItem({ ...item, pallets: Number(e.target.value) })
           }
-          className="h-8 w-full"
+          className="h-8 w-full !min-w-0"
           disabled={readOnly}
         />
       </TableCell>
 
-      <TableCell className={isCompressed ? "hidden" : ""}>
+      <TableCell className={isCompressed ? "hidden" : "p-1"}>
         <Input
           type="number"
           min="0"
@@ -167,34 +164,36 @@ export function OrderTableRow({
           onChange={(e) =>
             onUpdateItem({ ...item, unitCost: Number(e.target.value) })
           }
-          className="h-8 w-full"
+          className="h-8 w-full !min-w-0"
           disabled={readOnly}
         />
       </TableCell>
 
-      <TableCell className="text-right">
+      <TableCell className="text-right p-1">
         ${(safeNumber(item.pallets) * safeNumber(item.unitCost)).toFixed(2)}
       </TableCell>
 
-      <TableCell className={isCompressed ? "hidden" : ""}>
-        <div className="flex space-x-1">
+      <TableCell className={isCompressed ? "hidden" : "p-1"}>
+        <div className="flex space-x-1 justify-end">
           {!readOnly && (
             <>
               <Button
                 variant="ghost"
-                size="icon"
+                size="sm"
                 onClick={() => onCopyRow(item)}
                 aria-label="Copy row"
+                className="h-7 w-7 p-0"
               >
-                <Copy className="h-4 w-4" />
+                <Copy className="h-3 w-3" />
               </Button>
               <Button
                 variant="ghost"
-                size="icon"
+                size="sm"
                 onClick={() => onRemoveRow(item.id)}
                 aria-label="Remove row"
+                className="h-7 w-7 p-0"
               >
-                <Trash className="h-4 w-4" />
+                <Trash className="h-3 w-3" />
               </Button>
             </>
           )}
