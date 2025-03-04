@@ -161,3 +161,46 @@ export default function DriverSchedule() {
                       <div>
                         <h3 className="font-bold text-lg">{stop.customer_name}</h3>
                         <p className="text-sm text
+-muted-foreground mt-1 whitespace-pre-wrap">{stop.customer_address}</p>
+                        {stop.customer_phone && (
+                          <p className="text-sm mt-2">
+                            <a href={`tel:${stop.customer_phone}`} className="text-blue-600">
+                              {stop.customer_phone}
+                            </a>
+                          </p>
+                        )}
+                      </div>
+                      <Button 
+                        variant={stop.status === "completed" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handleToggleStatus(stop.id, stop.status)}
+                        className={stop.status === "completed" ? "bg-green-600 hover:bg-green-700" : ""}
+                      >
+                        <CheckSquare className="mr-1 h-4 w-4" />
+                        {stop.status === "completed" ? "Completed" : "Mark Complete"}
+                      </Button>
+                    </div>
+                    
+                    {stop.items && (
+                      <div className="mt-3 p-3 bg-gray-50 rounded-md">
+                        <h4 className="text-sm font-medium">Items:</h4>
+                        <p className="text-sm whitespace-pre-wrap">{stop.items}</p>
+                      </div>
+                    )}
+                    
+                    {stop.notes && (
+                      <div className="mt-3 p-3 bg-blue-50 rounded-md">
+                        <h4 className="text-sm font-medium">Notes:</h4>
+                        <p className="text-sm whitespace-pre-wrap">{stop.notes}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
