@@ -57,39 +57,57 @@ export type Database = {
       customers: {
         Row: {
           address: string | null
+          city: string | null
           created_at: string | null
           email: string | null
           id: string
+          latitude: number | null
+          longitude: number | null
           name: string
           notes: string | null
           phone: string | null
           profile_id: string | null
+          state: string | null
+          street_address: string | null
           type: string
           updated_at: string | null
+          zip_code: string | null
         }
         Insert: {
           address?: string | null
+          city?: string | null
           created_at?: string | null
           email?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           name: string
           notes?: string | null
           phone?: string | null
           profile_id?: string | null
+          state?: string | null
+          street_address?: string | null
           type: string
           updated_at?: string | null
+          zip_code?: string | null
         }
         Update: {
           address?: string | null
+          city?: string | null
           created_at?: string | null
           email?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           name?: string
           notes?: string | null
           phone?: string | null
           profile_id?: string | null
+          state?: string | null
+          street_address?: string | null
           type?: string
           updated_at?: string | null
+          zip_code?: string | null
         }
         Relationships: [
           {
@@ -109,6 +127,7 @@ export type Database = {
           driver_id: string | null
           id: string
           items: string | null
+          master_schedule_id: string | null
           notes: string | null
           recurring_day: string | null
           schedule_type: string
@@ -121,6 +140,7 @@ export type Database = {
           driver_id?: string | null
           id?: string
           items?: string | null
+          master_schedule_id?: string | null
           notes?: string | null
           recurring_day?: string | null
           schedule_type: string
@@ -133,6 +153,7 @@ export type Database = {
           driver_id?: string | null
           id?: string
           items?: string | null
+          master_schedule_id?: string | null
           notes?: string | null
           recurring_day?: string | null
           schedule_type?: string
@@ -146,7 +167,74 @@ export type Database = {
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "delivery_schedules_master_schedule_id_fkey"
+            columns: ["master_schedule_id"]
+            isOneToOne: false
+            referencedRelation: "dispatch_schedules"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      dispatch_schedules: {
+        Row: {
+          created_at: string | null
+          id: string
+          notes: string | null
+          schedule_date: string
+          schedule_number: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          schedule_date: string
+          schedule_number: string
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          schedule_date?: string
+          schedule_number?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      drivers: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       firewood_products: {
         Row: {

@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Eye, ArrowLeft } from "lucide-react";
+import { Loader2, Eye, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
@@ -15,25 +15,34 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { format } from "date-fns";
+import { Input } from "@/components/ui/input";
+import { Search, Filter, X } from "lucide-react";
+import { DispatchFilters } from "./components/DispatchFilters";
+import { Badge } from "@/components/ui/badge";
 
-interface DeliverySchedule {
+interface MasterSchedule {
   id: string;
-  customer_id: string;
-  schedule_type: "one-time" | "recurring" | "bi-weekly";
-  recurring_day: string | null;
-  delivery_date: string | null;
-  notes: string | null;
-  driver_id: string | null;
-  items: string | null;
+  schedule_number: string;
+  schedule_date: string;
   status: string;
+  notes: string | null;
   created_at: string;
-  customer_name?: string;
-  driver_name?: string;
+  updated_at: string;
+  stop_count?: number;
 }
 
 export default function DispatchArchive() {
-  const [schedules, setSchedules] = useState<DeliverySchedule[]>([]);
+  const [schedules, setSchedules] = useState<MasterSchedule[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    status: "",
+    dateRange: {
+      from: null as Date | null,
+      to: null as Date | null
+    }
+  });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -41,9 +50,9 @@ export default function DispatchArchive() {
       try {
         setLoading(true);
         
-        // Fetch delivery schedules
+        // Fetch master schedules
         const { data: schedulesData, error: schedulesError } = await supabase
-          .from("delivery_schedules")
+          .from("dispatch_schedules")
           .select("*")
           .order("created_at", { ascending: false });
         
@@ -56,35 +65,27 @@ export default function DispatchArchive() {
           return;
         }
 
-        // Get all unique customer IDs
-        const customerIds = [...new Set(schedulesData.map(schedule => schedule.customer_id))];
+        // For each master schedule, get the count of stops
+        const schedulesWithStopCounts = await Promise.all(
+          schedulesData.map(async (schedule) => {
+            const { count, error } = await supabase
+              .from("delivery_schedules")
+              .select("*", { count: 'exact', head: true })
+              .eq("master_schedule_id", schedule.id);
+              
+            return {
+              ...schedule,
+              stop_count: count || 0
+            };
+          })
+        );
         
-        // Fetch customer details
-        const { data: customersData, error: customersError } = await supabase
-          .from("customers")
-          .select("id, name")
-          .in("id", customerIds);
-        
-        if (customersError) {
-          throw customersError;
-        }
-
-        // Map customer names to schedules
-        const schedulesWithCustomers = schedulesData.map(schedule => {
-          const customer = customersData?.find(c => c.id === schedule.customer_id);
-          return {
-            ...schedule,
-            customer_name: customer?.name || "Unknown Customer",
-            driver_name: getDriverNameById(schedule.driver_id)
-          };
-        });
-        
-        setSchedules(schedulesWithCustomers);
+        setSchedules(schedulesWithStopCounts);
       } catch (error) {
         console.error("Error fetching schedules:", error);
         toast({
           title: "Error",
-          description: "Failed to load delivery schedules",
+          description: "Failed to load dispatch schedules",
           variant: "destructive"
         });
       } finally {
@@ -95,95 +96,234 @@ export default function DispatchArchive() {
     fetchSchedules();
   }, [toast]);
 
-  // Temporary function to get driver name until we have a drivers table
-  function getDriverNameById(driverId: string | null): string {
-    if (!driverId) return "Not Assigned";
-    
-    const driverMap: Record<string, string> = {
-      "driver-1": "John Smith",
-      "driver-2": "Maria Garcia",
-      "driver-3": "Robert Johnson",
-      "driver-4": "Sarah Lee",
-    };
-    
-    return driverMap[driverId] || "Unknown Driver";
-  }
+  const handleFilterApply = (newFilters: any) => {
+    setFilters(newFilters);
+  };
 
-  // Format the recurring day or date for display
-  function formatScheduleDate(schedule: DeliverySchedule): string {
-    if (schedule.schedule_type === "one-time" && schedule.delivery_date) {
-      try {
-        return format(new Date(schedule.delivery_date), "MMM d, yyyy");
-      } catch (error) {
-        return schedule.delivery_date || "No date";
+  const clearFilters = () => {
+    setFilters({
+      status: "",
+      dateRange: {
+        from: null,
+        to: null
       }
+    });
+  };
+
+  const clearSearch = () => {
+    setSearchTerm("");
+  };
+
+  // Apply filters
+  const filteredSchedules = schedules.filter(schedule => {
+    let matchesFilter = true;
+    
+    if (filters.status && schedule.status !== filters.status) {
+      matchesFilter = false;
     }
     
-    if (schedule.recurring_day) {
-      const day = schedule.recurring_day.split("-")[0];
-      return schedule.schedule_type === "recurring" 
-        ? `Every ${day.charAt(0).toUpperCase() + day.slice(1)}` 
-        : `Every Other ${day.charAt(0).toUpperCase() + day.slice(1)}`;
+    if (filters.dateRange.from && new Date(schedule.schedule_date) < filters.dateRange.from) {
+      matchesFilter = false;
+    }
+    if (filters.dateRange.to && new Date(schedule.schedule_date) > filters.dateRange.to) {
+      matchesFilter = false;
     }
     
-    return "No schedule set";
-  }
+    return matchesFilter;
+  });
+
+  // Apply search
+  const searchedSchedules = filteredSchedules.filter(schedule => {
+    if (!searchTerm.trim()) return true;
+    
+    const searchLower = searchTerm.toLowerCase();
+    
+    return (
+      (schedule.schedule_number && schedule.schedule_number.toLowerCase().includes(searchLower)) ||
+      (schedule.status && schedule.status.toLowerCase().includes(searchLower)) ||
+      (schedule.notes && schedule.notes.toLowerCase().includes(searchLower))
+    );
+  });
+
+  const isFiltersActive = filters.status || filters.dateRange.from || filters.dateRange.to;
+
+  // Count the number of active filters
+  const activeFilterCount = [
+    filters.status, 
+    filters.dateRange.from, 
+    filters.dateRange.to
+  ].filter(Boolean).length;
 
   return (
     <div className="space-y-6 pb-10">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Delivery Schedules Archive</h1>
-        <Button asChild variant="outline">
+        <h1 className="text-3xl font-bold">Dispatch Schedules</h1>
+        <Button asChild className="bg-[#2A4131] hover:bg-[#2A4131]/90">
           <Link to="/dispatch">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Dispatch
+            <Plus className="mr-2 h-4 w-4" />
+            New Schedule
           </Link>
         </Button>
       </div>
       
       <Card>
         <CardHeader>
-          <CardTitle>All Delivery Schedules</CardTitle>
+          <CardTitle>All Dispatch Schedules</CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Search and filter controls */}
+          <div className="mb-4 flex flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-4 md:items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search schedules..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8"
+              />
+              {searchTerm && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-1 top-1.5 h-6 w-6 p-0"
+                  onClick={clearSearch}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            
+            <Button 
+              variant={isFiltersActive ? "default" : "outline"} 
+              size="sm"
+              onClick={() => setShowFilters(true)}
+              className="flex items-center"
+            >
+              <Filter className="h-4 w-4 mr-2" />
+              Filters
+              {activeFilterCount > 0 && (
+                <Badge className="ml-2 bg-primary-foreground text-primary">
+                  {activeFilterCount}
+                </Badge>
+              )}
+            </Button>
+          </div>
+          
+          {/* Active Filters Display */}
+          {isFiltersActive && (
+            <div className="mb-4 flex flex-wrap gap-2 items-center">
+              <span className="text-sm text-muted-foreground">Active filters:</span>
+              
+              {filters.status && (
+                <Badge variant="outline" className="flex items-center gap-1 bg-background">
+                  Status: {filters.status}
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-4 w-4 p-0 ml-1" 
+                    onClick={() => setFilters({...filters, status: ""})}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </Badge>
+              )}
+              
+              {filters.dateRange.from && (
+                <Badge variant="outline" className="flex items-center gap-1 bg-background">
+                  From: {format(filters.dateRange.from, "PP")}
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-4 w-4 p-0 ml-1" 
+                    onClick={() => setFilters({
+                      ...filters, 
+                      dateRange: {...filters.dateRange, from: null}
+                    })}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </Badge>
+              )}
+              
+              {filters.dateRange.to && (
+                <Badge variant="outline" className="flex items-center gap-1 bg-background">
+                  To: {format(filters.dateRange.to, "PP")}
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-4 w-4 p-0 ml-1" 
+                    onClick={() => setFilters({
+                      ...filters, 
+                      dateRange: {...filters.dateRange, to: null}
+                    })}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </Badge>
+              )}
+              
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-sm text-muted-foreground" 
+                onClick={clearFilters}
+              >
+                Clear all
+              </Button>
+            </div>
+          )}
+          
+          {/* Filters Component */}
+          <DispatchFilters 
+            open={showFilters}
+            onClose={() => setShowFilters(false)}
+            filters={filters} 
+            onApplyFilters={handleFilterApply}
+          />
+          
+          {/* Results count */}
+          {schedules.length > 0 && (
+            <div className="mb-4 text-sm text-muted-foreground">
+              Showing {searchedSchedules.length} of {schedules.length} schedules
+              {searchTerm && <span> (search: "{searchTerm}")</span>}
+              {isFiltersActive && <span> (filtered)</span>}
+            </div>
+          )}
+          
           {loading ? (
             <div className="flex justify-center items-center h-40">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : schedules.length === 0 ? (
+          ) : searchedSchedules.length === 0 ? (
             <div className="text-center p-8 text-muted-foreground">
-              No delivery schedules found.
+              No dispatch schedules found matching your criteria.
             </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-center">Customer</TableHead>
-                    <TableHead className="text-center">Schedule</TableHead>
-                    <TableHead className="text-center">Driver</TableHead>
-                    <TableHead className="text-center">Items</TableHead>
-                    <TableHead className="text-center">Notes</TableHead>
+                    <TableHead className="text-center">Schedule #</TableHead>
+                    <TableHead className="text-center">Date</TableHead>
+                    <TableHead className="text-center">Stops</TableHead>
                     <TableHead className="text-center">Status</TableHead>
                     <TableHead className="text-center">Created</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {schedules.map((schedule) => (
+                  {searchedSchedules.map((schedule) => (
                     <TableRow key={schedule.id}>
-                      <TableCell className="text-center font-medium">{schedule.customer_name}</TableCell>
-                      <TableCell className="text-center">{formatScheduleDate(schedule)}</TableCell>
-                      <TableCell className="text-center">{schedule.driver_name}</TableCell>
-                      <TableCell className="text-center">{schedule.items || "-"}</TableCell>
-                      <TableCell className="text-center max-w-[200px] truncate">{schedule.notes || "-"}</TableCell>
+                      <TableCell className="text-center font-medium">{schedule.schedule_number}</TableCell>
+                      <TableCell className="text-center">{format(new Date(schedule.schedule_date), "MMM d, yyyy")}</TableCell>
+                      <TableCell className="text-center">{schedule.stop_count}</TableCell>
                       <TableCell className="text-center">
                         <span className={`px-2 py-1 rounded-full text-xs ${
                           schedule.status === "submitted" 
                             ? "bg-green-100 text-green-800" 
                             : "bg-gray-100 text-gray-800"
                         }`}>
-                          {schedule.status === "submitted" ? "Submitted" : "Draft"}
+                          {schedule.status.charAt(0).toUpperCase() + schedule.status.slice(1)}
                         </span>
                       </TableCell>
                       <TableCell className="text-center">
