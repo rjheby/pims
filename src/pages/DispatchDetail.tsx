@@ -1,4 +1,64 @@
+/*
+ * DISABLED COMPONENT
+ * This component has been replaced by DispatchForm
+ * Keeping it for reference but it's no longer in use
+ */
 
+import { useState, useEffect } from "react";
+import { useParams, Link } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+
+// The original interface definitions
+interface DeliverySchedule {
+  id: string;
+  customer_id: string;
+  schedule_type: "one-time" | "recurring" | "bi-weekly";
+  recurring_day: string | null;
+  delivery_date: string | null;
+  notes: string | null;
+  driver_id: string | null;
+  items: string | null;
+  status: string;
+  created_at: string;
+}
+
+interface Customer {
+  id: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+}
+
+// Export a placeholder component that renders nothing
+export default function DispatchDetail() {
+  return (
+    <div className="flex justify-center items-center p-8">
+      <Card className="max-w-md">
+        <CardHeader>
+          <CardTitle>Component Deprecated</CardTitle>
+          <CardDescription>
+            This component has been replaced by the new DispatchForm component
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button asChild>
+            <Link to="/dispatch-archive">Go to Dispatch Archive</Link>
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+/* 
+  Original component code is commented out below
+  --------------------------------------------- 
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -235,3 +295,4 @@ export default function DispatchDetail() {
     </div>
   );
 }
+*/
