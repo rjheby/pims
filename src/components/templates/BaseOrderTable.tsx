@@ -1,4 +1,3 @@
-
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -299,8 +298,8 @@ export function BaseOrderTable({
                   key={header.key}
                   className={getColumnWidth(header.key, header.className)}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="truncate pr-1">
+                  <div className="flex items-center justify-center">
+                    <span className="text-center whitespace-normal px-1">
                       {header.label}
                       {columnFilters[header.key] && (
                         <Badge className="ml-1 text-xs bg-primary/20 text-primary py-0.5 px-1">
