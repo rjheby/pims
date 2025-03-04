@@ -73,10 +73,10 @@ export function CustomerTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Contact</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead className="w-[150px]">Actions</TableHead>
+              <TableHead className="text-center">Name</TableHead>
+              <TableHead className="text-center">Contact</TableHead>
+              <TableHead className="text-center">Type</TableHead>
+              <TableHead className="text-center w-[150px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -89,11 +89,11 @@ export function CustomerTable({
             ) : (
               customers.map((customer) => (
                 <TableRow key={customer.id}>
-                  <TableCell className="font-medium cursor-pointer" onClick={() => handleViewDetails(customer)}>
+                  <TableCell className="font-medium cursor-pointer text-center" onClick={() => handleViewDetails(customer)}>
                     {customer.name}
                   </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col gap-1">
+                  <TableCell className="text-center">
+                    <div className="flex flex-col items-center gap-1">
                       {customer.phone && (
                         <div className="flex items-center gap-1 text-sm">
                           <Phone size={14} /> {customer.phone}
@@ -106,7 +106,7 @@ export function CustomerTable({
                       )}
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
                     <span className={`px-2 py-1 rounded-full text-xs ${
                       customer.type === 'commercial' 
                         ? 'bg-blue-100 text-blue-800' 
@@ -115,8 +115,8 @@ export function CustomerTable({
                       {customer.type.charAt(0).toUpperCase() + customer.type.slice(1)}
                     </span>
                   </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
+                  <TableCell className="text-center">
+                    <div className="flex justify-center gap-2">
                       <Button variant="ghost" size="sm" onClick={() => handleEdit(customer)}>
                         <Edit size={16} />
                       </Button>
