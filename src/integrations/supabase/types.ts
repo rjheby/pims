@@ -9,6 +9,98 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      customer_pricing: {
+        Row: {
+          created_at: string | null
+          custom_price: number | null
+          customer_id: string
+          discount_percentage: number | null
+          id: string
+          updated_at: string | null
+          wood_product_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          custom_price?: number | null
+          customer_id: string
+          discount_percentage?: number | null
+          id?: string
+          updated_at?: string | null
+          wood_product_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          custom_price?: number | null
+          customer_id?: string
+          discount_percentage?: number | null
+          id?: string
+          updated_at?: string | null
+          wood_product_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_pricing_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_pricing_wood_product_id_fkey"
+            columns: ["wood_product_id"]
+            isOneToOne: false
+            referencedRelation: "wood_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customers: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          profile_id: string | null
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          profile_id?: string | null
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          profile_id?: string | null
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       firewood_products: {
         Row: {
           created_at: string | null
@@ -216,6 +308,44 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      recurring_orders: {
+        Row: {
+          created_at: string | null
+          customer_id: string
+          frequency: string
+          id: string
+          preferred_day: string | null
+          preferred_time: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          customer_id: string
+          frequency: string
+          id?: string
+          preferred_day?: string | null
+          preferred_time?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          customer_id?: string
+          frequency?: string
+          id?: string
+          preferred_day?: string | null
+          preferred_time?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       wholesale_order_options: {
         Row: {
