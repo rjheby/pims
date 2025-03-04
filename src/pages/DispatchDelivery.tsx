@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, Loader2, Archive, Trash, SendHorizontal } from "lucide-react";
+import { Calendar as CalendarIcon, Loader2, Plus, Trash } from "lucide-react";
 import { Customer } from "./customers/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -24,15 +24,21 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Link } from "react-router-dom";
 import { BaseOrderActions } from "@/components/templates/BaseOrderActions";
 
-interface DeliverySchedule {
+interface DeliveryItem {
   id?: string;
   customer_id: string | null;
-  schedule_type: "one-time" | "recurring" | "bi-weekly";
-  recurring_day: string | null;
-  delivery_date: Date | null;
   notes: string | null;
   driver_id: string | null;
   items: string | null;
+}
+
+interface DeliverySchedule {
+  id?: string;
+  schedule_type: "one-time" | "recurring" | "bi-weekly";
+  recurring_day: string | null;
+  delivery_date: Date | null;
+  items: DeliveryItem[];
+  unscheduled_items: DeliveryItem[];
 }
 
 interface Driver {
@@ -42,10 +48,14 @@ interface Driver {
 
 export default function DispatchDelivery() {
   const [deliverySchedule, setDeliverySchedule] = useState<DeliverySchedule>({
-    customer_id: null,
     schedule_type: "one-time",
     recurring_day: null,
     delivery_date: null,
+    items: [],
+    unscheduled_items: []
+  });
+  const [currentDelivery, setCurrentDelivery] = useState<DeliveryItem>({
+    customer_id: null,
     notes: null,
     driver_id: null,
     items: null,
@@ -93,56 +103,151 @@ export default function DispatchDelivery() {
   }, []);
 
   // Find the selected customer by ID
-  const selectedCustomer = customers.find(c => c.id === deliverySchedule.customer_id);
+  const selectedCustomer = customers.find(c => c.id === currentDelivery.customer_id);
+
+  const handleAddDelivery = () => {
+    if (!currentDelivery.customer_id) {
+      toast({
+        title: "Error",
+        description: "Please select a customer",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setDeliverySchedule(prev => ({
+      ...prev,
+      items: [...prev.items, { ...currentDelivery }]
+    }));
+
+    // Reset current delivery form
+    setCurrentDelivery({
+      customer_id: null,
+      notes: null,
+      driver_id: null,
+      items: null,
+    });
+  };
+
+  const handleAddToUnscheduled = () => {
+    if (!currentDelivery.customer_id) {
+      toast({
+        title: "Error",
+        description: "Please select a customer",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setDeliverySchedule(prev => ({
+      ...prev,
+      unscheduled_items: [...prev.unscheduled_items, { ...currentDelivery }]
+    }));
+
+    // Reset current delivery form
+    setCurrentDelivery({
+      customer_id: null,
+      notes: null,
+      driver_id: null,
+      items: null,
+    });
+  };
+
+  const handleRemoveDelivery = (index: number) => {
+    setDeliverySchedule(prev => ({
+      ...prev,
+      items: prev.items.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleRemoveUnscheduledDelivery = (index: number) => {
+    setDeliverySchedule(prev => ({
+      ...prev,
+      unscheduled_items: prev.unscheduled_items.filter((_, i) => i !== index)
+    }));
+  };
 
   const handleSave = async () => {
     try {
       setIsSaving(true);
       
-      if (!deliverySchedule.customer_id) {
+      if (deliverySchedule.items.length === 0 && deliverySchedule.unscheduled_items.length === 0) {
         toast({
           title: "Error",
-          description: "Please select a customer",
+          description: "Please add at least one delivery",
           variant: "destructive"
         });
         return;
       }
-      
-      // In a real application, you would save to database here
-      const { data, error } = await supabase
-        .from("delivery_schedules")
-        .insert({
-          customer_id: deliverySchedule.customer_id,
-          schedule_type: deliverySchedule.schedule_type,
-          recurring_day: deliverySchedule.recurring_day,
-          delivery_date: deliverySchedule.delivery_date,
-          notes: deliverySchedule.notes,
-          driver_id: deliverySchedule.driver_id,
-          items: deliverySchedule.items,
-          status: "draft"
-        })
-        .select();
-      
-      if (error) {
-        console.error("Error saving delivery schedule:", error);
+
+      if (!deliverySchedule.delivery_date && deliverySchedule.schedule_type === "one-time" && deliverySchedule.items.length > 0) {
         toast({
           title: "Error",
-          description: "Failed to save delivery schedule: " + error.message,
+          description: "Please select a delivery date",
           variant: "destructive"
         });
         return;
       }
+
+      if (!deliverySchedule.recurring_day && 
+          (deliverySchedule.schedule_type === "recurring" || deliverySchedule.schedule_type === "bi-weekly") && 
+          deliverySchedule.items.length > 0) {
+        toast({
+          title: "Error",
+          description: "Please select a day for recurring delivery",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Process scheduled items
+      for (const item of deliverySchedule.items) {
+        await supabase
+          .from("delivery_schedules")
+          .insert({
+            customer_id: item.customer_id,
+            schedule_type: deliverySchedule.schedule_type,
+            recurring_day: deliverySchedule.recurring_day,
+            delivery_date: deliverySchedule.delivery_date,
+            notes: item.notes,
+            driver_id: item.driver_id,
+            items: item.items,
+            status: "draft"
+          });
+      }
+
+      // Process unscheduled items
+      for (const item of deliverySchedule.unscheduled_items) {
+        await supabase
+          .from("delivery_schedules")
+          .insert({
+            customer_id: item.customer_id,
+            schedule_type: "one-time", // Default for unscheduled
+            notes: item.notes,
+            driver_id: item.driver_id,
+            items: item.items,
+            status: "draft"
+          });
+      }
       
-      console.log("Delivery schedule saved:", data);
       toast({
         title: "Success",
-        description: "Delivery schedule saved successfully"
+        description: "Delivery schedules saved successfully"
+      });
+
+      // Reset form after successful save
+      setDeliverySchedule({
+        schedule_type: "one-time",
+        recurring_day: null,
+        delivery_date: null,
+        items: [],
+        unscheduled_items: []
       });
     } catch (error) {
-      console.error("Error saving delivery schedule:", error);
+      console.error("Error saving delivery schedules:", error);
       toast({
         title: "Error",
-        description: "Failed to save delivery schedule",
+        description: "Failed to save delivery schedules",
         variant: "destructive"
       });
     } finally {
@@ -154,15 +259,15 @@ export default function DispatchDelivery() {
     try {
       setIsSubmitting(true);
       
-      if (!deliverySchedule.customer_id) {
+      if (deliverySchedule.items.length === 0) {
         toast({
           title: "Error",
-          description: "Please select a customer",
+          description: "Please add at least one delivery to the schedule",
           variant: "destructive"
         });
         return;
       }
-      
+
       if (!deliverySchedule.delivery_date && deliverySchedule.schedule_type === "one-time") {
         toast({
           title: "Error",
@@ -181,53 +286,41 @@ export default function DispatchDelivery() {
         });
         return;
       }
-      
-      // In a real application, you would submit to database here
-      const { data, error } = await supabase
-        .from("delivery_schedules")
-        .insert({
-          customer_id: deliverySchedule.customer_id,
-          schedule_type: deliverySchedule.schedule_type,
-          recurring_day: deliverySchedule.recurring_day,
-          delivery_date: deliverySchedule.delivery_date,
-          notes: deliverySchedule.notes,
-          driver_id: deliverySchedule.driver_id,
-          items: deliverySchedule.items,
-          status: "submitted"
-        })
-        .select();
-      
-      if (error) {
-        console.error("Error submitting delivery schedule:", error);
-        toast({
-          title: "Error",
-          description: "Failed to submit delivery schedule: " + error.message,
-          variant: "destructive"
-        });
-        return;
+
+      // Process scheduled items with submitted status
+      for (const item of deliverySchedule.items) {
+        await supabase
+          .from("delivery_schedules")
+          .insert({
+            customer_id: item.customer_id,
+            schedule_type: deliverySchedule.schedule_type,
+            recurring_day: deliverySchedule.recurring_day,
+            delivery_date: deliverySchedule.delivery_date,
+            notes: item.notes,
+            driver_id: item.driver_id,
+            items: item.items,
+            status: "submitted"
+          });
       }
       
-      console.log("Delivery schedule submitted:", data);
       toast({
         title: "Success",
-        description: "Delivery schedule submitted successfully"
+        description: "Delivery schedules submitted successfully"
       });
       
       // Reset form after successful submission
       setDeliverySchedule({
-        customer_id: null,
         schedule_type: "one-time",
         recurring_day: null,
         delivery_date: null,
-        notes: null,
-        driver_id: null,
-        items: null,
+        items: [],
+        unscheduled_items: []
       });
     } catch (error) {
-      console.error("Error submitting delivery schedule:", error);
+      console.error("Error submitting delivery schedules:", error);
       toast({
         title: "Error",
-        description: "Failed to submit delivery schedule",
+        description: "Failed to submit delivery schedules",
         variant: "destructive"
       });
     } finally {
@@ -238,8 +331,8 @@ export default function DispatchDelivery() {
   const renderClientCell = () => (
     <div className="flex items-center space-x-2">
       <Select 
-        value={deliverySchedule.customer_id || ""} 
-        onValueChange={(value) => setDeliverySchedule(prev => ({ ...prev, customer_id: value }))}
+        value={currentDelivery.customer_id || ""} 
+        onValueChange={(value) => setCurrentDelivery(prev => ({ ...prev, customer_id: value }))}
       >
         <SelectTrigger className={isMobile ? "w-full" : "w-[200px]"}>
           <SelectValue placeholder="Select a customer" />
@@ -328,10 +421,9 @@ export default function DispatchDelivery() {
 
   const renderDriverCell = () => (
     <div className="space-y-2">
-      <Label htmlFor="driver">Driver</Label>
       <Select 
-        value={deliverySchedule.driver_id || ""} 
-        onValueChange={(value) => setDeliverySchedule(prev => ({ ...prev, driver_id: value }))}
+        value={currentDelivery.driver_id || ""} 
+        onValueChange={(value) => setCurrentDelivery(prev => ({ ...prev, driver_id: value }))}
       >
         <SelectTrigger className="w-full">
           <SelectValue placeholder="Select a driver" />
@@ -349,26 +441,22 @@ export default function DispatchDelivery() {
 
   const renderItemsField = () => (
     <div className="space-y-2">
-      <Label htmlFor="items">Items</Label>
       <Input 
-        id="items" 
         placeholder="Enter delivery items..."
-        value={deliverySchedule.items || ""}
-        onChange={(e) => setDeliverySchedule(prev => ({ ...prev, items: e.target.value }))}
-        className="min-h-[60px]"
+        value={currentDelivery.items || ""}
+        onChange={(e) => setCurrentDelivery(prev => ({ ...prev, items: e.target.value }))}
+        className="min-h-[40px]"
       />
     </div>
   );
 
   const renderNoteField = () => (
     <div className="space-y-2">
-      <Label htmlFor="notes">Delivery Notes</Label>
       <Input 
-        id="notes" 
         placeholder="Enter delivery notes or special instructions..."
-        value={deliverySchedule.notes || ""}
-        onChange={(e) => setDeliverySchedule(prev => ({ ...prev, notes: e.target.value }))}
-        className="min-h-[60px]"
+        value={currentDelivery.notes || ""}
+        onChange={(e) => setCurrentDelivery(prev => ({ ...prev, notes: e.target.value }))}
+        className="min-h-[40px]"
       />
     </div>
   );
@@ -393,112 +481,164 @@ export default function DispatchDelivery() {
             <div className="flex justify-center items-center h-40">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : isMobile ? (
-            <div className="space-y-6">
-              <div className="grid gap-4">
-                <div className="space-y-2">
-                  <Label>Client</Label>
-                  {renderClientCell()}
-                </div>
-                
-                {selectedCustomer && (
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">Phone</label>
-                      <div className="text-center">{selectedCustomer.phone || '-'}</div>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">Address</label>
-                      <div className="text-sm break-words text-center">{selectedCustomer.address || '-'}</div>
-                    </div>
-                  </div>
-                )}
-                
-                <div className="space-y-2">
-                  <Label>Delivery Schedule</Label>
-                  {renderScheduleCell()}
-                </div>
-                
-                {renderDriverCell()}
-                {renderItemsField()}
-                {renderNoteField()}
-              </div>
-              
-              <BaseOrderActions 
-                onSave={handleSave}
-                onSubmit={handleSubmit}
-                archiveLink="/dispatch-archive"
-                isSaving={isSaving}
-                isSubmitting={isSubmitting}
-                submitLabel="Submit Schedule"
-              />
-            </div>
           ) : (
             <div className="space-y-6">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-center">Client</TableHead>
-                      <TableHead className="text-center">Phone</TableHead>
-                      <TableHead className="text-center">Delivery Schedule</TableHead>
-                      <TableHead className="text-center">Driver</TableHead>
-                      <TableHead className="text-center">Items</TableHead>
-                      <TableHead className="text-center">Notes</TableHead>
-                      <TableHead className="text-center">Address</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell className="font-medium text-center">{renderClientCell()}</TableCell>
-                      <TableCell className="text-center">{selectedCustomer?.phone || '-'}</TableCell>
-                      <TableCell className="text-center">{renderScheduleCell()}</TableCell>
-                      <TableCell className="text-center">
-                        <Select 
-                          value={deliverySchedule.driver_id || ""} 
-                          onValueChange={(value) => setDeliverySchedule(prev => ({ ...prev, driver_id: value }))}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select driver" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {drivers.map((driver) => (
-                              <SelectItem key={driver.id} value={driver.id}>
-                                {driver.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Input 
-                          placeholder="Enter items..."
-                          value={deliverySchedule.items || ""}
-                          onChange={(e) => setDeliverySchedule(prev => ({ ...prev, items: e.target.value }))}
-                          className="min-h-[40px] w-full"
-                        />
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Input 
-                          placeholder="Delivery notes..."
-                          value={deliverySchedule.notes || ""}
-                          onChange={(e) => setDeliverySchedule(prev => ({ ...prev, notes: e.target.value }))}
-                          className="min-h-[40px] w-full"
-                        />
-                      </TableCell>
-                      <TableCell className="max-w-[200px] truncate text-center" title={selectedCustomer?.address || '-'}>
-                        {selectedCustomer?.address || '-'}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm">
-                          <Trash className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </div>
+              <Card className="bg-gray-50">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg">Schedule Settings</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col md:flex-row gap-4">
+                    {renderScheduleCell()}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg">Add Delivery to Schedule</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>Customer</Label>
+                      {renderClientCell()}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Driver</Label>
+                      {renderDriverCell()}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Items</Label>
+                      {renderItemsField()}
+                    </div>
+
+                    <div className="space-y-2 md:col-span-2 lg:col-span-3">
+                      <Label>Notes</Label>
+                      {renderNoteField()}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex justify-end gap-2">
+                    <Button 
+                      type="button" 
+                      onClick={handleAddToUnscheduled}
+                      variant="outline"
+                    >
+                      Add to Unscheduled
+                    </Button>
+                    <Button 
+                      type="button" 
+                      onClick={handleAddDelivery}
+                      variant="default"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add to Current Schedule
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {deliverySchedule.items.length > 0 && (
+                <Card className="border-green-200">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg text-green-700">
+                      {deliverySchedule.schedule_type === "one-time" 
+                        ? deliverySchedule.delivery_date 
+                          ? `Scheduled for ${format(deliverySchedule.delivery_date, "MMMM d, yyyy")}` 
+                          : "One-time Delivery (select date above)"
+                        : deliverySchedule.recurring_day
+                          ? `${deliverySchedule.schedule_type === "recurring" ? "Weekly" : "Bi-weekly"} on ${deliverySchedule.recurring_day.split('-')[0].charAt(0).toUpperCase() + deliverySchedule.recurring_day.split('-')[0].slice(1)}s`
+                          : `${deliverySchedule.schedule_type === "recurring" ? "Weekly" : "Bi-weekly"} Delivery (select day above)`
+                      }
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="text-center">Customer</TableHead>
+                            <TableHead className="text-center">Driver</TableHead>
+                            <TableHead className="text-center">Items</TableHead>
+                            <TableHead className="text-center">Notes</TableHead>
+                            <TableHead className="text-center">Address</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {deliverySchedule.items.map((item, index) => {
+                            const customer = customers.find(c => c.id === item.customer_id);
+                            const driver = drivers.find(d => d.id === item.driver_id);
+                            
+                            return (
+                              <TableRow key={index}>
+                                <TableCell className="font-medium">{customer?.name || "Unknown"}</TableCell>
+                                <TableCell>{driver?.name || "Not assigned"}</TableCell>
+                                <TableCell>{item.items || "-"}</TableCell>
+                                <TableCell className="max-w-[200px] truncate">{item.notes || "-"}</TableCell>
+                                <TableCell className="max-w-[200px] truncate">{customer?.address || "-"}</TableCell>
+                                <TableCell className="text-right">
+                                  <Button variant="ghost" size="sm" onClick={() => handleRemoveDelivery(index)}>
+                                    <Trash className="h-4 w-4" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {deliverySchedule.unscheduled_items.length > 0 && (
+                <Card className="border-amber-200">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg text-amber-700">Unscheduled Deliveries</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="text-center">Customer</TableHead>
+                            <TableHead className="text-center">Driver</TableHead>
+                            <TableHead className="text-center">Items</TableHead>
+                            <TableHead className="text-center">Notes</TableHead>
+                            <TableHead className="text-center">Address</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {deliverySchedule.unscheduled_items.map((item, index) => {
+                            const customer = customers.find(c => c.id === item.customer_id);
+                            const driver = drivers.find(d => d.id === item.driver_id);
+                            
+                            return (
+                              <TableRow key={index}>
+                                <TableCell className="font-medium">{customer?.name || "Unknown"}</TableCell>
+                                <TableCell>{driver?.name || "Not assigned"}</TableCell>
+                                <TableCell>{item.items || "-"}</TableCell>
+                                <TableCell className="max-w-[200px] truncate">{item.notes || "-"}</TableCell>
+                                <TableCell className="max-w-[200px] truncate">{customer?.address || "-"}</TableCell>
+                                <TableCell className="text-right">
+                                  <Button variant="ghost" size="sm" onClick={() => handleRemoveUnscheduledDelivery(index)}>
+                                    <Trash className="h-4 w-4" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
               
               <BaseOrderActions 
                 onSave={handleSave}
@@ -507,6 +647,7 @@ export default function DispatchDelivery() {
                 isSaving={isSaving}
                 isSubmitting={isSubmitting}
                 submitLabel="Submit Schedule"
+                archiveLabel="View All Schedules"
               />
             </div>
           )}

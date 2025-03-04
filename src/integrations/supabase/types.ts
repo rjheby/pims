@@ -101,6 +101,53 @@ export type Database = {
           },
         ]
       }
+      delivery_schedules: {
+        Row: {
+          created_at: string | null
+          customer_id: string | null
+          delivery_date: string | null
+          driver_id: string | null
+          id: string
+          items: string | null
+          notes: string | null
+          recurring_day: string | null
+          schedule_type: string
+          status: string
+        }
+        Insert: {
+          created_at?: string | null
+          customer_id?: string | null
+          delivery_date?: string | null
+          driver_id?: string | null
+          id?: string
+          items?: string | null
+          notes?: string | null
+          recurring_day?: string | null
+          schedule_type: string
+          status?: string
+        }
+        Update: {
+          created_at?: string | null
+          customer_id?: string | null
+          delivery_date?: string | null
+          driver_id?: string | null
+          id?: string
+          items?: string | null
+          notes?: string | null
+          recurring_day?: string | null
+          schedule_type?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_schedules_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       firewood_products: {
         Row: {
           created_at: string | null
