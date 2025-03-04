@@ -1,299 +1,269 @@
-
-import React, { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState, useEffect } from "react";
+import { useDispatchSchedule } from "../context/DispatchScheduleContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import { GripVertical, Plus, Trash2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Trash, Plus, ArrowUp, ArrowDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Customer } from "../../customers/types"; // Adjust path as needed
 
-interface StopsTableProps {
-  stops: any[];
-  masterScheduleId: string;
-  readOnly?: boolean;
-  onStopsChange?: (stops: any[]) => void;
+interface Driver {
+  id: string;
+  name: string;
 }
 
-export function StopsTable({ stops, masterScheduleId, readOnly = false, onStopsChange }: StopsTableProps) {
-  const [stopsData, setStopsData] = useState<any[]>(stops || []);
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [drivers, setDrivers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
+export function StopsTable() {
+  const { stops, setStops, addStop, removeStop, updateStop } = useDispatchSchedule();
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Current stop being edited
+  const [currentStop, setCurrentStop] = useState({
+    customer_id: "",
+    driver_id: null,
+    notes: "",
+    items: "",
+    sequence: 0
+  });
 
+  // Fetch customers and drivers when component mounts
   useEffect(() => {
-    // Fetch customers and drivers when component mounts
-    const fetchData = async () => {
+    async function fetchData() {
       setLoading(true);
       try {
         // Fetch customers
         const { data: customersData, error: customersError } = await supabase
           .from("customers")
           .select("id, name, address")
-          .order("name");
-        
+          .order('name');
+
         if (customersError) throw customersError;
         setCustomers(customersData || []);
-        
-        // Fetch drivers
-        const { data: driversData, error: driversError } = await supabase
-          .from("drivers")
-          .select("id, name")
-          .eq("status", "active")
-          .order("name");
-        
-        if (driversError) throw driversError;
-        setDrivers(driversData || []);
+
+        // In a real implementation, fetch drivers from your drivers table
+        // For now, using mock data
+        setDrivers([
+          { id: "driver-1", name: "John Smith" },
+          { id: "driver-2", name: "Maria Garcia" },
+          { id: "driver-3", name: "Robert Johnson" },
+          { id: "driver-4", name: "Sarah Lee" },
+        ]);
       } catch (error) {
         console.error("Error fetching data:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load necessary data",
-          variant: "destructive",
-        });
       } finally {
         setLoading(false);
       }
-    };
-    
-    fetchData();
-  }, [toast]);
-
-  // Update local state when props change
-  useEffect(() => {
-    if (stops && JSON.stringify(stops) !== JSON.stringify(stopsData)) {
-      setStopsData(stops);
     }
-  }, [stops]);
+
+    fetchData();
+  }, []);
 
   const handleAddStop = () => {
+    if (!currentStop.customer_id) {
+      return; // Don't add if no customer selected
+    }
+    
     const newStop = {
-      id: `temp-${Date.now()}`,
-      customer_id: "",
-      driver_id: "",
-      notes: "",
-      items: "",
-      status: "draft",
-      master_schedule_id: masterScheduleId,
-      sequence: stopsData.length + 1,
-      isNew: true
+      ...currentStop,
+      sequence: stops.length + 1
     };
     
-    const updatedStops = [...stopsData, newStop];
-    setStopsData(updatedStops);
-    if (onStopsChange) onStopsChange(updatedStops);
+    addStop(newStop);
+    
+    // Reset current stop form
+    setCurrentStop({
+      customer_id: "",
+      driver_id: null,
+      notes: "",
+      items: "",
+      sequence: 0
+    });
   };
 
-  const handleRemoveStop = (index: number) => {
-    const updatedStops = stopsData.filter((_, i) => i !== index);
-    // Update sequence numbers
-    updatedStops.forEach((stop, i) => {
+  const handleMoveUp = (index: number) => {
+    if (index === 0) return;
+    
+    const newStops = [...stops];
+    [newStops[index - 1], newStops[index]] = [newStops[index], newStops[index - 1]];
+    
+    // Update sequences
+    newStops.forEach((stop, i) => {
       stop.sequence = i + 1;
     });
     
-    setStopsData(updatedStops);
-    if (onStopsChange) onStopsChange(updatedStops);
+    setStops(newStops);
   };
 
-  const handleFieldChange = (index: number, field: string, value: any) => {
-    const updatedStops = [...stopsData];
-    updatedStops[index][field] = value;
+  const handleMoveDown = (index: number) => {
+    if (index === stops.length - 1) return;
     
-    // If changing customer, maybe update address or other customer-specific info
-    if (field === "customer_id") {
-      const selectedCustomer = customers.find(c => c.id === value);
-      if (selectedCustomer) {
-        updatedStops[index].customer = selectedCustomer;
-      }
-    }
+    const newStops = [...stops];
+    [newStops[index], newStops[index + 1]] = [newStops[index + 1], newStops[index]];
     
-    setStopsData(updatedStops);
-    if (onStopsChange) onStopsChange(updatedStops);
-  };
-
-  const handleDragEnd = (result: any) => {
-    if (!result.destination) return;
-    
-    const items = Array.from(stopsData);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-    
-    // Update sequence numbers
-    items.forEach((item, index) => {
-      item.sequence = index + 1;
+    // Update sequences
+    newStops.forEach((stop, i) => {
+      stop.sequence = i + 1;
     });
     
-    setStopsData(items);
-    if (onStopsChange) onStopsChange(items);
+    setStops(newStops);
+  };
+
+  const getCustomerById = (id: string) => {
+    return customers.find(c => c.id === id);
+  };
+
+  const getDriverById = (id: string | null) => {
+    if (!id) return null;
+    return drivers.find(d => d.id === id);
   };
 
   if (loading) {
-    return <div>Loading stop data...</div>;
+    return <div className="text-center p-4">Loading...</div>;
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="font-medium">Delivery Stops</h3>
-        {!readOnly && (
-          <Button 
-            type="button" 
-            variant="outline" 
-            size="sm" 
-            onClick={handleAddStop}
+      <h3 className="text-lg font-medium">Delivery Stops</h3>
+      
+      {/* Add new stop form */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-md bg-gray-50">
+        <div>
+          <label className="block text-sm font-medium mb-1">Customer</label>
+          <Select
+            value={currentStop.customer_id}
+            onValueChange={(value) => setCurrentStop({...currentStop, customer_id: value})}
           >
-            <Plus className="h-4 w-4 mr-2" />
+            <SelectTrigger>
+              <SelectValue placeholder="Select customer" />
+            </SelectTrigger>
+            <SelectContent>
+              {customers.map((customer) => (
+                <SelectItem key={customer.id} value={customer.id}>
+                  {customer.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium mb-1">Driver</label>
+          <Select
+            value={currentStop.driver_id || ""}
+            onValueChange={(value) => setCurrentStop({...currentStop, driver_id: value})}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Assign driver" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Unassigned</SelectItem>
+              {drivers.map((driver) => (
+                <SelectItem key={driver.id} value={driver.id}>
+                  {driver.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium mb-1">Items</label>
+          <Input
+            value={currentStop.items || ""}
+            onChange={(e) => setCurrentStop({...currentStop, items: e.target.value})}
+            placeholder="Items to deliver"
+          />
+        </div>
+        
+        <div className="md:flex md:items-end md:justify-end">
+          <Button 
+            onClick={handleAddStop} 
+            className="w-full md:w-auto bg-[#2A4131] hover:bg-[#2A4131]/90"
+            disabled={!currentStop.customer_id}
+          >
+            <Plus className="mr-2 h-4 w-4" />
             Add Stop
           </Button>
-        )}
+        </div>
       </div>
       
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <Droppable droppableId="stops">
-          {(provided) => (
-            <div 
-              {...provided.droppableProps}
-              ref={provided.innerRef}
-              className="border rounded-md"
-            >
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    {!readOnly && <TableHead style={{ width: '40px' }}></TableHead>}
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Driver</TableHead>
-                    <TableHead>Items</TableHead>
-                    <TableHead>Notes</TableHead>
-                    <TableHead>Status</TableHead>
-                    {!readOnly && <TableHead style={{ width: '80px' }}>Actions</TableHead>}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {stopsData.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={readOnly ? 5 : 7} className="text-center py-4 text-muted-foreground">
-                        No stops added yet
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    stopsData.map((stop, index) => (
-                      <Draggable 
-                        key={stop.id} 
-                        draggableId={stop.id} 
-                        index={index}
-                        isDragDisabled={readOnly}
+      {/* Notes field */}
+      <div className="space-y-2">
+        <label className="block text-sm font-medium">Notes</label>
+        <Input
+          value={currentStop.notes || ""}
+          onChange={(e) => setCurrentStop({...currentStop, notes: e.target.value})}
+          placeholder="Delivery notes or special instructions"
+        />
+      </div>
+      
+      {/* Stops table */}
+      {stops.length > 0 ? (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[50px]">Seq</TableHead>
+              <TableHead>Customer</TableHead>
+              <TableHead>Driver</TableHead>
+              <TableHead>Items</TableHead>
+              <TableHead>Notes</TableHead>
+              <TableHead>Address</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {stops.map((stop, index) => {
+              const customer = getCustomerById(stop.customer_id);
+              const driver = getDriverById(stop.driver_id);
+              
+              return (
+                <TableRow key={index}>
+                  <TableCell className="font-medium">{stop.sequence}</TableCell>
+                  <TableCell>{customer?.name || "Unknown"}</TableCell>
+                  <TableCell>{driver?.name || "Unassigned"}</TableCell>
+                  <TableCell className="max-w-[150px] truncate">{stop.items || "-"}</TableCell>
+                  <TableCell className="max-w-[150px] truncate">{stop.notes || "-"}</TableCell>
+                  <TableCell className="max-w-[200px] truncate">{customer?.address || "-"}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleMoveUp(index)}
+                        disabled={index === 0}
                       >
-                        {(provided) => (
-                          <TableRow
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                          >
-                            {!readOnly && (
-                              <TableCell {...provided.dragHandleProps}>
-                                <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
-                              </TableCell>
-                            )}
-                            <TableCell>
-                              {readOnly ? (
-                                stop.customer?.name || "Unknown"
-                              ) : (
-                                <Select
-                                  value={stop.customer_id}
-                                  onValueChange={(value) => handleFieldChange(index, "customer_id", value)}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select customer" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {customers.map((customer) => (
-                                      <SelectItem key={customer.id} value={customer.id}>
-                                        {customer.name}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {readOnly ? (
-                                stop.driver?.name || "Unassigned"
-                              ) : (
-                                <Select
-                                  value={stop.driver_id || ""}
-                                  onValueChange={(value) => handleFieldChange(index, "driver_id", value)}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Assign driver" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="">Unassigned</SelectItem>
-                                    {drivers.map((driver) => (
-                                      <SelectItem key={driver.id} value={driver.id}>
-                                        {driver.name}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {readOnly ? (
-                                stop.items || "-"
-                              ) : (
-                                <Input
-                                  value={stop.items || ""}
-                                  onChange={(e) => handleFieldChange(index, "items", e.target.value)}
-                                  placeholder="Items to deliver"
-                                />
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {readOnly ? (
-                                stop.notes || "-"
-                              ) : (
-                                <Input
-                                  value={stop.notes || ""}
-                                  onChange={(e) => handleFieldChange(index, "notes", e.target.value)}
-                                  placeholder="Delivery notes"
-                                />
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <span className={`px-2 py-1 rounded-full text-xs ${
-                                stop.status === "submitted" 
-                                  ? "bg-green-100 text-green-800" 
-                                  : "bg-gray-100 text-gray-800"
-                              }`}>
-                                {stop.status === "submitted" ? "Submitted" : "Draft"}
-                              </span>
-                            </TableCell>
-                            {!readOnly && (
-                              <TableCell>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleRemoveStop(index)}
-                                >
-                                  <Trash2 className="h-4 w-4 text-red-500" />
-                                </Button>
-                              </TableCell>
-                            )}
-                          </TableRow>
-                        )}
-                      </Draggable>
-                    ))
-                  )}
-                  {provided.placeholder}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </Droppable>
-      </DragDropContext>
+                        <ArrowUp className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleMoveDown(index)}
+                        disabled={index === stops.length - 1}
+                      >
+                        <ArrowDown className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => removeStop(index)}
+                        className="text-destructive"
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      ) : (
+        <div className="text-center py-8 text-gray-500">
+          No stops added yet. Add your first stop above.
+        </div>
+      )}
     </div>
   );
 }
