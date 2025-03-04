@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Eye, Plus } from "lucide-react";
+import { Loader2, Eye, ArrowLeft, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
@@ -39,8 +38,8 @@ export default function DispatchArchive() {
   const [filters, setFilters] = useState({
     status: "",
     dateRange: {
-      from: null as Date | null,
-      to: null as Date | null
+      from: null,
+      to: null
     }
   });
   const { toast } = useToast();
@@ -66,21 +65,16 @@ export default function DispatchArchive() {
         }
 
         // For each master schedule, get the count of stops
-        const schedulesWithStopCounts = await Promise.all(
-          schedulesData.map(async (schedule) => {
-            const { count, error } = await supabase
-              .from("delivery_schedules")
-              .select("*", { count: 'exact', head: true })
-              .eq("master_schedule_id", schedule.id);
-              
-            return {
-              ...schedule,
-              stop_count: count || 0
-            };
-          })
-        );
+        for (const schedule of schedulesData) {
+          const { count, error } = await supabase
+            .from("delivery_schedules")
+            .select("*", { count: 'exact', head: true })
+            .eq("master_schedule_id", schedule.id);
+            
+          schedule.stop_count = count || 0;
+        }
         
-        setSchedules(schedulesWithStopCounts);
+        setSchedules(schedulesData);
       } catch (error) {
         console.error("Error fetching schedules:", error);
         toast({
@@ -122,10 +116,10 @@ export default function DispatchArchive() {
       matchesFilter = false;
     }
     
-    if (filters.dateRange.from && new Date(schedule.schedule_date) < filters.dateRange.from) {
+    if (filters.dateRange.from && new Date(schedule.schedule_date) < new Date(filters.dateRange.from)) {
       matchesFilter = false;
     }
-    if (filters.dateRange.to && new Date(schedule.schedule_date) > filters.dateRange.to) {
+    if (filters.dateRange.to && new Date(schedule.schedule_date) > new Date(filters.dateRange.to)) {
       matchesFilter = false;
     }
     
@@ -282,13 +276,11 @@ export default function DispatchArchive() {
           />
           
           {/* Results count */}
-          {schedules.length > 0 && (
-            <div className="mb-4 text-sm text-muted-foreground">
-              Showing {searchedSchedules.length} of {schedules.length} schedules
-              {searchTerm && <span> (search: "{searchTerm}")</span>}
-              {isFiltersActive && <span> (filtered)</span>}
-            </div>
-          )}
+          <div className="mb-4 text-sm text-muted-foreground">
+            Showing {searchedSchedules.length} of {schedules.length} schedules
+            {searchTerm && <span> (search: "{searchTerm}")</span>}
+            {isFiltersActive && <span> (filtered)</span>}
+          </div>
           
           {loading ? (
             <div className="flex justify-center items-center h-40">
@@ -323,7 +315,7 @@ export default function DispatchArchive() {
                             ? "bg-green-100 text-green-800" 
                             : "bg-gray-100 text-gray-800"
                         }`}>
-                          {schedule.status.charAt(0).toUpperCase() + schedule.status.slice(1)}
+                          {schedule.status === "submitted" ? "Submitted" : "Draft"}
                         </span>
                       </TableCell>
                       <TableCell className="text-center">
@@ -331,7 +323,7 @@ export default function DispatchArchive() {
                       </TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="sm" asChild>
-                          <Link to={`/dispatch-detail/${schedule.id}`}>
+                          <Link to={`/dispatch-form/${schedule.id}`}>
                             <Eye className="h-4 w-4" />
                           </Link>
                         </Button>
