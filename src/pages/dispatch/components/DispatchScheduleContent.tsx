@@ -1,13 +1,23 @@
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { BaseOrderDetails } from "@/components/templates/BaseOrderDetails";
 import { BaseOrderSummary } from "@/components/templates/BaseOrderSummary";
 import { BaseOrderActions } from "@/components/templates/BaseOrderActions";
 import { StopsTable } from "./components/StopsTable";
-import { useDispatchSchedule } from "./context/DispatchScheduleContext";
+import { DispatchScheduleProvider, useDispatchSchedule } from "./context/DispatchScheduleContext";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
+
+// Wrapper component that provides the context
+export function DispatchScheduleContentWrapper() {
+  return (
+    <DispatchScheduleProvider>
+      <DispatchScheduleContent />
+    </DispatchScheduleProvider>
+  );
+}
 
 export function DispatchScheduleContent() {
   const { 
@@ -24,7 +34,7 @@ export function DispatchScheduleContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Format date for display
-  const formatDate = (dateStr) => {
+  const formatDate = (dateStr: string) => {
     if (!dateStr) return '';
     const [year, month, day] = dateStr.split('-').map(Number);
     return new Date(year, month - 1, day).toLocaleDateString('en-US', { 
@@ -40,7 +50,7 @@ export function DispatchScheduleContent() {
   // Calculate totals for all stops
   const calculateTotals = () => {
     const totalStops = stops.length;
-    const totalByDriver = stops.reduce((acc, stop) => {
+    const totalByDriver = stops.reduce((acc: Record<string, number>, stop) => {
       const driverId = stop.driver_id || 'unassigned';
       acc[driverId] = (acc[driverId] || 0) + 1;
       return acc;
@@ -123,7 +133,7 @@ export function DispatchScheduleContent() {
       });
       
       navigate(`/dispatch-form/${masterId}`);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error saving schedule:', err);
       toast({
         title: "Error",
@@ -192,7 +202,7 @@ export function DispatchScheduleContent() {
       });
       
       navigate("/dispatch-archive");
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error submitting schedule:', err);
       toast({
         title: "Error",
@@ -229,7 +239,6 @@ export function DispatchScheduleContent() {
               deliveryDate={scheduleDate}
               onOrderDateChange={handleScheduleDateChange}
               onDeliveryDateChange={handleScheduleDateChange}
-              dateLabel="Schedule Date"
               hideDateDelivery={true}
             />
             <div className="w-full overflow-x-auto pb-4">

@@ -1,138 +1,122 @@
 
 import { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useParams, Link } from "react-router-dom";
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardHeader, 
+  CardTitle 
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Loader2, Calendar, ArrowLeft, FileDown } from "lucide-react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { format, addDays } from "date-fns";
+import { format, isValid } from "date-fns";
+import { 
+  ChevronLeft, 
+  Clock, 
+  FileDown, 
+  Loader2, 
+  MapPin, 
+  Package, 
+  CheckCircle2, 
+  XCircle,
+  AlertCircle
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { downloadSchedulePDF } from "@/utils/GenerateSchedulePDF";
-
-interface Stop {
-  id: string;
-  customer_id: string;
-  customer: {
-    id: string;
-    name: string;
-    address: string;
-  };
-  items: string | null;
-  notes: string | null;
-  status: string;
-  sequence: number;
-  master_schedule_id: string;
-}
-
-interface ScheduleWithStops {
-  id: string;
-  schedule_number: string;
-  schedule_date: string;
-  stops: Stop[];
-}
 
 export default function DriverSchedule() {
   const { driver_id, date } = useParams<{ driver_id: string; date: string }>();
-  const navigate = useNavigate();
   const { toast } = useToast();
+  const [stops, setStops] = useState<any[]>([]);
+  const [driverName, setDriverName] = useState("");
   const [loading, setLoading] = useState(true);
-  const [driverName, setDriverName] = useState<string>("");
-  const [schedulesWithStops, setSchedulesWithStops] = useState<ScheduleWithStops[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [scheduleDate, setScheduleDate] = useState<Date | null>(null);
+
+  // Parse the date from URL parameter
+  useEffect(() => {
+    if (date) {
+      const parsedDate = new Date(date);
+      if (isValid(parsedDate)) {
+        setScheduleDate(parsedDate);
+      }
+    }
+  }, [date]);
 
   useEffect(() => {
-    async function fetchDriverAndSchedules() {
-      if (!driver_id || !date) {
-        setError("Missing driver ID or date");
-        setLoading(false);
-        return;
-      }
-
+    async function fetchDriverSchedule() {
+      if (!driver_id || !scheduleDate) return;
+      
+      setLoading(true);
       try {
-        setLoading(true);
+        // Get driver name (temporary mock data)
+        // TODO: Replace with actual database query when driver table is implemented
+        const driverNames: Record<string, string> = {
+          "driver-1": "John Smith",
+          "driver-2": "Maria Garcia",
+          "driver-3": "Robert Johnson",
+          "driver-4": "Sarah Lee",
+        };
         
-        // Fetch driver info
-        const { data: driverData, error: driverError } = await supabase
-          .from("drivers")
-          .select("name")
-          .eq("id", driver_id)
-          .single();
-          
-        if (driverError) {
-          throw new Error("Driver not found");
-        }
+        setDriverName(driverNames[driver_id] || "Unknown Driver");
         
-        setDriverName(driverData.name);
+        // Format date for database query
+        const formattedDate = scheduleDate.toISOString().split('T')[0];
         
-        // Find all stops assigned to this driver for the given date
-        const { data: stopsData, error: stopsError } = await supabase
+        // Fetch all stops assigned to this driver for the specified date
+        const { data, error } = await supabase
           .from("delivery_schedules")
           .select(`
-            id,
-            customer_id,
-            items,
-            notes,
+            id, 
+            customer_id, 
+            driver_id, 
+            items, 
+            notes, 
             status,
-            sequence,
-            master_schedule_id,
             customers:customer_id(id, name, address)
           `)
-          .eq("driver_id", driver_id);
+          .eq("driver_id", driver_id)
+          .eq("delivery_date", formattedDate);
           
-        if (stopsError) {
-          throw stopsError;
+        if (error) {
+          throw error;
         }
         
-        if (!stopsData || stopsData.length === 0) {
-          setSchedulesWithStops([]);
-          setLoading(false);
-          return;
+        if (data) {
+          setStops(data);
         }
-        
-        // Get all master schedules for these stops
-        const masterScheduleIds = [...new Set(stopsData.map(stop => stop.master_schedule_id))];
-        
-        const { data: schedulesData, error: schedulesError } = await supabase
-          .from("dispatch_schedules")
-          .select("*")
-          .in("id", masterScheduleIds)
-          .eq("schedule_date", date);
-          
-        if (schedulesError) {
-          throw schedulesError;
-        }
-        
-        // Combine schedules with their stops
-        const schedulesWithStopsData = schedulesData.map(schedule => {
-          const scheduleStops = stopsData
-            .filter(stop => stop.master_schedule_id === schedule.id)
-            .map(stop => ({
-              ...stop,
-              customer: stop.customers
-            }))
-            .sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
-            
-          return {
-            ...schedule,
-            stops: scheduleStops
-          };
+      } catch (error) {
+        console.error("Error fetching driver schedule:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load driver schedule",
+          variant: "destructive"
         });
-        
-        setSchedulesWithStops(schedulesWithStopsData);
-      } catch (error: any) {
-        console.error("Error fetching driver schedules:", error);
-        setError(error.message || "Failed to load driver schedule");
       } finally {
         setLoading(false);
       }
     }
+    
+    fetchDriverSchedule();
+  }, [driver_id, scheduleDate, toast]);
 
-    fetchDriverAndSchedules();
-  }, [driver_id, date, toast]);
-
-  const handleStatusChange = async (stopId: string, newStatus: string) => {
+  const updateStopStatus = async (stopId: string, newStatus: string) => {
     try {
       const { error } = await supabase
         .from("delivery_schedules")
@@ -142,21 +126,16 @@ export default function DriverSchedule() {
       if (error) throw error;
       
       // Update local state
-      setSchedulesWithStops(prev => 
-        prev.map(schedule => ({
-          ...schedule,
-          stops: schedule.stops.map(stop => 
-            stop.id === stopId ? { ...stop, status: newStatus } : stop
-          )
-        }))
-      );
+      setStops(stops.map(stop => 
+        stop.id === stopId ? { ...stop, status: newStatus } : stop
+      ));
       
       toast({
-        title: "Success",
-        description: "Stop status updated"
+        title: "Status Updated",
+        description: `Stop marked as ${newStatus}`,
       });
-    } catch (error: any) {
-      console.error("Error updating status:", error);
+    } catch (error) {
+      console.error("Error updating stop status:", error);
       toast({
         title: "Error",
         description: "Failed to update status",
@@ -164,39 +143,25 @@ export default function DriverSchedule() {
       });
     }
   };
-
+  
   const handleDownloadPdf = () => {
-    if (schedulesWithStops.length === 0) {
-      toast({
-        title: "Error",
-        description: "No schedules to download",
-        variant: "destructive"
-      });
-      return;
-    }
-    
     try {
-      // Combine all stops from all schedules for this driver
-      const allStops = schedulesWithStops.flatMap(schedule => schedule.stops);
+      if (!scheduleDate || stops.length === 0) return;
       
-      // Create a single "schedule" for the PDF
-      const combinedSchedule = {
-        id: "driver-schedule",
-        schedule_number: `Driver Schedule - ${date}`,
-        schedule_date: date,
-        status: "active",
-        stops: allStops,
-        driverName: driverName
+      const scheduleForPdf = {
+        schedule_number: `Driver Schedule - ${driverName}`,
+        schedule_date: scheduleDate.toISOString(),
+        stops: stops
       };
       
-      downloadSchedulePDF(combinedSchedule, true);
+      downloadSchedulePDF(scheduleForPdf);
       
       toast({
         title: "Success",
-        description: "Driver schedule PDF downloaded"
+        description: "Driver schedule PDF downloaded",
       });
     } catch (error) {
-      console.error("Error generating PDF:", error);
+      console.error('Error generating PDF:', error);
       toast({
         title: "Error",
         description: "Failed to generate PDF",
@@ -205,12 +170,21 @@ export default function DriverSchedule() {
     }
   };
 
-  const navigateToDate = (offsetDays: number) => {
-    const currentDate = new Date(date || "");
-    const newDate = format(addDays(currentDate, offsetDays), "yyyy-MM-dd");
-    navigate(`/driver-schedule/${driver_id}/${newDate}`);
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "completed":
+        return <Badge className="bg-green-500"><CheckCircle2 className="h-3 w-3 mr-1" /> Completed</Badge>;
+      case "cancelled":
+        return <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" /> Cancelled</Badge>;
+      case "in-progress":
+        return <Badge className="bg-blue-500"><Clock className="h-3 w-3 mr-1" /> In Progress</Badge>;
+      case "submitted":
+        return <Badge className="bg-amber-500"><AlertCircle className="h-3 w-3 mr-1" /> Assigned</Badge>;
+      default:
+        return <Badge variant="outline">Draft</Badge>;
+    }
   };
-
+  
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -218,138 +192,101 @@ export default function DriverSchedule() {
       </div>
     );
   }
-
-  if (error) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-6">
-            <div className="text-center">
-              <p className="text-red-500 mb-4">{error}</p>
-              <Button asChild>
-                <Link to="/drivers">Return to Drivers</Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  const formattedDate = date ? format(new Date(date), "EEEE, MMMM d, yyyy") : "Invalid date";
-  const totalStops = schedulesWithStops.reduce((sum, schedule) => sum + schedule.stops.length, 0);
+  
+  const formattedDate = scheduleDate ? format(scheduleDate, "EEEE, MMMM d, yyyy") : "Invalid Date";
 
   return (
-    <div className="container max-w-7xl mx-auto space-y-6 pb-10">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="container mx-auto py-6 space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <Link to="/drivers" className="flex items-center text-sm text-muted-foreground hover:text-foreground mb-2">
-            <ArrowLeft className="h-4 w-4 mr-1" /> Back to Drivers
-          </Link>
+          <Button variant="outline" asChild className="mb-2">
+            <Link to="/drivers">
+              <ChevronLeft className="mr-2 h-4 w-4" />
+              Back to Drivers
+            </Link>
+          </Button>
           <h1 className="text-3xl font-bold">{driverName}'s Schedule</h1>
           <p className="text-muted-foreground">{formattedDate}</p>
         </div>
         
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => navigateToDate(-1)}
-          >
-            Previous Day
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigateToDate(1)}
-          >
-            Next Day
-          </Button>
-          <Button 
-            variant="default" 
-            size="sm"
-            onClick={handleDownloadPdf}
-            disabled={totalStops === 0}
-          >
-            <FileDown className="h-4 w-4 mr-2" />
-            Download PDF
-          </Button>
-        </div>
+        <Button variant="outline" onClick={handleDownloadPdf} disabled={stops.length === 0}>
+          <FileDown className="mr-2 h-4 w-4" />
+          Download PDF
+        </Button>
       </div>
-
+      
       <Card>
         <CardHeader>
-          <CardTitle>Delivery Stops ({totalStops})</CardTitle>
+          <CardTitle>Delivery Stops for {formattedDate}</CardTitle>
+          <CardDescription>
+            {stops.length} {stops.length === 1 ? 'stop' : 'stops'} assigned
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          {totalStops === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-              <h3 className="text-lg font-medium mb-1">No Deliveries Scheduled</h3>
-              <p>There are no deliveries assigned to this driver for the selected date.</p>
+          {stops.length === 0 ? (
+            <div className="text-center py-10">
+              <p className="text-muted-foreground">No stops assigned for this day</p>
             </div>
           ) : (
-            <div className="space-y-8">
-              {schedulesWithStops.map((schedule) => (
-                <div key={schedule.id} className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-medium">
-                      Schedule #{schedule.schedule_number}
-                    </h3>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      asChild
-                    >
-                      <Link to={`/dispatch-form/${schedule.id}`}>
-                        View Full Schedule
-                      </Link>
-                    </Button>
-                  </div>
-                  
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Stop #</TableHead>
-                          <TableHead>Customer</TableHead>
-                          <TableHead>Address</TableHead>
-                          <TableHead>Items</TableHead>
-                          <TableHead>Notes</TableHead>
-                          <TableHead>Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {schedule.stops.map((stop, index) => (
-                          <TableRow key={stop.id}>
-                            <TableCell>{stop.sequence || index + 1}</TableCell>
-                            <TableCell className="font-medium">{stop.customer?.name || "Unknown"}</TableCell>
-                            <TableCell className="max-w-[200px] truncate">{stop.customer?.address || "No address"}</TableCell>
-                            <TableCell className="max-w-[150px] truncate">{stop.items || "-"}</TableCell>
-                            <TableCell className="max-w-[150px] truncate">{stop.notes || "-"}</TableCell>
-                            <TableCell>
-                              <Select
-                                value={stop.status}
-                                onValueChange={(value) => handleStatusChange(stop.id, value)}
-                              >
-                                <SelectTrigger className="w-[120px]">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="draft">Not Started</SelectItem>
-                                  <SelectItem value="in_progress">In Progress</SelectItem>
-                                  <SelectItem value="completed">Completed</SelectItem>
-                                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </div>
-              ))}
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-14">#</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Address</TableHead>
+                    <TableHead>Items</TableHead>
+                    <TableHead>Notes</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {stops.map((stop, index) => (
+                    <TableRow key={stop.id} className="group">
+                      <TableCell>{index + 1}</TableCell>
+                      <TableCell className="font-medium">
+                        {stop.customers?.name || "Unknown Customer"}
+                      </TableCell>
+                      <TableCell className="max-w-[200px]">
+                        <div className="flex items-start gap-1">
+                          <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                          <span className="line-clamp-2">{stop.customers?.address || "No address"}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-start gap-1">
+                          <Package className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                          <span className="line-clamp-2">{stop.items || "No items"}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="max-w-[200px]">
+                        <span className="line-clamp-2">{stop.notes || "—"}</span>
+                      </TableCell>
+                      <TableCell>
+                        {getStatusBadge(stop.status)}
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          value={stop.status}
+                          onValueChange={(value) => updateStopStatus(stop.id, value)}
+                        >
+                          <SelectTrigger className="w-[140px]">
+                            <SelectValue placeholder="Update status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="draft">Draft</SelectItem>
+                            <SelectItem value="submitted">Assigned</SelectItem>
+                            <SelectItem value="in-progress">In Progress</SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
+                            <SelectItem value="cancelled">Cancelled</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>
