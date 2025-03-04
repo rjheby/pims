@@ -5,6 +5,7 @@ import { Toaster } from './components/ui/toaster';
 import { UserProvider } from './context/UserContext';
 import { AdminProvider } from './context/AdminContext';
 import { HistoryProvider } from './context/HistoryContext';
+import DateBasedScheduleCreator from './pages/DateBasedScheduleCreator';
 
 // Layouts
 import AppLayout from './components/layouts/AppLayout';
@@ -57,6 +58,8 @@ function App() {
                 <Route path="/wholesale-order-form" element={<AppLayout><WholesaleOrderForm /></AppLayout>} />
                 <Route path="/wholesale-orders" element={<AppLayout><WholesaleOrderArchive /></AppLayout>} />
                 <Route path="/wholesale-orders/:id" element={<AppLayout><WholesaleOrderForm /></AppLayout>} />
+                <Route path="/schedule-creator" element={<AppLayout><DateBasedScheduleCreator /></AppLayout>} 
+
                 
                 {/* New dispatch system routes */}
                 <Route path="/drivers" element={<AppLayout><DriversView /></AppLayout>} />
