@@ -15,6 +15,7 @@ export function useWholesaleInventory() {
   const fetchWholesaleInventory = useCallback(async () => {
     try {
       setLoading(true);
+      console.log("Fetching wholesale inventory...");
       
       // Fetch wholesale inventory
       const { data: inventoryData, error: inventoryError } = await supabase
@@ -27,6 +28,8 @@ export function useWholesaleInventory() {
         return;
       }
       
+      console.log("Inventory data received:", inventoryData);
+      
       // Fetch wood products
       const { data: productsData, error: productsError } = await supabase
         .from(supabaseTable.wood_products)
@@ -36,6 +39,8 @@ export function useWholesaleInventory() {
         console.error("Error fetching wood products:", productsError);
         return;
       }
+      
+      console.log("Wood products received:", productsData);
       
       // Use type assertions for safety
       setWholesaleInventory(inventoryData as InventoryItem[] || []);

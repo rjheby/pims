@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useWholesaleInventory } from "@/pages/wholesale-order/hooks/useWholesaleInventory";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +14,9 @@ export function PalletsAvailableCard() {
   const isMobile = useIsMobile();
   
   const totalPalletsAvailable = wholesaleInventory.reduce((sum, item) => sum + item.pallets_available, 0);
+  
+  console.log("PalletsAvailableCard - Inventory data:", wholesaleInventory);
+  console.log("PalletsAvailableCard - Total pallets available:", totalPalletsAvailable);
 
   const palletsGroupedBySpecies = wholesaleInventory.reduce((grouped, item) => {
     const product = woodProducts.find(p => p.id === item.wood_product_id);
