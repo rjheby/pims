@@ -109,7 +109,7 @@ export function OrderTableRow({
             >
               <ChevronDown className="h-4 w-4 flex-shrink-0" />
               <div 
-                className="cursor-pointer hover:underline text-blue-600 truncate" 
+                className="cursor-pointer hover:underline text-blue-600 break-words" 
                 onClick={(e) => {
                   e.stopPropagation();
                   openProductSelector();
