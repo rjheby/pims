@@ -23,7 +23,8 @@ interface Driver {
   name: string;
 }
 
-export default function DateBasedScheduleCreator() {
+// Content component with all the functionality
+function DateBasedScheduleCreatorContent() {
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -294,5 +295,14 @@ export default function DateBasedScheduleCreator() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+// Wrapper component that provides the context
+export default function DateBasedScheduleCreator() {
+  return (
+    <DispatchScheduleProvider>
+      <DateBasedScheduleCreatorContent />
+    </DispatchScheduleProvider>
   );
 }
