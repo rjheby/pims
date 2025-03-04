@@ -97,7 +97,7 @@ export function OrderTableRow({
               onClick={() => onToggleCompressed(item.id)}
             >
               <ChevronRight className="h-4 w-4 flex-shrink-0" />
-              <span className="truncate">{generateItemName(item)}</span>
+              <span className="whitespace-normal">{generateItemName(item)}</span>
             </div>
           ) : (
             <div
@@ -109,7 +109,7 @@ export function OrderTableRow({
             >
               <ChevronDown className="h-4 w-4 flex-shrink-0" />
               <div 
-                className="cursor-pointer hover:underline text-blue-600 break-words" 
+                className="cursor-pointer hover:underline text-blue-600 whitespace-normal break-words" 
                 onClick={(e) => {
                   e.stopPropagation();
                   openProductSelector();
