@@ -11,6 +11,7 @@ import { BaseOrderDetails } from "@/components/templates/BaseOrderDetails";
 import { BaseOrderSummary } from "@/components/templates/BaseOrderSummary";
 import { BaseOrderActions } from "@/components/templates/BaseOrderActions";
 import { Customer } from "./customers/types";
+import { DispatchScheduleProvider } from './dispatch/context/DispatchScheduleContext';
 
 interface ScheduleData {
   schedule_number: string;
