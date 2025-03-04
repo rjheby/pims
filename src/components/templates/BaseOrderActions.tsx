@@ -6,11 +6,12 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 interface BaseOrderActionsProps {
   onSave: () => void;
-  onSubmit: () => void;  // No longer optional to ensure consistency
+  onSubmit: () => void;  
   archiveLink: string;
   customActions?: React.ReactNode;
   isSaving?: boolean;     
-  isSubmitting?: boolean; 
+  isSubmitting?: boolean;
+  submitLabel?: string; // Added submit label prop
 }
 
 export function BaseOrderActions({ 
@@ -19,7 +20,8 @@ export function BaseOrderActions({
   archiveLink, 
   customActions,
   isSaving = false,
-  isSubmitting = false
+  isSubmitting = false,
+  submitLabel = "Submit Order" // Default label
 }: BaseOrderActionsProps) {
   const isMobile = useIsMobile();
   
@@ -57,7 +59,7 @@ export function BaseOrderActions({
           ) : (
             <>
               <SendHorizontal className="mr-2 h-4 w-4" />
-              Submit Order
+              {submitLabel}
             </>
           )}
         </Button>

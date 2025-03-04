@@ -1,130 +1,129 @@
-
 import { supabase } from "@/integrations/supabase/client";
-import { OrderItem, safeNumber, supabaseTable } from "../types";
+import { OrderItem, safeNumber } from "../types";
 
-interface UpdateResult {
-  success: boolean;
-  error?: any;
-  updatedProducts: string[];
-}
-
-/**
- * Updates inventory based on submitted order items
- * 
- * @param items Order items from the submitted wholesale order
- * @returns Result of the update operation
- */
-export async function updateInventoryFromOrder(items: OrderItem[]): Promise<UpdateResult> {
-  console.log('Updating inventory from order items:', items);
-  
-  const result: UpdateResult = {
-    success: true,
-    updatedProducts: []
-  };
-  
-  // Group the items by species, length, bundleType, and thickness to match with wood_products
-  const itemsByAttributes: Record<string, number> = {};
-  
-  items.forEach(item => {
-    if (!item.species || !item.length || !item.bundleType || !item.thickness || !item.pallets) {
-      return; // Skip incomplete items
-    }
+export const updateInventoryFromOrder = async (orderItems: OrderItem[]) => {
+  try {
+    const itemGroups: Record<string, OrderItem> = {};
     
-    const key = `${item.species}|${item.length}|${item.bundleType}|${item.thickness}`;
-    itemsByAttributes[key] = (itemsByAttributes[key] || 0) + safeNumber(item.pallets);
-  });
-  
-  // Process each unique product type
-  for (const [attributeKey, palletCount] of Object.entries(itemsByAttributes)) {
-    const [species, length, bundleType, thickness] = attributeKey.split('|');
-    
-    try {
-      // Find matching wood product in the database
-      const { data: woodProducts, error: productError } = await supabase
-        .from(supabaseTable.wood_products)
-        .select('id')
-        .eq('species', species)
-        .eq('length', length)
-        .eq('bundle_type', bundleType)
-        .eq('thickness', thickness);
-      
-      if (productError) {
-        console.error('Error finding wood product:', productError);
-        result.success = false;
-        result.error = productError;
-        continue;
+    orderItems.forEach(item => {
+      if (!item.species || !item.length || !item.bundleType || !item.thickness) {
+        return;
       }
       
-      if (!woodProducts || woodProducts.length === 0) {
-        console.warn(`No matching wood product found for ${attributeKey}`);
-        continue;
-      }
+      const key = `${item.species}-${item.length}-${item.bundleType}-${item.thickness}`;
       
-      const woodProductId = woodProducts[0].id;
-      
-      // Check if inventory item exists
-      const { data: inventoryItems, error: inventoryError } = await supabase
-        .from(supabaseTable.inventory_items)
-        .select('*')
-        .eq('wood_product_id', woodProductId);
-      
-      if (inventoryError) {
-        console.error('Error checking inventory:', inventoryError);
-        result.success = false;
-        result.error = inventoryError;
-        continue;
-      }
-      
-      if (inventoryItems && inventoryItems.length > 0) {
-        // Update existing inventory item
-        const inventoryItem = inventoryItems[0];
-        const newPalletsAvailable = safeNumber(inventoryItem.pallets_available) + palletCount;
-        const newTotalPallets = safeNumber(inventoryItem.total_pallets) + palletCount;
-        
-        const { error: updateError } = await supabase
-          .from(supabaseTable.inventory_items)
-          .update({ 
-            pallets_available: newPalletsAvailable,
-            total_pallets: newTotalPallets,
-            last_updated: new Date().toISOString()
-          })
-          .eq('wood_product_id', woodProductId);
-        
-        if (updateError) {
-          console.error('Error updating inventory:', updateError);
-          result.success = false;
-          result.error = updateError;
-          continue;
-        }
+      if (itemGroups[key]) {
+        itemGroups[key].pallets = safeNumber(itemGroups[key].pallets) + safeNumber(item.pallets);
       } else {
-        // Create new inventory item
-        const { error: insertError } = await supabase
-          .from(supabaseTable.inventory_items)
-          .insert([{
-            wood_product_id: woodProductId,
-            pallets_available: palletCount,
-            pallets_allocated: 0,
-            total_pallets: palletCount,
-            last_updated: new Date().toISOString()
-          }]);
+        itemGroups[key] = { ...item };
+      }
+    });
+    
+    let successCount = 0;
+    let totalGroups = Object.keys(itemGroups).length;
+    let errors: any[] = [];
+    
+    for (const key in itemGroups) {
+      const item = itemGroups[key];
+      
+      try {
+        const { data: productData, error: productError } = await supabase
+          .from('wood_products')
+          .select('id')
+          .eq('species', item.species)
+          .eq('length', item.length)
+          .eq('bundle_type', item.bundleType)
+          .eq('thickness', item.thickness)
+          .single();
         
-        if (insertError) {
-          console.error('Error creating inventory item:', insertError);
-          result.success = false;
-          result.error = insertError;
+        if (productError) {
+          errors.push(productError);
           continue;
         }
+        
+        if (!productData) {
+          errors.push(new Error(`Product not found for ${key}`));
+          continue;
+        }
+        
+        const productId = productData.id;
+        
+        const { data: inventoryData, error: inventoryError } = await supabase
+          .from('inventory_items')
+          .select('*')
+          .eq('wood_product_id', productId)
+          .single();
+        
+        if (inventoryError && inventoryError.code !== 'PGRST116') {
+          errors.push(inventoryError);
+          continue;
+        }
+        
+        const palletsToAdjust = safeNumber(item.pallets);
+        
+        if (inventoryData) {
+          let updateData: Record<string, any> = {
+            last_updated: new Date().toISOString()
+          };
+          
+          if (palletsToAdjust > 0) {
+            updateData.total_pallets = safeNumber(inventoryData.total_pallets) + palletsToAdjust;
+            updateData.pallets_available = safeNumber(inventoryData.pallets_available) + palletsToAdjust;
+          } else if (palletsToAdjust < 0) {
+            const absAdjustment = Math.abs(palletsToAdjust);
+            updateData.total_pallets = Math.max(0, safeNumber(inventoryData.total_pallets) - absAdjustment);
+            updateData.pallets_available = Math.max(0, safeNumber(inventoryData.pallets_available) - absAdjustment);
+            if (safeNumber(inventoryData.pallets_available) < absAdjustment) {
+              console.warn(`Tried to remove ${absAdjustment} pallets but only ${inventoryData.pallets_available} available for ${key}`);
+            }
+          } else {
+            successCount++;
+            continue;
+          }
+          
+          const { error: updateError } = await supabase
+            .from('inventory_items')
+            .update(updateData)
+            .eq('wood_product_id', productId);
+          
+          if (updateError) {
+            errors.push(updateError);
+            continue;
+          }
+        } else if (palletsToAdjust > 0) {
+          const { error: createError } = await supabase
+            .from('inventory_items')
+            .insert({
+              wood_product_id: productId,
+              total_pallets: palletsToAdjust,
+              pallets_available: palletsToAdjust,
+              pallets_allocated: 0,
+              last_updated: new Date().toISOString()
+            });
+          
+          if (createError) {
+            errors.push(createError);
+            continue;
+          }
+        } else if (palletsToAdjust < 0) {
+          console.warn(`Tried to remove ${Math.abs(palletsToAdjust)} pallets but no inventory exists for ${key}`);
+        }
+        
+        successCount++;
+      } catch (err) {
+        errors.push(err);
       }
-      
-      result.updatedProducts.push(woodProductId);
-      
-    } catch (err) {
-      console.error(`Error processing ${attributeKey}:`, err);
-      result.success = false;
-      result.error = err;
     }
+    
+    if (successCount === totalGroups) {
+      return { success: true };
+    } else {
+      return { 
+        success: false, 
+        error: `Updated ${successCount} of ${totalGroups} products. Errors: ${errors.map(e => e.message || e).join(', ')}` 
+      };
+    }
+  } catch (err) {
+    return { success: false, error: err };
   }
-  
-  console.log('Inventory update complete:', result);
-  return result;
-}
+};

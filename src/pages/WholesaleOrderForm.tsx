@@ -24,6 +24,8 @@ interface DatabaseOrderData {
   admin_editable: boolean | null;
   created_at: string | null;
   order_name: string | null;
+  status: string | null;
+  submitted_at: string | null;
 }
 
 interface WholesaleOrderData {
@@ -59,6 +61,7 @@ export function WholesaleOrderForm() {
   const isMobile = useIsMobile();
   const [orderData, setOrderData] = useState<WholesaleOrderData | null>(null);
   const [orderStatus, setOrderStatus] = useState<string>('draft');
+  const [originalSubmittedItems, setOriginalSubmittedItems] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -78,7 +81,7 @@ export function WholesaleOrderForm() {
         }
 
         if (data) {
-          const rawData = data as any;
+          const rawData = data as DatabaseOrderData;
           
           console.log('Fetched order data:', rawData);
           
@@ -102,7 +105,11 @@ export function WholesaleOrderForm() {
             items: parsedItems,
           });
           
-          if ('status' in rawData && rawData.status) {
+          if (rawData.status === 'submitted') {
+            setOriginalSubmittedItems([...parsedItems]);
+          }
+          
+          if (rawData.status) {
             setOrderStatus(rawData.status);
           }
         }
@@ -194,8 +201,13 @@ export function WholesaleOrderForm() {
 
       let updateData: Record<string, any> = {
         items: serializeOrderItems(orderData.items),
-        status: 'draft'
       };
+      
+      if (orderStatus === 'submitted') {
+        updateData.status = 'submitted';
+      } else {
+        updateData.status = 'draft';
+      }
       
       if (orderData.order_date) {
         updateData.order_date = orderData.order_date;
@@ -244,11 +256,15 @@ export function WholesaleOrderForm() {
           delivery_date: formattedDeliveryDate,
           items: parsedItems,
         });
+        
+        if (refreshedData.status) {
+          setOrderStatus(refreshedData.status);
+        }
       }
 
       toast({
         title: "Success",
-        description: "Order draft saved successfully",
+        description: orderStatus === 'submitted' ? "Submitted order updated successfully" : "Order draft saved successfully",
       });
     } catch (err: any) {
       console.error('Error saving order:', err);
@@ -283,11 +299,16 @@ export function WholesaleOrderForm() {
       console.log('Submitting order with ID:', id);
       console.log('Current order data for submission:', orderData);
 
+      const isResubmission = orderStatus === 'submitted';
+      
       let updateData: Record<string, any> = {
         items: serializeOrderItems(orderData.items),
         status: 'submitted',
-        submitted_at: new Date().toISOString()
       };
+      
+      if (!isResubmission) {
+        updateData.submitted_at = new Date().toISOString();
+      }
       
       if (orderData.order_date) {
         updateData.order_date = orderData.order_date;
@@ -312,22 +333,41 @@ export function WholesaleOrderForm() {
       }
 
       setOrderStatus('submitted');
-
-      // Update inventory based on the order items
-      const updateResult = await updateInventoryFromOrder(orderData.items);
-      if (!updateResult.success) {
-        console.warn('Inventory was updated partially or not at all:', updateResult.error);
+      
+      if (isResubmission) {
+        const itemDifferences = calculateItemDifferences(originalSubmittedItems, orderData.items);
+        console.log('Item differences for inventory adjustment:', itemDifferences);
         
-        toast({
-          title: "Order Submitted",
-          description: "Order submitted successfully, but inventory update was incomplete. Please check inventory.",
-          variant: "default",
-        });
+        const updateResult = await updateInventoryFromOrder(itemDifferences);
+        if (!updateResult.success) {
+          console.warn('Inventory adjustment was partial or failed:', updateResult.error);
+          toast({
+            title: "Order Updated",
+            description: "Order resubmitted successfully, but inventory adjustment was incomplete. Please check inventory.",
+            variant: "default",
+          });
+        } else {
+          toast({
+            title: "Success",
+            description: "Order resubmitted successfully and inventory adjusted",
+          });
+        }
       } else {
-        toast({
-          title: "Success",
-          description: "Order submitted successfully and inventory updated",
-        });
+        const updateResult = await updateInventoryFromOrder(orderData.items);
+        if (!updateResult.success) {
+          console.warn('Inventory was updated partially or not at all:', updateResult.error);
+          
+          toast({
+            title: "Order Submitted",
+            description: "Order submitted successfully, but inventory update was incomplete. Please check inventory.",
+            variant: "default",
+          });
+        } else {
+          toast({
+            title: "Success",
+            description: "Order submitted successfully and inventory updated",
+          });
+        }
       }
 
       navigate('/wholesale-orders');
@@ -341,6 +381,51 @@ export function WholesaleOrderForm() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const calculateItemDifferences = (originalItems: OrderItem[], updatedItems: OrderItem[]): OrderItem[] => {
+    const differences: OrderItem[] = [];
+    
+    updatedItems.forEach(updatedItem => {
+      const originalItem = originalItems.find(item => 
+        item.species === updatedItem.species && 
+        item.length === updatedItem.length && 
+        item.bundleType === updatedItem.bundleType && 
+        item.thickness === updatedItem.thickness
+      );
+      
+      if (!originalItem) {
+        differences.push({...updatedItem});
+      } else if (safeNumber(updatedItem.pallets) > safeNumber(originalItem.pallets)) {
+        differences.push({
+          ...updatedItem,
+          pallets: safeNumber(updatedItem.pallets) - safeNumber(originalItem.pallets)
+        });
+      }
+    });
+    
+    originalItems.forEach(originalItem => {
+      const updatedItem = updatedItems.find(item => 
+        item.species === originalItem.species && 
+        item.length === originalItem.length && 
+        item.bundleType === originalItem.bundleType && 
+        item.thickness === originalItem.thickness
+      );
+      
+      if (!updatedItem) {
+        differences.push({
+          ...originalItem,
+          pallets: -safeNumber(originalItem.pallets)
+        });
+      } else if (safeNumber(updatedItem.pallets) < safeNumber(originalItem.pallets)) {
+        differences.push({
+          ...originalItem,
+          pallets: -(safeNumber(originalItem.pallets) - safeNumber(updatedItem.pallets))
+        });
+      }
+    });
+    
+    return differences;
   };
 
   const handleOrderItemsChange = (updatedItems: OrderItem[]) => {
@@ -401,6 +486,7 @@ export function WholesaleOrderForm() {
   const speciesBreakdown = calculateQuantityBySpecies();
 
   const isSubmitted = orderStatus === 'submitted';
+  const actionLabel = isSubmitted ? "Update Submitted Order" : "Submit Order";
 
   return (
     <div className="flex-1">
@@ -451,6 +537,7 @@ export function WholesaleOrderForm() {
               <BaseOrderActions
                 onSave={handleSave}
                 onSubmit={handleSubmit}
+                submitLabel={actionLabel}
                 archiveLink="/wholesale-orders"
                 isSaving={isSaving}
                 isSubmitting={isSubmitting}
