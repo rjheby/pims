@@ -31,6 +31,13 @@ interface DeliverySchedule {
   recurring_day: string | null;
   delivery_date: Date | null;
   notes: string | null;
+  driver_id: string | null;
+  items: string | null;
+}
+
+interface Driver {
+  id: string;
+  name: string;
 }
 
 export default function DispatchDelivery() {
@@ -40,8 +47,11 @@ export default function DispatchDelivery() {
     recurring_day: null,
     delivery_date: null,
     notes: null,
+    driver_id: null,
+    items: null,
   });
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -72,6 +82,14 @@ export default function DispatchDelivery() {
     }
 
     fetchCustomers();
+    
+    // Temporary mock data for drivers until we have a drivers table
+    setDrivers([
+      { id: "driver-1", name: "John Smith" },
+      { id: "driver-2", name: "Maria Garcia" },
+      { id: "driver-3", name: "Robert Johnson" },
+      { id: "driver-4", name: "Sarah Lee" },
+    ]);
   }, []);
 
   // Find the selected customer by ID
@@ -91,8 +109,31 @@ export default function DispatchDelivery() {
       }
       
       // In a real application, you would save to database here
-      console.log("Saving delivery schedule:", deliverySchedule);
+      const { data, error } = await supabase
+        .from("delivery_schedules")
+        .insert({
+          customer_id: deliverySchedule.customer_id,
+          schedule_type: deliverySchedule.schedule_type,
+          recurring_day: deliverySchedule.recurring_day,
+          delivery_date: deliverySchedule.delivery_date,
+          notes: deliverySchedule.notes,
+          driver_id: deliverySchedule.driver_id,
+          items: deliverySchedule.items,
+          status: "draft"
+        })
+        .select();
       
+      if (error) {
+        console.error("Error saving delivery schedule:", error);
+        toast({
+          title: "Error",
+          description: "Failed to save delivery schedule: " + error.message,
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      console.log("Delivery schedule saved:", data);
       toast({
         title: "Success",
         description: "Delivery schedule saved successfully"
@@ -142,11 +183,45 @@ export default function DispatchDelivery() {
       }
       
       // In a real application, you would submit to database here
-      console.log("Submitting delivery schedule:", deliverySchedule);
+      const { data, error } = await supabase
+        .from("delivery_schedules")
+        .insert({
+          customer_id: deliverySchedule.customer_id,
+          schedule_type: deliverySchedule.schedule_type,
+          recurring_day: deliverySchedule.recurring_day,
+          delivery_date: deliverySchedule.delivery_date,
+          notes: deliverySchedule.notes,
+          driver_id: deliverySchedule.driver_id,
+          items: deliverySchedule.items,
+          status: "submitted"
+        })
+        .select();
       
+      if (error) {
+        console.error("Error submitting delivery schedule:", error);
+        toast({
+          title: "Error",
+          description: "Failed to submit delivery schedule: " + error.message,
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      console.log("Delivery schedule submitted:", data);
       toast({
         title: "Success",
         description: "Delivery schedule submitted successfully"
+      });
+      
+      // Reset form after successful submission
+      setDeliverySchedule({
+        customer_id: null,
+        schedule_type: "one-time",
+        recurring_day: null,
+        delivery_date: null,
+        notes: null,
+        driver_id: null,
+        items: null,
       });
     } catch (error) {
       console.error("Error submitting delivery schedule:", error);
@@ -251,6 +326,40 @@ export default function DispatchDelivery() {
     </div>
   );
 
+  const renderDriverCell = () => (
+    <div className="space-y-2">
+      <Label htmlFor="driver">Driver</Label>
+      <Select 
+        value={deliverySchedule.driver_id || ""} 
+        onValueChange={(value) => setDeliverySchedule(prev => ({ ...prev, driver_id: value }))}
+      >
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder="Select a driver" />
+        </SelectTrigger>
+        <SelectContent>
+          {drivers.map((driver) => (
+            <SelectItem key={driver.id} value={driver.id}>
+              {driver.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+
+  const renderItemsField = () => (
+    <div className="space-y-2">
+      <Label htmlFor="items">Items</Label>
+      <Input 
+        id="items" 
+        placeholder="Enter delivery items..."
+        value={deliverySchedule.items || ""}
+        onChange={(e) => setDeliverySchedule(prev => ({ ...prev, items: e.target.value }))}
+        className="min-h-[60px]"
+      />
+    </div>
+  );
+
   const renderNoteField = () => (
     <div className="space-y-2">
       <Label htmlFor="notes">Delivery Notes</Label>
@@ -296,11 +405,11 @@ export default function DispatchDelivery() {
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
                       <label className="text-xs font-medium text-muted-foreground">Phone</label>
-                      <div>{selectedCustomer.phone || '-'}</div>
+                      <div className="text-center">{selectedCustomer.phone || '-'}</div>
                     </div>
                     <div className="space-y-1">
                       <label className="text-xs font-medium text-muted-foreground">Address</label>
-                      <div className="text-sm break-words">{selectedCustomer.address || '-'}</div>
+                      <div className="text-sm break-words text-center">{selectedCustomer.address || '-'}</div>
                     </div>
                   </div>
                 )}
@@ -310,29 +419,9 @@ export default function DispatchDelivery() {
                   {renderScheduleCell()}
                 </div>
                 
+                {renderDriverCell()}
+                {renderItemsField()}
                 {renderNoteField()}
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Order</label>
-                    <div className="p-2 border rounded">-</div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Driver</label>
-                    <div className="p-2 border rounded">-</div>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Items</label>
-                    <div className="p-2 border rounded">-</div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Price</label>
-                    <div className="p-2 border rounded">-</div>
-                  </div>
-                </div>
               </div>
               
               <BaseOrderActions 
@@ -350,20 +439,47 @@ export default function DispatchDelivery() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Client</TableHead>
-                      <TableHead>Phone</TableHead>
-                      <TableHead>Delivery Schedule</TableHead>
-                      <TableHead>Notes</TableHead>
-                      <TableHead>Address</TableHead>
+                      <TableHead className="text-center">Client</TableHead>
+                      <TableHead className="text-center">Phone</TableHead>
+                      <TableHead className="text-center">Delivery Schedule</TableHead>
+                      <TableHead className="text-center">Driver</TableHead>
+                      <TableHead className="text-center">Items</TableHead>
+                      <TableHead className="text-center">Notes</TableHead>
+                      <TableHead className="text-center">Address</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     <TableRow>
-                      <TableCell className="font-medium">{renderClientCell()}</TableCell>
-                      <TableCell>{selectedCustomer?.phone || '-'}</TableCell>
-                      <TableCell>{renderScheduleCell()}</TableCell>
-                      <TableCell>
+                      <TableCell className="font-medium text-center">{renderClientCell()}</TableCell>
+                      <TableCell className="text-center">{selectedCustomer?.phone || '-'}</TableCell>
+                      <TableCell className="text-center">{renderScheduleCell()}</TableCell>
+                      <TableCell className="text-center">
+                        <Select 
+                          value={deliverySchedule.driver_id || ""} 
+                          onValueChange={(value) => setDeliverySchedule(prev => ({ ...prev, driver_id: value }))}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select driver" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {drivers.map((driver) => (
+                              <SelectItem key={driver.id} value={driver.id}>
+                                {driver.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Input 
+                          placeholder="Enter items..."
+                          value={deliverySchedule.items || ""}
+                          onChange={(e) => setDeliverySchedule(prev => ({ ...prev, items: e.target.value }))}
+                          className="min-h-[40px] w-full"
+                        />
+                      </TableCell>
+                      <TableCell className="text-center">
                         <Input 
                           placeholder="Delivery notes..."
                           value={deliverySchedule.notes || ""}
@@ -371,7 +487,7 @@ export default function DispatchDelivery() {
                           className="min-h-[40px] w-full"
                         />
                       </TableCell>
-                      <TableCell className="max-w-[200px] truncate" title={selectedCustomer?.address || '-'}>
+                      <TableCell className="max-w-[200px] truncate text-center" title={selectedCustomer?.address || '-'}>
                         {selectedCustomer?.address || '-'}
                       </TableCell>
                       <TableCell className="text-right">

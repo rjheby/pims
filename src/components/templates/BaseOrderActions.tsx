@@ -12,6 +12,7 @@ interface BaseOrderActionsProps {
   isSaving?: boolean;     
   isSubmitting?: boolean;
   submitLabel?: string; // Added submit label prop
+  archiveLabel?: string; // Added archive label prop
 }
 
 export function BaseOrderActions({ 
@@ -21,7 +22,8 @@ export function BaseOrderActions({
   customActions,
   isSaving = false,
   isSubmitting = false,
-  submitLabel = "Submit Order" // Default label
+  submitLabel = "Submit Order", // Default label
+  archiveLabel = "View All Orders" // Default label
 }: BaseOrderActionsProps) {
   const isMobile = useIsMobile();
   
@@ -74,7 +76,7 @@ export function BaseOrderActions({
         >
           <Link to={archiveLink} className="flex items-center gap-2 justify-center">
             <Archive className="h-5 w-5" />
-            <span>View All Orders</span>
+            <span>{archiveLabel}</span>
           </Link>
         </Button>
       </div>

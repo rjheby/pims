@@ -17,6 +17,7 @@ import InventoryManagement from './pages/InventoryManagement';
 import { WholesaleOrder } from './pages/WholesaleOrder';
 import ClientOrder from './pages/ClientOrder';
 import Dispatch from './pages/DispatchDelivery';
+import DispatchArchive from './pages/DispatchArchive';
 import DriverPayments from './pages/DriverPayments';
 import Production from './pages/Production';
 import Customers from './pages/Customers';
@@ -40,6 +41,7 @@ function App() {
                 
                 {/* Orders Routes */}
                 <Route path="/dispatch" element={<AppLayout><Dispatch /></AppLayout>} />
+                <Route path="/dispatch-archive" element={<AppLayout><DispatchArchive /></AppLayout>} />
                 <Route path="/client-order" element={<AppLayout><ClientOrder /></AppLayout>} />
                 <Route path="/wholesale-order" element={<AppLayout><WholesaleOrder /></AppLayout>} />
                 <Route path="/wholesale-order-form" element={<AppLayout><WholesaleOrderForm /></AppLayout>} />
