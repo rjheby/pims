@@ -13,13 +13,64 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon } from "lucide-react";
-import { useState } from "react";
+import { Calendar as CalendarIcon, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Customer } from "./customers/types";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function DispatchDelivery() {
   const [date, setDate] = useState<Date>();
   const [scheduleType, setScheduleType] = useState<"one-time" | "recurring" | "bi-weekly">("one-time");
   const [recurringDay, setRecurringDay] = useState<string>();
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch customers from the database
+  useEffect(() => {
+    async function fetchCustomers() {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from("customers")
+          .select("*")
+          .order('name');
+
+        if (error) {
+          console.error("Error fetching customers:", error);
+          return;
+        }
+        
+        setCustomers(data as Customer[] || []);
+      } catch (err) {
+        console.error("Error:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchCustomers();
+  }, []);
+
+  // Find the selected customer by ID
+  const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
+
+  const renderClientCell = () => (
+    <div className="flex items-center space-x-2">
+      <Select value={selectedCustomerId || ""} onValueChange={setSelectedCustomerId}>
+        <SelectTrigger className="w-[200px]">
+          <SelectValue placeholder="Select a customer" />
+        </SelectTrigger>
+        <SelectContent className="max-h-60 overflow-y-auto">
+          {customers.map((customer) => (
+            <SelectItem key={customer.id} value={customer.id}>
+              {customer.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
 
   const renderScheduleCell = () => (
     <div className="flex items-center space-x-2">
@@ -96,36 +147,42 @@ export default function DispatchDelivery() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Client</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Delivery Schedule</TableHead>
-                <TableHead>Order</TableHead>
-                <TableHead>Driver</TableHead>
-                <TableHead>Items</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead>Notes</TableHead>
-                <TableHead>Address</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow>
-                <TableCell className="font-medium">John Doe</TableCell>
-                <TableCell>(555) 123-4567</TableCell>
-                <TableCell>{renderScheduleCell()}</TableCell>
-                <TableCell>-</TableCell>
-                <TableCell>-</TableCell>
-                <TableCell>-</TableCell>
-                <TableCell>-</TableCell>
-                <TableCell>-</TableCell>
-                <TableCell>-</TableCell>
-                <TableCell className="text-right">-</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
+          {loading ? (
+            <div className="flex justify-center items-center h-40">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Delivery Schedule</TableHead>
+                  <TableHead>Order</TableHead>
+                  <TableHead>Driver</TableHead>
+                  <TableHead>Items</TableHead>
+                  <TableHead>Price</TableHead>
+                  <TableHead>Notes</TableHead>
+                  <TableHead>Address</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow>
+                  <TableCell className="font-medium">{renderClientCell()}</TableCell>
+                  <TableCell>{selectedCustomer?.phone || '-'}</TableCell>
+                  <TableCell>{renderScheduleCell()}</TableCell>
+                  <TableCell>-</TableCell>
+                  <TableCell>-</TableCell>
+                  <TableCell>-</TableCell>
+                  <TableCell>-</TableCell>
+                  <TableCell>-</TableCell>
+                  <TableCell>{selectedCustomer?.address || '-'}</TableCell>
+                  <TableCell className="text-right">-</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>
