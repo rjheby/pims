@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useWholesaleInventory } from "@/pages/wholesale-order/hooks/useWholesaleInventory";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,10 +12,8 @@ export function PalletsAvailableCard() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const isMobile = useIsMobile();
   
-  // Calculate total available pallets
   const totalPalletsAvailable = wholesaleInventory.reduce((sum, item) => sum + item.pallets_available, 0);
 
-  // Group inventory by wood species
   const palletsGroupedBySpecies = wholesaleInventory.reduce((grouped, item) => {
     const product = woodProducts.find(p => p.id === item.wood_product_id);
     if (product) {
@@ -29,14 +26,12 @@ export function PalletsAvailableCard() {
     return grouped;
   }, {} as Record<string, number>);
 
-  // Function to handle manual refresh
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await fetchWholesaleInventory();
     setIsRefreshing(false);
   };
 
-  // Auto-refresh when component mounts
   useEffect(() => {
     fetchWholesaleInventory();
   }, [fetchWholesaleInventory]);
@@ -45,7 +40,7 @@ export function PalletsAvailableCard() {
     <Card className="overflow-hidden h-full">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">
-          Available Raw Material Pallets
+          Pallets In Stock
         </CardTitle>
         <Button 
           variant="ghost" 
