@@ -18,7 +18,7 @@ import { WholesaleOrder } from './pages/WholesaleOrder';
 import ClientOrder from './pages/ClientOrder';
 import Dispatch from './pages/DispatchDelivery';
 import DispatchArchive from './pages/DispatchArchive';
-import DispatchForm from './pages/DispatchForm'; // Updated import
+import DispatchForm from './pages/DispatchForm';
 import DriverPayments from './pages/DriverPayments';
 import Production from './pages/Production';
 import Customers from './pages/Customers';
@@ -28,6 +28,10 @@ import TeamSettings from './pages/TeamSettings';
 // Import WholesaleOrderForm and WholesaleOrderArchive correctly
 import { WholesaleOrderForm } from './pages/WholesaleOrderForm';
 import { WholesaleOrderArchive } from './pages/WholesaleOrderArchive';
+
+// New imports for dispatch system
+import DriversView from './pages/DriversView';
+import DriverSchedule from './pages/DriverSchedule';
 
 function App() {
   return (
@@ -43,13 +47,16 @@ function App() {
                 {/* Orders Routes */}
                 <Route path="/dispatch" element={<AppLayout><Dispatch /></AppLayout>} />
                 <Route path="/dispatch-archive" element={<AppLayout><DispatchArchive /></AppLayout>} />
-                {/* Replaced DispatchDetail with DispatchForm */}
                 <Route path="/dispatch-form/:id" element={<AppLayout><DispatchForm /></AppLayout>} />
                 <Route path="/client-order" element={<AppLayout><ClientOrder /></AppLayout>} />
                 <Route path="/wholesale-order" element={<AppLayout><WholesaleOrder /></AppLayout>} />
                 <Route path="/wholesale-order-form" element={<AppLayout><WholesaleOrderForm /></AppLayout>} />
                 <Route path="/wholesale-orders" element={<AppLayout><WholesaleOrderArchive /></AppLayout>} />
                 <Route path="/wholesale-orders/:id" element={<AppLayout><WholesaleOrderForm /></AppLayout>} />
+                
+                {/* New dispatch system routes */}
+                <Route path="/drivers" element={<AppLayout><DriversView /></AppLayout>} />
+                <Route path="/driver-schedule/:driver_id/:date" element={<AppLayout><DriverSchedule /></AppLayout>} />
                 
                 {/* Reports Routes */}
                 <Route path="/production" element={<AppLayout><Production /></AppLayout>} />

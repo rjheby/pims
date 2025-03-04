@@ -1,15 +1,17 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Loader2, FileDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { StopsTable } from "./components/StopsTable"; // Import the edited version of StopsTable
+import { StopsTable } from "./components/StopsTable"; // Updated import
 import { BaseOrderDetails } from "@/components/templates/BaseOrderDetails";
 import { BaseOrderSummary } from "@/components/templates/BaseOrderSummary";
 import { BaseOrderActions } from "@/components/templates/BaseOrderActions";
+import { downloadSchedulePDF } from "@/utils/GenerateSchedulePDF";
 
 // Renamed from DispatchDetail to DispatchForm for consistency
 export default function DispatchForm() {
@@ -203,10 +205,38 @@ export default function DispatchForm() {
       toast({
         title: "Error",
         description: "Failed to submit schedule",
-variant: "destructive"
+        variant: "destructive"
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+  
+  const handleDownloadPdf = () => {
+    if (!masterSchedule) return;
+    
+    try {
+      const scheduleForPdf = {
+        ...masterSchedule,
+        stops: stops.map(stop => ({
+          ...stop,
+          customer: stop.customers
+        }))
+      };
+      
+      downloadSchedulePDF(scheduleForPdf);
+      
+      toast({
+        title: "Success",
+        description: "PDF generated successfully",
+      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate PDF",
+        variant: "destructive"
+      });
     }
   };
   
@@ -260,68 +290,42 @@ variant: "destructive"
               deliveryDate={formattedDate}
               onOrderDateChange={handleScheduleDateChange}
               onDeliveryDateChange={handleScheduleDateChange}
-              dateLabel="Schedule Date"
-              hideDateDelivery={true}
               disabled={isSubmitted}
             />
             
-            {/* Display stops in a read-only format for now */}
-            <div className="border rounded-md p-4">
-              <h3 className="font-medium mb-4">Delivery Stops</h3>
-              
-              {stops.length > 0 ? (
-                <table className="w-full border-collapse">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Customer</th>
-                      <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Driver</th>
-                      <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Items</th>
-                      <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Notes</th>
-                      <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Address</th>
-                      <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {stops.map((stop: any) => (
-                      <tr key={stop.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-2">{stop.customers?.name || "Unknown"}</td>
-                        <td className="px-4 py-2">{stop.driver_id || "Unassigned"}</td>
-                        <td className="px-4 py-2 max-w-[150px] truncate">{stop.items || "-"}</td>
-                        <td className="px-4 py-2 max-w-[150px] truncate">{stop.notes || "-"}</td>
-                        <td className="px-4 py-2 max-w-[200px] truncate">{stop.customers?.address || "-"}</td>
-                        <td className="px-4 py-2">
-                          <span className={`px-2 py-1 rounded-full text-xs ${
-                            stop.status === "submitted" 
-                              ? "bg-green-100 text-green-800" 
-                              : "bg-gray-100 text-gray-800"
-                          }`}>
-                            {stop.status === "submitted" ? "Submitted" : "Draft"}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <div className="text-center py-4 text-gray-500">
-                  No stops found for this schedule.
-                </div>
-              )}
-            </div>
+            {/* Display stops using the StopsTable component */}
+            <StopsTable 
+              stops={stops} 
+              masterScheduleId={id || ''} 
+              readOnly={isSubmitted} 
+              onStopsChange={setStops}
+            />
 
             <BaseOrderSummary 
               items={calculateTotals()}
-              customSummaryLabel="Schedule Summary"
             />
 
-            <BaseOrderActions
-              onSave={handleSave}
-              onSubmit={handleSubmit}
-              submitLabel={actionLabel}
-              archiveLink="/dispatch-archive"
-              isSaving={isSaving}
-              isSubmitting={isSubmitting}
-            />
+            <div className="flex flex-col md:flex-row gap-4 justify-between">
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleDownloadPdf}
+                >
+                  <FileDown className="h-4 w-4 mr-2" />
+                  Download PDF
+                </Button>
+              </div>
+              
+              <BaseOrderActions
+                onSave={handleSave}
+                onSubmit={handleSubmit}
+                submitLabel={actionLabel}
+                archiveLink="/dispatch-archive"
+                isSaving={isSaving}
+                isSubmitting={isSubmitting}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>

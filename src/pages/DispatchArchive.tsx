@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,22 +20,19 @@ import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-interface DeliverySchedule {
+// Updated interface to match dispatch_schedules table
+interface DispatchSchedule {
   id: string;
   schedule_number: string;
-  customer_id: string;
-  schedule_type: "one-time" | "recurring" | "bi-weekly";
-  recurring_day: string | null;
-  delivery_date: string | null;
+  schedule_date: string;
   notes: string | null;
-  driver_id: string | null;
-  items: string | null;
   status: string;
   created_at: string;
+  updated_at: string;
 }
 
 export default function DispatchArchive() {
-  const [schedules, setSchedules] = useState<DeliverySchedule[]>([]);
+  const [schedules, setSchedules] = useState<DispatchSchedule[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -99,7 +97,7 @@ export default function DispatchArchive() {
                     <TableRow key={schedule.id}>
                       <TableCell className="font-medium">{schedule.schedule_number}</TableCell>
                       <TableCell>{schedule.schedule_date ? format(new Date(schedule.schedule_date), "MMM d, yyyy") : 'No Date'}</TableCell>
-                      <TableCell>{schedule.schedule_type}</TableCell>
+                      <TableCell>{"Dispatch"}</TableCell>
                       <TableCell>{schedule.status}</TableCell>
                       <TableCell>{format(new Date(schedule.created_at), "MMM d, yyyy")}</TableCell>
                       <TableCell className="text-right">
