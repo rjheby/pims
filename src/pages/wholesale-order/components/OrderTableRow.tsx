@@ -86,7 +86,7 @@ export function OrderTableRow({
 
   return (
     <TableRow>
-      <TableCell className="font-medium whitespace-nowrap">
+      <TableCell className="font-medium">
         <div className="flex items-center space-x-2">
           {isCompressed ? (
             <div
