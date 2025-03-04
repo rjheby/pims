@@ -9,9 +9,12 @@ import { useRetailInventory } from "./wholesale-order/hooks/useRetailInventory";
 import { useWholesaleInventory } from "./wholesale-order/hooks/useWholesaleInventory";
 import { PackagedProductsTable } from "./inventory/components/PackagedProductsTable";
 import { RawMaterialsTable } from "./inventory/components/RawMaterialsTable";
+import { supabase } from "@/integrations/supabase/client";
+import { InventoryItem, supabaseTable } from "./wholesale-order/types";
 
 export default function Inventory() {
   const { hasPermission } = useUser();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("packaged");
   const isAdmin = hasPermission('admin');
   
@@ -46,6 +49,39 @@ export default function Inventory() {
       product
     };
   });
+
+  const adjustWholesaleInventory = async (productId: string, adjustment: Partial<InventoryItem>) => {
+    try {
+      const { error } = await supabase
+        .from(supabaseTable.inventory_items)
+        .update({
+          ...adjustment,
+          last_updated: new Date().toISOString()
+        })
+        .eq('wood_product_id', productId);
+
+      if (error) throw error;
+      
+      toast({
+        title: "Inventory Updated",
+        description: "Raw materials inventory has been updated successfully."
+      });
+      
+      fetchWholesaleInventory();
+      
+      return { success: true };
+    } catch (error) {
+      console.error("Error updating wholesale inventory:", error);
+      
+      toast({
+        title: "Update Failed",
+        description: "Failed to update raw materials inventory.",
+        variant: "destructive"
+      });
+      
+      return { success: false, error };
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -84,6 +120,7 @@ export default function Inventory() {
                 data={rawMaterialsWithDetails} 
                 loading={wholesaleLoading}
                 isAdmin={isAdmin}
+                onInventoryUpdate={adjustWholesaleInventory}
                 onRefresh={fetchWholesaleInventory}
               />
             </CardContent>
