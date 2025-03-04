@@ -1,20 +1,35 @@
+
 import { useState, useEffect } from "react";
-import { useDispatchSchedule } from "../context/DispatchScheduleContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Trash, Plus, ArrowUp, ArrowDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Customer } from "../../customers/types"; // Adjust path as needed
+import { Customer } from "@/pages/customers/types"; 
 
 interface Driver {
   id: string;
   name: string;
 }
 
-export function StopsTable() {
-  const { stops, setStops, addStop, removeStop, updateStop } = useDispatchSchedule();
+interface StopItem {
+  id?: string;
+  customer_id: string;
+  driver_id: string | null;
+  notes: string | null;
+  items: string | null;
+  sequence: number;
+}
+
+interface StopsTableProps {
+  stops: StopItem[];
+  masterScheduleId: string;
+  readOnly?: boolean;
+  onStopsChange: (stops: StopItem[]) => void;
+}
+
+export function StopsTable({ stops, masterScheduleId, readOnly = false, onStopsChange }: StopsTableProps) {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(true);
@@ -22,7 +37,7 @@ export function StopsTable() {
   // Current stop being edited
   const [currentStop, setCurrentStop] = useState({
     customer_id: "",
-    driver_id: null,
+    driver_id: null as string | null,
     notes: "",
     items: "",
     sequence: 0
@@ -40,7 +55,14 @@ export function StopsTable() {
           .order('name');
 
         if (customersError) throw customersError;
-        setCustomers(customersData || []);
+        
+        // Type assertion to ensure compatibility with Customer type
+        const typedCustomers = (customersData || []).map(customer => ({
+          ...customer,
+          type: customer.type as "commercial" | "residential"
+        })) as Customer[];
+        
+        setCustomers(typedCustomers);
 
         // In a real implementation, fetch drivers from your drivers table
         // For now, using mock data
@@ -70,7 +92,8 @@ export function StopsTable() {
       sequence: stops.length + 1
     };
     
-    addStop(newStop);
+    const updatedStops = [...stops, newStop];
+    onStopsChange(updatedStops);
     
     // Reset current stop form
     setCurrentStop({
@@ -93,7 +116,7 @@ export function StopsTable() {
       stop.sequence = i + 1;
     });
     
-    setStops(newStops);
+    onStopsChange(newStops);
   };
 
   const handleMoveDown = (index: number) => {
@@ -107,7 +130,19 @@ export function StopsTable() {
       stop.sequence = i + 1;
     });
     
-    setStops(newStops);
+    onStopsChange(newStops);
+  };
+  
+  const handleRemoveStop = (index: number) => {
+    const newStops = [...stops];
+    newStops.splice(index, 1);
+    
+    // Update sequences
+    newStops.forEach((stop, i) => {
+      stop.sequence = i + 1;
+    });
+    
+    onStopsChange(newStops);
   };
 
   const getCustomerById = (id: string) => {
@@ -127,77 +162,81 @@ export function StopsTable() {
     <div className="space-y-4">
       <h3 className="text-lg font-medium">Delivery Stops</h3>
       
-      {/* Add new stop form */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-md bg-gray-50">
-        <div>
-          <label className="block text-sm font-medium mb-1">Customer</label>
-          <Select
-            value={currentStop.customer_id}
-            onValueChange={(value) => setCurrentStop({...currentStop, customer_id: value})}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select customer" />
-            </SelectTrigger>
-            <SelectContent>
-              {customers.map((customer) => (
-                <SelectItem key={customer.id} value={customer.id}>
-                  {customer.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium mb-1">Driver</label>
-          <Select
-            value={currentStop.driver_id || ""}
-            onValueChange={(value) => setCurrentStop({...currentStop, driver_id: value})}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Assign driver" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">Unassigned</SelectItem>
-              {drivers.map((driver) => (
-                <SelectItem key={driver.id} value={driver.id}>
-                  {driver.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium mb-1">Items</label>
-          <Input
-            value={currentStop.items || ""}
-            onChange={(e) => setCurrentStop({...currentStop, items: e.target.value})}
-            placeholder="Items to deliver"
-          />
-        </div>
-        
-        <div className="md:flex md:items-end md:justify-end">
-          <Button 
-            onClick={handleAddStop} 
-            className="w-full md:w-auto bg-[#2A4131] hover:bg-[#2A4131]/90"
-            disabled={!currentStop.customer_id}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Add Stop
-          </Button>
-        </div>
-      </div>
-      
-      {/* Notes field */}
-      <div className="space-y-2">
-        <label className="block text-sm font-medium">Notes</label>
-        <Input
-          value={currentStop.notes || ""}
-          onChange={(e) => setCurrentStop({...currentStop, notes: e.target.value})}
-          placeholder="Delivery notes or special instructions"
-        />
-      </div>
+      {!readOnly && (
+        <>
+          {/* Add new stop form */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-md bg-gray-50">
+            <div>
+              <label className="block text-sm font-medium mb-1">Customer</label>
+              <Select
+                value={currentStop.customer_id}
+                onValueChange={(value) => setCurrentStop({...currentStop, customer_id: value})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select customer" />
+                </SelectTrigger>
+                <SelectContent>
+                  {customers.map((customer) => (
+                    <SelectItem key={customer.id} value={customer.id}>
+                      {customer.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">Driver</label>
+              <Select
+                value={currentStop.driver_id || ""}
+                onValueChange={(value) => setCurrentStop({...currentStop, driver_id: value || null})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Assign driver" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Unassigned</SelectItem>
+                  {drivers.map((driver) => (
+                    <SelectItem key={driver.id} value={driver.id}>
+                      {driver.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">Items</label>
+              <Input
+                value={currentStop.items || ""}
+                onChange={(e) => setCurrentStop({...currentStop, items: e.target.value})}
+                placeholder="Items to deliver"
+              />
+            </div>
+            
+            <div className="md:flex md:items-end md:justify-end">
+              <Button 
+                onClick={handleAddStop} 
+                className="w-full md:w-auto bg-[#2A4131] hover:bg-[#2A4131]/90"
+                disabled={!currentStop.customer_id}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add Stop
+              </Button>
+            </div>
+          </div>
+          
+          {/* Notes field */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">Notes</label>
+            <Input
+              value={currentStop.notes || ""}
+              onChange={(e) => setCurrentStop({...currentStop, notes: e.target.value})}
+              placeholder="Delivery notes or special instructions"
+            />
+          </div>
+        </>
+      )}
       
       {/* Stops table */}
       {stops.length > 0 ? (
@@ -210,7 +249,7 @@ export function StopsTable() {
               <TableHead>Items</TableHead>
               <TableHead>Notes</TableHead>
               <TableHead>Address</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              {!readOnly && <TableHead className="text-right">Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -226,34 +265,36 @@ export function StopsTable() {
                   <TableCell className="max-w-[150px] truncate">{stop.items || "-"}</TableCell>
                   <TableCell className="max-w-[150px] truncate">{stop.notes || "-"}</TableCell>
                   <TableCell className="max-w-[200px] truncate">{customer?.address || "-"}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => handleMoveUp(index)}
-                        disabled={index === 0}
-                      >
-                        <ArrowUp className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => handleMoveDown(index)}
-                        disabled={index === stops.length - 1}
-                      >
-                        <ArrowDown className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => removeStop(index)}
-                        className="text-destructive"
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+                  {!readOnly && (
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleMoveUp(index)}
+                          disabled={index === 0}
+                        >
+                          <ArrowUp className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleMoveDown(index)}
+                          disabled={index === stops.length - 1}
+                        >
+                          <ArrowDown className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleRemoveStop(index)}
+                          className="text-destructive"
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  )}
                 </TableRow>
               );
             })}

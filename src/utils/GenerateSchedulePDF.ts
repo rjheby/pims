@@ -68,7 +68,7 @@ export function downloadSchedulePDF(schedule: Schedule) {
     
     // Create the stops table
     const tableData = schedule.stops.map((stop, index) => {
-      const customer = stop.customer || stop.customers || { name: "Unknown" };
+      const customer = stop.customer || stop.customers || { name: "Unknown", address: "No address" };
       const driverName = stop.driver_id ? driverNames[stop.driver_id] || "Unknown" : "Not Assigned";
       
       return [

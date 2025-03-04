@@ -8,7 +8,9 @@ interface BaseOrderDetailsProps {
   onOrderDateChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onDeliveryDateChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   customFields?: React.ReactNode;
-  disabled?: boolean; // Added disabled prop
+  disabled?: boolean;
+  hideDateDelivery?: boolean; // Added for dispatch component
+  dateLabel?: string; // Added for custom date labels
 }
 
 export function BaseOrderDetails({
@@ -18,7 +20,9 @@ export function BaseOrderDetails({
   onOrderDateChange,
   onDeliveryDateChange,
   customFields,
-  disabled = false, // Default to enabled
+  disabled = false,
+  hideDateDelivery = false,
+  dateLabel = "Delivery Date",
 }: BaseOrderDetailsProps) {
   return (
     <div className="grid gap-4 md:grid-cols-4">
@@ -41,19 +45,21 @@ export function BaseOrderDetails({
           disabled={disabled}
         />
       </div>
-      <div>
-        <label htmlFor="deliveryDate" className="text-sm font-medium text-muted-foreground">
-          Delivery Date
-        </label>
-        <Input
-          id="deliveryDate"
-          type="date"
-          value={deliveryDate}
-          onChange={onDeliveryDateChange}
-          className="mt-1.5"
-          disabled={disabled}
-        />
-      </div>
+      {!hideDateDelivery && (
+        <div>
+          <label htmlFor="deliveryDate" className="text-sm font-medium text-muted-foreground">
+            {dateLabel}
+          </label>
+          <Input
+            id="deliveryDate"
+            type="date"
+            value={deliveryDate}
+            onChange={onDeliveryDateChange}
+            className="mt-1.5"
+            disabled={disabled}
+          />
+        </div>
+      )}
       {customFields}
     </div>
   );

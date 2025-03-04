@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 // Define the stop item type
 export interface ScheduleStop {
-  id?: number;
+  id?: string;
   customer_id: string;
   driver_id: string | null;
   notes: string | null;

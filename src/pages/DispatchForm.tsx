@@ -7,7 +7,7 @@ import { Loader2, FileDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { StopsTable } from "./components/StopsTable"; // Updated import
+import { StopsTable } from "./dispatch/components/StopsTable"; // Fixed import path
 import { BaseOrderDetails } from "@/components/templates/BaseOrderDetails";
 import { BaseOrderSummary } from "@/components/templates/BaseOrderSummary";
 import { BaseOrderActions } from "@/components/templates/BaseOrderActions";
@@ -296,7 +296,7 @@ export default function DispatchForm() {
             {/* Display stops using the StopsTable component */}
             <StopsTable 
               stops={stops} 
-              masterScheduleId={id || ''} 
+              masterScheduleId={id || ''}
               readOnly={isSubmitted} 
               onStopsChange={setStops}
             />
