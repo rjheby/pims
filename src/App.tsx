@@ -58,7 +58,7 @@ function App() {
                 <Route path="/wholesale-order-form" element={<AppLayout><WholesaleOrderForm /></AppLayout>} />
                 <Route path="/wholesale-orders" element={<AppLayout><WholesaleOrderArchive /></AppLayout>} />
                 <Route path="/wholesale-orders/:id" element={<AppLayout><WholesaleOrderForm /></AppLayout>} />
-                <Route path="/schedule-creator" element={<AppLayout><DateBasedScheduleCreator /></AppLayout>} 
+                <Route path="/schedule-creator" element={<AppLayout><DateBasedScheduleCreator /></AppLayout>} />
 
                 
                 {/* New dispatch system routes */}
