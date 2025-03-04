@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { Plus } from "lucide-react";
 
@@ -10,7 +9,7 @@ import { Button } from "@/components/ui/button";
 
 // Hooks and Types
 import { useOrderTable } from "./hooks/useOrderTable";
-import { OrderItem, calculateItemTotal } from "./types";
+import { OrderItem, calculateItemTotal, safeNumber } from "./types";
 
 interface OrderTableProps {
   readOnly?: boolean;
@@ -46,8 +45,7 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
     }
   }, [items, onItemsChange]);
 
-  // Use the same key names that BaseOrderTable is expecting to ensure
-  // widths are calculated correctly
+  // Define column widths that will scale proportionally
   const headers = [
     { key: 'name', label: 'Name', sortable: true, className: 'w-[22%]' },
     ...optionFields.map(field => ({
@@ -56,16 +54,16 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
       sortable: true,
       className: `w-[10%]`
     })),
-    { key: 'pallets', label: 'Qty', sortable: true, className: 'w-[5%]' },
-    { key: 'unitCost', label: 'Unit Cost', sortable: true, className: 'w-[7%]' },
-    { key: 'totalCost', label: 'Total Cost', sortable: true, className: 'w-[8%]' },
-    { key: 'actions', label: 'Actions', className: 'w-[14%]' }
+    { key: 'pallets', label: 'Qty', sortable: true, className: 'w-[8%]' },
+    { key: 'unitCost', label: 'Unit Cost', sortable: true, className: 'w-[10%]' },
+    { key: 'totalCost', label: 'Total Cost', sortable: true, className: 'w-[10%]' },
+    { key: 'actions', label: 'Actions', className: 'w-[10%]' }
   ];
 
   const tableData = items.map(item => ({
     ...item,
     name: generateItemName(item),
-    totalCost: calculateItemTotal(item)  // Fix here - passing only the item instead of item.pallets, item.unitCost
+    totalCost: safeNumber(item.pallets) * safeNumber(item.unitCost)
   }));
 
   const handleSortChange = (key: string, direction: 'asc' | 'desc') => {
