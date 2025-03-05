@@ -28,7 +28,7 @@ export interface StopsTableProps {
   masterScheduleId?: string;
   readOnly?: boolean;
   onStopsChange?: (stops: any[]) => void;
-  useMobileLayout?: boolean; // Added this missing prop
+  useMobileLayout?: boolean;
 }
 
 export function StopsTable({ 
@@ -36,7 +36,7 @@ export function StopsTable({
   masterScheduleId,
   readOnly = false,
   onStopsChange,
-  useMobileLayout = false // Default to false
+  useMobileLayout = false
 }: StopsTableProps) {
   const { stops: contextStops, addStop, removeStop, updateStop } = useDispatchSchedule();
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -132,7 +132,8 @@ export function StopsTable({
           }
           
           // Add the stop to the local state
-          const newStops = [...stops, { ...data[0], customers: customers.find(c => c.id === stopToAdd.customer_id) }];
+          // Fix: Add null check for data
+          const newStops = [...stops, { ...(data && data[0] ? data[0] : {}), customers: customers.find(c => c.id === stopToAdd.customer_id) }];
           if (onStopsChange) onStopsChange(newStops);
           
           toast({
