@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Customer } from "@/pages/customers/types";
@@ -43,12 +42,34 @@ export const useStopsData = (
           setCustomers(customersData || []);
         }
         
-        setDrivers([
-          { id: "driver-1", name: "John Smith" },
-          { id: "driver-2", name: "Maria Garcia" },
-          { id: "driver-3", name: "Robert Johnson" },
-          { id: "driver-4", name: "Sarah Lee" },
-        ]);
+        const { data: driversData, error: driversError } = await supabase
+          .from("drivers")
+          .select("*")
+          .eq('status', 'active')
+          .order('name');
+          
+        if (driversError) {
+          console.error("Error fetching drivers:", driversError);
+          setDrivers([
+            { id: "driver-1", name: "John Smith" },
+            { id: "driver-2", name: "Maria Garcia" },
+            { id: "driver-3", name: "Robert Johnson" },
+            { id: "driver-4", name: "Sarah Lee" },
+          ]);
+        } else if (driversData && driversData.length > 0) {
+          const formattedDrivers = driversData.map(driver => ({
+            id: driver.id,
+            name: driver.name
+          }));
+          setDrivers(formattedDrivers);
+        } else {
+          setDrivers([
+            { id: "driver-1", name: "John Smith" },
+            { id: "driver-2", name: "Maria Garcia" },
+            { id: "driver-3", name: "Robert Johnson" },
+            { id: "driver-4", name: "Sarah Lee" },
+          ]);
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -106,7 +127,6 @@ export const useStopsData = (
       }
     } else if (stopToRemove.id && masterScheduleId) {
       try {
-        // Convert id to string using String() instead of direct assignment
         const stopId = String(stopToRemove.id);
         
         const { error } = await supabase
@@ -174,7 +194,6 @@ export const useStopsData = (
       }
     } else if (updatedStop.id && masterScheduleId) {
       try {
-        // Convert id to string using String() instead of direct assignment
         const stopId = String(updatedStop.id);
         
         const { error } = await supabase
@@ -218,7 +237,6 @@ export const useStopsData = (
   };
 
   const handleDriverAssign = async (stopId: string | number, driverId: string) => {
-    // Find the stop by id
     const stopIndex = stops.findIndex(stop => stop.id === stopId);
     if (stopIndex === -1) return;
     

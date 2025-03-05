@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -280,6 +281,7 @@ export default function DispatchDelivery() {
                   isSaving={isSaving}
                   isSubmitting={isSubmitting}
                   mobileLayout={true}
+                  showArchiveButton={true}
                 />
               </div>
             ) : (
@@ -290,6 +292,7 @@ export default function DispatchDelivery() {
                 archiveLink="/dispatch-archive"
                 isSaving={isSaving}
                 isSubmitting={isSubmitting}
+                showArchiveButton={true}
               />
             )}
           </div>
