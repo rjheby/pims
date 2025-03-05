@@ -1,4 +1,6 @@
+
 import React from "react";
+import { Draggable } from "@hello-pangea/dnd";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,11 +13,10 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { Trash, Edit, Check, X, Hash, CheckSquare, Square, Copy } from "lucide-react";
+import { Trash, Edit, Check, X, Hash, CheckSquare, Square, Copy, GripVertical } from "lucide-react";
 import { Customer } from "@/pages/customers/types";
 import { Driver, DeliveryStop, StopFormData } from "./types";
 import { calculatePrice } from "./utils";
-import { Checkbox } from "@/components/ui/checkbox";
 
 interface StopsMobileCardsProps {
   stops: DeliveryStop[];
@@ -179,89 +180,107 @@ export function StopsMobileCards({
         }
         
         return (
-          <Card 
-            key={index} 
-            className={`overflow-hidden ${isSelected ? 'ring-2 ring-primary' : ''}`}
+          <Draggable 
+            key={`${stop.id || index}-${index}`} 
+            draggableId={`${stop.id || index}-${index}`} 
+            index={index}
+            isDragDisabled={readOnly}
           >
-            <CardContent className="p-0">
-              <div className="bg-[#2A4131] text-white p-3 flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  {!readOnly && onSelectStop && stop.id && (
-                    <div onClick={(e) => onSelectStop(stop.id!.toString(), index, e)} className="cursor-pointer">
-                      {isSelected ? (
-                        <CheckSquare className="h-5 w-5 text-white" />
-                      ) : (
-                        <Square className="h-5 w-5 text-white" />
+            {(provided) => (
+              <div
+                ref={provided.innerRef}
+                {...provided.draggableProps}
+              >
+                <Card 
+                  className={`overflow-hidden ${isSelected ? 'ring-2 ring-primary' : ''}`}
+                >
+                  <CardContent className="p-0">
+                    <div className="bg-[#2A4131] text-white p-3 flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        {!readOnly && (
+                          <div {...provided.dragHandleProps} className="cursor-grab">
+                            <GripVertical className="h-5 w-5 text-white" />
+                          </div>
+                        )}
+                        {!readOnly && onSelectStop && stop.id && (
+                          <div onClick={(e) => onSelectStop(stop.id!.toString(), index, e)} className="cursor-pointer">
+                            {isSelected ? (
+                              <CheckSquare className="h-5 w-5 text-white" />
+                            ) : (
+                              <Square className="h-5 w-5 text-white" />
+                            )}
+                          </div>
+                        )}
+                        <div className="text-lg font-semibold">Stop #{stop.stop_number || index + 1}</div>
+                      </div>
+                      {!readOnly && (
+                        <div className="flex space-x-2">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => onEditStart(index)}
+                            className="h-8 w-8 p-0 text-white hover:bg-[#203324]"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          {onDuplicateStop && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => onDuplicateStop(index)}
+                              className="h-8 w-8 p-0 text-white hover:bg-[#203324]"
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          )}
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => onRemoveStop(index)}
+                            className="h-8 w-8 p-0 text-white hover:bg-[#203324]"
+                          >
+                            <Trash className="h-4 w-4" />
+                          </Button>
+                        </div>
                       )}
                     </div>
-                  )}
-                  <div className="text-lg font-semibold">Stop #{stop.stop_number || index + 1}</div>
-                </div>
-                {!readOnly && (
-                  <div className="flex space-x-2">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => onEditStart(index)}
-                      className="h-8 w-8 p-0 text-white hover:bg-[#203324]"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    {onDuplicateStop && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => onDuplicateStop(index)}
-                        className="h-8 w-8 p-0 text-white hover:bg-[#203324]"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                    )}
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => onRemoveStop(index)}
-                      className="h-8 w-8 p-0 text-white hover:bg-[#203324]"
-                    >
-                      <Trash className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
+                    <div className="p-4">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <div className="text-sm text-gray-500">Customer</div>
+                          <div className="font-medium">{customer?.name || "Unknown"}</div>
+                        </div>
+                        <div>
+                          <div className="text-sm text-gray-500">Driver</div>
+                          <div>{driver?.name || "Not assigned"}</div>
+                        </div>
+                        <div className="col-span-2">
+                          <div className="text-sm text-gray-500">Address</div>
+                          <div>{customer?.address || "-"}</div>
+                        </div>
+                        <div>
+                          <div className="text-sm text-gray-500">Phone</div>
+                          <div>{customer?.phone || "-"}</div>
+                        </div>
+                        <div>
+                          <div className="text-sm text-gray-500">Price</div>
+                          <div>${stop.price || calculatePrice(stop.items || "").toFixed(2)}</div>
+                        </div>
+                        <div className="col-span-2">
+                          <div className="text-sm text-gray-500">Items</div>
+                          <div>{stop.items || "-"}</div>
+                        </div>
+                        <div className="col-span-2">
+                          <div className="text-sm text-gray-500">Notes</div>
+                          <div>{stop.notes || "-"}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
-              <div className="p-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <div className="text-sm text-gray-500">Customer</div>
-                    <div className="font-medium">{customer?.name || "Unknown"}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-500">Driver</div>
-                    <div>{driver?.name || "Not assigned"}</div>
-                  </div>
-                  <div className="col-span-2">
-                    <div className="text-sm text-gray-500">Address</div>
-                    <div>{customer?.address || "-"}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-500">Phone</div>
-                    <div>{customer?.phone || "-"}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-500">Price</div>
-                    <div>${stop.price || calculatePrice(stop.items || "").toFixed(2)}</div>
-                  </div>
-                  <div className="col-span-2">
-                    <div className="text-sm text-gray-500">Items</div>
-                    <div>{stop.items || "-"}</div>
-                  </div>
-                  <div className="col-span-2">
-                    <div className="text-sm text-gray-500">Notes</div>
-                    <div>{stop.notes || "-"}</div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+            )}
+          </Draggable>
         );
       })}
     </div>

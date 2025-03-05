@@ -1,36 +1,32 @@
 
-import { Customer } from "@/pages/customers/types";
-
 export interface Driver {
   id: string;
   name: string;
-  email?: string;
-  phone?: string;
+  status?: string;
   created_at?: string;
-  updated_at?: string;
-  address?: string;
-  is_active?: boolean;
-  driver_type?: string;
-  notes?: string;
 }
 
 export interface DeliveryStop {
   id?: string | number;
   customer_id: string | null;
-  driver_id: string | null;
-  items: string | null;
-  notes: string | null;
-  price?: number | null;
-  stop_number?: number;
-  master_schedule_id?: string;
+  customer_name?: string;
   customer_address?: string;
   customer_phone?: string;
+  driver_id: string | null;
+  driver_name?: string;
+  items?: string | null;
+  notes?: string | null;
+  stop_number?: number;
+  price?: number;
+  sequence?: number;
+  master_schedule_id?: string;
+  status?: string;
 }
 
 export interface StopFormData {
   customer_id: string | null;
   driver_id: string | null;
-  items: string | null;
-  notes: string | null;
+  items?: string | null;
+  notes?: string | null;
   stop_number?: number;
 }
