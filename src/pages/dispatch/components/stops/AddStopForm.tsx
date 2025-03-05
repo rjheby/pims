@@ -11,12 +11,12 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, UserPlus, Hash, ExternalLink } from "lucide-react";
+import { Plus, UserPlus, Hash, ExternalLink, Edit } from "lucide-react";
 import { Customer } from "@/pages/customers/types";
 import { Driver, StopFormData } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "react-router-dom";
+import { CustomerEditSheet } from "@/pages/customers/components/CustomerEditSheet";
 
 interface AddStopFormProps {
   customers: Customer[];
@@ -37,6 +37,7 @@ export function AddStopForm({
 }: AddStopFormProps) {
   const { toast } = useToast();
   const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
+  const [showEditCustomerSheet, setShowEditCustomerSheet] = useState(false);
   const [newCustomer, setNewCustomer] = useState<Omit<Customer, 'id' | 'created_at' | 'updated_at'>>({
     name: '',
     type: 'commercial',
@@ -84,6 +85,44 @@ export function AddStopForm({
       }
     } catch (err) {
       console.error("Error creating customer:", err);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleUpdateCustomer = async (customerData: Partial<Customer>) => {
+    if (!selectedCustomer) return;
+    
+    try {
+      const { error } = await supabase
+        .from("customers")
+        .update(customerData)
+        .eq("id", selectedCustomer.id);
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to update customer: " + error.message,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Success", 
+        description: "Customer updated successfully"
+      });
+      
+      setShowEditCustomerSheet(false);
+      
+      // Refresh customer data
+      // Note: In a real application, you might want to update the customer list
+      // without a full page refresh, possibly by using a context or refetching data
+    } catch (err) {
+      console.error("Error updating customer:", err);
       toast({
         title: "Error",
         description: "An unexpected error occurred",
@@ -235,12 +274,14 @@ export function AddStopForm({
           <div className="space-y-2 md:col-span-2 bg-gray-50 p-3 rounded-md border">
             <div className="flex justify-between items-center">
               <div className="text-sm text-gray-500 font-medium">Customer Information</div>
-              <Link 
-                to={`/customers?edit=${selectedCustomer.id}`} 
-                className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-sm text-blue-600 hover:text-blue-800 flex items-center p-0 h-auto"
+                onClick={() => setShowEditCustomerSheet(true)}
               >
-                Edit Customer <ExternalLink className="ml-1 h-3 w-3" />
-              </Link>
+                <Edit className="mr-1 h-3 w-3" /> Edit Customer
+              </Button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1">
               <div>
@@ -290,7 +331,16 @@ export function AddStopForm({
           Add Stop
         </Button>
       </div>
+
+      {/* Customer Edit Sheet */}
+      {selectedCustomer && (
+        <CustomerEditSheet
+          customer={selectedCustomer}
+          isOpen={showEditCustomerSheet}
+          onClose={() => setShowEditCustomerSheet(false)}
+          onSave={handleUpdateCustomer}
+        />
+      )}
     </div>
   );
 }
-
