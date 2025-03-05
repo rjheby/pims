@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronDown, ChevronRight, ChevronUp, RefreshCw, Save, X } from "lucide-react";
+import { ChevronDown, ChevronUp, RefreshCw, Save, X, Copy, Trash, Plus, Edit } from "lucide-react";
 import { FirewoodProduct, RetailInventoryItem } from "@/pages/wholesale-order/types";
 import { PackagedProductsMobileCard } from "./PackagedProductsMobileCard";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -15,6 +15,9 @@ interface PackagedProductsTableProps {
   isAdmin: boolean;
   onInventoryUpdate: (productId: number, adjustment: Partial<RetailInventoryItem>) => Promise<{ success: boolean; error?: any }>;
   onRefresh: () => void;
+  onDuplicate?: (item: RetailInventoryItem) => void;
+  onDelete?: (item: RetailInventoryItem) => void;
+  onAdd?: () => void;
 }
 
 // Helper function to determine product type
@@ -49,7 +52,10 @@ export function PackagedProductsTable({
   loading,
   isAdmin,
   onInventoryUpdate,
-  onRefresh
+  onRefresh,
+  onDuplicate,
+  onDelete,
+  onAdd
 }: PackagedProductsTableProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newAvailable, setNewAvailable] = useState<number>(0);
@@ -124,7 +130,13 @@ export function PackagedProductsTable({
   if (isMobile) {
     return (
       <div className="space-y-4">
-        <div className="flex justify-end">
+        <div className="flex justify-between">
+          {isAdmin && (
+            <Button variant="outline" size="sm" onClick={onAdd} disabled={!onAdd}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add New
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={onRefresh}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
@@ -165,6 +177,8 @@ export function PackagedProductsTable({
                         }}
                         isAdmin={isAdmin}
                         onInventoryUpdate={onInventoryUpdate}
+                        onDuplicate={onDuplicate ? () => onDuplicate(item) : undefined}
+                        onDelete={onDelete ? () => onDelete(item) : undefined}
                       />
                     ))}
                   </div>
@@ -180,7 +194,13 @@ export function PackagedProductsTable({
   // Desktop View
   return (
     <div className="space-y-4 w-full">
-      <div className="flex justify-end">
+      <div className="flex justify-between">
+        {isAdmin && (
+          <Button variant="outline" size="sm" onClick={onAdd} disabled={!onAdd}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add New
+          </Button>
+        )}
         <Button variant="outline" size="sm" onClick={onRefresh}>
           <RefreshCw className="h-4 w-4 mr-2" />
           Refresh
@@ -270,9 +290,29 @@ export function PackagedProductsTable({
                                   </Button>
                                 </div>
                               ) : (
-                                <Button variant="ghost" size="sm" onClick={() => handleEdit(item)}>
-                                  Update
-                                </Button>
+                                <div className="flex justify-end space-x-2">
+                                  <Button variant="ghost" size="sm" onClick={() => handleEdit(item)}>
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  {onDuplicate && (
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      onClick={() => onDuplicate(item)}
+                                    >
+                                      <Copy className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                  {onDelete && (
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      onClick={() => onDelete(item)}
+                                    >
+                                      <Trash className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </div>
                               )}
                             </TableCell>
                           )}
@@ -309,3 +349,4 @@ export function PackagedProductsTable({
     </div>
   );
 }
+

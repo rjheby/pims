@@ -4,19 +4,23 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ChevronDown, ChevronUp, Save, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Save, X, Copy, Trash, Edit } from "lucide-react";
 import { FirewoodProduct, RetailInventoryItem } from "@/pages/wholesale-order/types";
 
 interface PackagedProductsMobileCardProps {
   item: RetailInventoryItem & { product?: FirewoodProduct };
   isAdmin: boolean;
-  onInventoryUpdate?: (productId: number, adjustment: Partial<RetailInventoryItem>) => Promise<{ success: boolean; error?: any }>;
+  onInventoryUpdate: (productId: number, adjustment: Partial<RetailInventoryItem>) => Promise<{ success: boolean; error?: any }>;
+  onDuplicate?: () => void;
+  onDelete?: () => void;
 }
 
 export function PackagedProductsMobileCard({
   item,
   isAdmin,
-  onInventoryUpdate
+  onInventoryUpdate,
+  onDuplicate,
+  onDelete
 }: PackagedProductsMobileCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -33,8 +37,6 @@ export function PackagedProductsMobileCard({
 
   const handleSave = async () => {
     try {
-      if (!onInventoryUpdate) return;
-      
       const adjustment = newAvailable - item.packages_available;
       const newTotal = item.total_packages + adjustment;
       
@@ -71,7 +73,7 @@ export function PackagedProductsMobileCard({
         
         <div className="flex items-center gap-1">
           <span className={item.packages_available === 0 ? "text-red-500" : "text-green-600"}>
-            {item.packages_available} pcs
+            {item.packages_available} available
           </span>
         </div>
       </CardHeader>
@@ -126,7 +128,7 @@ export function PackagedProductsMobileCard({
           </div>
           
           {isAdmin && (
-            <div className="flex justify-end space-x-2 mt-2">
+            <div className="flex flex-wrap gap-2 mt-2">
               {editing ? (
                 <>
                   <Button variant="outline" size="sm" onClick={handleCancel}>
@@ -137,9 +139,21 @@ export function PackagedProductsMobileCard({
                   </Button>
                 </>
               ) : (
-                <Button variant="outline" size="sm" onClick={handleEdit} disabled={!onInventoryUpdate}>
-                  Update
-                </Button>
+                <>
+                  <Button variant="outline" size="sm" onClick={handleEdit}>
+                    <Edit className="h-4 w-4 mr-1" /> Edit
+                  </Button>
+                  {onDuplicate && (
+                    <Button variant="outline" size="sm" onClick={onDuplicate}>
+                      <Copy className="h-4 w-4 mr-1" /> Duplicate
+                    </Button>
+                  )}
+                  {onDelete && (
+                    <Button variant="outline" size="sm" onClick={onDelete} className="border-red-600 text-red-600 hover:bg-red-50">
+                      <Trash className="h-4 w-4 mr-1" /> Delete
+                    </Button>
+                  )}
+                </>
               )}
             </div>
           )}
@@ -148,3 +162,4 @@ export function PackagedProductsMobileCard({
     </Card>
   );
 }
+

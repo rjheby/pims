@@ -4,19 +4,23 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ChevronDown, ChevronUp, Save, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Save, X, Copy, Trash, Edit } from "lucide-react";
 import { InventoryItem, WoodProduct } from "@/pages/wholesale-order/types";
 
 interface RawMaterialsMobileCardProps {
   item: InventoryItem & { product?: WoodProduct };
   isAdmin: boolean;
   onInventoryUpdate?: (productId: string, adjustment: Partial<InventoryItem>) => Promise<{ success: boolean; error?: any }>;
+  onDuplicate?: () => void;
+  onDelete?: () => void;
 }
 
 export function RawMaterialsMobileCard({
   item,
   isAdmin,
-  onInventoryUpdate
+  onInventoryUpdate,
+  onDuplicate,
+  onDelete
 }: RawMaterialsMobileCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -126,7 +130,7 @@ export function RawMaterialsMobileCard({
           </div>
           
           {isAdmin && (
-            <div className="flex justify-end space-x-2 mt-2">
+            <div className="flex flex-wrap gap-2 mt-2">
               {editing ? (
                 <>
                   <Button variant="outline" size="sm" onClick={handleCancel}>
@@ -137,9 +141,21 @@ export function RawMaterialsMobileCard({
                   </Button>
                 </>
               ) : (
-                <Button variant="outline" size="sm" onClick={handleEdit} disabled={!onInventoryUpdate}>
-                  Update
-                </Button>
+                <>
+                  <Button variant="outline" size="sm" onClick={handleEdit} disabled={!onInventoryUpdate}>
+                    <Edit className="h-4 w-4 mr-1" /> Edit
+                  </Button>
+                  {onDuplicate && (
+                    <Button variant="outline" size="sm" onClick={onDuplicate}>
+                      <Copy className="h-4 w-4 mr-1" /> Duplicate
+                    </Button>
+                  )}
+                  {onDelete && (
+                    <Button variant="outline" size="sm" onClick={onDelete} className="border-red-600 text-red-600 hover:bg-red-50">
+                      <Trash className="h-4 w-4 mr-1" /> Delete
+                    </Button>
+                  )}
+                </>
               )}
             </div>
           )}
@@ -148,3 +164,4 @@ export function RawMaterialsMobileCard({
     </Card>
   );
 }
+
