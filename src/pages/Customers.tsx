@@ -9,6 +9,7 @@ import { CustomerSection } from "./customers/CustomerSection";
 import { CustomerEditDialog } from "./customers/components/CustomerEditDialog";
 import { Customer } from "./customers/types";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function Customers() {
   const { 
@@ -27,6 +28,7 @@ export default function Customers() {
   const [editCustomer, setEditCustomer] = useState<Customer | undefined>(undefined);
   const location = useLocation();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   // Handle the edit query parameter
   useEffect(() => {
@@ -69,7 +71,7 @@ export default function Customers() {
         <h1 className="text-3xl font-bold">Customer Database</h1>
         
         <div className="flex gap-2">
-          <div className="relative">
+          <div className="relative flex-grow">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
@@ -130,7 +132,15 @@ export default function Customers() {
         onClose={handleCloseEditDialog}
         onSave={handleUpdateCustomer}
       />
+      
+      {/* Mobile action button */}
+      {isMobile && (
+        <div className="fixed bottom-6 right-6">
+          <Button size="lg" className="rounded-full w-12 h-12 p-0 shadow-lg" onClick={() => setAddDialogOpen(true)}>
+            <Plus className="h-6 w-6" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
-

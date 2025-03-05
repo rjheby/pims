@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronDown, ChevronRight, RefreshCw, Save, X } from "lucide-react";
 import { FirewoodProduct, RetailInventoryItem } from "@/pages/wholesale-order/types";
+import { PackagedProductsMobileCard } from "./PackagedProductsMobileCard";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface PackagedProductsTableProps {
   data: (RetailInventoryItem & { product?: FirewoodProduct })[];
@@ -25,6 +27,7 @@ export function PackagedProductsTable({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newAvailable, setNewAvailable] = useState<number>(0);
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
+  const isMobile = useIsMobile();
 
   const toggleItem = (id: string) => {
     setExpandedItems(prev => ({
@@ -66,6 +69,38 @@ export function PackagedProductsTable({
     );
   }
 
+  // Mobile View
+  if (isMobile) {
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-end">
+          <Button variant="outline" size="sm" onClick={onRefresh}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
+        
+        <div className="space-y-3">
+          {data.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No inventory data available
+            </div>
+          ) : (
+            data.map((item) => (
+              <PackagedProductsMobileCard
+                key={item.id}
+                item={item}
+                isAdmin={isAdmin}
+                onInventoryUpdate={onInventoryUpdate}
+              />
+            ))
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop View
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
