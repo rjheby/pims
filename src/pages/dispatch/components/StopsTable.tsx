@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Plus, Trash } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface Driver {
   id: string;
@@ -229,6 +230,183 @@ export function StopsTable({
     return <div className="text-center py-4">Loading...</div>;
   }
 
+  // Mobile layout for the stops table
+  if (useMobileLayout) {
+    return (
+      <div className="space-y-4">
+        <div className="text-lg font-medium">Delivery Stops</div>
+        
+        {stops.length === 0 ? (
+          <div className="text-center py-4 border rounded-md bg-gray-50">
+            No stops added yet
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {stops.map((stop, index) => {
+              const customer = customers.find(c => c.id === stop.customer_id) || stop.customers;
+              const driver = drivers.find(d => d.id === stop.driver_id);
+              
+              return (
+                <Card key={index} className="overflow-hidden">
+                  <CardHeader className="py-3">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center">
+                        <span className="bg-primary text-primary-foreground w-7 h-7 rounded-full flex items-center justify-center mr-2">
+                          {index + 1}
+                        </span>
+                        <CardTitle className="text-base font-medium">
+                          {customer?.name || "Unknown Customer"}
+                        </CardTitle>
+                      </div>
+                      {!readOnly && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveStop(index, stop.id)}
+                          className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="py-3 space-y-3">
+                    <div className="grid grid-cols-1 gap-2">
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-gray-500">Driver</label>
+                        {readOnly ? (
+                          <p className="text-sm">{driver?.name || "Not Assigned"}</p>
+                        ) : (
+                          <Select
+                            value={stop.driver_id || ""}
+                            onValueChange={(value) => handleUpdateStop(index, "driver_id", value, stop.id)}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select driver" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {drivers.map((driver) => (
+                                <SelectItem key={driver.id} value={driver.id}>
+                                  {driver.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-gray-500">Items</label>
+                        {readOnly ? (
+                          <p className="text-sm">{stop.items || "-"}</p>
+                        ) : (
+                          <Input
+                            value={stop.items || ""}
+                            onChange={(e) => handleUpdateStop(index, "items", e.target.value, stop.id)}
+                            placeholder="Enter items"
+                          />
+                        )}
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-gray-500">Notes</label>
+                        {readOnly ? (
+                          <p className="text-sm">{stop.notes || "-"}</p>
+                        ) : (
+                          <Input
+                            value={stop.notes || ""}
+                            onChange={(e) => handleUpdateStop(index, "notes", e.target.value, stop.id)}
+                            placeholder="Add notes"
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+        
+        {!readOnly && (
+          <Card>
+            <CardHeader className="py-3">
+              <CardTitle className="text-base font-medium">Add New Stop</CardTitle>
+            </CardHeader>
+            <CardContent className="py-3 space-y-3">
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-500">Customer</label>
+                  <Select
+                    value={newStop.customer_id}
+                    onValueChange={(value) => setNewStop({...newStop, customer_id: value})}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select customer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customers.map((customer) => (
+                        <SelectItem key={customer.id} value={customer.id}>
+                          {customer.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-500">Driver</label>
+                  <Select
+                    value={newStop.driver_id || ""}
+                    onValueChange={(value) => setNewStop({...newStop, driver_id: value})}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select driver" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {drivers.map((driver) => (
+                        <SelectItem key={driver.id} value={driver.id}>
+                          {driver.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-500">Items</label>
+                  <Input
+                    value={newStop.items || ""}
+                    onChange={(e) => setNewStop({...newStop, items: e.target.value})}
+                    placeholder="Enter items"
+                  />
+                </div>
+                
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-500">Notes</label>
+                  <Input
+                    value={newStop.notes || ""}
+                    onChange={(e) => setNewStop({...newStop, notes: e.target.value})}
+                    placeholder="Add notes"
+                  />
+                </div>
+                
+                <Button
+                  className="w-full"
+                  onClick={handleAddStop}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Stop
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    );
+  }
+
+  // Desktop layout for the stops table
   return (
     <div className="space-y-4">
       <div className="text-lg font-medium">Delivery Stops</div>

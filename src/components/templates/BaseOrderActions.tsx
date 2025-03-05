@@ -1,86 +1,131 @@
 
-import { Button } from "@/components/ui/button";
+import React from "react";
 import { Link } from "react-router-dom";
-import { Archive, Save, SendHorizontal } from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 
-interface BaseOrderActionsProps {
-  onSave: () => void;
-  onSubmit: () => void;  
-  archiveLink: string;
-  customActions?: React.ReactNode;
-  isSaving?: boolean;     
-  isSubmitting?: boolean;
+export interface BaseOrderActionsProps {
+  onSave?: () => void;
+  onSubmit?: () => void;
+  onCancel?: () => void;
+  onDelete?: () => void;
+  saveLabel?: string;
   submitLabel?: string;
-  archiveLabel?: string;
-  mobileLayout?: boolean; // Added this missing prop
+  cancelLabel?: string;
+  deleteLabel?: string;
+  savingLabel?: string;
+  submittingLabel?: string;
+  isSaving?: boolean;
+  isSubmitting?: boolean;
+  isDeleting?: boolean;
+  showCancelButton?: boolean;
+  showDeleteButton?: boolean;
+  showArchiveButton?: boolean;
+  archiveLink?: string;
+  disabled?: boolean;
+  mobileLayout?: boolean;
 }
 
-export function BaseOrderActions({ 
-  onSave, 
-  onSubmit, 
-  archiveLink, 
-  customActions,
+export function BaseOrderActions({
+  onSave,
+  onSubmit,
+  onCancel,
+  onDelete,
+  saveLabel = "Save as Draft",
+  submitLabel = "Submit Order",
+  cancelLabel = "Cancel",
+  deleteLabel = "Delete",
+  savingLabel = "Saving...",
+  submittingLabel = "Submitting...",
   isSaving = false,
   isSubmitting = false,
-  submitLabel = "Submit Order",
-  archiveLabel = "View All Orders",
-  mobileLayout = false // Default to false
+  isDeleting = false,
+  showCancelButton = true,
+  showDeleteButton = false,
+  showArchiveButton = false,
+  archiveLink = "/",
+  disabled = false,
+  mobileLayout = false
 }: BaseOrderActionsProps) {
-  const isMobile = useIsMobile();
-  
   return (
-    <div className="flex flex-col space-y-4">
-      <div className={`flex ${mobileLayout || isMobile ? 'flex-col' : 'justify-end'} gap-4`}>
-        <Button 
-          onClick={onSave} 
-          className="bg-gray-600 hover:bg-gray-700 w-full md:w-auto"
-          disabled={isSaving}
-        >
-          {isSaving ? (
-            <>
-              <div className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
-              Saving...
-            </>
-          ) : (
-            <>
-              <Save className="mr-2 h-4 w-4" />
-              Save Draft
-            </>
-          )}
-        </Button>
+    <div className={`flex ${mobileLayout ? "flex-col gap-2" : "flex-row gap-4"} justify-between items-center`}>
+      <div className={`flex ${mobileLayout ? "w-full flex-col" : "flex-row"} gap-2`}>
+        {onCancel && showCancelButton && (
+          <Button
+            variant="outline"
+            onClick={onCancel}
+            disabled={disabled || isSaving || isSubmitting || isDeleting}
+            className={mobileLayout ? "w-full" : ""}
+          >
+            {cancelLabel}
+          </Button>
+        )}
         
-        <Button 
-          onClick={onSubmit} 
-          className="bg-[#2A4131] hover:bg-[#2A4131]/90 w-full md:w-auto"
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? (
-            <>
-              <div className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
-              Submitting...
-            </>
-          ) : (
-            <>
-              <SendHorizontal className="mr-2 h-4 w-4" />
-              {submitLabel}
-            </>
-          )}
-        </Button>
-        
-        {customActions}
+        {onDelete && showDeleteButton && (
+          <Button
+            variant="destructive"
+            onClick={onDelete}
+            disabled={disabled || isSaving || isSubmitting || isDeleting}
+            className={mobileLayout ? "w-full" : ""}
+          >
+            {isDeleting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Deleting...
+              </>
+            ) : (
+              deleteLabel
+            )}
+          </Button>
+        )}
       </div>
       
-      <div className="flex justify-center pt-6 border-t">
-        <Button
-          asChild
-          className="bg-[#f1e8c7] text-[#222222] hover:bg-[#f1e8c7]/90 w-full md:w-auto"
-        >
-          <Link to={archiveLink} className="flex items-center gap-2 justify-center">
-            <Archive className="h-5 w-5" />
-            <span>{archiveLabel}</span>
-          </Link>
-        </Button>
+      <div className={`flex ${mobileLayout ? "w-full flex-col-reverse" : "flex-row"} gap-2`}>
+        {showArchiveButton && (
+          <Button
+            variant="outline"
+            asChild
+            disabled={disabled || isSaving || isSubmitting || isDeleting}
+            className={mobileLayout ? "w-full" : ""}
+          >
+            <Link to={archiveLink}>View Archive</Link>
+          </Button>
+        )}
+        
+        {onSave && (
+          <Button
+            variant="outline"
+            onClick={onSave}
+            disabled={disabled || isSaving || isSubmitting || isDeleting}
+            className={mobileLayout ? "w-full" : ""}
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {savingLabel}
+              </>
+            ) : (
+              saveLabel
+            )}
+          </Button>
+        )}
+        
+        {onSubmit && (
+          <Button
+            onClick={onSubmit}
+            disabled={disabled || isSaving || isSubmitting || isDeleting}
+            className={mobileLayout ? "w-full" : ""}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {submittingLabel}
+              </>
+            ) : (
+              submitLabel
+            )}
+          </Button>
+        )}
       </div>
     </div>
   );
