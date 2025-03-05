@@ -30,7 +30,7 @@ export function CustomerSection({ title, customers, onUpdateCustomer, onDeleteCu
   };
 
   return (
-    <Card className="border rounded-lg overflow-hidden">
+    <Card className="border rounded-lg overflow-hidden mb-4">
       <CardHeader 
         className="bg-muted py-3 px-4 cursor-pointer flex flex-row items-center justify-between" 
         onClick={toggleCollapse}

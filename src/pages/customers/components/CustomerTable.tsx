@@ -18,6 +18,8 @@ export function CustomerTable({ customers, onUpdateCustomer, onDeleteCustomer }:
   const navigate = useNavigate();
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
+  const [detailsCustomer, setDetailsCustomer] = useState<Customer | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const handleEditClick = (id: string) => {
     navigate(`/customers?edit=${id}`);
@@ -36,6 +38,11 @@ export function CustomerTable({ customers, onUpdateCustomer, onDeleteCustomer }:
     }
   };
 
+  const showDetails = (customer: Customer) => {
+    setDetailsCustomer(customer);
+    setDetailsOpen(true);
+  };
+
   return (
     <>
       <div className="overflow-x-auto">
@@ -52,7 +59,15 @@ export function CustomerTable({ customers, onUpdateCustomer, onDeleteCustomer }:
           <TableBody>
             {customers.map((customer) => (
               <TableRow key={customer.id} className="hover:bg-muted/50">
-                <TableCell className="font-medium text-center">{customer.name}</TableCell>
+                <TableCell className="font-medium text-center">
+                  <Button 
+                    variant="link" 
+                    className="p-0 h-auto font-medium"
+                    onClick={() => showDetails(customer)}
+                  >
+                    {customer.name}
+                  </Button>
+                </TableCell>
                 <TableCell className="text-center">
                   <Badge variant="outline" className={customer.type === "commercial" ? "bg-blue-50 text-blue-700" : "bg-green-50 text-green-700"}>
                     {customer.type === "commercial" ? "Commercial" : "Residential"}
@@ -105,6 +120,74 @@ export function CustomerTable({ customers, onUpdateCustomer, onDeleteCustomer }:
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>Cancel</Button>
             <Button variant="destructive" onClick={handleDelete}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Customer Details Dialog */}
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{detailsCustomer?.name}</DialogTitle>
+            <Badge variant="outline" className={detailsCustomer?.type === "commercial" ? "bg-blue-50 text-blue-700 mt-2 w-fit" : "bg-green-50 text-green-700 mt-2 w-fit"}>
+              {detailsCustomer?.type === "commercial" ? "Commercial" : "Residential"}
+            </Badge>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            {detailsCustomer?.phone && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <div className="font-medium">Phone</div>
+                <div className="col-span-3">
+                  <a href={`tel:${detailsCustomer.phone}`} className="text-primary hover:underline">
+                    {detailsCustomer.phone}
+                  </a>
+                </div>
+              </div>
+            )}
+            
+            {detailsCustomer?.email && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <div className="font-medium">Email</div>
+                <div className="col-span-3">
+                  <a href={`mailto:${detailsCustomer.email}`} className="text-primary hover:underline">
+                    {detailsCustomer.email}
+                  </a>
+                </div>
+              </div>
+            )}
+            
+            {detailsCustomer?.street_address && (
+              <div className="grid grid-cols-4 items-start gap-4">
+                <div className="font-medium">Address</div>
+                <div className="col-span-3">
+                  <p>{detailsCustomer.street_address}</p>
+                  <p>
+                    {[detailsCustomer.city, detailsCustomer.state, detailsCustomer.zip_code]
+                      .filter(Boolean)
+                      .join(", ")}
+                  </p>
+                </div>
+              </div>
+            )}
+            
+            {detailsCustomer?.notes && (
+              <div className="grid grid-cols-4 items-start gap-4">
+                <div className="font-medium">Notes</div>
+                <div className="col-span-3">{detailsCustomer.notes}</div>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDetailsOpen(false)}>Close</Button>
+            <Button onClick={() => {
+              setDetailsOpen(false);
+              handleEditClick(detailsCustomer?.id || "");
+            }}>
+              <Edit className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
