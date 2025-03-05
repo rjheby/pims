@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { 
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
@@ -47,13 +46,11 @@ export function StopsTable({
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<any>({});
 
-  // Fetch customers and drivers
   useEffect(() => {
     async function fetchData() {
       try {
         setLoading(true);
         
-        // Fetch customers
         const { data: customersData, error: customersError } = await supabase
           .from("customers")
           .select("*")
@@ -65,7 +62,6 @@ export function StopsTable({
           setCustomers(customersData || []);
         }
         
-        // Mock drivers - replace with real data when available
         setDrivers([
           { id: "driver-1", name: "John Smith" },
           { id: "driver-2", name: "Maria Garcia" },
@@ -82,18 +78,23 @@ export function StopsTable({
     fetchData();
   }, []);
 
-  // Handle adding a new stop
+  const calculatePrice = (items: string): number => {
+    if (!items) return 0;
+    
+    const itemsList = items.split(',');
+    return itemsList.length * 10;
+  };
+
   const handleAddStop = () => {
     if (!currentStop.customer_id) {
       return;
     }
     
-    // Find the customer to get their address and contact info
     const customer = customers.find(c => c.id === currentStop.customer_id);
     
     const newStop = {
       ...currentStop,
-      id: Date.now(), // Temporary id for new stops
+      id: Date.now(),
       customer_address: customer?.address || '',
       customer_phone: customer?.phone || '',
       price: calculatePrice(currentStop.items),
@@ -102,7 +103,6 @@ export function StopsTable({
     
     const updatedStops = [...stops, newStop];
     
-    // Update with stop numbers
     const numberedStops = updatedStops.map((stop, index) => ({
       ...stop,
       stop_number: index + 1
@@ -112,7 +112,6 @@ export function StopsTable({
       onStopsChange(numberedStops);
     }
     
-    // Reset the form
     setCurrentStop({
       customer_id: "",
       driver_id: "",
@@ -121,22 +120,10 @@ export function StopsTable({
     });
   };
 
-  // Calculate price based on items (placeholder implementation)
-  const calculatePrice = (items: string): number => {
-    // This is a placeholder - replace with actual pricing logic
-    if (!items) return 0;
-    
-    // Simple logic: $10 per item
-    const itemsList = items.split(',');
-    return itemsList.length * 10;
-  };
-
-  // Handle removing a stop
   const handleRemoveStop = async (index: number) => {
     const stopToRemove = stops[index];
     
     if (stopToRemove.id && !isNaN(Number(stopToRemove.id))) {
-      // This is a new stop with a temporary ID
       const updatedStops = stops.filter((_, i) => i !== index)
         .map((stop, i) => ({ ...stop, stop_number: i + 1 }));
       
@@ -145,7 +132,6 @@ export function StopsTable({
       }
     } else if (stopToRemove.id && masterScheduleId) {
       try {
-        // This is an existing stop in the database
         const { error } = await supabase
           .from('delivery_schedules')
           .delete()
@@ -166,7 +152,6 @@ export function StopsTable({
         console.error("Error:", error);
       }
     } else {
-      // Just remove from the array
       const updatedStops = stops.filter((_, i) => i !== index)
         .map((stop, i) => ({ ...stop, stop_number: i + 1 }));
       
@@ -176,7 +161,6 @@ export function StopsTable({
     }
   };
 
-  // Start editing a stop
   const handleEditStart = (index: number) => {
     const stopToEdit = stops[index];
     setEditingIndex(index);
@@ -188,13 +172,11 @@ export function StopsTable({
     });
   };
 
-  // Save edited stop
   const handleEditSave = async () => {
     if (editingIndex === null) return;
     
     const originalStop = stops[editingIndex];
     
-    // Find the customer to get their address and contact info
     const customer = customers.find(c => c.id === editForm.customer_id);
     
     const updatedStop = {
@@ -206,7 +188,6 @@ export function StopsTable({
     };
     
     if (updatedStop.id && masterScheduleId && !isNaN(Number(updatedStop.id))) {
-      // This is a new stop
       const updatedStops = [...stops];
       updatedStops[editingIndex] = updatedStop;
       
@@ -215,7 +196,6 @@ export function StopsTable({
       }
     } else if (updatedStop.id && masterScheduleId) {
       try {
-        // This is an existing stop in the database
         const { error } = await supabase
           .from('delivery_schedules')
           .update({
@@ -241,7 +221,6 @@ export function StopsTable({
         console.error("Error:", error);
       }
     } else {
-      // Just update in the array
       const updatedStops = [...stops];
       updatedStops[editingIndex] = updatedStop;
       
@@ -253,12 +232,10 @@ export function StopsTable({
     setEditingIndex(null);
   };
 
-  // Cancel editing
   const handleEditCancel = () => {
     setEditingIndex(null);
   };
 
-  // Render the add stop form
   const renderAddStopForm = () => {
     if (readOnly) return null;
     
@@ -338,7 +315,6 @@ export function StopsTable({
     );
   };
 
-  // Desktop table view
   const renderDesktopTable = () => {
     return (
       <div className="mb-6 border rounded-lg overflow-hidden">
@@ -368,7 +344,6 @@ export function StopsTable({
                 const customer = customers.find(c => c.id === stop.customer_id);
                 const driver = drivers.find(d => d.id === stop.driver_id);
                 
-                // If we're editing this row
                 if (editingIndex === index) {
                   return (
                     <TableRow key={`edit-${index}`}>
@@ -450,7 +425,6 @@ export function StopsTable({
                   );
                 }
                 
-                // Regular row
                 return (
                   <TableRow key={index}>
                     <TableCell className="font-medium">{index + 1}</TableCell>
@@ -493,7 +467,6 @@ export function StopsTable({
     );
   };
 
-  // Mobile card view
   const renderMobileCards = () => {
     if (stops.length === 0) {
       return (
@@ -509,7 +482,6 @@ export function StopsTable({
           const customer = customers.find(c => c.id === stop.customer_id);
           const driver = drivers.find(d => d.id === stop.driver_id);
           
-          // If we're editing this card
           if (editingIndex === index) {
             return (
               <Card key={`edit-${index}`} className="overflow-hidden">
@@ -602,7 +574,6 @@ export function StopsTable({
             );
           }
           
-          // Regular card
           return (
             <Card key={index} className="overflow-hidden">
               <CardContent className="p-0">
