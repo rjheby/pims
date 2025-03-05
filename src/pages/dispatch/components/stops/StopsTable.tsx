@@ -1,18 +1,18 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { DragDropContext, Droppable } from "@hello-pangea/dnd";
-import { Plus } from "lucide-react";
+import { Plus, MapPinPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Customer } from "@/pages/customers/types";
 import { supabase } from "@/integrations/supabase/client";
 import { StopsDesktopTable } from "./StopsDesktopTable";
 import { StopsMobileCards } from "./StopsMobileCards";
-import { Driver, StopFormData } from "./types";
+import { Driver, DeliveryStop, StopFormData } from "./types";
 
 interface StopsTableProps {
-  stops: any[];
-  onStopsChange: (newStops: any[]) => void;
+  stops: DeliveryStop[];
+  onStopsChange: (newStops: DeliveryStop[]) => void;
   useMobileLayout?: boolean;
   readOnly?: boolean;
   masterScheduleId?: string;
@@ -80,18 +80,28 @@ const StopsTable = ({
   }, [fetchData]);
 
   const handleAddStop = () => {
-    const newStop = {
+    const stopNumber = stops.length + 1;
+    const newStop: DeliveryStop = {
       customer_id: null,
       notes: null,
       driver_id: null,
       items: null,
       price: 0,
+      stop_number: stopNumber
     };
+    
     const newStops = [...stops, newStop];
     onStopsChange(newStops);
-
-    // Update stop numbers
-    updateStopNumbers(newStops);
+    
+    // Set this new stop to be edited immediately
+    setEditingIndex(newStops.length - 1);
+    setEditForm({
+      customer_id: null,
+      notes: null,
+      driver_id: null,
+      items: null,
+      stop_number: stopNumber
+    });
   };
 
   const handleEditStart = (index: number) => {
@@ -238,8 +248,12 @@ const StopsTable = ({
         <h3 className="text-lg font-medium">Delivery Stops</h3>
         <div className="flex items-center space-x-2">
           {!readOnly && (
-            <Button variant="outline" onClick={handleAddStop}>
-              <Plus className="mr-2 h-4 w-4" />
+            <Button 
+              variant="customAction" 
+              onClick={handleAddStop}
+              className="bg-[#F2FCE2] hover:bg-green-100 text-green-800 border border-green-200"
+            >
+              <MapPinPlus className="mr-2 h-4 w-4" />
               Add Stop
             </Button>
           )}

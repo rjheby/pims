@@ -1,7 +1,8 @@
 
-export const calculatePrice = (items: string): number => {
+export const calculatePrice = (items: string | null): number => {
   if (!items) return 0;
   
-  const itemsList = items.split(',');
+  // Simple logic: $10 per item
+  const itemsList = items.split(',').filter(Boolean);
   return itemsList.length * 10;
 };
