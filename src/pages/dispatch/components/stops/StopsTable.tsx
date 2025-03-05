@@ -249,7 +249,7 @@ export function StopsTable({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 max-w-6xl mx-auto">
       <h3 className="text-lg font-medium">Delivery Stops</h3>
       
       <AddStopForm

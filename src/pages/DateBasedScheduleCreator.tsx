@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
@@ -279,7 +278,7 @@ function DateBasedScheduleCreatorContent() {
   
   return (
     <div className="flex-1">
-      <Card className="shadow-sm">
+      <Card className="shadow-sm mx-auto max-w-6xl">
         <CardHeader>
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
             <CardTitle className="text-xl md:text-2xl">
@@ -333,7 +332,7 @@ function DateBasedScheduleCreatorContent() {
               </div>
             </div>
             
-            <div className={isMobile ? "pb-20" : ""}>
+            <div className={`${isMobile ? "pb-20" : ""} mx-auto`}>
               <StopsTable
                 stops={stops}
                 onStopsChange={handleStopsChange}

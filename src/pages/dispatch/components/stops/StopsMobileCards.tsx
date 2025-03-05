@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,10 +11,11 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { Trash, Edit, Check, X, Hash } from "lucide-react";
+import { Trash, Edit, Check, X, Hash, CheckSquare, Square } from "lucide-react";
 import { Customer } from "@/pages/customers/types";
 import { Driver, DeliveryStop, StopFormData } from "./types";
 import { calculatePrice } from "./utils";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface StopsMobileCardsProps {
   stops: DeliveryStop[];
@@ -29,6 +29,8 @@ interface StopsMobileCardsProps {
   onEditCancel: () => void;
   onRemoveStop: (index: number) => void;
   readOnly?: boolean;
+  selectedStops?: string[];
+  onSelectStop?: (stopId: string, index: number, event?: React.MouseEvent) => void;
 }
 
 export function StopsMobileCards({
@@ -42,7 +44,9 @@ export function StopsMobileCards({
   onEditSave,
   onEditCancel,
   onRemoveStop,
-  readOnly = false
+  readOnly = false,
+  selectedStops = [],
+  onSelectStop
 }: StopsMobileCardsProps) {
   if (stops.length === 0) {
     return (
@@ -57,6 +61,7 @@ export function StopsMobileCards({
       {stops.map((stop, index) => {
         const customer = customers.find(c => c.id === stop.customer_id);
         const driver = drivers.find(d => d.id === stop.driver_id);
+        const isSelected = stop.id ? selectedStops.includes(stop.id.toString()) : false;
         
         if (editingIndex === index) {
           return (
@@ -103,6 +108,7 @@ export function StopsMobileCards({
                     </Button>
                   </div>
                 </div>
+                
                 <div className="p-4 space-y-4">
                   <div className="space-y-3">
                     <div className="space-y-1">
@@ -171,10 +177,24 @@ export function StopsMobileCards({
         }
         
         return (
-          <Card key={index} className="overflow-hidden">
+          <Card 
+            key={index} 
+            className={`overflow-hidden ${isSelected ? 'ring-2 ring-primary' : ''}`}
+          >
             <CardContent className="p-0">
               <div className="bg-[#2A4131] text-white p-3 flex justify-between items-center">
-                <div className="text-lg font-semibold">Stop #{stop.stop_number || index + 1}</div>
+                <div className="flex items-center gap-2">
+                  {!readOnly && onSelectStop && stop.id && (
+                    <div onClick={(e) => onSelectStop(stop.id!.toString(), index, e)} className="cursor-pointer">
+                      {isSelected ? (
+                        <CheckSquare className="h-5 w-5 text-white" />
+                      ) : (
+                        <Square className="h-5 w-5 text-white" />
+                      )}
+                    </div>
+                  )}
+                  <div className="text-lg font-semibold">Stop #{stop.stop_number || index + 1}</div>
+                </div>
                 {!readOnly && (
                   <div className="flex space-x-2">
                     <Button 
