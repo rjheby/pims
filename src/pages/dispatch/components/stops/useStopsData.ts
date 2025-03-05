@@ -106,10 +106,13 @@ export const useStopsData = (
       }
     } else if (stopToRemove.id && masterScheduleId) {
       try {
+        // Convert id to string using String() instead of direct assignment
+        const stopId = String(stopToRemove.id);
+        
         const { error } = await supabase
           .from('delivery_schedules')
           .delete()
-          .eq('id', stopToRemove.id);
+          .eq('id', stopId);
           
         if (error) {
           console.error("Error deleting stop:", error);
@@ -170,6 +173,9 @@ export const useStopsData = (
       }
     } else if (updatedStop.id && masterScheduleId) {
       try {
+        // Convert id to string using String() instead of direct assignment
+        const stopId = String(updatedStop.id);
+        
         const { error } = await supabase
           .from('delivery_schedules')
           .update({
@@ -178,7 +184,7 @@ export const useStopsData = (
             notes: editForm.notes,
             items: editForm.items
           })
-          .eq('id', updatedStop.id);
+          .eq('id', stopId);
           
         if (error) {
           console.error("Error updating stop:", error);
