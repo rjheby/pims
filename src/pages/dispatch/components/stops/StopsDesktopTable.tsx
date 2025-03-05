@@ -1,3 +1,4 @@
+
 import React from "react";
 import { 
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
@@ -7,7 +8,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Trash, Edit, Check, X, Hash, GripVertical } from "lucide-react";
+import { Trash, Edit, Check, X, Hash, GripVertical, Copy } from "lucide-react";
 import { Customer } from "@/pages/customers/types";
 import { Driver, DeliveryStop, StopFormData } from "./types";
 import { calculatePrice } from "./utils";
@@ -28,6 +29,7 @@ interface StopsDesktopTableProps {
   selectedStops?: string[];
   onSelectStop?: (stopId: string, index: number, event?: React.MouseEvent) => void;
   onDuplicateStop?: (index: number) => void;
+  draggable?: boolean;
 }
 
 export function StopsDesktopTable({
@@ -42,9 +44,10 @@ export function StopsDesktopTable({
   onEditCancel,
   onRemoveStop,
   readOnly = false,
-  selectedStops,
+  selectedStops = [],
   onSelectStop,
-  onDuplicateStop
+  onDuplicateStop,
+  draggable = false
 }: StopsDesktopTableProps) {
   return (
     <div className="mb-6 border rounded-lg overflow-hidden">
@@ -202,6 +205,16 @@ export function StopsDesktopTable({
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
+                        {onDuplicateStop && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => onDuplicateStop(index)}
+                            className="h-8 w-8 p-0 mr-1"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        )}
                         <Button 
                           variant="ghost" 
                           size="sm" 
@@ -250,6 +263,16 @@ export function StopsDesktopTable({
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
+                              {onDuplicateStop && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={() => onDuplicateStop(index)}
+                                  className="h-8 w-8 p-0 mr-1"
+                                >
+                                  <Copy className="h-4 w-4" />
+                                </Button>
+                              )}
                               <Button 
                                 variant="ghost" 
                                 size="sm" 

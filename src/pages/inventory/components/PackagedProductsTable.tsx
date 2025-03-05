@@ -1,3 +1,4 @@
+
 import { useState, useMemo, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -127,9 +128,7 @@ export function PackagedProductsTable({
   const handleSelectRow = (id: string, index: number, event?: React.MouseEvent) => {
     if (!event) return;
     
-    const mouseEvent = event as unknown as React.MouseEvent;
-    
-    if (mouseEvent.shiftKey && lastSelectedIndex !== null) {
+    if (event.shiftKey && lastSelectedIndex !== null) {
       const flattenedItems = data.map(item => item.id);
       const startIdx = Math.min(lastSelectedIndex, index);
       const endIdx = Math.max(lastSelectedIndex, index);
@@ -406,7 +405,13 @@ export function PackagedProductsTable({
                             <Checkbox 
                               id={`select-item-desktop-${item.id}`}
                               checked={selectedItems.includes(item.id)}
-                              onCheckedChange={(checked) => handleSelectRow(item.id, index, window.event as React.MouseEvent)}
+                              onCheckedChange={() => {
+                                // Create a synthetic React MouseEvent
+                                const syntheticEvent = {
+                                  shiftKey: window.event ? (window.event as any).shiftKey : false,
+                                } as React.MouseEvent;
+                                handleSelectRow(item.id, index, syntheticEvent);
+                              }}
                             />
                           </TableCell>
                           <TableCell>

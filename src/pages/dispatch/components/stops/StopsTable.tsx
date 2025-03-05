@@ -1,22 +1,13 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Customer } from "@/pages/customers/types";
-import { Driver } from "@/pages/DriversView";
 import { supabase } from "@/integrations/supabase/client";
 import { StopsDesktopTable } from "./StopsDesktopTable";
 import { StopsMobileCards } from "./StopsMobileCards";
-
-interface StopFormData {
-  customer_id: string | null;
-  notes: string | null;
-  driver_id: string | null;
-  items: string | null;
-  price: number | null;
-}
+import { Driver, StopFormData } from "./types";
 
 interface StopsTableProps {
   stops: any[];
@@ -41,7 +32,6 @@ const StopsTable = ({
     notes: null,
     driver_id: null,
     items: null,
-    price: null,
   });
   const [selectedStops, setSelectedStops] = useState<string[]>([]);
 
@@ -107,7 +97,6 @@ const StopsTable = ({
       notes: stopToEdit.notes || null,
       driver_id: stopToEdit.driver_id || null,
       items: stopToEdit.items || null,
-      price: stopToEdit.price || null,
     });
   };
 
@@ -208,6 +197,7 @@ const StopsTable = ({
             readOnly={readOnly}
             selectedStops={selectedStops}
             onSelectStop={handleSelectStop}
+            onDuplicateStop={handleDuplicateStop}
           />
         ) : (
           <StopsDesktopTable
@@ -225,6 +215,7 @@ const StopsTable = ({
             selectedStops={selectedStops}
             onSelectStop={handleSelectStop}
             onDuplicateStop={handleDuplicateStop}
+            draggable={false}
           />
         )
       ) : (

@@ -4,34 +4,30 @@ import { Customer } from "@/pages/customers/types";
 export interface Driver {
   id: string;
   name: string;
+  email?: string;
+  phone?: string;
+  created_at?: string;
+  updated_at?: string;
+  address?: string;
+  is_active?: boolean;
+  driver_type?: string;
+  notes?: string;
 }
 
 export interface DeliveryStop {
-  id?: number | string;
+  id?: string;
   customer_id: string | null;
   driver_id: string | null;
-  notes: string | null;
   items: string | null;
-  price?: number;
-  customer_address?: string;
-  customer_phone?: string;
+  notes: string | null;
+  price?: number | null;
   stop_number?: number;
-  master_schedule_id?: string;
-  customers?: Customer;
 }
 
 export interface StopFormData {
-  customer_id: string;
-  driver_id: string;
-  notes: string;
-  items: string;
+  customer_id: string | null;
+  driver_id: string | null;
+  items: string | null;
+  notes: string | null;
   stop_number?: number;
-}
-
-export interface StopsTableProps {
-  stops: DeliveryStop[];
-  onStopsChange?: (stops: DeliveryStop[]) => void;
-  masterScheduleId?: string;
-  readOnly?: boolean;
-  useMobileLayout?: boolean;
 }
