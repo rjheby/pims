@@ -83,6 +83,7 @@ export function CustomerMobileCard({
               <a 
                 href={`mailto:${customer.email}`} 
                 className="flex items-center text-primary text-sm"
+                title={customer.email}
               >
                 <Mail className="h-4 w-4 mr-2" />
                 {customer.email}
@@ -93,6 +94,7 @@ export function CustomerMobileCard({
               <a 
                 href={`tel:${customer.phone}`} 
                 className="flex items-center text-primary text-sm"
+                title={customer.phone}
               >
                 <Phone className="h-4 w-4 mr-2" />
                 {customer.phone}
