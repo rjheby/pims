@@ -1,3 +1,5 @@
+
+/*
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -391,3 +393,8 @@ export function ProcessingRecordsCard() {
     </Card>
   );
 }
+*/
+
+// This component is temporarily commented out
+// It contains functionality for tracking processing records
+// which may be needed in the future
