@@ -4,22 +4,36 @@ import { Button } from "@/components/ui/button";
 import { Edit, Trash, ExternalLink, Mail, Phone } from "lucide-react";
 import { Customer } from "../types";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface CustomerTableProps {
   customers: Customer[];
   onUpdateCustomer: (id: string, data: Partial<Customer>) => void;
   onDeleteCustomer: (id: string) => void;
+  onDuplicateCustomer?: (customer: Customer) => void;
+  selectedCustomers?: string[];
+  onSelectCustomer?: (id: string, selected: boolean) => void;
+  onSelectAll?: (selected: boolean) => void;
 }
 
-export function CustomerTable({ customers, onUpdateCustomer, onDeleteCustomer }: CustomerTableProps) {
+export function CustomerTable({ 
+  customers, 
+  onUpdateCustomer, 
+  onDeleteCustomer,
+  onDuplicateCustomer,
+  selectedCustomers = [],
+  onSelectCustomer,
+  onSelectAll
+}: CustomerTableProps) {
   const navigate = useNavigate();
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
   const [detailsCustomer, setDetailsCustomer] = useState<Customer | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [lastSelectedIndex, setLastSelectedIndex] = useState<number>(-1);
 
   const handleEditClick = (id: string) => {
     navigate(`/customers?edit=${id}`);
@@ -38,10 +52,59 @@ export function CustomerTable({ customers, onUpdateCustomer, onDeleteCustomer }:
     }
   };
 
+  const handleDuplicate = (customer: Customer) => {
+    if (onDuplicateCustomer) {
+      onDuplicateCustomer(customer);
+    }
+  };
+
   const showDetails = (customer: Customer) => {
     setDetailsCustomer(customer);
     setDetailsOpen(true);
   };
+
+  const handleSelectCustomer = (customerId: string, index: number, isChecked: boolean, isShiftKey: boolean) => {
+    if (!onSelectCustomer) return;
+    
+    onSelectCustomer(customerId, isChecked);
+    
+    if (isShiftKey && lastSelectedIndex >= 0 && index !== lastSelectedIndex) {
+      const start = Math.min(index, lastSelectedIndex);
+      const end = Math.max(index, lastSelectedIndex);
+      
+      for (let i = start; i <= end; i++) {
+        if (i !== index && i !== lastSelectedIndex) {
+          onSelectCustomer(customers[i].id, isChecked);
+        }
+      }
+    }
+    
+    setLastSelectedIndex(index);
+  };
+
+  const handleSelectAll = (isChecked: boolean) => {
+    if (onSelectAll) {
+      onSelectAll(isChecked);
+    }
+  };
+
+  // Keyboard event handler for navigation and actions
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    // Implementation of keyboard shortcuts can be added here
+    if (e.key === 'Delete' && selectedCustomers.length > 0) {
+      // Handle bulk delete
+      console.log('Bulk delete triggered for', selectedCustomers);
+    }
+  }, [selectedCustomers]);
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleKeyDown]);
+
+  const isAllSelected = customers.length > 0 && selectedCustomers.length === customers.length;
 
   return (
     <>
@@ -49,6 +112,15 @@ export function CustomerTable({ customers, onUpdateCustomer, onDeleteCustomer }:
         <Table>
           <TableHeader>
             <TableRow>
+              {onSelectCustomer && (
+                <TableHead className="w-[50px] text-center">
+                  <Checkbox 
+                    checked={isAllSelected}
+                    onCheckedChange={handleSelectAll}
+                    aria-label="Select all"
+                  />
+                </TableHead>
+              )}
               <TableHead className="text-center">Name</TableHead>
               <TableHead className="text-center">Type</TableHead>
               <TableHead className="text-center">Contact</TableHead>
@@ -57,8 +129,24 @@ export function CustomerTable({ customers, onUpdateCustomer, onDeleteCustomer }:
             </TableRow>
           </TableHeader>
           <TableBody>
-            {customers.map((customer) => (
+            {customers.map((customer, index) => (
               <TableRow key={customer.id} className="hover:bg-muted/50">
+                {onSelectCustomer && (
+                  <TableCell className="text-center">
+                    <Checkbox 
+                      checked={selectedCustomers.includes(customer.id)}
+                      onCheckedChange={(checked) => {
+                        handleSelectCustomer(
+                          customer.id, 
+                          index, 
+                          !!checked, 
+                          window.event instanceof MouseEvent && (window.event as MouseEvent).shiftKey
+                        );
+                      }}
+                      aria-label={`Select ${customer.name}`}
+                    />
+                  </TableCell>
+                )}
                 <TableCell className="font-medium text-center">
                   <Button 
                     variant="link" 
@@ -97,6 +185,23 @@ export function CustomerTable({ customers, onUpdateCustomer, onDeleteCustomer }:
                     <Button variant="ghost" size="sm" onClick={() => handleEditClick(customer.id)}>
                       <Edit className="h-4 w-4" />
                     </Button>
+                    {onDuplicateCustomer && (
+                      <Button variant="ghost" size="sm" onClick={() => handleDuplicate(customer)}>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <rect x="8" y="8" width="12" height="12" rx="2" ry="2" />
+                          <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
+                        </svg>
+                      </Button>
+                    )}
                     <Button variant="ghost" size="sm" onClick={() => confirmDelete(customer)}>
                       <Trash className="h-4 w-4" />
                     </Button>

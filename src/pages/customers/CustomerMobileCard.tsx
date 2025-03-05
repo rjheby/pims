@@ -2,9 +2,10 @@
 import { useState } from "react";
 import { Customer } from "./types";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, Edit, Trash, Mail, Phone, MapPin } from "lucide-react";
+import { ChevronDown, ChevronUp, Edit, Trash, Mail, Phone, MapPin, Copy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -29,6 +30,9 @@ interface CustomerMobileCardProps {
   onToggleExpand: () => void;
   onUpdate: (data: Partial<Customer>) => void;
   onDelete: () => void;
+  onDuplicate?: () => void;
+  selected?: boolean;
+  onSelect?: (selected: boolean) => void;
 }
 
 export function CustomerMobileCard({ 
@@ -36,7 +40,10 @@ export function CustomerMobileCard({
   expanded, 
   onToggleExpand, 
   onUpdate, 
-  onDelete 
+  onDelete,
+  onDuplicate,
+  selected = false,
+  onSelect
 }: CustomerMobileCardProps) {
   const navigate = useNavigate();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -64,24 +71,34 @@ export function CustomerMobileCard({
   return (
     <div className="p-4 bg-card">
       <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <Button 
-            variant="link" 
-            className="p-0 h-auto text-base font-medium text-left justify-start" 
-            onClick={handleViewDetails}
-          >
-            {customer.name}
-          </Button>
-          <div className="flex items-center gap-2 mt-1">
-            <Badge variant="outline" className={customer.type === "commercial" ? "bg-blue-50 text-blue-700" : "bg-green-50 text-green-700"}>
-              {customer.type === "commercial" ? "Commercial" : "Residential"}
-            </Badge>
-            {customer.city && customer.state && (
-              <span className="text-xs text-muted-foreground flex items-center">
-                <MapPin className="h-3 w-3 mr-1" />
-                {customer.city}, {customer.state}
-              </span>
-            )}
+        <div className="flex items-center gap-2">
+          {onSelect && (
+            <Checkbox 
+              checked={selected}
+              onCheckedChange={(checked) => onSelect(!!checked)}
+              className="mr-2"
+              aria-label={`Select ${customer.name}`}
+            />
+          )}
+          <div className="flex-1">
+            <Button 
+              variant="link" 
+              className="p-0 h-auto text-base font-medium text-left justify-start" 
+              onClick={handleViewDetails}
+            >
+              {customer.name}
+            </Button>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant="outline" className={customer.type === "commercial" ? "bg-blue-50 text-blue-700" : "bg-green-50 text-green-700"}>
+                {customer.type === "commercial" ? "Commercial" : "Residential"}
+              </Badge>
+              {customer.city && customer.state && (
+                <span className="text-xs text-muted-foreground flex items-center">
+                  <MapPin className="h-3 w-3 mr-1" />
+                  {customer.city}, {customer.state}
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <Button 
@@ -135,6 +152,12 @@ export function CustomerMobileCard({
               <Edit className="h-4 w-4 mr-2" />
               Edit
             </Button>
+            {onDuplicate && (
+              <Button variant="outline" size="sm" onClick={onDuplicate}>
+                <Copy className="h-4 w-4 mr-2" />
+                Duplicate
+              </Button>
+            )}
             <Button variant="outline" size="sm" onClick={handleDeleteClick}>
               <Trash className="h-4 w-4 mr-2" />
               Delete
