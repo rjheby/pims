@@ -78,7 +78,7 @@ export function CustomerSection({
   };
 
   return (
-    <Card className="border rounded-lg overflow-hidden mb-4">
+    <Card className="border rounded-lg overflow-hidden mb-6">
       <CardHeader 
         className="bg-muted py-3 px-4 cursor-pointer flex flex-row items-center justify-between" 
         onClick={toggleCollapse}
@@ -160,6 +160,9 @@ export function CustomerSection({
             />
           )}
         </CardContent>
+      )}
+      {isCollapsed && (
+        <div className="h-2"></div>
       )}
     </Card>
   );

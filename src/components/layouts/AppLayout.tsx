@@ -65,7 +65,7 @@ export default function AppLayout({
   return (
     <SidebarProvider>
       <KeyboardShortcuts />
-      <div className="relative min-h-screen overflow-x-hidden">
+      <div className="relative min-h-screen overflow-x-hidden w-full">
         {/* Admin Mode Overlay */}
         <div
           className={cn(
@@ -96,7 +96,7 @@ export default function AppLayout({
           </div>
           
           <main className="w-full min-h-screen pt-[72px] pb-36 overflow-x-hidden">
-            <div className="w-full px-3 md:w-[95%] mx-auto">
+            <div className="w-full px-3 mx-auto md:w-[95%] lg:max-w-[1440px]">
               {children}
             </div>
           </main>

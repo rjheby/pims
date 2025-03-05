@@ -95,7 +95,7 @@ export function AppSidebar() {
   const { isMobile, openMobile, setOpenMobile } = useSidebar();
   const [showFullLogo, setShowFullLogo] = useState(false);
 
-  // Check if window width is large enough for full logo (at least 1280px)
+  // Check if window width is large enough for full logo
   useEffect(() => {
     const checkWindowSize = () => {
       setShowFullLogo(window.innerWidth >= 1280);
@@ -213,14 +213,14 @@ export function AppSidebar() {
       </Sheet>
 
       <div className="hidden md:block bg-white border-b border-[#2A4131]/10">
-        <div className="flex items-center justify-between h-[72px] px-4 max-w-[95rem] mx-auto">
+        <div className="flex items-center justify-between h-[72px] px-4 max-w-screen-2xl mx-auto">
           <div className="flex items-center gap-8">
             {showFullLogo ? (
               <Logo variant="full" />
             ) : (
               <Logo variant="icon" />
             )}
-            <nav className="flex items-center gap-6">
+            <nav className="flex items-center gap-6 overflow-x-auto pb-1 hide-scrollbar">
               <NavLink 
                 to="/"
                 isActive={location.pathname === "/"}
@@ -244,7 +244,7 @@ export function AppSidebar() {
                     <Button
                       variant="ghost"
                       className={cn(
-                        "flex items-center gap-1 px-3 py-2 text-sm font-medium transition-all duration-200 ease-in-out",
+                        "flex items-center gap-1 px-3 py-2 text-sm font-medium transition-all duration-200 ease-in-out whitespace-nowrap",
                         group.items.some(item => location.pathname === item.path)
                           ? "text-[#2A4131] bg-[#F2E9D2]"
                           : "text-[#2A4131]/70 hover:bg-[#F2E9D2]/50"
