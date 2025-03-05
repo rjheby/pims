@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
@@ -337,6 +338,7 @@ function DateBasedScheduleCreatorContent() {
                 stops={stops}
                 onStopsChange={handleStopsChange}
                 useMobileLayout={isMobile}
+                // The component already has drag and drop functionality internally
               />
             </div>
             
