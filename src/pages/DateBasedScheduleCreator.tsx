@@ -1,7 +1,8 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus, Save, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +13,7 @@ import { BaseOrderSummary } from "@/components/templates/BaseOrderSummary";
 import { BaseOrderActions } from "@/components/templates/BaseOrderActions";
 import { Customer } from "./customers/types";
 import { DispatchScheduleProvider } from './dispatch/context/DispatchScheduleContext';
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ScheduleData {
   schedule_number: string;
@@ -27,6 +29,7 @@ interface Driver {
 function DateBasedScheduleCreatorContent() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   
   // Generate schedule number based on date and drivers
   const generateScheduleNumber = (dateString: string, driverIds: string[] = []) => {
@@ -297,18 +300,18 @@ function DateBasedScheduleCreatorContent() {
     <div className="flex-1">
       <Card className="shadow-sm">
         <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>
-              New Dispatch Schedule for {formatDisplayDate(schedule.schedule_date)}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
+            <CardTitle className="text-xl md:text-2xl">
+              {isMobile ? "New Schedule" : `New Dispatch Schedule for ${formatDisplayDate(schedule.schedule_date)}`}
             </CardTitle>
           </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-            {/* Schedule Date Selection */}
+            {/* Schedule Date Selection - Mobile Optimized Layout */}
             <div className="border rounded-lg p-4">
               <h3 className="text-lg font-medium mb-4">Schedule Details</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className={`grid grid-cols-1 ${isMobile ? "" : "md:grid-cols-2"} gap-4`}>
                 <div className="space-y-2">
                   <label htmlFor="schedule-date" className="block text-sm font-medium">
                     Schedule Date
@@ -322,9 +325,15 @@ function DateBasedScheduleCreatorContent() {
                       className="border rounded-md px-3 py-2 w-full"
                     />
                   </div>
-                  <p className="text-sm text-gray-500">
-                    All stops will be scheduled for {formatDisplayDate(schedule.schedule_date)}
-                  </p>
+                  {isMobile ? (
+                    <p className="text-sm text-gray-500 font-semibold">
+                      {formatDisplayDate(schedule.schedule_date)}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-gray-500">
+                      All stops will be scheduled for {formatDisplayDate(schedule.schedule_date)}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <label htmlFor="schedule-number" className="block text-sm font-medium">
@@ -344,25 +353,42 @@ function DateBasedScheduleCreatorContent() {
               </div>
             </div>
             
-            {/* Stops Table */}
-            <StopsTable
-              stops={stops}
-              onStopsChange={handleStopsChange}
-            />
+            {/* Stops Table - Mobile Optimized or Desktop */}
+            <div className={isMobile ? "pb-20" : ""}>  {/* Add padding at bottom for mobile to avoid actions being hidden */}
+              <StopsTable
+                stops={stops}
+                onStopsChange={handleStopsChange}
+                useMobileLayout={isMobile}
+              />
+            </div>
             
             {/* Summary and Actions */}
             <BaseOrderSummary 
               items={calculateTotals()}
             />
             
-            <BaseOrderActions
-              onSave={handleSave}
-              onSubmit={handleSubmit}
-              submitLabel="Submit Schedule"
-              archiveLink="/dispatch-archive"
-              isSaving={isSaving}
-              isSubmitting={isSubmitting}
-            />
+            {isMobile ? (
+              <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4 z-10">
+                <BaseOrderActions
+                  onSave={handleSave}
+                  onSubmit={handleSubmit}
+                  submitLabel="Submit Schedule"
+                  archiveLink="/dispatch-archive"
+                  isSaving={isSaving}
+                  isSubmitting={isSubmitting}
+                  mobileLayout={true}
+                />
+              </div>
+            ) : (
+              <BaseOrderActions
+                onSave={handleSave}
+                onSubmit={handleSubmit}
+                submitLabel="Submit Schedule"
+                archiveLink="/dispatch-archive"
+                isSaving={isSaving}
+                isSubmitting={isSubmitting}
+              />
+            )}
           </div>
         </CardContent>
       </Card>
