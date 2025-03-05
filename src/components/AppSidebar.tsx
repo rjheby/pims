@@ -94,11 +94,14 @@ export function AppSidebar() {
   const location = useLocation();
   const { isMobile, openMobile, setOpenMobile } = useSidebar();
   const [showFullLogo, setShowFullLogo] = useState(false);
+  const [screenWidth, setScreenWidth] = useState(window.innerWidth);
 
-  // Check if window width is large enough for full logo
+  // Check if window width is large enough for full logo and update screenWidth state
   useEffect(() => {
     const checkWindowSize = () => {
-      setShowFullLogo(window.innerWidth >= 1280);
+      const width = window.innerWidth;
+      setScreenWidth(width);
+      setShowFullLogo(width >= 1280);
     };
     
     // Set initial value
@@ -116,6 +119,9 @@ export function AppSidebar() {
   const handleMenuItemClick = () => {
     if (isMobile) setOpenMobile(false);
   };
+
+  // Determine if we're in the problematic mid-size range (650px-1235px)
+  const isMidSizeRange = screenWidth > 650 && screenWidth < 1235;
 
   const NavLink = ({ to, onClick = () => {}, isActive, className, children }) => (
     <Link
@@ -215,12 +221,16 @@ export function AppSidebar() {
       <div className="hidden md:block bg-white border-b border-[#2A4131]/10">
         <div className="flex items-center justify-between h-[72px] px-4 max-w-screen-2xl mx-auto">
           <div className="flex items-center gap-8">
-            {showFullLogo ? (
+            {/* Always show icon in problematic mid-size range, otherwise use showFullLogo logic */}
+            {showFullLogo && !isMidSizeRange ? (
               <Logo variant="full" />
             ) : (
               <Logo variant="icon" />
             )}
-            <nav className="flex items-center gap-6 overflow-x-auto pb-1 hide-scrollbar">
+            <nav className={cn(
+              "flex items-center gap-6 overflow-x-auto pb-1 hide-scrollbar",
+              isMidSizeRange && "pr-12" // Add extra padding when in the problematic range
+            )}>
               <NavLink 
                 to="/"
                 isActive={location.pathname === "/"}

@@ -13,6 +13,8 @@ interface RawMaterialsMobileCardProps {
   onInventoryUpdate?: (productId: string, adjustment: Partial<InventoryItem>) => Promise<{ success: boolean; error?: any }>;
   onDuplicate?: () => void;
   onDelete?: () => void;
+  selected?: boolean;
+  onSelect?: (selected: boolean) => void;
 }
 
 export function RawMaterialsMobileCard({
@@ -20,7 +22,9 @@ export function RawMaterialsMobileCard({
   isAdmin,
   onInventoryUpdate,
   onDuplicate,
-  onDelete
+  onDelete,
+  selected,
+  onSelect
 }: RawMaterialsMobileCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -60,7 +64,7 @@ export function RawMaterialsMobileCard({
   };
 
   return (
-    <Card>
+    <Card className={selected ? "border-primary border-2" : ""}>
       <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0">
         <div onClick={toggleExpanded} className="flex items-center gap-2 cursor-pointer flex-1">
           {expanded ? (
@@ -164,4 +168,3 @@ export function RawMaterialsMobileCard({
     </Card>
   );
 }
-

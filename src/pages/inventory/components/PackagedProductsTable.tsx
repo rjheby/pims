@@ -1,5 +1,5 @@
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { ChevronDown, ChevronUp, RefreshCw, Save, X, Copy, Trash, Plus, Edit } f
 import { FirewoodProduct, RetailInventoryItem } from "@/pages/wholesale-order/types";
 import { PackagedProductsMobileCard } from "./PackagedProductsMobileCard";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface PackagedProductsTableProps {
   data: (RetailInventoryItem & { product?: FirewoodProduct })[];
@@ -61,6 +62,8 @@ export function PackagedProductsTable({
   const [newAvailable, setNewAvailable] = useState<number>(0);
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null);
   const isMobile = useIsMobile();
 
   // Organize products into groups
@@ -78,6 +81,20 @@ export function PackagedProductsTable({
     // Sort groups alphabetically
     return Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0]));
   }, [data]);
+
+  // Initialize expanded state for all groups when data changes
+  useEffect(() => {
+    const initialGroups: Record<string, boolean> = {};
+    groupedProducts.forEach(([groupName]) => {
+      // If it's a new group, expand by default
+      if (expandedGroups[groupName] === undefined) {
+        initialGroups[groupName] = true;
+      } else {
+        initialGroups[groupName] = expandedGroups[groupName];
+      }
+    });
+    setExpandedGroups(initialGroups);
+  }, [groupedProducts]);
 
   const toggleItem = (id: string) => {
     setExpandedItems(prev => ({
@@ -116,6 +133,78 @@ export function PackagedProductsTable({
     }
   };
 
+  const handleItemSelection = (id: string, index: number, event?: React.MouseEvent) => {
+    if (event?.shiftKey && lastSelectedIndex !== null) {
+      // Find all items between the last selected item and this one
+      const flattenedItems = data.map(item => item.id);
+      const startIdx = Math.min(lastSelectedIndex, index);
+      const endIdx = Math.max(lastSelectedIndex, index);
+      const itemsInRange = flattenedItems.slice(startIdx, endIdx + 1);
+      
+      setSelectedItems(prev => {
+        // Create a set from previous selections
+        const currentSelections = new Set(prev);
+        
+        // Add all items in range
+        itemsInRange.forEach(id => currentSelections.add(id));
+        
+        return Array.from(currentSelections);
+      });
+    } else {
+      setSelectedItems(prev => {
+        if (prev.includes(id)) {
+          return prev.filter(itemId => itemId !== id);
+        } else {
+          return [...prev, id];
+        }
+      });
+      setLastSelectedIndex(index);
+    }
+  };
+
+  const handleSelectAll = (groupItems: (RetailInventoryItem & { product?: FirewoodProduct })[]) => {
+    const groupIds = groupItems.map(item => item.id);
+    
+    // Check if all items in this group are already selected
+    const allSelected = groupIds.every(id => selectedItems.includes(id));
+    
+    if (allSelected) {
+      // Deselect all items in this group
+      setSelectedItems(prev => prev.filter(id => !groupIds.includes(id)));
+    } else {
+      // Select all items in this group
+      setSelectedItems(prev => {
+        const currentSelections = new Set(prev);
+        groupIds.forEach(id => currentSelections.add(id));
+        return Array.from(currentSelections);
+      });
+    }
+  };
+
+  const handleDuplicateSelected = () => {
+    if (selectedItems.length > 0 && onDuplicate) {
+      selectedItems.forEach(id => {
+        const item = data.find(item => item.id === id);
+        if (item) {
+          onDuplicate(item);
+        }
+      });
+      setSelectedItems([]);
+    }
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedItems.length > 0 && onDelete) {
+      selectedItems.forEach(id => {
+        const item = data.find(item => item.id === id);
+        if (item) {
+          onDelete(item);
+        }
+      });
+      setSelectedItems([]);
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-3">
@@ -143,6 +232,34 @@ export function PackagedProductsTable({
           </Button>
         </div>
         
+        {selectedItems.length > 0 && (
+          <div className="flex justify-between items-center bg-muted/40 p-2 rounded-md">
+            <span className="text-sm font-medium">{selectedItems.length} selected</span>
+            <div className="flex gap-2">
+              {onDuplicate && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleDuplicateSelected}
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  Duplicate
+                </Button>
+              )}
+              {onDelete && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleDeleteSelected}
+                >
+                  <Trash className="h-4 w-4 mr-2" />
+                  Delete
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+        
         <div className="space-y-4">
           {data.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
@@ -151,35 +268,53 @@ export function PackagedProductsTable({
           ) : (
             groupedProducts.map(([groupName, items]) => (
               <div key={groupName} className="space-y-3">
-                <div 
-                  className="font-medium text-lg bg-muted py-2 px-3 rounded-md cursor-pointer flex items-center"
-                  onClick={() => toggleGroup(groupName)}
-                >
-                  {expandedGroups[groupName] ? (
-                    <ChevronUp className="h-4 w-4 mr-2" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4 mr-2" />
-                  )}
-                  {groupName}
+                <div className="flex items-center">
+                  <Checkbox 
+                    id={`select-all-${groupName}`}
+                    checked={items.every(item => selectedItems.includes(item.id))}
+                    onCheckedChange={() => handleSelectAll(items)}
+                    className="mr-2"
+                  />
+                  <div 
+                    className="font-medium text-lg bg-muted py-2 px-3 rounded-md cursor-pointer flex items-center flex-grow"
+                    onClick={() => toggleGroup(groupName)}
+                  >
+                    {expandedGroups[groupName] ? (
+                      <ChevronUp className="h-4 w-4 mr-2" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 mr-2" />
+                    )}
+                    {groupName}
+                  </div>
                 </div>
                 
                 {expandedGroups[groupName] && (
                   <div className="space-y-3 ml-4">
-                    {items.map((item) => (
-                      <PackagedProductsMobileCard
-                        key={item.id}
-                        item={{
-                          ...item,
-                          product: item.product ? {
-                            ...item.product,
-                            item_name: simplifyDisplayName(item.product.item_name)
-                          } : undefined
-                        }}
-                        isAdmin={isAdmin}
-                        onInventoryUpdate={onInventoryUpdate}
-                        onDuplicate={onDuplicate ? () => onDuplicate(item) : undefined}
-                        onDelete={onDelete ? () => onDelete(item) : undefined}
-                      />
+                    {items.map((item, index) => (
+                      <div key={item.id} className="flex items-start">
+                        <Checkbox 
+                          id={`select-item-${item.id}`}
+                          checked={selectedItems.includes(item.id)}
+                          onCheckedChange={() => handleItemSelection(item.id, index)}
+                          className="mr-2 mt-4"
+                        />
+                        <div className="flex-grow">
+                          <PackagedProductsMobileCard
+                            key={item.id}
+                            item={{
+                              ...item,
+                              product: item.product ? {
+                                ...item.product,
+                                item_name: simplifyDisplayName(item.product.item_name)
+                              } : undefined
+                            }}
+                            isAdmin={isAdmin}
+                            onInventoryUpdate={onInventoryUpdate}
+                            onDuplicate={onDuplicate ? () => onDuplicate(item) : undefined}
+                            onDelete={onDelete ? () => onDelete(item) : undefined}
+                          />
+                        </div>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -207,6 +342,34 @@ export function PackagedProductsTable({
         </Button>
       </div>
       
+      {selectedItems.length > 0 && (
+        <div className="flex justify-between items-center bg-muted/40 p-2 rounded-md">
+          <span className="text-sm font-medium">{selectedItems.length} selected</span>
+          <div className="flex gap-2">
+            {onDuplicate && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleDuplicateSelected}
+              >
+                <Copy className="h-4 w-4 mr-2" />
+                Duplicate
+              </Button>
+            )}
+            {onDelete && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleDeleteSelected}
+              >
+                <Trash className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+      
       {data.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground border rounded-md">
           No inventory data available
@@ -215,22 +378,31 @@ export function PackagedProductsTable({
         <div className="space-y-6">
           {groupedProducts.map(([groupName, items]) => (
             <div key={groupName} className="rounded-md border">
-              <div 
-                className="bg-muted px-4 py-2 font-medium cursor-pointer flex items-center"
-                onClick={() => toggleGroup(groupName)}
-              >
-                {expandedGroups[groupName] ? (
-                  <ChevronUp className="h-4 w-4 mr-2" />
-                ) : (
-                  <ChevronDown className="h-4 w-4 mr-2" />
-                )}
-                {groupName}
+              <div className="bg-muted px-4 py-2 font-medium flex items-center">
+                <Checkbox 
+                  id={`select-all-desktop-${groupName}`}
+                  checked={items.every(item => selectedItems.includes(item.id))}
+                  onCheckedChange={() => handleSelectAll(items)}
+                  className="mr-2"
+                />
+                <div 
+                  className="cursor-pointer flex-grow flex items-center"
+                  onClick={() => toggleGroup(groupName)}
+                >
+                  {expandedGroups[groupName] ? (
+                    <ChevronUp className="h-4 w-4 mr-2" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 mr-2" />
+                  )}
+                  {groupName}
+                </div>
               </div>
               
               {expandedGroups[groupName] && (
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-10"></TableHead>
                       <TableHead className="text-center">Product</TableHead>
                       <TableHead className="text-center">Available</TableHead>
                       <TableHead className="text-center">Allocated</TableHead>
@@ -240,9 +412,16 @@ export function PackagedProductsTable({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {items.map((item) => (
+                    {items.map((item, index) => (
                       <>
-                        <TableRow key={item.id}>
+                        <TableRow key={item.id} className={selectedItems.includes(item.id) ? "bg-muted/30" : ""}>
+                          <TableCell className="p-2">
+                            <Checkbox 
+                              id={`select-item-desktop-${item.id}`}
+                              checked={selectedItems.includes(item.id)}
+                              onCheckedChange={(checked) => handleItemSelection(item.id, index, window.event as React.MouseEvent)}
+                            />
+                          </TableCell>
                           <TableCell>
                             <div 
                               className="flex items-center space-x-2 cursor-pointer"
@@ -319,7 +498,7 @@ export function PackagedProductsTable({
                         </TableRow>
                         {expandedItems[item.id] && (
                           <TableRow className="bg-muted/20">
-                            <TableCell colSpan={isAdmin ? 6 : 5} className="py-2">
+                            <TableCell colSpan={isAdmin ? 7 : 6} className="py-2">
                               <div className="grid grid-cols-3 gap-4 px-8">
                                 <div>
                                   <span className="text-sm font-medium">Size:</span>
@@ -349,4 +528,3 @@ export function PackagedProductsTable({
     </div>
   );
 }
-

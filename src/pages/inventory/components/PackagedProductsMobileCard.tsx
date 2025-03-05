@@ -13,6 +13,8 @@ interface PackagedProductsMobileCardProps {
   onInventoryUpdate: (productId: number, adjustment: Partial<RetailInventoryItem>) => Promise<{ success: boolean; error?: any }>;
   onDuplicate?: () => void;
   onDelete?: () => void;
+  selected?: boolean;
+  onSelect?: (selected: boolean) => void;
 }
 
 export function PackagedProductsMobileCard({
@@ -20,7 +22,9 @@ export function PackagedProductsMobileCard({
   isAdmin,
   onInventoryUpdate,
   onDuplicate,
-  onDelete
+  onDelete,
+  selected,
+  onSelect
 }: PackagedProductsMobileCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -58,7 +62,7 @@ export function PackagedProductsMobileCard({
   };
 
   return (
-    <Card>
+    <Card className={selected ? "border-primary border-2" : ""}>
       <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0">
         <div onClick={toggleExpanded} className="flex items-center gap-2 cursor-pointer flex-1">
           {expanded ? (
@@ -162,4 +166,3 @@ export function PackagedProductsMobileCard({
     </Card>
   );
 }
-
