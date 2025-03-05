@@ -28,13 +28,15 @@ export interface StopsTableProps {
   masterScheduleId?: string;
   readOnly?: boolean;
   onStopsChange?: (stops: any[]) => void;
+  useMobileLayout?: boolean; // Added this missing prop
 }
 
 export function StopsTable({ 
   stops: externalStops, 
   masterScheduleId,
   readOnly = false,
-  onStopsChange
+  onStopsChange,
+  useMobileLayout = false // Default to false
 }: StopsTableProps) {
   const { stops: contextStops, addStop, removeStop, updateStop } = useDispatchSchedule();
   const [customers, setCustomers] = useState<Customer[]>([]);

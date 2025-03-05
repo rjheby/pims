@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
@@ -25,35 +24,27 @@ interface Driver {
   name: string;
 }
 
-// Content component with all the functionality
 function DateBasedScheduleCreatorContent() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const isMobile = useIsMobile();
   
-  // Generate schedule number based on date and drivers
   const generateScheduleNumber = (dateString: string, driverIds: string[] = []) => {
-    // Create date objects
     const creationDate = new Date();
     const deliveryDate = new Date(dateString);
     
-    // Format creation date as YYMMDD
     const creationFormatted = creationDate.toISOString().slice(2, 10).replace(/-/g, '');
     
-    // Get day of week for delivery
     const daysOfWeek = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
     const deliveryDOW = daysOfWeek[deliveryDate.getDay()];
     
-    // Generate driver code
     const driverCode = driverIds.length > 0 
       ? `D${driverIds.map(id => id.replace('driver-', '')).join('')}` 
       : 'D00';
     
-    // Generate the schedule number
     return `DS-${creationFormatted}-${deliveryDOW}-${driverCode}`;
   };
   
-  // States
   const [schedule, setSchedule] = useState<ScheduleData>(() => {
     const today = new Date();
     const defaultDate = today.toISOString().split('T')[0];
@@ -69,14 +60,12 @@ function DateBasedScheduleCreatorContent() {
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Update schedule number when date changes
   useEffect(() => {
     if (schedule.schedule_date) {
-      // Get current driver IDs from stops
       const driverIds = stops
         .map(stop => stop.driver_id)
-        .filter((id): id is string => Boolean(id)) // Type guard to filter out null/undefined
-        .filter((id, index, array) => array.indexOf(id) === index) // Unique values
+        .filter((id): id is string => Boolean(id))
+        .filter((id, index, array) => array.indexOf(id) === index)
         .sort();
       
       const newScheduleNumber = generateScheduleNumber(schedule.schedule_date, driverIds);
@@ -90,14 +79,12 @@ function DateBasedScheduleCreatorContent() {
     }
   }, [schedule.schedule_date]);
   
-  // Update schedule number when drivers change
   useEffect(() => {
     if (stops.length > 0 && schedule.schedule_date) {
-      // Extract unique driver IDs from stops
       const driverIds = stops
         .map(stop => stop.driver_id)
-        .filter((id): id is string => Boolean(id)) // Type guard to filter out null/undefined
-        .filter((id, index, array) => array.indexOf(id) === index) // Unique values
+        .filter((id): id is string => Boolean(id))
+        .filter((id, index, array) => array.indexOf(id) === index)
         .sort();
       
       const newScheduleNumber = generateScheduleNumber(schedule.schedule_date, driverIds);
@@ -111,7 +98,6 @@ function DateBasedScheduleCreatorContent() {
     }
   }, [stops]);
   
-  // Handle schedule date change
   const handleScheduleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSchedule(prev => ({
       ...prev,
@@ -119,7 +105,6 @@ function DateBasedScheduleCreatorContent() {
     }));
   };
   
-  // Format date for display
   const formatDisplayDate = (dateString: string) => {
     try {
       return format(new Date(dateString), "EEEE, MMMM d, yyyy");
@@ -128,11 +113,9 @@ function DateBasedScheduleCreatorContent() {
     }
   };
   
-  // Calculate summary totals from stops
   const calculateTotals = () => {
     const totalStops = stops.length;
     
-    // Count by driver
     const stopsByDriver = stops.reduce((acc: Record<string, number>, stop) => {
       const driverId = stop.driver_id || 'unassigned';
       acc[driverId] = (acc[driverId] || 0) + 1;
@@ -146,7 +129,6 @@ function DateBasedScheduleCreatorContent() {
     };
   };
   
-  // Validate schedule before saving/submitting
   const validateSchedule = () => {
     if (!schedule.schedule_date) {
       throw new Error("Schedule date is required");
@@ -159,14 +141,12 @@ function DateBasedScheduleCreatorContent() {
     return true;
   };
   
-  // Save as draft
   const handleSave = async () => {
     try {
       setIsSaving(true);
       
       validateSchedule();
       
-      // First create the master schedule
       const { data: masterData, error: masterError } = await supabase
         .from('dispatch_schedules')
         .insert({
@@ -185,14 +165,13 @@ function DateBasedScheduleCreatorContent() {
       
       const masterId = masterData[0].id;
       
-      // Then create all stops with the same delivery date
       for (const stop of stops) {
         await supabase
           .from('delivery_schedules')
           .insert({
             customer_id: stop.customer_id,
             schedule_type: 'one-time',
-            delivery_date: schedule.schedule_date, // All stops have the same date
+            delivery_date: schedule.schedule_date,
             notes: stop.notes,
             driver_id: stop.driver_id,
             items: stop.items,
@@ -206,7 +185,6 @@ function DateBasedScheduleCreatorContent() {
         description: "Schedule saved as draft"
       });
       
-      // Navigate to edit form
       navigate(`/dispatch-form/${masterId}`);
       
     } catch (error: any) {
@@ -221,14 +199,12 @@ function DateBasedScheduleCreatorContent() {
     }
   };
   
-  // Submit schedule
   const handleSubmit = async () => {
     try {
       setIsSubmitting(true);
       
       validateSchedule();
       
-      // First create the master schedule
       const { data: masterData, error: masterError } = await supabase
         .from('dispatch_schedules')
         .insert({
@@ -247,14 +223,13 @@ function DateBasedScheduleCreatorContent() {
       
       const masterId = masterData[0].id;
       
-      // Then create all stops with the same delivery date
       for (const stop of stops) {
         await supabase
           .from('delivery_schedules')
           .insert({
             customer_id: stop.customer_id,
             schedule_type: 'one-time',
-            delivery_date: schedule.schedule_date, // All stops have the same date
+            delivery_date: schedule.schedule_date,
             notes: stop.notes,
             driver_id: stop.driver_id,
             items: stop.items,
@@ -268,7 +243,6 @@ function DateBasedScheduleCreatorContent() {
         description: "Schedule submitted successfully"
       });
       
-      // Navigate to archive
       navigate('/dispatch-archive');
       
     } catch (error: any) {
@@ -283,7 +257,6 @@ function DateBasedScheduleCreatorContent() {
     }
   };
   
-  // Handle stops changes from StopsTable component
   const handleStopsChange = (newStops: any[]) => {
     setStops(newStops);
   };
@@ -308,7 +281,6 @@ function DateBasedScheduleCreatorContent() {
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-            {/* Schedule Date Selection - Mobile Optimized Layout */}
             <div className="border rounded-lg p-4">
               <h3 className="text-lg font-medium mb-4">Schedule Details</h3>
               <div className={`grid grid-cols-1 ${isMobile ? "" : "md:grid-cols-2"} gap-4`}>
@@ -353,8 +325,7 @@ function DateBasedScheduleCreatorContent() {
               </div>
             </div>
             
-            {/* Stops Table - Mobile Optimized or Desktop */}
-            <div className={isMobile ? "pb-20" : ""}>  {/* Add padding at bottom for mobile to avoid actions being hidden */}
+            <div className={isMobile ? "pb-20" : ""}>
               <StopsTable
                 stops={stops}
                 onStopsChange={handleStopsChange}
@@ -362,7 +333,6 @@ function DateBasedScheduleCreatorContent() {
               />
             </div>
             
-            {/* Summary and Actions */}
             <BaseOrderSummary 
               items={calculateTotals()}
             />
@@ -396,7 +366,6 @@ function DateBasedScheduleCreatorContent() {
   );
 }
 
-// Wrapper component that provides the context
 export default function DateBasedScheduleCreator() {
   return (
     <DispatchScheduleProvider>

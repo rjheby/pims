@@ -11,8 +11,9 @@ interface BaseOrderActionsProps {
   customActions?: React.ReactNode;
   isSaving?: boolean;     
   isSubmitting?: boolean;
-  submitLabel?: string; // Added submit label prop
-  archiveLabel?: string; // Added archive label prop
+  submitLabel?: string;
+  archiveLabel?: string;
+  mobileLayout?: boolean; // Added this missing prop
 }
 
 export function BaseOrderActions({ 
@@ -22,14 +23,15 @@ export function BaseOrderActions({
   customActions,
   isSaving = false,
   isSubmitting = false,
-  submitLabel = "Submit Order", // Default label
-  archiveLabel = "View All Orders" // Default label
+  submitLabel = "Submit Order",
+  archiveLabel = "View All Orders",
+  mobileLayout = false // Default to false
 }: BaseOrderActionsProps) {
   const isMobile = useIsMobile();
   
   return (
     <div className="flex flex-col space-y-4">
-      <div className={`flex ${isMobile ? 'flex-col' : 'justify-end'} gap-4`}>
+      <div className={`flex ${mobileLayout || isMobile ? 'flex-col' : 'justify-end'} gap-4`}>
         <Button 
           onClick={onSave} 
           className="bg-gray-600 hover:bg-gray-700 w-full md:w-auto"

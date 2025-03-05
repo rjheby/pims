@@ -13,14 +13,14 @@ import { DispatchFilters } from "./dispatch/components/DispatchFilters";
 import { downloadSchedulePDF } from "@/utils/GenerateSchedulePDF";
 
 interface DeliverySchedule {
-  id: number;
+  id: string;
   customer_id: string;
   delivery_date: string;
   driver_id: string | null;
   items: string | null;
   notes: string | null;
   status: string;
-  master_schedule_id: number;
+  master_schedule_id: string;
   customers: {
     id: string;
     name: string;
@@ -162,11 +162,11 @@ export default function DispatchScheduleView() {
     setFilters(newFilters);
   };
 
-  const handleViewSchedule = (masterId: number) => {
+  const handleViewSchedule = (masterId: string) => {
     navigate(`/dispatch-form/${masterId}`);
   };
 
-  const handleDownloadPDF = async (masterId: number) => {
+  const handleDownloadPDF = async (masterId: string) => {
     try {
       const { data: masterData, error: masterError } = await supabase
         .from('dispatch_schedules')
