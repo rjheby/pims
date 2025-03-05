@@ -1,4 +1,3 @@
-
 import { useState, useMemo, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -21,14 +20,11 @@ interface PackagedProductsTableProps {
   onAdd?: () => void;
 }
 
-// Helper function to determine product type
 const getProductType = (product?: FirewoodProduct): string => {
   if (!product) return 'Unknown';
   
-  // Extract packaging type
   const packaging = product.product_type || 'Other';
   
-  // Extract bundle type
   let bundleType = 'Other';
   if (product.package_size?.toLowerCase().includes('bundled')) {
     bundleType = 'Bundled';
@@ -39,7 +35,6 @@ const getProductType = (product?: FirewoodProduct): string => {
   return `${packaging} - ${bundleType}`;
 };
 
-// Helper function to simplify split size display
 const simplifyDisplayName = (text?: string): string => {
   if (!text) return '';
   
@@ -66,7 +61,6 @@ export function PackagedProductsTable({
   const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null);
   const isMobile = useIsMobile();
 
-  // Organize products into groups
   const groupedProducts = useMemo(() => {
     const groups: Record<string, (RetailInventoryItem & { product?: FirewoodProduct })[]> = {};
     
@@ -78,15 +72,12 @@ export function PackagedProductsTable({
       groups[groupKey].push(item);
     });
     
-    // Sort groups alphabetically
     return Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0]));
   }, [data]);
 
-  // Initialize expanded state for all groups when data changes
   useEffect(() => {
     const initialGroups: Record<string, boolean> = {};
     groupedProducts.forEach(([groupName]) => {
-      // If it's a new group, expand by default
       if (expandedGroups[groupName] === undefined) {
         initialGroups[groupName] = true;
       } else {
@@ -133,19 +124,20 @@ export function PackagedProductsTable({
     }
   };
 
-  const handleItemSelection = (id: string, index: number, event?: React.MouseEvent) => {
-    if (event?.shiftKey && lastSelectedIndex !== null) {
-      // Find all items between the last selected item and this one
+  const handleSelectRow = (id: string, index: number, event?: React.MouseEvent) => {
+    if (!event) return;
+    
+    const mouseEvent = event as unknown as React.MouseEvent;
+    
+    if (mouseEvent.shiftKey && lastSelectedIndex !== null) {
       const flattenedItems = data.map(item => item.id);
       const startIdx = Math.min(lastSelectedIndex, index);
       const endIdx = Math.max(lastSelectedIndex, index);
       const itemsInRange = flattenedItems.slice(startIdx, endIdx + 1);
       
       setSelectedItems(prev => {
-        // Create a set from previous selections
         const currentSelections = new Set(prev);
         
-        // Add all items in range
         itemsInRange.forEach(id => currentSelections.add(id));
         
         return Array.from(currentSelections);
@@ -165,14 +157,11 @@ export function PackagedProductsTable({
   const handleSelectAll = (groupItems: (RetailInventoryItem & { product?: FirewoodProduct })[]) => {
     const groupIds = groupItems.map(item => item.id);
     
-    // Check if all items in this group are already selected
     const allSelected = groupIds.every(id => selectedItems.includes(id));
     
     if (allSelected) {
-      // Deselect all items in this group
       setSelectedItems(prev => prev.filter(id => !groupIds.includes(id)));
     } else {
-      // Select all items in this group
       setSelectedItems(prev => {
         const currentSelections = new Set(prev);
         groupIds.forEach(id => currentSelections.add(id));
@@ -215,7 +204,6 @@ export function PackagedProductsTable({
     );
   }
 
-  // Mobile View
   if (isMobile) {
     return (
       <div className="space-y-4">
@@ -295,7 +283,7 @@ export function PackagedProductsTable({
                         <Checkbox 
                           id={`select-item-${item.id}`}
                           checked={selectedItems.includes(item.id)}
-                          onCheckedChange={() => handleItemSelection(item.id, index)}
+                          onCheckedChange={() => handleSelectRow(item.id, index)}
                           className="mr-2 mt-4"
                         />
                         <div className="flex-grow">
@@ -326,7 +314,6 @@ export function PackagedProductsTable({
     );
   }
 
-  // Desktop View
   return (
     <div className="space-y-4 w-full">
       <div className="flex justify-between">
@@ -419,7 +406,7 @@ export function PackagedProductsTable({
                             <Checkbox 
                               id={`select-item-desktop-${item.id}`}
                               checked={selectedItems.includes(item.id)}
-                              onCheckedChange={(checked) => handleItemSelection(item.id, index, window.event as React.MouseEvent)}
+                              onCheckedChange={(checked) => handleSelectRow(item.id, index, window.event as React.MouseEvent)}
                             />
                           </TableCell>
                           <TableCell>

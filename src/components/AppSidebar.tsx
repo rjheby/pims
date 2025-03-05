@@ -37,7 +37,7 @@ const menuGroups = {
   dispatch: {
     title: "Dispatch",
     items: [
-      { title: "Date-Based Schedule", icon: Clock, path: "/schedule-creator" },
+      { title: "Delivery Schedule", icon: Truck, path: "/schedule-creator" },
       { title: "Schedule View", icon: Calendar, path: "/dispatch-schedule" },
       { title: "Archive", icon: Archive, path: "/dispatch-archive" },
     ],

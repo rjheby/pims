@@ -1,4 +1,3 @@
-
 import React from "react";
 import { 
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
@@ -18,15 +17,17 @@ interface StopsDesktopTableProps {
   stops: DeliveryStop[];
   customers: Customer[];
   drivers: Driver[];
-  editingIndex: number | null;
+  editingIndex: number;
   editForm: StopFormData;
-  onEditFormChange: (value: StopFormData) => void;
+  onEditFormChange: React.Dispatch<React.SetStateAction<StopFormData>>;
   onEditStart: (index: number) => void;
   onEditSave: () => void;
   onEditCancel: () => void;
   onRemoveStop: (index: number) => void;
   readOnly?: boolean;
-  draggable?: boolean;
+  selectedStops?: string[];
+  onSelectStop?: (stopId: string, index: number, event?: React.MouseEvent) => void;
+  onDuplicateStop?: (index: number) => void;
 }
 
 export function StopsDesktopTable({
@@ -41,7 +42,9 @@ export function StopsDesktopTable({
   onEditCancel,
   onRemoveStop,
   readOnly = false,
-  draggable = false
+  selectedStops,
+  onSelectStop,
+  onDuplicateStop
 }: StopsDesktopTableProps) {
   return (
     <div className="mb-6 border rounded-lg overflow-hidden">

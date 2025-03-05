@@ -282,7 +282,7 @@ function DateBasedScheduleCreatorContent() {
         <CardHeader>
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
             <CardTitle className="text-xl md:text-2xl">
-              {isMobile ? "New Schedule" : `New Dispatch Schedule for ${formatDisplayDate(schedule.schedule_date)}`}
+              {isMobile ? "Delivery Schedule" : `Delivery Schedule for ${formatDisplayDate(schedule.schedule_date)}`}
             </CardTitle>
           </div>
         </CardHeader>
@@ -337,7 +337,6 @@ function DateBasedScheduleCreatorContent() {
                 stops={stops}
                 onStopsChange={handleStopsChange}
                 useMobileLayout={isMobile}
-                // The component already has drag and drop functionality internally
               />
             </div>
             
