@@ -42,7 +42,7 @@ export function RawMaterialsTable({
     
     data.forEach(item => {
       // Extract product type (pallets, bundles, etc.)
-      const productType = item.product?.product_type || 'Other';
+      const productType = item.product?.bundle_type || 'Other';
       const groupKey = productType;
       
       if (!groups[groupKey]) {
