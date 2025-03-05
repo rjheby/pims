@@ -11,7 +11,7 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, UserPlus } from "lucide-react";
+import { Plus, UserPlus, Hash } from "lucide-react";
 import { Customer } from "@/pages/customers/types";
 import { Driver, StopFormData } from "./types";
 import { supabase } from "@/integrations/supabase/client";
@@ -98,6 +98,28 @@ export function AddStopForm({
       <h3 className="text-lg font-medium">Add Delivery Stop</h3>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Stop Number</Label>
+          <div className="flex items-center">
+            <div className="relative flex-1">
+              <span className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-500">
+                <Hash className="h-4 w-4" />
+              </span>
+              <Input 
+                type="number"
+                min="1"
+                placeholder="Enter stop number" 
+                className="pl-10"
+                value={currentStop.stop_number || ''}
+                onChange={(e) => onStopChange({
+                  ...currentStop,
+                  stop_number: e.target.value ? parseInt(e.target.value, 10) : undefined
+                })}
+              />
+            </div>
+          </div>
+        </div>
+      
         <div className="space-y-2">
           <Label>Customer</Label>
           <div className="flex gap-2">

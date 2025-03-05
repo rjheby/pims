@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { Trash, Edit, Check, X } from "lucide-react";
+import { Trash, Edit, Check, X, Hash } from "lucide-react";
 import { Customer } from "@/pages/customers/types";
 import { Driver, DeliveryStop, StopFormData } from "./types";
 import { calculatePrice } from "./utils";
@@ -63,7 +63,27 @@ export function StopsMobileCards({
             <Card key={`edit-${index}`} className="overflow-hidden">
               <CardContent className="p-0">
                 <div className="bg-[#2A4131] text-white p-3 flex justify-between items-center">
-                  <div className="text-lg font-semibold">Stop #{index + 1}</div>
+                  <div className="text-lg font-semibold">
+                    <div className="flex items-center space-x-2">
+                      <Label className="text-white">Stop #</Label>
+                      <div className="relative w-20">
+                        <span className="absolute inset-y-0 left-2 flex items-center pointer-events-none text-white">
+                          <Hash className="h-4 w-4" />
+                        </span>
+                        <Input 
+                          type="number"
+                          min="1"
+                          className="pl-8 bg-[#203324] text-white border-[#2A4131]"
+                          value={editForm.stop_number || ''}
+                          onChange={(e) => onEditFormChange({ 
+                            ...editForm, 
+                            stop_number: e.target.value ? parseInt(e.target.value, 10) : undefined 
+                          })}
+                          disabled={readOnly}
+                        />
+                      </div>
+                    </div>
+                  </div>
                   <div className="flex space-x-2">
                     <Button 
                       variant="ghost" 
@@ -154,7 +174,7 @@ export function StopsMobileCards({
           <Card key={index} className="overflow-hidden">
             <CardContent className="p-0">
               <div className="bg-[#2A4131] text-white p-3 flex justify-between items-center">
-                <div className="text-lg font-semibold">Stop #{index + 1}</div>
+                <div className="text-lg font-semibold">Stop #{stop.stop_number || index + 1}</div>
                 {!readOnly && (
                   <div className="flex space-x-2">
                     <Button 

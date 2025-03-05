@@ -25,6 +25,7 @@ export interface StopFormData {
   driver_id: string;
   notes: string;
   items: string;
+  stop_number?: number;
 }
 
 export interface StopsTableProps {

@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Trash, Edit, Check, X } from "lucide-react";
+import { Trash, Edit, Check, X, Hash } from "lucide-react";
 import { Customer } from "@/pages/customers/types";
 import { Driver, DeliveryStop, StopFormData } from "./types";
 import { calculatePrice } from "./utils";
@@ -71,7 +71,24 @@ export function StopsDesktopTable({
               if (editingIndex === index) {
                 return (
                   <TableRow key={`edit-${index}`}>
-                    <TableCell>{index + 1}</TableCell>
+                    <TableCell>
+                      <div className="relative">
+                        <span className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-500">
+                          <Hash className="h-4 w-4" />
+                        </span>
+                        <Input 
+                          type="number"
+                          min="1"
+                          className="pl-10"
+                          value={editForm.stop_number || ''}
+                          onChange={(e) => onEditFormChange({ 
+                            ...editForm, 
+                            stop_number: e.target.value ? parseInt(e.target.value, 10) : undefined 
+                          })}
+                          disabled={readOnly}
+                        />
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <Select 
                         value={editForm.customer_id || ""} 
@@ -151,7 +168,7 @@ export function StopsDesktopTable({
               
               return (
                 <TableRow key={index}>
-                  <TableCell className="font-medium">{index + 1}</TableCell>
+                  <TableCell className="font-medium">{stop.stop_number || index + 1}</TableCell>
                   <TableCell>{customer?.name || "Unknown"}</TableCell>
                   <TableCell className="max-w-[150px] truncate">{customer?.address || "-"}</TableCell>
                   <TableCell>{customer?.phone || "-"}</TableCell>
