@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/sidebar";
 import {
   FileText, Users, Settings, BarChart, Truck, ClipboardList, 
-  DollarSign, Menu, X, ArrowLeft, Warehouse, ChevronDown, Home, Archive, Calendar, Clock
+  DollarSign, Menu, X, ArrowLeft, Warehouse, ChevronDown, Home, Archive, Calendar, Clock, ShoppingCart
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -34,10 +34,9 @@ const menuGroups = {
       { title: "Payments", icon: DollarSign, path: "/driver-payments" },
     ],
   },
-  dispatch: {  // Updated dispatch group
+  dispatch: {
     title: "Dispatch",
     items: [
-      { title: "Create Schedule", icon: Truck, path: "/dispatch" },
       { title: "Date-Based Schedule", icon: Clock, path: "/schedule-creator" },
       { title: "Schedule View", icon: Calendar, path: "/dispatch-schedule" },
       { title: "Archive", icon: Archive, path: "/dispatch-archive" },
@@ -46,6 +45,7 @@ const menuGroups = {
   orders: {
     title: "Orders",
     items: [
+      { title: "Place Orders", icon: ShoppingCart, path: "/dispatch" },
       { title: "Client Orders", icon: FileText, path: "/client-order" },
       { title: "Supplier Form", icon: ClipboardList, path: "/wholesale-order" },
       { title: "Supplier Archives", icon: Archive, path: "/wholesale-orders" },
