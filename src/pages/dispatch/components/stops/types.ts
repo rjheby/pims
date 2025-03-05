@@ -15,13 +15,16 @@ export interface Driver {
 }
 
 export interface DeliveryStop {
-  id?: string;
+  id?: string | number;
   customer_id: string | null;
   driver_id: string | null;
   items: string | null;
   notes: string | null;
   price?: number | null;
   stop_number?: number;
+  master_schedule_id?: string;
+  customer_address?: string;
+  customer_phone?: string;
 }
 
 export interface StopFormData {

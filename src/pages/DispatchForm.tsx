@@ -90,9 +90,7 @@ export default function DispatchForm() {
     fetchScheduleDetails();
   }, [id]);
 
-  // Calculate price based on items (placeholder implementation)
   const calculatePrice = (items: string): number => {
-    // This is a placeholder - replace with actual pricing logic
     if (!items) return 0;
     
     // Simple logic: $10 per item
@@ -321,10 +319,10 @@ export default function DispatchForm() {
             {/* Display stops using the StopsTable component */}
             <StopsTable 
               stops={stops} 
-              masterScheduleId={id || ''}
-              readOnly={isSubmitted} 
               onStopsChange={setStops}
               useMobileLayout={isMobile}
+              readOnly={isSubmitted}
+              masterScheduleId={id || ''} 
             />
 
             <BaseOrderSummary 

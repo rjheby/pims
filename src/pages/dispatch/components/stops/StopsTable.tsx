@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,13 +13,15 @@ interface StopsTableProps {
   onStopsChange: (newStops: any[]) => void;
   useMobileLayout?: boolean;
   readOnly?: boolean;
+  masterScheduleId?: string;
 }
 
 const StopsTable = ({ 
   stops, 
   onStopsChange, 
   useMobileLayout = false,
-  readOnly = false 
+  readOnly = false,
+  masterScheduleId
 }: StopsTableProps) => {
   const { toast } = useToast();
   const [customers, setCustomers] = useState<Customer[]>([]);

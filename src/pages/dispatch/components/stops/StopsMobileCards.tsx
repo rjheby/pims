@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { Trash, Edit, Check, X, Hash, CheckSquare, Square } from "lucide-react";
+import { Trash, Edit, Check, X, Hash, CheckSquare, Square, Copy } from "lucide-react";
 import { Customer } from "@/pages/customers/types";
 import { Driver, DeliveryStop, StopFormData } from "./types";
 import { calculatePrice } from "./utils";
@@ -31,6 +31,7 @@ interface StopsMobileCardsProps {
   readOnly?: boolean;
   selectedStops?: string[];
   onSelectStop?: (stopId: string, index: number, event?: React.MouseEvent) => void;
+  onDuplicateStop?: (index: number) => void;
 }
 
 export function StopsMobileCards({
@@ -46,7 +47,8 @@ export function StopsMobileCards({
   onRemoveStop,
   readOnly = false,
   selectedStops = [],
-  onSelectStop
+  onSelectStop,
+  onDuplicateStop
 }: StopsMobileCardsProps) {
   if (stops.length === 0) {
     return (
@@ -205,6 +207,16 @@ export function StopsMobileCards({
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
+                    {onDuplicateStop && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => onDuplicateStop(index)}
+                        className="h-8 w-8 p-0 text-white hover:bg-[#203324]"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    )}
                     <Button 
                       variant="ghost" 
                       size="sm" 
