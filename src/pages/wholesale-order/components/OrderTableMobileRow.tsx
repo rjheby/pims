@@ -3,11 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Copy, Trash, ChevronDown, ChevronRight } from "lucide-react";
+import { Copy, Trash, ChevronDown, ChevronUp } from "lucide-react";
 import { OrderItem, DropdownOptions, WoodProduct, safeNumber } from "../types";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { ProductSelector } from "./ProductSelector";
 import { OrderTableDropdownCell } from "./OrderTableDropdownCell";
 
@@ -81,9 +81,9 @@ export function OrderTableMobileRow({
         >
           <div className="flex-shrink-0 mt-1">
             {isCompressed ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
               <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronUp className="h-4 w-4" />
             )}
           </div>
           <div className="font-medium break-words w-full">
@@ -189,6 +189,7 @@ export function OrderTableMobileRow({
       {/* Product Selector Dialog */}
       <Dialog open={showProductSelector} onOpenChange={setShowProductSelector}>
         <DialogContent className="sm:max-w-[600px]">
+          <DialogTitle>Select Product</DialogTitle>
           <ProductSelector 
             onSelect={handleProductSelect}
             onCancel={() => setShowProductSelector(false)}

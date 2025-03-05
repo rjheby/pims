@@ -1,6 +1,7 @@
+
 import {
   ChevronDown,
-  ChevronRight,
+  ChevronUp,
   Copy,
   Plus,
   Trash,
@@ -21,7 +22,7 @@ import {
 import { TableCell, TableRow } from "@/components/ui/table";
 import { useState } from "react";
 import { OrderItem, DropdownOptions, WoodProduct, safeNumber } from "../types";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { ProductSelector } from "./ProductSelector";
 import { OrderTableDropdownCell } from "./OrderTableDropdownCell";
 
@@ -96,7 +97,7 @@ export function OrderTableRow({
               )}
               onClick={() => onToggleCompressed(item.id)}
             >
-              <ChevronRight className="h-4 w-4 flex-shrink-0" />
+              <ChevronDown className="h-4 w-4 flex-shrink-0" />
               <span className="whitespace-normal">{generateItemName(item)}</span>
             </div>
           ) : (
@@ -107,7 +108,7 @@ export function OrderTableRow({
               )}
               onClick={() => onToggleCompressed(item.id)}
             >
-              <ChevronDown className="h-4 w-4 flex-shrink-0" />
+              <ChevronUp className="h-4 w-4 flex-shrink-0" />
               <div 
                 className="cursor-pointer hover:underline text-blue-600 whitespace-normal break-words" 
                 onClick={(e) => {
@@ -202,6 +203,7 @@ export function OrderTableRow({
       
       <Dialog open={showProductSelector} onOpenChange={setShowProductSelector}>
         <DialogContent className="sm:max-w-[600px]">
+          <DialogTitle>Select Product</DialogTitle>
           <ProductSelector 
             onSelect={handleProductSelect}
             onCancel={() => setShowProductSelector(false)}
