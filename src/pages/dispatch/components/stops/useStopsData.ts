@@ -145,7 +145,8 @@ export const useStopsData = (
       customer_id: stopToEdit.customer_id || "",
       driver_id: stopToEdit.driver_id || "",
       notes: stopToEdit.notes || "",
-      items: stopToEdit.items || ""
+      items: stopToEdit.items || "",
+      stop_number: stopToEdit.stop_number
     });
   };
 
@@ -216,6 +217,42 @@ export const useStopsData = (
     setEditingIndex(null);
   };
 
+  const handleDriverAssign = async (stopId: string | number, driverId: string) => {
+    // Find the stop by id
+    const stopIndex = stops.findIndex(stop => stop.id === stopId);
+    if (stopIndex === -1) return;
+    
+    const updatedStop = {
+      ...stops[stopIndex],
+      driver_id: driverId
+    };
+    
+    if (updatedStop.id && masterScheduleId && typeof updatedStop.id === 'string') {
+      try {
+        const { error } = await supabase
+          .from('delivery_schedules')
+          .update({
+            driver_id: driverId
+          })
+          .eq('id', updatedStop.id);
+          
+        if (error) {
+          console.error("Error updating driver:", error);
+          return;
+        }
+      } catch (error) {
+        console.error("Error:", error);
+      }
+    }
+    
+    const updatedStops = [...stops];
+    updatedStops[stopIndex] = updatedStop;
+    
+    if (onStopsChange) {
+      onStopsChange(updatedStops);
+    }
+  };
+
   return {
     customers,
     drivers,
@@ -229,6 +266,7 @@ export const useStopsData = (
     handleRemoveStop,
     handleEditStart,
     handleEditSave,
-    handleEditCancel
+    handleEditCancel,
+    handleDriverAssign
   };
 };

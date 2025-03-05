@@ -8,10 +8,11 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Trash, Edit, Check, X, Hash } from "lucide-react";
+import { Trash, Edit, Check, X, Hash, GripVertical } from "lucide-react";
 import { Customer } from "@/pages/customers/types";
 import { Driver, DeliveryStop, StopFormData } from "./types";
 import { calculatePrice } from "./utils";
+import { Draggable } from "@hello-pangea/dnd";
 
 interface StopsDesktopTableProps {
   stops: DeliveryStop[];
@@ -25,6 +26,7 @@ interface StopsDesktopTableProps {
   onEditCancel: () => void;
   onRemoveStop: (index: number) => void;
   readOnly?: boolean;
+  draggable?: boolean;
 }
 
 export function StopsDesktopTable({
@@ -38,13 +40,15 @@ export function StopsDesktopTable({
   onEditSave,
   onEditCancel,
   onRemoveStop,
-  readOnly = false
+  readOnly = false,
+  draggable = false
 }: StopsDesktopTableProps) {
   return (
     <div className="mb-6 border rounded-lg overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow>
+            {draggable && !readOnly && <TableHead className="w-10"></TableHead>}
             <TableHead className="w-16">Stop #</TableHead>
             <TableHead>Customer</TableHead>
             <TableHead>Address</TableHead>
@@ -71,6 +75,7 @@ export function StopsDesktopTable({
               if (editingIndex === index) {
                 return (
                   <TableRow key={`edit-${index}`}>
+                    {draggable && !readOnly && <TableCell></TableCell>}
                     <TableCell>
                       <div className="relative">
                         <span className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-500">
@@ -166,8 +171,15 @@ export function StopsDesktopTable({
                 );
               }
               
-              return (
-                <TableRow key={index}>
+              const row = (
+                <TableRow key={index} className={draggable ? "transition-colors hover:bg-gray-50" : ""}>
+                  {draggable && !readOnly && (
+                    <TableCell className="w-10">
+                      <div className="flex items-center justify-center cursor-grab">
+                        <GripVertical className="h-4 w-4 text-gray-400" />
+                      </div>
+                    </TableCell>
+                  )}
                   <TableCell className="font-medium">{stop.stop_number || index + 1}</TableCell>
                   <TableCell>{customer?.name || "Unknown"}</TableCell>
                   <TableCell className="max-w-[150px] truncate">{customer?.address || "-"}</TableCell>
@@ -200,6 +212,59 @@ export function StopsDesktopTable({
                   )}
                 </TableRow>
               );
+              
+              if (draggable && !readOnly) {
+                return (
+                  <Draggable key={`${stop.id}-${index}`} draggableId={`${stop.id}-${index}`} index={index}>
+                    {(provided) => (
+                      <tr
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        {...provided.dragHandleProps}
+                        className="transition-colors hover:bg-gray-50"
+                      >
+                        <TableCell className="w-10">
+                          <div className="flex items-center justify-center cursor-grab">
+                            <GripVertical className="h-4 w-4 text-gray-400" />
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium">{stop.stop_number || index + 1}</TableCell>
+                        <TableCell>{customer?.name || "Unknown"}</TableCell>
+                        <TableCell className="max-w-[150px] truncate">{customer?.address || "-"}</TableCell>
+                        <TableCell>{customer?.phone || "-"}</TableCell>
+                        <TableCell>{driver?.name || "Not assigned"}</TableCell>
+                        <TableCell className="max-w-[150px] truncate">{stop.items || "-"}</TableCell>
+                        <TableCell>${stop.price || calculatePrice(stop.items || "").toFixed(2)}</TableCell>
+                        <TableCell className="max-w-[150px] truncate">{stop.notes || "-"}</TableCell>
+                        {!readOnly && (
+                          <TableCell className="text-right">
+                            <div className="flex justify-end">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => onEditStart(index)}
+                                className="h-8 w-8 p-0 mr-1"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => onRemoveStop(index)}
+                                className="h-8 w-8 p-0"
+                              >
+                                <Trash className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        )}
+                      </tr>
+                    )}
+                  </Draggable>
+                );
+              }
+              
+              return row;
             })
           )}
         </TableBody>
