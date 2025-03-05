@@ -7,17 +7,18 @@ import { Loader2, FileDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { StopsTable } from "./dispatch/components/StopsTable"; // Fixed import path
+import { StopsTable } from "./dispatch/components/StopsTable"; 
 import { BaseOrderDetails } from "@/components/templates/BaseOrderDetails";
 import { BaseOrderSummary } from "@/components/templates/BaseOrderSummary";
 import { BaseOrderActions } from "@/components/templates/BaseOrderActions";
 import { downloadSchedulePDF } from "@/utils/GenerateSchedulePDF";
+import { useIsMobile } from "@/hooks/use-mobile";
 
-// Renamed from DispatchDetail to DispatchForm for consistency
 export default function DispatchForm() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [masterSchedule, setMasterSchedule] = useState<any>(null);
   const [stops, setStops] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,7 +61,7 @@ export default function DispatchForm() {
             notes, 
             items,
             status,
-            customers(id, name, address)
+            customers(id, name, address, phone)
           `)
           .eq("master_schedule_id", id)
           .order('id');
@@ -68,7 +69,16 @@ export default function DispatchForm() {
         if (stopsError) {
           console.error("Error fetching stops:", stopsError);
         } else {
-          setStops(stopsData || []);
+          // Process stops to add customer_address, customer_phone, and stop_number
+          const processedStops = (stopsData || []).map((stop, index) => ({
+            ...stop,
+            stop_number: index + 1,
+            customer_address: stop.customers?.address || '',
+            customer_phone: stop.customers?.phone || '',
+            price: calculatePrice(stop.items)
+          }));
+          
+          setStops(processedStops);
         }
       } catch (error) {
         console.error("Error fetching schedule details:", error);
@@ -80,6 +90,16 @@ export default function DispatchForm() {
 
     fetchScheduleDetails();
   }, [id]);
+
+  // Calculate price based on items (placeholder implementation)
+  const calculatePrice = (items: string): number => {
+    // This is a placeholder - replace with actual pricing logic
+    if (!items) return 0;
+    
+    // Simple logic: $10 per item
+    const itemsList = items?.split(',') || [];
+    return itemsList.length * 10;
+  };
 
   const formatDateForInput = (dateString: string | null): string => {
     if (!dateString) return '';
@@ -119,10 +139,16 @@ export default function DispatchForm() {
       return acc;
     }, {});
 
+    // Calculate total price
+    const totalPrice = stops.reduce((sum: number, stop: any) => {
+      const price = stop.price || 0;
+      return sum + Number(price);
+    }, 0);
+
     return {
       totalQuantity: totalStops,
       quantityByPackaging: totalByDriver,
-      totalValue: totalStops
+      totalValue: totalPrice
     };
   };
 
@@ -299,6 +325,7 @@ export default function DispatchForm() {
               masterScheduleId={id || ''}
               readOnly={isSubmitted} 
               onStopsChange={setStops}
+              useMobileLayout={isMobile}
             />
 
             <BaseOrderSummary 
@@ -324,6 +351,7 @@ export default function DispatchForm() {
                 archiveLink="/dispatch-archive"
                 isSaving={isSaving}
                 isSubmitting={isSubmitting}
+                mobileLayout={isMobile}
               />
             </div>
           </div>

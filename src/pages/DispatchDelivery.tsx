@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,14 +11,7 @@ import { BaseOrderDetails } from "@/components/templates/BaseOrderDetails";
 import { BaseOrderSummary } from "@/components/templates/BaseOrderSummary";
 import { BaseOrderActions } from "@/components/templates/BaseOrderActions";
 import { Customer } from "./customers/types";
-import { 
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
-} from "@/components/ui/table";
-import { 
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { StopsTable } from "./dispatch/components/StopsTable";
 
 interface DeliveryStop {
   id?: number;
@@ -25,6 +19,10 @@ interface DeliveryStop {
   notes: string | null;
   driver_id: string | null;
   items: string | null;
+  price?: number;
+  customer_address?: string;
+  customer_phone?: string;
+  stop_number?: number;
 }
 
 interface DispatchScheduleData {
@@ -50,52 +48,9 @@ export default function DispatchDelivery() {
     stops: []
   });
   
-  const [currentStop, setCurrentStop] = useState<DeliveryStop>({
-    customer_id: null,
-    driver_id: null,
-    notes: null,
-    items: null
-  });
-  
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Fetch customers and drivers
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from("customers")
-          .select("*")
-          .order('name');
-
-        if (error) {
-          console.error("Error fetching customers:", error);
-          return;
-        }
-        
-        setCustomers(data as Customer[] || []);
-        
-        // Mock drivers - replace with real data when available
-        setDrivers([
-          { id: "driver-1", name: "John Smith" },
-          { id: "driver-2", name: "Maria Garcia" },
-          { id: "driver-3", name: "Robert Johnson" },
-          { id: "driver-4", name: "Sarah Lee" },
-        ]);
-      } catch (err) {
-        console.error("Error:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchData();
-  }, []);
 
   // Handle schedule date change
   const handleScheduleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -105,36 +60,11 @@ export default function DispatchDelivery() {
     }));
   };
 
-  // Add stop to schedule
-  const handleAddStop = () => {
-    if (!currentStop.customer_id) {
-      toast({
-        title: "Error",
-        description: "Please select a customer",
-        variant: "destructive"
-      });
-      return;
-    }
-
+  // Handle stops change from StopsTable component
+  const handleStopsChange = (newStops: DeliveryStop[]) => {
     setScheduleData(prev => ({
       ...prev,
-      stops: [...prev.stops, currentStop]
-    }));
-
-    // Reset the form
-    setCurrentStop({
-      customer_id: null,
-      driver_id: null,
-      notes: null,
-      items: null
-    });
-  };
-
-  // Remove stop from schedule
-  const handleRemoveStop = (index: number) => {
-    setScheduleData(prev => ({
-      ...prev,
-      stops: prev.stops.filter((_, i) => i !== index)
+      stops: newStops
     }));
   };
 
@@ -145,16 +75,19 @@ export default function DispatchDelivery() {
     // Count stops by driver
     const stopsByDriver = scheduleData.stops.reduce((acc: Record<string, number>, stop) => {
       const driverId = stop.driver_id || 'unassigned';
-      const driverName = drivers.find(d => d.id === driverId)?.name || 'Unassigned';
-      const key = driverId === 'unassigned' ? 'Unassigned' : driverName;
-      
-      acc[key] = (acc[key] || 0) + 1;
+      acc[driverId] = (acc[driverId] || 0) + 1;
       return acc;
     }, {});
     
+    // Calculate total price
+    const totalPrice = scheduleData.stops.reduce((sum: number, stop) => {
+      const price = stop.price || 0;
+      return sum + Number(price);
+    }, 0);
+    
     return {
       totalQuantity: totalStops,
-      totalValue: totalStops, // Just using count as the "value"
+      totalValue: totalPrice,
       quantityByPackaging: stopsByDriver
     };
   };
@@ -309,7 +242,7 @@ export default function DispatchDelivery() {
       <Card className="shadow-sm">
         <CardHeader>
           <div className="flex justify-between items-center">
-            <CardTitle>New Dispatch Schedule</CardTitle>
+            <CardTitle>Place Orders</CardTitle>
           </div>
         </CardHeader>
         <CardContent>
@@ -324,122 +257,13 @@ export default function DispatchDelivery() {
               disabled={false}
             />
             
-            {/* Add Stop Form */}
-            <div className="border rounded-lg p-4 space-y-4">
-              <h3 className="text-lg font-medium">Add Delivery Stop</h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label>Customer</Label>
-                  <Select 
-                    value={currentStop.customer_id || ""} 
-                    onValueChange={(value) => setCurrentStop(prev => ({ ...prev, customer_id: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a customer" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-60 overflow-y-auto">
-                      {customers.map((customer) => (
-                        <SelectItem key={customer.id} value={customer.id}>
-                          {customer.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>Driver</Label>
-                  <Select 
-                    value={currentStop.driver_id || ""} 
-                    onValueChange={(value) => setCurrentStop(prev => ({ ...prev, driver_id: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a driver" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {drivers.map((driver) => (
-                        <SelectItem key={driver.id} value={driver.id}>
-                          {driver.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>Items</Label>
-                  <Input 
-                    placeholder="Enter delivery items..."
-                    value={currentStop.items || ""}
-                    onChange={(e) => setCurrentStop(prev => ({ ...prev, items: e.target.value }))}
-                  />
-                </div>
-                
-                <div className="space-y-2 md:col-span-3">
-                  <Label>Notes</Label>
-                  <Input 
-                    placeholder="Enter delivery notes or special instructions..."
-                    value={currentStop.notes || ""}
-                    onChange={(e) => setCurrentStop(prev => ({ ...prev, notes: e.target.value }))}
-                  />
-                </div>
-              </div>
-              
-              <div className="flex justify-end mt-4">
-                <Button 
-                  onClick={handleAddStop}
-                  className="bg-[#2A4131] hover:bg-[#2A4131]/90"
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Stop
-                </Button>
-              </div>
-            </div>
-            
             {/* Stops Table */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">Delivery Stops</h3>
-              
-              {scheduleData.stops.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Customer</TableHead>
-                      <TableHead>Driver</TableHead>
-                      <TableHead>Items</TableHead>
-                      <TableHead>Notes</TableHead>
-                      <TableHead>Address</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {scheduleData.stops.map((stop, index) => {
-                      const customer = customers.find(c => c.id === stop.customer_id);
-                      const driver = drivers.find(d => d.id === stop.driver_id);
-                      
-                      return (
-                        <TableRow key={index}>
-                          <TableCell className="font-medium">{customer?.name || "Unknown"}</TableCell>
-                          <TableCell>{driver?.name || "Not assigned"}</TableCell>
-                          <TableCell className="max-w-[150px] truncate">{stop.items || "-"}</TableCell>
-                          <TableCell className="max-w-[200px] truncate">{stop.notes || "-"}</TableCell>
-                          <TableCell className="max-w-[200px] truncate">{customer?.address || "-"}</TableCell>
-                          <TableCell className="text-right">
-                            <Button variant="ghost" size="sm" onClick={() => handleRemoveStop(index)}>
-                              <Trash className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="text-center py-8 text-gray-500 border rounded-md">
-                  No stops added yet. Add your first stop using the form above.
-                </div>
-              )}
+            <div className={isMobile ? "pb-20" : ""}>
+              <StopsTable
+                stops={scheduleData.stops}
+                onStopsChange={handleStopsChange}
+                useMobileLayout={isMobile}
+              />
             </div>
             
             {/* Summary and Actions */}
@@ -447,14 +271,28 @@ export default function DispatchDelivery() {
               items={calculateTotals()}
             />
             
-            <BaseOrderActions
-              onSave={handleSave}
-              onSubmit={handleSubmit}
-              submitLabel="Submit Schedule"
-              archiveLink="/dispatch-archive"
-              isSaving={isSaving}
-              isSubmitting={isSubmitting}
-            />
+            {isMobile ? (
+              <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4 z-10">
+                <BaseOrderActions
+                  onSave={handleSave}
+                  onSubmit={handleSubmit}
+                  submitLabel="Submit Schedule"
+                  archiveLink="/dispatch-archive"
+                  isSaving={isSaving}
+                  isSubmitting={isSubmitting}
+                  mobileLayout={true}
+                />
+              </div>
+            ) : (
+              <BaseOrderActions
+                onSave={handleSave}
+                onSubmit={handleSubmit}
+                submitLabel="Submit Schedule"
+                archiveLink="/dispatch-archive"
+                isSaving={isSaving}
+                isSubmitting={isSubmitting}
+              />
+            )}
           </div>
         </CardContent>
       </Card>

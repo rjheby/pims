@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
@@ -116,15 +117,22 @@ function DateBasedScheduleCreatorContent() {
   const calculateTotals = () => {
     const totalStops = stops.length;
     
+    // Count stops by driver
     const stopsByDriver = stops.reduce((acc: Record<string, number>, stop) => {
       const driverId = stop.driver_id || 'unassigned';
       acc[driverId] = (acc[driverId] || 0) + 1;
       return acc;
     }, {});
     
+    // Calculate total price
+    const totalPrice = stops.reduce((sum: number, stop) => {
+      const price = stop.price || 0;
+      return sum + Number(price);
+    }, 0);
+    
     return {
       totalQuantity: totalStops,
-      totalValue: totalStops,
+      totalValue: totalPrice,
       quantityByPackaging: stopsByDriver
     };
   };

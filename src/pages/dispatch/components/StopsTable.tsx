@@ -1,587 +1,681 @@
 
-import { useState, useEffect } from "react";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { useDispatchSchedule } from "../context/DispatchScheduleContext";
-import { Customer } from "@/pages/customers/types";
-
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+import React, { useEffect, useState } from "react";
+import { 
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
 } from "@/components/ui/table";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Plus, Trash } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { Plus, Trash, Edit, Check, X } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Customer } from "../../customers/types";
+import { Card, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 
 interface Driver {
   id: string;
   name: string;
 }
 
-export interface StopsTableProps {
-  stops?: any[];
+interface StopProps {
+  stops: any[];
+  onStopsChange?: (stops: any[]) => void;
   masterScheduleId?: string;
   readOnly?: boolean;
-  onStopsChange?: (stops: any[]) => void;
   useMobileLayout?: boolean;
 }
 
 export function StopsTable({ 
-  stops: externalStops, 
+  stops = [], 
+  onStopsChange, 
   masterScheduleId,
   readOnly = false,
-  onStopsChange,
   useMobileLayout = false
-}: StopsTableProps) {
-  const { stops: contextStops, addStop, removeStop, updateStop } = useDispatchSchedule();
+}: StopProps) {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [newStop, setNewStop] = useState({
+  const [loading, setLoading] = useState(false);
+  const [currentStop, setCurrentStop] = useState({
     customer_id: "",
-    driver_id: null,
-    items: "",
+    driver_id: "",
     notes: "",
-    sequence: 0
+    items: ""
   });
-  const { toast } = useToast();
-  
-  // Use external stops if provided, otherwise use context stops
-  const stops = externalStops || contextStops;
-  
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState<any>({});
+
+  // Fetch customers and drivers
   useEffect(() => {
     async function fetchData() {
-      setLoading(true);
       try {
+        setLoading(true);
+        
         // Fetch customers
         const { data: customersData, error: customersError } = await supabase
           .from("customers")
           .select("*")
           .order('name');
+          
+        if (customersError) {
+          console.error("Error fetching customers:", customersError);
+        } else {
+          setCustomers(customersData || []);
+        }
         
-        if (customersError) throw customersError;
-        setCustomers(customersData || []);
-        
-        // Temporary mock data for drivers until we have a drivers table
-        // TODO: Replace with real drivers data from the database
+        // Mock drivers - replace with real data when available
         setDrivers([
           { id: "driver-1", name: "John Smith" },
           { id: "driver-2", name: "Maria Garcia" },
           { id: "driver-3", name: "Robert Johnson" },
           { id: "driver-4", name: "Sarah Lee" },
         ]);
-        
       } catch (error) {
         console.error("Error fetching data:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load data",
-          variant: "destructive"
-        });
       } finally {
         setLoading(false);
       }
     }
     
     fetchData();
-  }, [toast]);
+  }, []);
 
+  // Handle adding a new stop
   const handleAddStop = () => {
-    if (!newStop.customer_id) {
-      toast({
-        title: "Error",
-        description: "Please select a customer",
-        variant: "destructive"
-      });
+    if (!currentStop.customer_id) {
       return;
     }
-
-    const stopToAdd = {
-      ...newStop,
-      sequence: stops.length + 1
+    
+    // Find the customer to get their address and contact info
+    const customer = customers.find(c => c.id === currentStop.customer_id);
+    
+    const newStop = {
+      ...currentStop,
+      id: Date.now(), // Temporary id for new stops
+      customer_address: customer?.address || '',
+      customer_phone: customer?.phone || '',
+      price: calculatePrice(currentStop.items),
+      master_schedule_id: masterScheduleId
     };
-
-    if (masterScheduleId) {
-      // If we have a masterScheduleId, this is an existing schedule
-      // Add the stop to the database
-      supabase
-        .from("delivery_schedules")
-        .insert({
-          customer_id: stopToAdd.customer_id,
-          driver_id: stopToAdd.driver_id,
-          items: stopToAdd.items,
-          notes: stopToAdd.notes,
-          master_schedule_id: masterScheduleId,
-          schedule_type: "one-time",
-          status: "draft"
-        })
-        .then(({ data, error }) => {
-          if (error) {
-            console.error("Error adding stop:", error);
-            toast({
-              title: "Error",
-              description: "Failed to add stop",
-              variant: "destructive"
-            });
-            return;
-          }
-          
-          // Add the stop to the local state
-          // Fix: Add null check for data
-          const newStops = [...stops, { ...(data && data[0] ? data[0] : {}), customers: customers.find(c => c.id === stopToAdd.customer_id) }];
-          if (onStopsChange) onStopsChange(newStops);
-          
-          toast({
-            title: "Success",
-            description: "Stop added successfully"
-          });
-        });
-    } else {
-      // If no masterScheduleId, this is a new schedule
-      // Add the stop to the context
-      addStop(stopToAdd);
+    
+    const updatedStops = [...stops, newStop];
+    
+    // Update with stop numbers
+    const numberedStops = updatedStops.map((stop, index) => ({
+      ...stop,
+      stop_number: index + 1
+    }));
+    
+    if (onStopsChange) {
+      onStopsChange(numberedStops);
     }
-
+    
     // Reset the form
-    setNewStop({
+    setCurrentStop({
       customer_id: "",
-      driver_id: null,
-      items: "",
+      driver_id: "",
       notes: "",
-      sequence: 0
+      items: ""
     });
   };
 
-  const handleRemoveStop = (index: number, stopId?: string) => {
-    if (masterScheduleId && stopId) {
-      // If we have a masterScheduleId, this is an existing schedule
-      // Remove the stop from the database
-      supabase
-        .from("delivery_schedules")
-        .delete()
-        .eq("id", stopId)
-        .then(({ error }) => {
-          if (error) {
-            console.error("Error removing stop:", error);
-            toast({
-              title: "Error",
-              description: "Failed to remove stop",
-              variant: "destructive"
-            });
-            return;
-          }
-          
-          // Remove the stop from the local state
-          const newStops = stops.filter((_, i) => i !== index);
-          if (onStopsChange) onStopsChange(newStops);
-          
-          toast({
-            title: "Success",
-            description: "Stop removed successfully"
-          });
-        });
-    } else {
-      // If no masterScheduleId, this is a new schedule
-      // Remove the stop from the context
-      removeStop(index);
-    }
-  };
-
-  const handleUpdateStop = (index: number, field: string, value: any, stopId?: string) => {
-    const updatedStop = { ...stops[index], [field]: value };
+  // Calculate price based on items (placeholder implementation)
+  const calculatePrice = (items: string): number => {
+    // This is a placeholder - replace with actual pricing logic
+    if (!items) return 0;
     
-    if (masterScheduleId && stopId) {
-      // If we have a masterScheduleId, this is an existing schedule
-      // Update the stop in the database
-      supabase
-        .from("delivery_schedules")
-        .update({ [field]: value })
-        .eq("id", stopId)
-        .then(({ error }) => {
-          if (error) {
-            console.error("Error updating stop:", error);
-            toast({
-              title: "Error",
-              description: "Failed to update stop",
-              variant: "destructive"
-            });
-            return;
-          }
+    // Simple logic: $10 per item
+    const itemsList = items.split(',');
+    return itemsList.length * 10;
+  };
+
+  // Handle removing a stop
+  const handleRemoveStop = async (index: number) => {
+    const stopToRemove = stops[index];
+    
+    if (stopToRemove.id && !isNaN(Number(stopToRemove.id))) {
+      // This is a new stop with a temporary ID
+      const updatedStops = stops.filter((_, i) => i !== index)
+        .map((stop, i) => ({ ...stop, stop_number: i + 1 }));
+      
+      if (onStopsChange) {
+        onStopsChange(updatedStops);
+      }
+    } else if (stopToRemove.id && masterScheduleId) {
+      try {
+        // This is an existing stop in the database
+        const { error } = await supabase
+          .from('delivery_schedules')
+          .delete()
+          .eq('id', stopToRemove.id);
           
-          // Update the stop in the local state
-          const newStops = [...stops];
-          newStops[index] = updatedStop;
-          if (onStopsChange) onStopsChange(newStops);
-        });
+        if (error) {
+          console.error("Error deleting stop:", error);
+          return;
+        }
+        
+        const updatedStops = stops.filter((_, i) => i !== index)
+          .map((stop, i) => ({ ...stop, stop_number: i + 1 }));
+        
+        if (onStopsChange) {
+          onStopsChange(updatedStops);
+        }
+      } catch (error) {
+        console.error("Error:", error);
+      }
     } else {
-      // If no masterScheduleId, this is a new schedule
-      // Update the stop in the context
-      updateStop(index, updatedStop);
+      // Just remove from the array
+      const updatedStops = stops.filter((_, i) => i !== index)
+        .map((stop, i) => ({ ...stop, stop_number: i + 1 }));
+      
+      if (onStopsChange) {
+        onStopsChange(updatedStops);
+      }
     }
   };
 
-  if (loading) {
-    return <div className="text-center py-4">Loading...</div>;
-  }
+  // Start editing a stop
+  const handleEditStart = (index: number) => {
+    const stopToEdit = stops[index];
+    setEditingIndex(index);
+    setEditForm({
+      customer_id: stopToEdit.customer_id,
+      driver_id: stopToEdit.driver_id,
+      notes: stopToEdit.notes,
+      items: stopToEdit.items
+    });
+  };
 
-  // Mobile layout for the stops table
-  if (useMobileLayout) {
+  // Save edited stop
+  const handleEditSave = async () => {
+    if (editingIndex === null) return;
+    
+    const originalStop = stops[editingIndex];
+    
+    // Find the customer to get their address and contact info
+    const customer = customers.find(c => c.id === editForm.customer_id);
+    
+    const updatedStop = {
+      ...originalStop,
+      ...editForm,
+      customer_address: customer?.address || '',
+      customer_phone: customer?.phone || '',
+      price: calculatePrice(editForm.items)
+    };
+    
+    if (updatedStop.id && masterScheduleId && !isNaN(Number(updatedStop.id))) {
+      // This is a new stop
+      const updatedStops = [...stops];
+      updatedStops[editingIndex] = updatedStop;
+      
+      if (onStopsChange) {
+        onStopsChange(updatedStops);
+      }
+    } else if (updatedStop.id && masterScheduleId) {
+      try {
+        // This is an existing stop in the database
+        const { error } = await supabase
+          .from('delivery_schedules')
+          .update({
+            customer_id: editForm.customer_id,
+            driver_id: editForm.driver_id,
+            notes: editForm.notes,
+            items: editForm.items
+          })
+          .eq('id', updatedStop.id);
+          
+        if (error) {
+          console.error("Error updating stop:", error);
+          return;
+        }
+        
+        const updatedStops = [...stops];
+        updatedStops[editingIndex] = updatedStop;
+        
+        if (onStopsChange) {
+          onStopsChange(updatedStops);
+        }
+      } catch (error) {
+        console.error("Error:", error);
+      }
+    } else {
+      // Just update in the array
+      const updatedStops = [...stops];
+      updatedStops[editingIndex] = updatedStop;
+      
+      if (onStopsChange) {
+        onStopsChange(updatedStops);
+      }
+    }
+    
+    setEditingIndex(null);
+  };
+
+  // Cancel editing
+  const handleEditCancel = () => {
+    setEditingIndex(null);
+  };
+
+  // Render the add stop form
+  const renderAddStopForm = () => {
+    if (readOnly) return null;
+    
     return (
-      <div className="space-y-4">
-        <div className="text-lg font-medium">Delivery Stops</div>
+      <div className="border rounded-lg p-4 space-y-4 mb-6">
+        <h3 className="text-lg font-medium">Add Delivery Stop</h3>
         
-        {stops.length === 0 ? (
-          <div className="text-center py-4 border rounded-md bg-gray-50">
-            No stops added yet
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Customer</Label>
+            <Select 
+              value={currentStop.customer_id} 
+              onValueChange={(value) => setCurrentStop(prev => ({ ...prev, customer_id: value }))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a customer" />
+              </SelectTrigger>
+              <SelectContent className="max-h-60 overflow-y-auto">
+                {customers.map((customer) => (
+                  <SelectItem key={customer.id} value={customer.id}>
+                    {customer.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        ) : (
-          <div className="space-y-3">
-            {stops.map((stop, index) => {
-              const customer = customers.find(c => c.id === stop.customer_id) || stop.customers;
-              const driver = drivers.find(d => d.id === stop.driver_id);
-              
-              return (
-                <Card key={index} className="overflow-hidden">
-                  <CardHeader className="py-3">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center">
-                        <span className="bg-primary text-primary-foreground w-7 h-7 rounded-full flex items-center justify-center mr-2">
-                          {index + 1}
-                        </span>
-                        <CardTitle className="text-base font-medium">
-                          {customer?.name || "Unknown Customer"}
-                        </CardTitle>
-                      </div>
-                      {!readOnly && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveStop(index, stop.id)}
-                          className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                        >
-                          <Trash className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="py-3 space-y-3">
-                    <div className="grid grid-cols-1 gap-2">
-                      <div className="space-y-1">
-                        <label className="text-xs font-medium text-gray-500">Driver</label>
-                        {readOnly ? (
-                          <p className="text-sm">{driver?.name || "Not Assigned"}</p>
-                        ) : (
-                          <Select
-                            value={stop.driver_id || ""}
-                            onValueChange={(value) => handleUpdateStop(index, "driver_id", value, stop.id)}
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select driver" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {drivers.map((driver) => (
-                                <SelectItem key={driver.id} value={driver.id}>
-                                  {driver.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        )}
-                      </div>
-                      
-                      <div className="space-y-1">
-                        <label className="text-xs font-medium text-gray-500">Items</label>
-                        {readOnly ? (
-                          <p className="text-sm">{stop.items || "-"}</p>
-                        ) : (
-                          <Input
-                            value={stop.items || ""}
-                            onChange={(e) => handleUpdateStop(index, "items", e.target.value, stop.id)}
-                            placeholder="Enter items"
-                          />
-                        )}
-                      </div>
-                      
-                      <div className="space-y-1">
-                        <label className="text-xs font-medium text-gray-500">Notes</label>
-                        {readOnly ? (
-                          <p className="text-sm">{stop.notes || "-"}</p>
-                        ) : (
-                          <Input
-                            value={stop.notes || ""}
-                            onChange={(e) => handleUpdateStop(index, "notes", e.target.value, stop.id)}
-                            placeholder="Add notes"
-                          />
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+          
+          <div className="space-y-2">
+            <Label>Driver</Label>
+            <Select 
+              value={currentStop.driver_id} 
+              onValueChange={(value) => setCurrentStop(prev => ({ ...prev, driver_id: value }))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a driver" />
+              </SelectTrigger>
+              <SelectContent>
+                {drivers.map((driver) => (
+                  <SelectItem key={driver.id} value={driver.id}>
+                    {driver.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        )}
+          
+          <div className="space-y-2">
+            <Label>Items</Label>
+            <Input 
+              placeholder="Enter delivery items..."
+              value={currentStop.items || ""}
+              onChange={(e) => setCurrentStop(prev => ({ ...prev, items: e.target.value }))}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label>Notes</Label>
+            <Input 
+              placeholder="Enter delivery notes or special instructions..."
+              value={currentStop.notes || ""}
+              onChange={(e) => setCurrentStop(prev => ({ ...prev, notes: e.target.value }))}
+            />
+          </div>
+        </div>
         
-        {!readOnly && (
-          <Card>
-            <CardHeader className="py-3">
-              <CardTitle className="text-base font-medium">Add New Stop</CardTitle>
-            </CardHeader>
-            <CardContent className="py-3 space-y-3">
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-500">Customer</label>
-                  <Select
-                    value={newStop.customer_id}
-                    onValueChange={(value) => setNewStop({...newStop, customer_id: value})}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select customer" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {customers.map((customer) => (
-                        <SelectItem key={customer.id} value={customer.id}>
-                          {customer.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-500">Driver</label>
-                  <Select
-                    value={newStop.driver_id || ""}
-                    onValueChange={(value) => setNewStop({...newStop, driver_id: value})}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select driver" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {drivers.map((driver) => (
-                        <SelectItem key={driver.id} value={driver.id}>
-                          {driver.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-500">Items</label>
-                  <Input
-                    value={newStop.items || ""}
-                    onChange={(e) => setNewStop({...newStop, items: e.target.value})}
-                    placeholder="Enter items"
-                  />
-                </div>
-                
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-500">Notes</label>
-                  <Input
-                    value={newStop.notes || ""}
-                    onChange={(e) => setNewStop({...newStop, notes: e.target.value})}
-                    placeholder="Add notes"
-                  />
-                </div>
-                
-                <Button
-                  className="w-full"
-                  onClick={handleAddStop}
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add Stop
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        <div className="flex justify-end mt-4">
+          <Button 
+            onClick={handleAddStop}
+            className="bg-[#2A4131] hover:bg-[#2A4131]/90"
+            disabled={!currentStop.customer_id}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add Stop
+          </Button>
+        </div>
       </div>
     );
-  }
+  };
 
-  // Desktop layout for the stops table
-  return (
-    <div className="space-y-4">
-      <div className="text-lg font-medium">Delivery Stops</div>
-      
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-14">#</TableHead>
-            <TableHead>Customer</TableHead>
-            <TableHead>Driver</TableHead>
-            <TableHead>Items</TableHead>
-            <TableHead>Notes</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {stops.length === 0 ? (
+  // Desktop table view
+  const renderDesktopTable = () => {
+    return (
+      <div className="mb-6 border rounded-lg overflow-hidden">
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={6} className="text-center py-4">
-                No stops added yet
-              </TableCell>
+              <TableHead className="w-16">Stop #</TableHead>
+              <TableHead>Customer</TableHead>
+              <TableHead>Address</TableHead>
+              <TableHead>Phone</TableHead>
+              <TableHead>Driver</TableHead>
+              <TableHead>Items</TableHead>
+              <TableHead>Price</TableHead>
+              <TableHead>Notes</TableHead>
+              {!readOnly && <TableHead className="text-right">Actions</TableHead>}
             </TableRow>
-          ) : (
-            stops.map((stop, index) => {
-              const customer = customers.find(c => c.id === stop.customer_id) || stop.customers;
-              const driver = drivers.find(d => d.id === stop.driver_id);
-              
-              return (
-                <TableRow key={index}>
-                  <TableCell>{index + 1}</TableCell>
-                  <TableCell>
-                    {readOnly ? (
-                      customer?.name || "Unknown Customer"
-                    ) : (
-                      <Select
-                        value={stop.customer_id}
-                        onValueChange={(value) => handleUpdateStop(index, "customer_id", value, stop.id)}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select customer" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {customers.map((customer) => (
-                            <SelectItem key={customer.id} value={customer.id}>
-                              {customer.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {readOnly ? (
-                      driver?.name || "Not Assigned"
-                    ) : (
-                      <Select
-                        value={stop.driver_id || ""}
-                        onValueChange={(value) => handleUpdateStop(index, "driver_id", value, stop.id)}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select driver" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {drivers.map((driver) => (
-                            <SelectItem key={driver.id} value={driver.id}>
-                              {driver.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {readOnly ? (
-                      stop.items || "-"
-                    ) : (
-                      <Input
-                        value={stop.items || ""}
-                        onChange={(e) => handleUpdateStop(index, "items", e.target.value, stop.id)}
-                        placeholder="Enter items"
-                      />
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {readOnly ? (
-                      stop.notes || "-"
-                    ) : (
-                      <Input
-                        value={stop.notes || ""}
-                        onChange={(e) => handleUpdateStop(index, "notes", e.target.value, stop.id)}
-                        placeholder="Add notes"
-                      />
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
+          </TableHeader>
+          <TableBody>
+            {stops.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={readOnly ? 8 : 9} className="text-center py-6 text-gray-500">
+                  No stops added yet.
+                </TableCell>
+              </TableRow>
+            ) : (
+              stops.map((stop, index) => {
+                const customer = customers.find(c => c.id === stop.customer_id);
+                const driver = drivers.find(d => d.id === stop.driver_id);
+                
+                // If we're editing this row
+                if (editingIndex === index) {
+                  return (
+                    <TableRow key={`edit-${index}`}>
+                      <TableCell>{index + 1}</TableCell>
+                      <TableCell>
+                        <Select 
+                          value={editForm.customer_id || ""} 
+                          onValueChange={(value) => setEditForm(prev => ({ ...prev, customer_id: value }))}
+                          disabled={readOnly}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a customer" />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-60 overflow-y-auto">
+                            {customers.map((customer) => (
+                              <SelectItem key={customer.id} value={customer.id}>
+                                {customer.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>{customer?.address || '-'}</TableCell>
+                      <TableCell>{customer?.phone || '-'}</TableCell>
+                      <TableCell>
+                        <Select 
+                          value={editForm.driver_id || ""} 
+                          onValueChange={(value) => setEditForm(prev => ({ ...prev, driver_id: value }))}
+                          disabled={readOnly}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a driver" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {drivers.map((driver) => (
+                              <SelectItem key={driver.id} value={driver.id}>
+                                {driver.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        <Input 
+                          value={editForm.items || ""}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, items: e.target.value }))}
+                          disabled={readOnly}
+                        />
+                      </TableCell>
+                      <TableCell>${calculatePrice(editForm.items).toFixed(2)}</TableCell>
+                      <TableCell>
+                        <Input 
+                          value={editForm.notes || ""}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
+                          disabled={readOnly}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex justify-end">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={handleEditSave}
+                            className="h-8 w-8 p-0 mr-1"
+                          >
+                            <Check className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={handleEditCancel}
+                            className="h-8 w-8 p-0"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                }
+                
+                // Regular row
+                return (
+                  <TableRow key={index}>
+                    <TableCell className="font-medium">{index + 1}</TableCell>
+                    <TableCell>{customer?.name || "Unknown"}</TableCell>
+                    <TableCell className="max-w-[150px] truncate">{customer?.address || "-"}</TableCell>
+                    <TableCell>{customer?.phone || "-"}</TableCell>
+                    <TableCell>{driver?.name || "Not assigned"}</TableCell>
+                    <TableCell className="max-w-[150px] truncate">{stop.items || "-"}</TableCell>
+                    <TableCell>${stop.price || calculatePrice(stop.items).toFixed(2)}</TableCell>
+                    <TableCell className="max-w-[150px] truncate">{stop.notes || "-"}</TableCell>
                     {!readOnly && (
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleRemoveStop(index, stop.id)}
+                      <TableCell className="text-right">
+                        <div className="flex justify-end">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => handleEditStart(index)}
+                            className="h-8 w-8 p-0 mr-1"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => handleRemoveStop(index)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Trash className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    );
+  };
+
+  // Mobile card view
+  const renderMobileCards = () => {
+    if (stops.length === 0) {
+      return (
+        <div className="text-center py-8 text-gray-500 border rounded-md mb-6">
+          No stops added yet. Add your first stop using the form above.
+        </div>
+      );
+    }
+    
+    return (
+      <div className="space-y-4 mb-6">
+        {stops.map((stop, index) => {
+          const customer = customers.find(c => c.id === stop.customer_id);
+          const driver = drivers.find(d => d.id === stop.driver_id);
+          
+          // If we're editing this card
+          if (editingIndex === index) {
+            return (
+              <Card key={`edit-${index}`} className="overflow-hidden">
+                <CardContent className="p-0">
+                  <div className="bg-[#2A4131] text-white p-3 flex justify-between items-center">
+                    <div className="text-lg font-semibold">Stop #{index + 1}</div>
+                    <div className="flex space-x-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={handleEditSave}
+                        className="h-8 w-8 p-0 text-white hover:bg-[#203324]"
+                      >
+                        <Check className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={handleEditCancel}
+                        className="h-8 w-8 p-0 text-white hover:bg-[#203324]"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="p-4 space-y-4">
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <Label>Customer</Label>
+                        <Select 
+                          value={editForm.customer_id || ""} 
+                          onValueChange={(value) => setEditForm(prev => ({ ...prev, customer_id: value }))}
+                          disabled={readOnly}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a customer" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {customers.map((customer) => (
+                              <SelectItem key={customer.id} value={customer.id}>
+                                {customer.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <Label>Driver</Label>
+                        <Select 
+                          value={editForm.driver_id || ""} 
+                          onValueChange={(value) => setEditForm(prev => ({ ...prev, driver_id: value }))}
+                          disabled={readOnly}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a driver" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {drivers.map((driver) => (
+                              <SelectItem key={driver.id} value={driver.id}>
+                                {driver.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <Label>Items</Label>
+                        <Input 
+                          value={editForm.items || ""}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, items: e.target.value }))}
+                          disabled={readOnly}
+                        />
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <Label>Notes</Label>
+                        <Textarea 
+                          value={editForm.notes || ""}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
+                          disabled={readOnly}
+                          rows={2}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          }
+          
+          // Regular card
+          return (
+            <Card key={index} className="overflow-hidden">
+              <CardContent className="p-0">
+                <div className="bg-[#2A4131] text-white p-3 flex justify-between items-center">
+                  <div className="text-lg font-semibold">Stop #{index + 1}</div>
+                  {!readOnly && (
+                    <div className="flex space-x-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleEditStart(index)}
+                        className="h-8 w-8 p-0 text-white hover:bg-[#203324]"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleRemoveStop(index)}
+                        className="h-8 w-8 p-0 text-white hover:bg-[#203324]"
                       >
                         <Trash className="h-4 w-4" />
                       </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              );
-            })
-          )}
-          
-          {!readOnly && (
-            <TableRow>
-              <TableCell>#</TableCell>
-              <TableCell>
-                <Select
-                  value={newStop.customer_id}
-                  onValueChange={(value) => setNewStop({...newStop, customer_id: value})}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select customer" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {customers.map((customer) => (
-                      <SelectItem key={customer.id} value={customer.id}>
-                        {customer.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </TableCell>
-              <TableCell>
-                <Select
-                  value={newStop.driver_id || ""}
-                  onValueChange={(value) => setNewStop({...newStop, driver_id: value})}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select driver" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {drivers.map((driver) => (
-                      <SelectItem key={driver.id} value={driver.id}>
-                        {driver.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </TableCell>
-              <TableCell>
-                <Input
-                  value={newStop.items || ""}
-                  onChange={(e) => setNewStop({...newStop, items: e.target.value})}
-                  placeholder="Enter items"
-                />
-              </TableCell>
-              <TableCell>
-                <Input
-                  value={newStop.notes || ""}
-                  onChange={(e) => setNewStop({...newStop, notes: e.target.value})}
-                  placeholder="Add notes"
-                />
-              </TableCell>
-              <TableCell className="text-right">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleAddStop}
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add
-                </Button>
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+                    </div>
+                  )}
+                </div>
+                <div className="p-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <div className="text-sm text-gray-500">Customer</div>
+                      <div className="font-medium">{customer?.name || "Unknown"}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500">Driver</div>
+                      <div>{driver?.name || "Not assigned"}</div>
+                    </div>
+                    <div className="col-span-2">
+                      <div className="text-sm text-gray-500">Address</div>
+                      <div>{customer?.address || "-"}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500">Phone</div>
+                      <div>{customer?.phone || "-"}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500">Price</div>
+                      <div>${stop.price || calculatePrice(stop.items).toFixed(2)}</div>
+                    </div>
+                    <div className="col-span-2">
+                      <div className="text-sm text-gray-500">Items</div>
+                      <div>{stop.items || "-"}</div>
+                    </div>
+                    <div className="col-span-2">
+                      <div className="text-sm text-gray-500">Notes</div>
+                      <div>{stop.notes || "-"}</div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      <h3 className="text-lg font-medium">Delivery Stops</h3>
+      
+      {renderAddStopForm()}
+      
+      {useMobileLayout ? renderMobileCards() : renderDesktopTable()}
     </div>
   );
 }
