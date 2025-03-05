@@ -11,11 +11,12 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, UserPlus, Hash } from "lucide-react";
+import { Plus, UserPlus, Hash, ExternalLink } from "lucide-react";
 import { Customer } from "@/pages/customers/types";
 import { Driver, StopFormData } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "react-router-dom";
 
 interface AddStopFormProps {
   customers: Customer[];
@@ -232,7 +233,15 @@ export function AddStopForm({
         
         {selectedCustomer && (
           <div className="space-y-2 md:col-span-2 bg-gray-50 p-3 rounded-md border">
-            <div className="text-sm text-gray-500 font-medium">Customer Information</div>
+            <div className="flex justify-between items-center">
+              <div className="text-sm text-gray-500 font-medium">Customer Information</div>
+              <Link 
+                to={`/customers?edit=${selectedCustomer.id}`} 
+                className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
+              >
+                Edit Customer <ExternalLink className="ml-1 h-3 w-3" />
+              </Link>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1">
               <div>
                 <span className="text-xs text-gray-500">Address:</span>
@@ -284,3 +293,4 @@ export function AddStopForm({
     </div>
   );
 }
+

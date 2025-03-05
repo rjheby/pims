@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -8,9 +8,11 @@ import { useCustomers } from "./customers/hooks/useCustomers";
 import { CustomerSection } from "./customers/CustomerSection";
 import { CustomerEditDialog } from "./customers/components/CustomerEditDialog";
 import { Customer } from "./customers/types";
+import { useLocation, useNavigate } from "react-router-dom";
 
 export default function Customers() {
   const { 
+    customers,
     commercialCustomers, 
     residentialCustomers, 
     loading, 
@@ -22,10 +24,43 @@ export default function Customers() {
   } = useCustomers();
   
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editCustomer, setEditCustomer] = useState<Customer | undefined>(undefined);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Handle the edit query parameter
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const editId = params.get('edit');
+    
+    if (editId && customers.length > 0) {
+      const customerToEdit = customers.find(c => c.id === editId);
+      if (customerToEdit) {
+        setEditCustomer(customerToEdit);
+      }
+    }
+  }, [location.search, customers]);
 
   const handleAddCustomer = (customerData: Partial<Customer>) => {
     addCustomer(customerData as Omit<Customer, 'id' | 'created_at' | 'updated_at'>);
     setAddDialogOpen(false);
+  };
+
+  const handleUpdateCustomer = (customerData: Partial<Customer>) => {
+    if (editCustomer) {
+      updateCustomer(editCustomer.id, customerData);
+      setEditCustomer(undefined);
+      
+      // Clear the edit parameter from URL after editing
+      navigate('/customers');
+    }
+  };
+
+  const handleCloseEditDialog = () => {
+    setEditCustomer(undefined);
+    
+    // Clear the edit parameter from URL when closing the dialog
+    navigate('/customers');
   };
 
   return (
@@ -81,11 +116,21 @@ export default function Customers() {
         </CardContent>
       </Card>
       
+      {/* Dialog for adding a new customer */}
       <CustomerEditDialog
         isOpen={addDialogOpen}
         onClose={() => setAddDialogOpen(false)}
         onSave={handleAddCustomer}
       />
+      
+      {/* Dialog for editing an existing customer */}
+      <CustomerEditDialog
+        customer={editCustomer}
+        isOpen={!!editCustomer}
+        onClose={handleCloseEditDialog}
+        onSave={handleUpdateCustomer}
+      />
     </div>
   );
 }
+
