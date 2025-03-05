@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +10,7 @@ import { BaseOrderDetails } from "@/components/templates/BaseOrderDetails";
 import { BaseOrderSummary } from "@/components/templates/BaseOrderSummary";
 import { BaseOrderActions } from "@/components/templates/BaseOrderActions";
 import { Customer } from "./customers/types";
-import { StopsTable } from "./dispatch/components/StopsTable";
+import { StopsTable } from "./dispatch/components";
 
 interface DeliveryStop {
   id?: number;

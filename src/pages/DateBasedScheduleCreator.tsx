@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
@@ -7,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Plus, Save, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { StopsTable } from "./dispatch/components/StopsTable";
+import { StopsTable } from "./dispatch/components";
 import { BaseOrderDetails } from "@/components/templates/BaseOrderDetails";
 import { BaseOrderSummary } from "@/components/templates/BaseOrderSummary";
 import { BaseOrderActions } from "@/components/templates/BaseOrderActions";
