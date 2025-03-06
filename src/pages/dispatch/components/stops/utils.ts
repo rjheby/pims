@@ -1,38 +1,43 @@
 export const calculatePrice = (items: string | null): number => {
   if (!items) return 0;
   
-  // Split the items string by commas and filter out empty entries
+  // Parse quantity and item format: "2x Firewood - 1/4 cord, 1x Kindling bundle"
   const itemsList = items.split(',').map(item => item.trim()).filter(Boolean);
   
-  // Calculate price for each item based on its description
+  // Calculate price for each item based on its description and quantity
   return itemsList.reduce((total, item) => {
-    // Default price is $10 per item
-    let itemPrice = 10;
+    // Extract quantity and description
+    const quantityMatch = item.match(/^(\d+)x\s+(.+)$/);
+    const quantity = quantityMatch ? parseInt(quantityMatch[1], 10) : 1;
+    const description = quantityMatch ? quantityMatch[2] : item;
+    
+    // Determine base price per unit
+    let unitPrice = 10; // Default price
     
     // Check for "cord" in the item name to determine firewood price
-    if (item.toLowerCase().includes('cord')) {
-      if (item.toLowerCase().includes('1/4 cord')) {
-        itemPrice = 75;
-      } else if (item.toLowerCase().includes('1/2 cord')) {
-        itemPrice = 125;
-      } else if (item.toLowerCase().includes('full cord')) {
-        itemPrice = 200;
+    if (description.toLowerCase().includes('cord')) {
+      if (description.toLowerCase().includes('1/4 cord')) {
+        unitPrice = 75;
+      } else if (description.toLowerCase().includes('1/2 cord')) {
+        unitPrice = 125;
+      } else if (description.toLowerCase().includes('full cord')) {
+        unitPrice = 200;
       }
     } 
     // Check for kindling
-    else if (item.toLowerCase().includes('kindling')) {
-      itemPrice = 15;
+    else if (description.toLowerCase().includes('kindling')) {
+      unitPrice = 15;
     }
     // Check for cedar bundle
-    else if (item.toLowerCase().includes('cedar')) {
-      itemPrice = 12;
+    else if (description.toLowerCase().includes('cedar')) {
+      unitPrice = 12;
     }
     // Check for firestarter
-    else if (item.toLowerCase().includes('firestarter')) {
-      itemPrice = 8;
+    else if (description.toLowerCase().includes('firestarter')) {
+      unitPrice = 8;
     }
     
-    return total + itemPrice;
+    return total + (unitPrice * quantity);
   }, 0);
 };
 

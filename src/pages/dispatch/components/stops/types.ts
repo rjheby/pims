@@ -43,6 +43,18 @@ export interface Customer {
   type?: string;  // Added type property to match customers/types.ts
 }
 
+export interface FirewoodProduct {
+  id: number;
+  item_name: string;
+  item_full_name: string;
+  species: string;
+  length: string;
+  package_size: string;
+  product_type: string;
+  split_size: string;
+  minimum_quantity: number;
+}
+
 // Status options for delivery stops
 export const DELIVERY_STATUS_OPTIONS = [
   "pending",

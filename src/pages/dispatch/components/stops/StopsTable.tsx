@@ -128,12 +128,11 @@ const StopsTable = ({
   const handleEditSave = () => {
     const price = calculatePrice(editForm.items);
     
-    const newStops = [...stops];
     const selectedCustomer = customers.find(c => c.id === editForm.customer_id);
     const selectedDriver = drivers.find(d => d.id === editForm.driver_id);
     
-    newStops[editingIndex] = {
-      ...newStops[editingIndex],
+    const updatedStop = {
+      ...stops[editingIndex],
       ...editForm,
       price,
       customer_name: selectedCustomer?.name,
@@ -142,10 +141,11 @@ const StopsTable = ({
       driver_name: selectedDriver?.name,
     };
     
+    const newStops = [...stops];
+    newStops[editingIndex] = updatedStop;
+    
     onStopsChange(newStops);
     setEditingIndex(-1);
-
-    updateStopNumbers(newStops);
     
     setCustomerDialogOpen(false);
     setItemsDialogOpen(false);
