@@ -1,27 +1,23 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, Save, Calendar } from "lucide-react";
+import { Loader2, CalendarIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { StopsTable } from "./dispatch/components";
-import { BaseOrderDetails } from "@/components/templates/BaseOrderDetails";
 import { BaseOrderSummary } from "@/components/templates/BaseOrderSummary";
 import { BaseOrderActions } from "@/components/templates/BaseOrderActions";
-import { Customer } from "./customers/types";
 import { DispatchScheduleProvider } from './dispatch/context/DispatchScheduleContext';
 import { useIsMobile } from "@/hooks/use-mobile";
+import { DeliveryStop } from "./dispatch/components/stops/types";
+import { calculatePrice } from "./dispatch/components/stops/utils";
 
 interface ScheduleData {
   schedule_number: string;
   schedule_date: string;
-}
-
-interface Driver {
-  id: string;
-  name: string;
 }
 
 function DateBasedScheduleCreatorContent() {
@@ -39,7 +35,7 @@ function DateBasedScheduleCreatorContent() {
     const deliveryDOW = daysOfWeek[deliveryDate.getDay()];
     
     const driverCode = driverIds.length > 0 
-      ? `D${driverIds.map(id => id.replace('driver-', '')).join('')}` 
+      ? `D${driverIds.map(id => id.slice(0, 4)).join('')}` 
       : 'D00';
     
     return `DS-${creationFormatted}-${deliveryDOW}-${driverCode}`;
@@ -55,7 +51,7 @@ function DateBasedScheduleCreatorContent() {
     };
   });
   
-  const [stops, setStops] = useState<any[]>([]);
+  const [stops, setStops] = useState<DeliveryStop[]>([]);
   const [loading, setLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -77,26 +73,7 @@ function DateBasedScheduleCreatorContent() {
         }));
       }
     }
-  }, [schedule.schedule_date]);
-  
-  useEffect(() => {
-    if (stops.length > 0 && schedule.schedule_date) {
-      const driverIds = stops
-        .map(stop => stop.driver_id)
-        .filter((id): id is string => Boolean(id))
-        .filter((id, index, array) => array.indexOf(id) === index)
-        .sort();
-      
-      const newScheduleNumber = generateScheduleNumber(schedule.schedule_date, driverIds);
-      
-      if (newScheduleNumber !== schedule.schedule_number) {
-        setSchedule(prev => ({
-          ...prev,
-          schedule_number: newScheduleNumber
-        }));
-      }
-    }
-  }, [stops]);
+  }, [schedule.schedule_date, stops]);
   
   const handleScheduleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSchedule(prev => ({
@@ -117,15 +94,16 @@ function DateBasedScheduleCreatorContent() {
     const totalStops = stops.length;
     
     // Count stops by driver
-    const stopsByDriver = stops.reduce((acc: Record<string, number>, stop) => {
-      const driverId = stop.driver_id || 'unassigned';
-      acc[driverId] = (acc[driverId] || 0) + 1;
-      return acc;
-    }, {});
+    const stopsByDriver: Record<string, number> = {};
+    stops.forEach(stop => {
+      const driverName = stop.driver_name || 'Unassigned';
+      stopsByDriver[driverName] = (stopsByDriver[driverName] || 0) + 1;
+    });
     
     // Calculate total price
     const totalPrice = stops.reduce((sum: number, stop) => {
-      const price = stop.price || 0;
+      // If price is already calculated, use it; otherwise calculate based on items
+      const price = stop.price || calculatePrice(stop.items || null);
       return sum + Number(price);
     }, 0);
     
@@ -172,16 +150,21 @@ function DateBasedScheduleCreatorContent() {
       
       const masterId = masterData[0].id;
       
+      // Save each stop to the delivery_stops table
       for (const stop of stops) {
         await supabase
-          .from('delivery_schedules')
+          .from('delivery_stops')
           .insert({
             customer_id: stop.customer_id,
-            schedule_type: 'one-time',
-            delivery_date: schedule.schedule_date,
-            notes: stop.notes,
+            customer_name: stop.customer_name,
+            customer_address: stop.customer_address,
+            customer_phone: stop.customer_phone,
             driver_id: stop.driver_id,
+            driver_name: stop.driver_name,
             items: stop.items,
+            notes: stop.notes,
+            stop_number: stop.stop_number,
+            price: stop.price || calculatePrice(stop.items || null),
             status: 'draft',
             master_schedule_id: masterId
           });
@@ -230,16 +213,21 @@ function DateBasedScheduleCreatorContent() {
       
       const masterId = masterData[0].id;
       
+      // Save each stop to the delivery_stops table with submitted status
       for (const stop of stops) {
         await supabase
-          .from('delivery_schedules')
+          .from('delivery_stops')
           .insert({
             customer_id: stop.customer_id,
-            schedule_type: 'one-time',
-            delivery_date: schedule.schedule_date,
-            notes: stop.notes,
+            customer_name: stop.customer_name,
+            customer_address: stop.customer_address,
+            customer_phone: stop.customer_phone,
             driver_id: stop.driver_id,
+            driver_name: stop.driver_name,
             items: stop.items,
+            notes: stop.notes,
+            stop_number: stop.stop_number,
+            price: stop.price || calculatePrice(stop.items || null),
             status: 'submitted',
             master_schedule_id: masterId
           });
@@ -264,7 +252,7 @@ function DateBasedScheduleCreatorContent() {
     }
   };
   
-  const handleStopsChange = (newStops: any[]) => {
+  const handleStopsChange = (newStops: DeliveryStop[]) => {
     setStops(newStops);
   };
   
@@ -280,7 +268,7 @@ function DateBasedScheduleCreatorContent() {
     <div className="flex-1">
       <Card className="shadow-sm mx-auto max-w-6xl">
         <CardHeader>
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <CardTitle className="text-xl md:text-2xl">
               {isMobile ? "Delivery Schedule" : `Delivery Schedule for ${formatDisplayDate(schedule.schedule_date)}`}
             </CardTitle>
@@ -288,28 +276,33 @@ function DateBasedScheduleCreatorContent() {
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-            <div className="border rounded-lg p-4">
+            <div className="border rounded-lg p-6 bg-gray-50">
               <h3 className="text-lg font-medium mb-4">Schedule Details</h3>
-              <div className={`grid grid-cols-1 ${isMobile ? "" : "md:grid-cols-2"} gap-4`}>
+              <div className={`grid grid-cols-1 ${isMobile ? "" : "md:grid-cols-2"} gap-6`}>
                 <div className="space-y-2">
                   <label htmlFor="schedule-date" className="block text-sm font-medium">
                     Schedule Date
                   </label>
                   <div className="flex">
-                    <input
-                      id="schedule-date"
-                      type="date"
-                      value={schedule.schedule_date}
-                      onChange={handleScheduleDateChange}
-                      className="border rounded-md px-3 py-2 w-full"
-                    />
+                    <div className="relative w-full">
+                      <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                        <CalendarIcon className="h-4 w-4 text-gray-500" />
+                      </div>
+                      <input
+                        id="schedule-date"
+                        type="date"
+                        value={schedule.schedule_date}
+                        onChange={handleScheduleDateChange}
+                        className="border rounded-md px-3 py-2 pl-10 w-full"
+                      />
+                    </div>
                   </div>
                   {isMobile ? (
-                    <p className="text-sm text-gray-500 font-semibold">
+                    <p className="text-sm text-gray-600 font-semibold">
                       {formatDisplayDate(schedule.schedule_date)}
                     </p>
                   ) : (
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-600">
                       All stops will be scheduled for {formatDisplayDate(schedule.schedule_date)}
                     </p>
                   )}
@@ -323,9 +316,9 @@ function DateBasedScheduleCreatorContent() {
                     type="text"
                     value={schedule.schedule_number}
                     readOnly
-                    className="border rounded-md px-3 py-2 w-full bg-gray-50"
+                    className="border rounded-md px-3 py-2 w-full bg-gray-100"
                   />
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-600">
                     Auto-generated based on date and assigned drivers
                   </p>
                 </div>

@@ -1,14 +1,17 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { DragDropContext, Droppable } from "@hello-pangea/dnd";
-import { Plus, MapPinPlus } from "lucide-react";
+import { MapPinPlus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Customer } from "@/pages/customers/types";
 import { supabase } from "@/integrations/supabase/client";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { StopsDesktopTable } from "./StopsDesktopTable";
 import { StopsMobileCards } from "./StopsMobileCards";
-import { Driver, DeliveryStop, StopFormData } from "./types";
+import { CustomerSelector } from "./CustomerSelector";
+import { ItemSelector } from "./ItemSelector";
+import { Driver, DeliveryStop, StopFormData, Customer } from "./types";
+import { calculatePrice } from "./utils";
 
 interface StopsTableProps {
   stops: DeliveryStop[];
@@ -39,6 +42,10 @@ const StopsTable = ({
   const [selectedStops, setSelectedStops] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<string>("stop_number");
   const [filterByDriver, setFilterByDriver] = useState<string | null>(null);
+  
+  // Dialog states
+  const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
+  const [itemsDialogOpen, setItemsDialogOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -117,20 +124,39 @@ const StopsTable = ({
   };
 
   const handleEditSave = () => {
+    // Calculate price based on items
+    const price = calculatePrice(editForm.items);
+    
     const newStops = [...stops];
+    const selectedCustomer = customers.find(c => c.id === editForm.customer_id);
+    const selectedDriver = drivers.find(d => d.id === editForm.driver_id);
+    
     newStops[editingIndex] = {
       ...newStops[editingIndex],
       ...editForm,
+      price,
+      customer_name: selectedCustomer?.name,
+      customer_address: selectedCustomer?.address,
+      customer_phone: selectedCustomer?.phone,
+      driver_name: selectedDriver?.name,
     };
+    
     onStopsChange(newStops);
     setEditingIndex(-1);
 
     // Update stop numbers
     updateStopNumbers(newStops);
+    
+    // Clear dialog states
+    setCustomerDialogOpen(false);
+    setItemsDialogOpen(false);
   };
 
   const handleEditCancel = () => {
     setEditingIndex(-1);
+    // Clear dialog states
+    setCustomerDialogOpen(false);
+    setItemsDialogOpen(false);
   };
 
   const handleRemoveStop = (index: number) => {
@@ -241,17 +267,35 @@ const StopsTable = ({
   const handleDriverFilterChange = (value: string | null) => {
     setFilterByDriver(value);
   };
+  
+  // Handle customer selection from dialog
+  const handleCustomerSelect = (customer: Customer) => {
+    setEditForm(prev => ({
+      ...prev,
+      customer_id: customer.id
+    }));
+    setCustomerDialogOpen(false);
+  };
+  
+  // Handle items selection from dialog
+  const handleItemsSelect = (items: string) => {
+    setEditForm(prev => ({
+      ...prev,
+      items
+    }));
+    setItemsDialogOpen(false);
+  };
 
   return (
-    <div className="space-y-4 max-w-6xl mx-auto">
-      <div className="flex flex-wrap justify-between items-center gap-2">
+    <div className="space-y-6 max-w-6xl mx-auto">
+      <div className="flex flex-wrap justify-between items-center gap-4">
         <h3 className="text-lg font-medium">Delivery Stops</h3>
         <div className="flex items-center space-x-2">
           {!readOnly && (
             <Button 
               variant="customAction" 
               onClick={handleAddStop}
-              className="bg-[#F2FCE2] hover:bg-green-100 text-green-800 border border-green-200"
+              className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white"
             >
               <MapPinPlus className="mr-2 h-4 w-4" />
               Add Stop
@@ -261,11 +305,11 @@ const StopsTable = ({
       </div>
 
       {/* Sort and filter controls */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-4 p-4 bg-gray-50 rounded-lg">
         <div className="flex items-center space-x-2">
-          <span className="text-sm">Sort by:</span>
+          <span className="text-sm font-medium">Sort by:</span>
           <select 
-            className="text-sm border rounded p-1"
+            className="text-sm border rounded p-2 bg-white"
             value={sortBy}
             onChange={(e) => handleSortChange(e.target.value)}
           >
@@ -275,9 +319,9 @@ const StopsTable = ({
           </select>
         </div>
         <div className="flex items-center space-x-2">
-          <span className="text-sm">Filter by driver:</span>
+          <span className="text-sm font-medium">Filter by driver:</span>
           <select 
-            className="text-sm border rounded p-1"
+            className="text-sm border rounded p-2 bg-white"
             value={filterByDriver || ""}
             onChange={(e) => handleDriverFilterChange(e.target.value || null)}
           >
@@ -290,6 +334,28 @@ const StopsTable = ({
           </select>
         </div>
       </div>
+      
+      {/* Customer selection dialog */}
+      <Dialog open={customerDialogOpen} onOpenChange={setCustomerDialogOpen}>
+        <DialogContent className="sm:max-w-[550px]">
+          <CustomerSelector 
+            onSelect={handleCustomerSelect}
+            onCancel={() => setCustomerDialogOpen(false)}
+            initialCustomerId={editForm.customer_id}
+          />
+        </DialogContent>
+      </Dialog>
+      
+      {/* Items selection dialog */}
+      <Dialog open={itemsDialogOpen} onOpenChange={setItemsDialogOpen}>
+        <DialogContent className="sm:max-w-[550px]">
+          <ItemSelector 
+            onSelect={handleItemsSelect}
+            onCancel={() => setItemsDialogOpen(false)}
+            initialItems={editForm.items}
+          />
+        </DialogContent>
+      </Dialog>
       
       {stops.length > 0 ? (
         <DragDropContext onDragEnd={handleDragEnd}>
@@ -312,6 +378,8 @@ const StopsTable = ({
                     selectedStops={selectedStops}
                     onSelectStop={handleSelectStop}
                     onDuplicateStop={handleDuplicateStop}
+                    onOpenCustomerDialog={() => setCustomerDialogOpen(true)}
+                    onOpenItemsDialog={() => setItemsDialogOpen(true)}
                   />
                 ) : (
                   <StopsDesktopTable
@@ -330,6 +398,8 @@ const StopsTable = ({
                     onSelectStop={handleSelectStop}
                     onDuplicateStop={handleDuplicateStop}
                     draggable={!readOnly}
+                    onOpenCustomerDialog={() => setCustomerDialogOpen(true)}
+                    onOpenItemsDialog={() => setItemsDialogOpen(true)}
                   />
                 )}
                 {provided.placeholder}
@@ -338,7 +408,19 @@ const StopsTable = ({
           </Droppable>
         </DragDropContext>
       ) : (
-        <p className="text-gray-500">No delivery stops added yet.</p>
+        <div className="text-center py-12 bg-gray-50 border border-dashed rounded-lg">
+          <p className="text-gray-500">No delivery stops added yet.</p>
+          {!readOnly && (
+            <Button 
+              variant="customAction"
+              onClick={handleAddStop}
+              className="mt-4 bg-[#2A4131] hover:bg-[#2A4131]/90 text-white"
+            >
+              <MapPinPlus className="mr-2 h-4 w-4" />
+              Add First Stop
+            </Button>
+          )}
+        </div>
       )}
     </div>
   );

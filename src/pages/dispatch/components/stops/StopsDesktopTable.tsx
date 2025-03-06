@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Trash, Edit, Check, X, Hash, GripVertical, Copy } from "lucide-react";
+import { Trash, Edit, Check, X, Hash, GripVertical, Copy, Search, Package } from "lucide-react";
 import { Customer } from "@/pages/customers/types";
 import { Driver, DeliveryStop, StopFormData } from "./types";
 import { calculatePrice } from "./utils";
@@ -30,6 +30,8 @@ interface StopsDesktopTableProps {
   onSelectStop?: (stopId: string, index: number, event?: React.MouseEvent) => void;
   onDuplicateStop?: (index: number) => void;
   draggable?: boolean;
+  onOpenCustomerDialog?: () => void;
+  onOpenItemsDialog?: () => void;
 }
 
 export function StopsDesktopTable({
@@ -47,7 +49,9 @@ export function StopsDesktopTable({
   selectedStops = [],
   onSelectStop,
   onDuplicateStop,
-  draggable = false
+  draggable = false,
+  onOpenCustomerDialog,
+  onOpenItemsDialog
 }: StopsDesktopTableProps) {
   return (
     <div className="mb-6 border rounded-lg overflow-hidden">
@@ -80,7 +84,7 @@ export function StopsDesktopTable({
               
               if (editingIndex === index) {
                 return (
-                  <TableRow key={`edit-${index}`}>
+                  <TableRow key={`edit-${index}`} className="bg-gray-50/50">
                     {draggable && !readOnly && <TableCell></TableCell>}
                     <TableCell>
                       <div className="relative">
@@ -101,22 +105,18 @@ export function StopsDesktopTable({
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Select 
-                        value={editForm.customer_id || ""} 
-                        onValueChange={(value) => onEditFormChange({ ...editForm, customer_id: value })}
-                        disabled={readOnly}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a customer" />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-60 overflow-y-auto">
-                          {customers.map((customer) => (
-                            <SelectItem key={customer.id} value={customer.id}>
-                              {customer.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="flex">
+                        <Button 
+                          variant="outline" 
+                          className="w-full justify-between text-left font-normal"
+                          onClick={onOpenCustomerDialog}
+                        >
+                          <span className="truncate">
+                            {customers.find(c => c.id === editForm.customer_id)?.name || 'Select customer'}
+                          </span>
+                          <Search className="h-4 w-4 opacity-50 flex-shrink-0" />
+                        </Button>
+                      </div>
                     </TableCell>
                     <TableCell>{customer?.address || '-'}</TableCell>
                     <TableCell>{customer?.phone || '-'}</TableCell>
@@ -139,11 +139,16 @@ export function StopsDesktopTable({
                       </Select>
                     </TableCell>
                     <TableCell>
-                      <Input 
-                        value={editForm.items || ""}
-                        onChange={(e) => onEditFormChange({ ...editForm, items: e.target.value })}
-                        disabled={readOnly}
-                      />
+                      <Button 
+                        variant="outline" 
+                        className="w-full justify-between text-left font-normal"
+                        onClick={onOpenItemsDialog}
+                      >
+                        <span className="truncate">
+                          {editForm.items || 'Select items'}
+                        </span>
+                        <Package className="h-4 w-4 opacity-50 flex-shrink-0" />
+                      </Button>
                     </TableCell>
                     <TableCell>${calculatePrice(editForm.items).toFixed(2)}</TableCell>
                     <TableCell>
@@ -151,15 +156,16 @@ export function StopsDesktopTable({
                         value={editForm.notes || ""}
                         onChange={(e) => onEditFormChange({ ...editForm, notes: e.target.value })}
                         disabled={readOnly}
+                        placeholder="Add notes..."
                       />
                     </TableCell>
                     <TableCell>
-                      <div className="flex justify-end">
+                      <div className="flex justify-end space-x-1">
                         <Button 
-                          variant="ghost" 
+                          variant="success" 
                           size="sm" 
                           onClick={onEditSave}
-                          className="h-8 w-8 p-0 mr-1"
+                          className="h-8 w-8 p-0 bg-green-100 hover:bg-green-200 text-green-700"
                         >
                           <Check className="h-4 w-4" />
                         </Button>
@@ -196,12 +202,12 @@ export function StopsDesktopTable({
                   <TableCell className="max-w-[150px] truncate">{stop.notes || "-"}</TableCell>
                   {!readOnly && (
                     <TableCell className="text-right">
-                      <div className="flex justify-end">
+                      <div className="flex justify-end space-x-1">
                         <Button 
                           variant="ghost" 
                           size="sm" 
                           onClick={() => onEditStart(index)}
-                          className="h-8 w-8 p-0 mr-1"
+                          className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -210,7 +216,7 @@ export function StopsDesktopTable({
                             variant="ghost" 
                             size="sm" 
                             onClick={() => onDuplicateStop(index)}
-                            className="h-8 w-8 p-0 mr-1"
+                            className="h-8 w-8 p-0 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
                           >
                             <Copy className="h-4 w-4" />
                           </Button>
@@ -219,7 +225,7 @@ export function StopsDesktopTable({
                           variant="ghost" 
                           size="sm" 
                           onClick={() => onRemoveStop(index)}
-                          className="h-8 w-8 p-0"
+                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                         >
                           <Trash className="h-4 w-4" />
                         </Button>

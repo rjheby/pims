@@ -32,3 +32,12 @@ export interface StopFormData {
   notes?: string | null;
   stop_number?: number;
 }
+
+export interface Customer {
+  id: string;
+  name: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  notes?: string;
+}
