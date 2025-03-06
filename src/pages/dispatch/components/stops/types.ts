@@ -40,4 +40,31 @@ export interface Customer {
   phone?: string;
   email?: string;
   notes?: string;
+  type?: string;  // Added type property to match customers/types.ts
 }
+
+// Status options for delivery stops
+export const DELIVERY_STATUS_OPTIONS = [
+  "pending",
+  "in process", 
+  "scheduled", 
+  "loaded", 
+  "out for delivery", 
+  "delivered", 
+  "canceled", 
+  "rescheduled"
+];
+
+// Get appropriate badge variant based on status
+export const getStatusBadgeVariant = (status: string): "default" | "secondary" | "outline" | "destructive" => {
+  switch (status?.toLowerCase()) {
+    case "delivered":
+      return "default";
+    case "out for delivery":
+      return "secondary";
+    case "canceled":
+      return "destructive";
+    default:
+      return "outline";
+  }
+};

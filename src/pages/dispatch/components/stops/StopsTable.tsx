@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { DragDropContext, Droppable } from "@hello-pangea/dnd";
 import { MapPinPlus, Search } from "lucide-react";
@@ -43,7 +42,6 @@ const StopsTable = ({
   const [sortBy, setSortBy] = useState<string>("stop_number");
   const [filterByDriver, setFilterByDriver] = useState<string | null>(null);
   
-  // Dialog states
   const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
   const [itemsDialogOpen, setItemsDialogOpen] = useState(false);
 
@@ -52,14 +50,19 @@ const StopsTable = ({
     try {
       const { data: customersData, error: customersError } = await supabase
         .from('customers')
-        .select('*')
+        .select('id, name, address, phone, email, notes')
         .order('created_at', { ascending: false });
 
       if (customersError) {
         throw new Error(`Error fetching customers: ${customersError.message}`);
       }
 
-      setCustomers(customersData || []);
+      const customersWithType = customersData.map((customer) => ({
+        ...customer,
+        type: 'RETAIL'
+      }));
+
+      setCustomers(customersWithType);
 
       const { data: driversData, error: driversError } = await supabase
         .from('drivers')
@@ -100,7 +103,6 @@ const StopsTable = ({
     const newStops = [...stops, newStop];
     onStopsChange(newStops);
     
-    // Set this new stop to be edited immediately
     setEditingIndex(newStops.length - 1);
     setEditForm({
       customer_id: null,
@@ -124,7 +126,6 @@ const StopsTable = ({
   };
 
   const handleEditSave = () => {
-    // Calculate price based on items
     const price = calculatePrice(editForm.items);
     
     const newStops = [...stops];
@@ -144,17 +145,14 @@ const StopsTable = ({
     onStopsChange(newStops);
     setEditingIndex(-1);
 
-    // Update stop numbers
     updateStopNumbers(newStops);
     
-    // Clear dialog states
     setCustomerDialogOpen(false);
     setItemsDialogOpen(false);
   };
 
   const handleEditCancel = () => {
     setEditingIndex(-1);
-    // Clear dialog states
     setCustomerDialogOpen(false);
     setItemsDialogOpen(false);
   };
@@ -164,7 +162,6 @@ const StopsTable = ({
     newStops.splice(index, 1);
     onStopsChange(newStops);
 
-    // Update stop numbers
     updateStopNumbers(newStops);
   };
 
@@ -179,45 +176,33 @@ const StopsTable = ({
   const handleSelectStop = (stopId: string, index: number, event?: React.MouseEvent) => {
     if (!event) return;
     
-    // Convert regular Event to MouseEvent if needed
     const mouseEvent = event as unknown as React.MouseEvent;
 
     if (mouseEvent.shiftKey) {
-      // Shift key is pressed, handle multiple selection
       if (selectedStops.includes(stopId)) {
-        // If the stop is already selected, remove it from the selection
         setSelectedStops(selectedStops.filter((id) => id !== stopId));
       } else {
-        // If the stop is not selected, add it to the selection
         setSelectedStops([...selectedStops, stopId]);
       }
     } else {
-      // Shift key is not pressed, handle single selection
       if (selectedStops.includes(stopId)) {
-        // If the stop is already selected, unselect it
         setSelectedStops([]);
       } else {
-        // If the stop is not selected, select it
         setSelectedStops([stopId]);
       }
     }
   };
 
-  // Add duplicate functionality
   const handleDuplicateStop = (index: number) => {
     const stopToDuplicate = { ...stops[index] };
-    // Remove id to create a new record when saved
     delete stopToDuplicate.id;
     
-    // Add to the end of the list
     const newStops = [...stops, stopToDuplicate];
     onStopsChange(newStops);
     
-    // Update stop numbers if needed
     updateStopNumbers(newStops);
   };
 
-  // Handle drag and drop
   const handleDragEnd = (result: any) => {
     if (!result.destination) return;
     
@@ -230,7 +215,6 @@ const StopsTable = ({
     const [removed] = reorderedStops.splice(sourceIndex, 1);
     reorderedStops.splice(destinationIndex, 0, removed);
     
-    // Update stop numbers
     const updatedStops = reorderedStops.map((stop, index) => ({
       ...stop,
       stop_number: index + 1,
@@ -239,7 +223,6 @@ const StopsTable = ({
     onStopsChange(updatedStops);
   };
 
-  // Sort and filter stops
   const sortedAndFilteredStops = [...stops]
     .filter(stop => {
       if (!filterByDriver) return true;
@@ -268,7 +251,6 @@ const StopsTable = ({
     setFilterByDriver(value);
   };
   
-  // Handle customer selection from dialog
   const handleCustomerSelect = (customer: Customer) => {
     setEditForm(prev => ({
       ...prev,
@@ -277,7 +259,6 @@ const StopsTable = ({
     setCustomerDialogOpen(false);
   };
   
-  // Handle items selection from dialog
   const handleItemsSelect = (items: string) => {
     setEditForm(prev => ({
       ...prev,
@@ -304,7 +285,6 @@ const StopsTable = ({
         </div>
       </div>
 
-      {/* Sort and filter controls */}
       <div className="flex flex-wrap gap-4 p-4 bg-gray-50 rounded-lg">
         <div className="flex items-center space-x-2">
           <span className="text-sm font-medium">Sort by:</span>
@@ -335,7 +315,6 @@ const StopsTable = ({
         </div>
       </div>
       
-      {/* Customer selection dialog */}
       <Dialog open={customerDialogOpen} onOpenChange={setCustomerDialogOpen}>
         <DialogContent className="sm:max-w-[550px]">
           <CustomerSelector 
@@ -346,7 +325,6 @@ const StopsTable = ({
         </DialogContent>
       </Dialog>
       
-      {/* Items selection dialog */}
       <Dialog open={itemsDialogOpen} onOpenChange={setItemsDialogOpen}>
         <DialogContent className="sm:max-w-[550px]">
           <ItemSelector 

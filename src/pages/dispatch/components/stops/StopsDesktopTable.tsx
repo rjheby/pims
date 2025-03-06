@@ -2,17 +2,43 @@
 import React from "react";
 import { Draggable } from "@hello-pangea/dnd";
 import { 
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
+  Table, 
+  TableHead, 
+  TableHeader, 
+  TableRow, 
+  TableBody, 
+  TableCell 
 } from "@/components/ui/table";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
-} from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Trash, Edit, Check, X, Hash, GripVertical, Copy, Search, Package } from "lucide-react";
-import { Customer } from "@/pages/customers/types";
-import { Driver, DeliveryStop, StopFormData } from "./types";
-import { calculatePrice } from "./utils";
+import { Button } from "@/components/ui/button";
+import { 
+  Edit, 
+  Save, 
+  X, 
+  Trash, 
+  ChevronsUpDown, 
+  Pencil, 
+  Copy,
+  Phone,
+  MapPin
+} from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
+import { Customer, DeliveryStop, Driver, StopFormData, DELIVERY_STATUS_OPTIONS, getStatusBadgeVariant } from "./types";
 
 interface StopsDesktopTableProps {
   stops: DeliveryStop[];
@@ -20,21 +46,21 @@ interface StopsDesktopTableProps {
   drivers: Driver[];
   editingIndex: number;
   editForm: StopFormData;
-  onEditFormChange: React.Dispatch<React.SetStateAction<StopFormData>>;
+  onEditFormChange: (form: StopFormData) => void;
   onEditStart: (index: number) => void;
   onEditSave: () => void;
   onEditCancel: () => void;
   onRemoveStop: (index: number) => void;
   readOnly?: boolean;
-  selectedStops?: string[];
-  onSelectStop?: (stopId: string, index: number, event?: React.MouseEvent) => void;
-  onDuplicateStop?: (index: number) => void;
+  selectedStops: string[];
+  onSelectStop: (stopId: string, index: number, event?: React.MouseEvent) => void;
+  onDuplicateStop: (index: number) => void;
   draggable?: boolean;
-  onOpenCustomerDialog?: () => void;
-  onOpenItemsDialog?: () => void;
+  onOpenCustomerDialog: () => void;
+  onOpenItemsDialog: () => void;
 }
 
-export function StopsDesktopTable({
+const StopsDesktopTable: React.FC<StopsDesktopTableProps> = ({
   stops,
   customers,
   drivers,
@@ -46,221 +72,283 @@ export function StopsDesktopTable({
   onEditCancel,
   onRemoveStop,
   readOnly = false,
-  selectedStops = [],
+  selectedStops,
   onSelectStop,
   onDuplicateStop,
-  draggable = false,
+  draggable = true,
   onOpenCustomerDialog,
   onOpenItemsDialog
-}: StopsDesktopTableProps) {
+}) => {
+  const getCustomerName = (customerId: string | null) => {
+    if (!customerId) return "Unassigned";
+    const customer = customers.find(c => c.id === customerId);
+    return customer ? customer.name : "Unknown";
+  };
+
+  const getDriverName = (driverId: string | null) => {
+    if (!driverId) return "Unassigned";
+    const driver = drivers.find(d => d.id === driverId);
+    return driver ? driver.name : "Unknown";
+  };
+
+  const handlePhoneCall = (phone: string | undefined) => {
+    if (!phone) return;
+    window.location.href = `tel:${phone}`;
+  };
+
+  const handleOpenMap = (address: string | undefined) => {
+    if (!address) return;
+    const encodedAddress = encodeURIComponent(address);
+    window.open(`https://maps.google.com/maps?q=${encodedAddress}`, '_blank');
+  };
+
+  const truncateText = (text: string | null, maxLength: number) => {
+    if (!text) return "";
+    return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
+  };
+
   return (
-    <div className="mb-6 border rounded-lg overflow-hidden">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            {draggable && !readOnly && <TableHead className="w-10"></TableHead>}
-            <TableHead className="w-16">Stop #</TableHead>
-            <TableHead>Customer</TableHead>
-            <TableHead>Address</TableHead>
-            <TableHead>Phone</TableHead>
-            <TableHead>Driver</TableHead>
-            <TableHead>Items</TableHead>
-            <TableHead>Price</TableHead>
-            <TableHead>Notes</TableHead>
-            {!readOnly && <TableHead className="text-right">Actions</TableHead>}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {stops.length === 0 ? (
+    <div className="rounded-md border overflow-hidden">
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={readOnly ? 8 : 9} className="text-center py-6 text-gray-500">
-                No stops added yet.
-              </TableCell>
+              {draggable && <TableHead style={{ width: "40px" }}>&nbsp;</TableHead>}
+              <TableHead style={{ width: "60px" }}>#</TableHead>
+              <TableHead>Customer</TableHead>
+              <TableHead>Address</TableHead>
+              <TableHead>Driver</TableHead>
+              <TableHead>Items</TableHead>
+              <TableHead>Notes</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead style={{ width: "120px" }}>Actions</TableHead>
             </TableRow>
-          ) : (
-            stops.map((stop, index) => {
-              const customer = customers.find(c => c.id === stop.customer_id);
-              const driver = drivers.find(d => d.id === stop.driver_id);
-              
-              if (editingIndex === index) {
+          </TableHeader>
+          <TableBody>
+            {stops.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={draggable ? 9 : 8} className="text-center h-24 text-muted-foreground">
+                  No stops added yet
+                </TableCell>
+              </TableRow>
+            ) : (
+              stops.map((stop, index) => {
+                const isEditing = editingIndex === index;
+                const isSelected = stop.id ? selectedStops.includes(stop.id.toString()) : false;
+                
                 return (
-                  <TableRow key={`edit-${index}`} className="bg-gray-50/50">
-                    {draggable && !readOnly && <TableCell></TableCell>}
-                    <TableCell>
-                      <div className="relative">
-                        <span className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-500">
-                          <Hash className="h-4 w-4" />
-                        </span>
-                        <Input 
-                          type="number"
-                          min="1"
-                          className="pl-10"
-                          value={editForm.stop_number || ''}
-                          onChange={(e) => onEditFormChange({ 
-                            ...editForm, 
-                            stop_number: e.target.value ? parseInt(e.target.value, 10) : undefined 
-                          })}
-                          disabled={readOnly}
-                        />
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex">
-                        <Button 
-                          variant="outline" 
-                          className="w-full justify-between text-left font-normal"
-                          onClick={onOpenCustomerDialog}
-                        >
-                          <span className="truncate">
-                            {customers.find(c => c.id === editForm.customer_id)?.name || 'Select customer'}
-                          </span>
-                          <Search className="h-4 w-4 opacity-50 flex-shrink-0" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                    <TableCell>{customer?.address || '-'}</TableCell>
-                    <TableCell>{customer?.phone || '-'}</TableCell>
-                    <TableCell>
-                      <Select 
-                        value={editForm.driver_id || ""} 
-                        onValueChange={(value) => onEditFormChange({ ...editForm, driver_id: value })}
-                        disabled={readOnly}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a driver" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {drivers.map((driver) => (
-                            <SelectItem key={driver.id} value={driver.id}>
-                              {driver.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      <Button 
-                        variant="outline" 
-                        className="w-full justify-between text-left font-normal"
-                        onClick={onOpenItemsDialog}
-                      >
-                        <span className="truncate">
-                          {editForm.items || 'Select items'}
-                        </span>
-                        <Package className="h-4 w-4 opacity-50 flex-shrink-0" />
-                      </Button>
-                    </TableCell>
-                    <TableCell>${calculatePrice(editForm.items).toFixed(2)}</TableCell>
-                    <TableCell>
-                      <Input 
-                        value={editForm.notes || ""}
-                        onChange={(e) => onEditFormChange({ ...editForm, notes: e.target.value })}
-                        disabled={readOnly}
-                        placeholder="Add notes..."
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex justify-end space-x-1">
-                        <Button 
-                          variant="success" 
-                          size="sm" 
-                          onClick={onEditSave}
-                          className="h-8 w-8 p-0 bg-green-100 hover:bg-green-200 text-green-700"
-                        >
-                          <Check className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={onEditCancel}
-                          className="h-8 w-8 p-0"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              }
-              
-              const tableRow = (
-                <>
-                  {draggable && !readOnly && (
-                    <TableCell className="w-10">
-                      <div className="flex items-center justify-center cursor-grab">
-                        <GripVertical className="h-4 w-4 text-gray-400" />
-                      </div>
-                    </TableCell>
-                  )}
-                  <TableCell className="font-medium">{stop.stop_number || index + 1}</TableCell>
-                  <TableCell>{customer?.name || "Unknown"}</TableCell>
-                  <TableCell className="max-w-[150px] truncate">{customer?.address || "-"}</TableCell>
-                  <TableCell>{customer?.phone || "-"}</TableCell>
-                  <TableCell>{driver?.name || "Not assigned"}</TableCell>
-                  <TableCell className="max-w-[150px] truncate">{stop.items || "-"}</TableCell>
-                  <TableCell>${stop.price || calculatePrice(stop.items || "").toFixed(2)}</TableCell>
-                  <TableCell className="max-w-[150px] truncate">{stop.notes || "-"}</TableCell>
-                  {!readOnly && (
-                    <TableCell className="text-right">
-                      <div className="flex justify-end space-x-1">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => onEditStart(index)}
-                          className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        {onDuplicateStop && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => onDuplicateStop(index)}
-                            className="h-8 w-8 p-0 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => onRemoveStop(index)}
-                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  )}
-                </>
-              );
-              
-              if (draggable && !readOnly) {
-                return (
-                  <Draggable 
-                    key={`${stop.id || index}-${index}`} 
-                    draggableId={`${stop.id || index}-${index}`} 
+                  <Draggable
+                    key={stop.id || `new-stop-${index}`}
+                    draggableId={stop.id?.toString() || `new-stop-${index}`}
                     index={index}
+                    isDragDisabled={readOnly || isEditing || !draggable}
                   >
                     {(provided) => (
                       <TableRow
                         ref={provided.innerRef}
                         {...provided.draggableProps}
-                        {...provided.dragHandleProps}
-                        className="transition-colors hover:bg-gray-50"
+                        className={isSelected ? "bg-muted/50" : undefined}
                       >
-                        {tableRow}
+                        {draggable && (
+                          <TableCell className="py-2">
+                            <div {...provided.dragHandleProps} className="cursor-grab">
+                              <ChevronsUpDown className="h-4 w-4 text-muted-foreground mx-auto" />
+                            </div>
+                          </TableCell>
+                        )}
+                        
+                        <TableCell className="py-2 font-medium">
+                          {stop.stop_number || index + 1}
+                        </TableCell>
+                        
+                        <TableCell className="py-2">
+                          {isEditing ? (
+                            <Button
+                              variant="outline"
+                              className="w-full justify-start text-left font-normal"
+                              onClick={onOpenCustomerDialog}
+                            >
+                              {getCustomerName(editForm.customer_id) || "Select Customer"}
+                            </Button>
+                          ) : (
+                            <div className="flex flex-col">
+                              <span>{getCustomerName(stop.customer_id)}</span>
+                              {stop.customer_phone && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 p-0 w-auto justify-start text-muted-foreground"
+                                  onClick={() => handlePhoneCall(stop.customer_phone)}
+                                >
+                                  <Phone className="h-3 w-3 mr-1" />
+                                  <span className="text-xs">{stop.customer_phone}</span>
+                                </Button>
+                              )}
+                            </div>
+                          )}
+                        </TableCell>
+                        
+                        <TableCell className="py-2">
+                          {stop.customer_address ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-auto p-1 w-auto text-left font-normal flex items-start"
+                              onClick={() => handleOpenMap(stop.customer_address)}
+                            >
+                              <MapPin className="h-3 w-3 mr-1 mt-0.5 flex-shrink-0" />
+                              <span className="text-xs line-clamp-2">{stop.customer_address}</span>
+                            </Button>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">No address</span>
+                          )}
+                        </TableCell>
+                        
+                        <TableCell className="py-2">
+                          {isEditing ? (
+                            <Select
+                              value={editForm.driver_id || ""}
+                              onValueChange={(value) => 
+                                onEditFormChange({ ...editForm, driver_id: value || null })
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select driver" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="">Unassigned</SelectItem>
+                                {drivers.map((driver) => (
+                                  <SelectItem key={driver.id} value={driver.id}>
+                                    {driver.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <span>{getDriverName(stop.driver_id)}</span>
+                          )}
+                        </TableCell>
+                        
+                        <TableCell className="py-2">
+                          {isEditing ? (
+                            <Button
+                              variant="outline"
+                              className="w-full justify-start text-left font-normal"
+                              onClick={onOpenItemsDialog}
+                            >
+                              {editForm.items ? truncateText(editForm.items, 20) : "Select Items"}
+                            </Button>
+                          ) : (
+                            <span className="line-clamp-2 text-sm">
+                              {truncateText(stop.items || "", 30)}
+                            </span>
+                          )}
+                        </TableCell>
+                        
+                        <TableCell className="py-2">
+                          {isEditing ? (
+                            <Textarea
+                              value={editForm.notes || ""}
+                              onChange={(e) => 
+                                onEditFormChange({ ...editForm, notes: e.target.value })
+                              }
+                              className="w-full min-h-[60px]"
+                              placeholder="Add notes..."
+                            />
+                          ) : (
+                            <span className="line-clamp-2 text-sm">
+                              {truncateText(stop.notes || "", 30)}
+                            </span>
+                          )}
+                        </TableCell>
+
+                        <TableCell className="py-2">
+                          {isEditing ? (
+                            <Select
+                              value={stop.status || "pending"}
+                              onValueChange={(value) => 
+                                stop.status = value
+                              }
+                            >
+                              <SelectTrigger className="w-[130px]">
+                                <SelectValue placeholder="Select status" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {DELIVERY_STATUS_OPTIONS.map((status) => (
+                                  <SelectItem key={status} value={status}>
+                                    {status}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <Badge variant={getStatusBadgeVariant(stop.status || "pending")}>
+                              {stop.status || "pending"}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        
+                        <TableCell className="py-2">
+                          <div className="flex items-center gap-1 justify-end">
+                            {isEditing ? (
+                              <>
+                                <Button variant="outline" size="sm" onClick={onEditSave}>
+                                  <Save className="h-4 w-4" />
+                                </Button>
+                                <Button variant="outline" size="sm" onClick={onEditCancel}>
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </>
+                            ) : !readOnly ? (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="outline" size="sm">
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => onEditStart(index)}>
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => onDuplicateStop(index)}>
+                                    <Copy className="mr-2 h-4 w-4" />
+                                    Duplicate
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => onRemoveStop(index)}>
+                                    <Trash className="mr-2 h-4 w-4" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            ) : (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="outline" size="sm">
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => onDuplicateStop(index)}>
+                                    <Copy className="mr-2 h-4 w-4" />
+                                    Duplicate
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+                          </div>
+                        </TableCell>
                       </TableRow>
                     )}
                   </Draggable>
                 );
-              }
-              
-              return <TableRow key={index} className="transition-colors hover:bg-gray-50">{tableRow}</TableRow>;
-            })
-          )}
-        </TableBody>
-      </Table>
+              })
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
-}
+};
+
+export { StopsDesktopTable };

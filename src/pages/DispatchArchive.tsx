@@ -1,14 +1,29 @@
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon, Loader2, Plus } from "lucide-react";
+import { 
+  CalendarIcon, 
+  Loader2, 
+  Plus, 
+  ChevronDown, 
+  ChevronUp,
+  Package,
+  Users
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { DispatchList } from "./dispatch/components";
 import { generateDispatchPDF } from "./dispatch/utils/pdfGenerator";
-import { DeliveryStop } from "./dispatch/components/stops/types";
+import { DeliveryStop, DELIVERY_STATUS_OPTIONS } from "./dispatch/components/stops/types";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 interface DispatchSchedule {
   id: string;
@@ -20,11 +35,17 @@ interface DispatchSchedule {
   updated_at: string;
 }
 
+interface ScheduleGroup {
+  title: string;
+  schedules: DispatchSchedule[];
+}
+
 export default function DispatchArchive() {
   const [schedules, setSchedules] = useState<DispatchSchedule[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [grouping, setGrouping] = useState<"date" | "driver">("date");
 
   useEffect(() => {
     async function fetchSchedules() {
@@ -61,7 +82,8 @@ export default function DispatchArchive() {
 
   const handleDuplicateSchedule = async (schedule: DispatchSchedule) => {
     try {
-      const { id, created_at, schedule_number, ...scheduleData } = schedule;
+      // Start by creating a duplicate of the schedule
+      const { id, created_at, updated_at, schedule_number, ...scheduleData } = schedule;
       const today = new Date().toISOString();
       
       const newScheduleNumber = `${schedule_number}-COPY`;
@@ -76,29 +98,29 @@ export default function DispatchArchive() {
           updated_at: today
         }])
         .select()
-        .maybeSingle();
+        .single();
 
       if (error) throw error;
       if (!newSchedule) throw new Error("Failed to create new schedule");
 
-      toast({
-        title: "Schedule duplicated",
-        description: "The schedule has been duplicated successfully."
-      });
-
-      const { data: stops, error: stopsError } = await supabase
+      // Fetch all stops for this master schedule
+      const { data: stopsData, error: stopsError } = await supabase
         .from("delivery_stops")
         .select("*")
         .eq("master_schedule_id", id);
 
       if (stopsError) throw stopsError;
 
-      if (stops && stops.length > 0) {
-        const newStops = stops.map((stop: DeliveryStop) => {
-          const { id: stopId, master_schedule_id, ...stopData } = stop;
+      if (stopsData && stopsData.length > 0) {
+        // Create new stops with the new master_schedule_id
+        const newStops = stopsData.map((stop: DeliveryStop) => {
+          const { id: stopId, created_at, updated_at, ...stopData } = stop;
           return {
             ...stopData,
-            master_schedule_id: newSchedule.id
+            master_schedule_id: newSchedule.id,
+            created_at: today,
+            updated_at: today,
+            status: 'pending' // Reset status for the new stops
           };
         });
 
@@ -109,6 +131,12 @@ export default function DispatchArchive() {
         if (newStopsError) throw newStopsError;
       }
 
+      toast({
+        title: "Schedule duplicated",
+        description: "The schedule has been duplicated successfully with all stops."
+      });
+
+      // Refresh the schedules list
       const { data: refreshedData, error: refreshError } = await supabase
         .from("dispatch_schedules")
         .select("*")
@@ -133,9 +161,9 @@ export default function DispatchArchive() {
       const { data: stops, error: stopsError } = await supabase
         .from("delivery_stops")
         .select(`
-          id, customer_id, driver_id, items, notes, stop_number, price,
+          id, customer_id, driver_id, items, notes, stop_number, price, status,
           customers:customer_id (name, address, phone),
-          drivers:driver_id (name, phone)
+          drivers:driver_id (name)
         `)
         .eq("master_schedule_id", schedule.id);
 
@@ -146,7 +174,8 @@ export default function DispatchArchive() {
         customer_name: stop.customers?.name || "N/A",
         customer_address: stop.customers?.address || "N/A",
         driver_name: stop.drivers?.name || "Unassigned",
-        items: stop.items
+        items: stop.items,
+        status: stop.status || "pending"
       })) || [];
 
       const pdf = generateDispatchPDF({
@@ -204,6 +233,7 @@ export default function DispatchArchive() {
 
   const handleDeleteSchedule = async (scheduleId: string) => {
     try {
+      // First delete all related stops
       const { error: stopsDeleteError } = await supabase
         .from("delivery_stops")
         .delete()
@@ -211,6 +241,7 @@ export default function DispatchArchive() {
 
       if (stopsDeleteError) throw stopsDeleteError;
 
+      // Then delete the schedule
       const { error } = await supabase
         .from("dispatch_schedules")
         .delete()
@@ -234,10 +265,50 @@ export default function DispatchArchive() {
     }
   };
 
+  // Group schedules based on selected grouping
+  const groupedSchedules = useMemo(() => {
+    if (grouping === "date") {
+      // Group by date (YYYY-MM-DD format)
+      const groups: Record<string, DispatchSchedule[]> = {};
+      
+      schedules.forEach(schedule => {
+        const dateKey = schedule.schedule_date.split('T')[0]; // Get just the date part
+        if (!groups[dateKey]) {
+          groups[dateKey] = [];
+        }
+        groups[dateKey].push(schedule);
+      });
+      
+      // Convert to array and sort by date (newest first)
+      return Object.entries(groups)
+        .map(([date, schedules]) => ({
+          title: format(new Date(date), "MMMM d, yyyy"),
+          key: date,
+          schedules
+        }))
+        .sort((a, b) => new Date(b.key).getTime() - new Date(a.key).getTime());
+      
+    } else if (grouping === "driver") {
+      // For driver grouping, we need to fetch the stops with driver info
+      // This is a placeholder for now - will need to fetch driver data first
+      return [{
+        title: "All Schedules",
+        key: "all",
+        schedules
+      }];
+    }
+    
+    return [{
+      title: "All Schedules",
+      key: "all",
+      schedules
+    }];
+  }, [schedules, grouping]);
+
   return (
     <div className="container max-w-7xl mx-auto space-y-6 pb-10">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Dispatch Schedule Archive</h1>
+        <h1 className="text-3xl font-bold">Dispatch Archives</h1>
         <Link to="/dispatch-form">
           <Button className="bg-[#2A4131] hover:bg-[#2A4131]/90">
             <Plus className="mr-2 h-4 w-4" />
@@ -245,9 +316,30 @@ export default function DispatchArchive() {
           </Button>
         </Link>
       </div>
+      
       <Card>
-        <CardHeader>
-          <CardTitle>All Schedules</CardTitle>
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-center">
+            <CardTitle>All Schedules</CardTitle>
+            <div className="flex space-x-2">
+              <Button 
+                variant={grouping === "date" ? "default" : "outline"} 
+                size="sm"
+                onClick={() => setGrouping("date")}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                Group by Date
+              </Button>
+              <Button 
+                variant={grouping === "driver" ? "default" : "outline"} 
+                size="sm"
+                onClick={() => setGrouping("driver")}
+              >
+                <Users className="mr-2 h-4 w-4" />
+                Group by Driver
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -255,15 +347,48 @@ export default function DispatchArchive() {
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : (
-            <DispatchList
-              schedules={schedules}
-              onEdit={handleEditSchedule}
-              onDuplicate={handleDuplicateSchedule}
-              onDownload={handleDownloadSchedule}
-              onCopyLink={handleCopyLink}
-              onShare={handleShare}
-              onDelete={handleDeleteSchedule}
-            />
+            <div className="space-y-4">
+              {groupedSchedules.length > 0 ? (
+                <Accordion 
+                  type="multiple" 
+                  className="space-y-4"
+                  defaultValue={groupedSchedules.map(group => group.key)}
+                >
+                  {groupedSchedules.map((group) => (
+                    <AccordionItem 
+                      key={group.key} 
+                      value={group.key}
+                      className="border rounded-md overflow-hidden"
+                    >
+                      <AccordionTrigger className="px-4 py-2 bg-slate-50 hover:bg-slate-100">
+                        <div className="flex items-center">
+                          <Package className="h-4 w-4 mr-2" />
+                          <span>{group.title}</span>
+                          <span className="ml-2 text-sm text-muted-foreground">
+                            ({group.schedules.length} {group.schedules.length === 1 ? 'schedule' : 'schedules'})
+                          </span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pt-4 px-4">
+                        <DispatchList
+                          schedules={group.schedules}
+                          onEdit={handleEditSchedule}
+                          onDuplicate={handleDuplicateSchedule}
+                          onDownload={handleDownloadSchedule}
+                          onCopyLink={handleCopyLink}
+                          onShare={handleShare}
+                          onDelete={handleDeleteSchedule}
+                        />
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  No dispatch schedules found. Create your first schedule to get started.
+                </div>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>

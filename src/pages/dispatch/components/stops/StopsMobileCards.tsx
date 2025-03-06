@@ -1,7 +1,21 @@
 
 import React from "react";
 import { Draggable } from "@hello-pangea/dnd";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { 
+  Edit, 
+  Save, 
+  X, 
+  Trash, 
+  ChevronsUpDown, 
+  Pencil, 
+  Copy,
+  Phone,
+  MapPin
+} from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   Select, 
   SelectContent, 
@@ -9,12 +23,14 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Trash, Edit, Check, X, GripVertical, Copy, Search, Package } from "lucide-react";
-import { Customer } from "@/pages/customers/types";
-import { Driver, DeliveryStop, StopFormData } from "./types";
-import { calculatePrice } from "./utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
+import { Customer, DeliveryStop, Driver, StopFormData, DELIVERY_STATUS_OPTIONS, getStatusBadgeVariant } from "./types";
 
 interface StopsMobileCardsProps {
   stops: DeliveryStop[];
@@ -22,20 +38,20 @@ interface StopsMobileCardsProps {
   drivers: Driver[];
   editingIndex: number;
   editForm: StopFormData;
-  onEditFormChange: React.Dispatch<React.SetStateAction<StopFormData>>;
+  onEditFormChange: (form: StopFormData) => void;
   onEditStart: (index: number) => void;
   onEditSave: () => void;
   onEditCancel: () => void;
   onRemoveStop: (index: number) => void;
   readOnly?: boolean;
-  selectedStops?: string[];
-  onSelectStop?: (stopId: string, index: number, event?: React.MouseEvent) => void;
-  onDuplicateStop?: (index: number) => void;
-  onOpenCustomerDialog?: () => void;
-  onOpenItemsDialog?: () => void;
+  selectedStops: string[];
+  onSelectStop: (stopId: string, index: number, event?: React.MouseEvent) => void;
+  onDuplicateStop: (index: number) => void;
+  onOpenCustomerDialog: () => void;
+  onOpenItemsDialog: () => void;
 }
 
-export function StopsMobileCards({
+const StopsMobileCards: React.FC<StopsMobileCardsProps> = ({
   stops,
   customers,
   drivers,
@@ -47,240 +63,264 @@ export function StopsMobileCards({
   onEditCancel,
   onRemoveStop,
   readOnly = false,
-  selectedStops = [],
+  selectedStops,
   onSelectStop,
   onDuplicateStop,
   onOpenCustomerDialog,
   onOpenItemsDialog
-}: StopsMobileCardsProps) {
+}) => {
+  const getCustomerName = (customerId: string | null) => {
+    if (!customerId) return "Unassigned";
+    const customer = customers.find(c => c.id === customerId);
+    return customer ? customer.name : "Unknown";
+  };
+
+  const getDriverName = (driverId: string | null) => {
+    if (!driverId) return "Unassigned";
+    const driver = drivers.find(d => d.id === driverId);
+    return driver ? driver.name : "Unknown";
+  };
+
+  const handlePhoneCall = (phone: string | undefined) => {
+    if (!phone) return;
+    window.location.href = `tel:${phone}`;
+  };
+
+  const handleOpenMap = (address: string | undefined) => {
+    if (!address) return;
+    const encodedAddress = encodeURIComponent(address);
+    window.open(`https://maps.google.com/maps?q=${encodedAddress}`, '_blank');
+  };
+
+  if (stops.length === 0) {
+    return (
+      <div className="text-center text-muted-foreground py-8">
+        No stops added yet
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
-      {stops.length === 0 ? (
-        <p className="text-center py-6 text-gray-500">No stops added yet.</p>
-      ) : (
-        stops.map((stop, index) => {
-          const customer = customers.find(c => c.id === stop.customer_id);
-          const driver = drivers.find(d => d.id === stop.driver_id);
-          
-          const isEditing = editingIndex === index;
-          
-          return (
-            <Card
-              key={`${stop.id || index}-card`}
-              className={`border ${
-                selectedStops.includes(stop.id?.toString() || index.toString())
-                  ? "border-primary"
-                  : ""
-              } shadow-sm hover:shadow transition-shadow`}
-              onClick={(e) => 
-                onSelectStop && 
-                onSelectStop(stop.id?.toString() || index.toString(), index, e)
-              }
-            >
-              <CardContent className="p-4">
-                {isEditing ? (
-                  // Edit mode
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <div className="font-medium">Edit Stop #{editForm.stop_number || index + 1}</div>
-                      <div className="flex space-x-1">
-                        <Button 
-                          variant="success" 
-                          size="sm" 
-                          onClick={onEditSave}
-                          className="h-8 w-8 p-0 bg-green-100 hover:bg-green-200 text-green-700"
-                        >
-                          <Check className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={onEditCancel}
-                          className="h-8 w-8 p-0"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
+      {stops.map((stop, index) => {
+        const isEditing = editingIndex === index;
+        const isSelected = stop.id ? selectedStops.includes(stop.id.toString()) : false;
+        
+        return (
+          <Draggable
+            key={stop.id || `new-stop-${index}`}
+            draggableId={stop.id?.toString() || `new-stop-${index}`}
+            index={index}
+            isDragDisabled={readOnly || isEditing}
+          >
+            {(provided) => (
+              <div
+                ref={provided.innerRef}
+                {...provided.draggableProps}
+              >
+                <Card className={isSelected ? "border-primary" : ""}>
+                  <CardHeader className="pb-2 pt-3 px-3 flex flex-row items-center justify-between space-y-0">
+                    <div className="flex items-center">
+                      <span className="text-sm font-medium mr-2 bg-slate-100 px-2 py-1 rounded-md">
+                        Stop #{stop.stop_number || index + 1}
+                      </span>
+                      <div {...provided.dragHandleProps} className="cursor-grab">
+                        <ChevronsUpDown className="h-4 w-4 text-muted-foreground" />
                       </div>
                     </div>
-                    
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-sm font-medium mb-1 block">Stop #</label>
-                        <Input 
-                          type="number"
-                          min="1"
-                          value={editForm.stop_number || ''}
-                          onChange={(e) => onEditFormChange({ 
-                            ...editForm, 
-                            stop_number: e.target.value ? parseInt(e.target.value, 10) : undefined 
-                          })}
-                          disabled={readOnly}
-                        />
+                    <Badge variant={getStatusBadgeVariant(stop.status || "pending")} className="ml-auto">
+                      {stop.status || "pending"}
+                    </Badge>
+                  </CardHeader>
+                  
+                  <CardContent className="px-3 py-2 space-y-3">
+                    {isEditing ? (
+                      <div className="space-y-3">
+                        <div>
+                          <label className="text-sm font-medium mb-1 block">Customer</label>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-start text-left font-normal"
+                            onClick={onOpenCustomerDialog}
+                          >
+                            {getCustomerName(editForm.customer_id) || "Select Customer"}
+                          </Button>
+                        </div>
+                        
+                        <div>
+                          <label className="text-sm font-medium mb-1 block">Driver</label>
+                          <Select
+                            value={editForm.driver_id || ""}
+                            onValueChange={(value) => 
+                              onEditFormChange({ ...editForm, driver_id: value || null })
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select driver" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="">Unassigned</SelectItem>
+                              {drivers.map((driver) => (
+                                <SelectItem key={driver.id} value={driver.id}>
+                                  {driver.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div>
+                          <label className="text-sm font-medium mb-1 block">Items</label>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-start text-left font-normal"
+                            onClick={onOpenItemsDialog}
+                          >
+                            {editForm.items ? `${editForm.items.split(',').length} items selected` : "Select Items"}
+                          </Button>
+                        </div>
+                        
+                        <div>
+                          <label className="text-sm font-medium mb-1 block">Notes</label>
+                          <Textarea
+                            value={editForm.notes || ""}
+                            onChange={(e) => 
+                              onEditFormChange({ ...editForm, notes: e.target.value })
+                            }
+                            className="w-full min-h-[60px]"
+                            placeholder="Add notes..."
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="text-sm font-medium mb-1 block">Status</label>
+                          <Select
+                            value={stop.status || "pending"}
+                            onValueChange={(value) => 
+                              stop.status = value
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {DELIVERY_STATUS_OPTIONS.map((status) => (
+                                <SelectItem key={status} value={status}>
+                                  {status}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
-                      
-                      <div>
-                        <label className="text-sm font-medium mb-1 block">Customer</label>
-                        <Button 
-                          variant="outline" 
-                          className="w-full justify-between text-left font-normal"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onOpenCustomerDialog && onOpenCustomerDialog();
-                          }}
-                        >
-                          <span className="truncate">
-                            {customers.find(c => c.id === editForm.customer_id)?.name || 'Select customer'}
-                          </span>
-                          <Search className="h-4 w-4 opacity-50 flex-shrink-0" />
-                        </Button>
-                      </div>
-                      
-                      <div>
-                        <label className="text-sm font-medium mb-1 block">Driver</label>
-                        <Select 
-                          value={editForm.driver_id || ""} 
-                          onValueChange={(value) => onEditFormChange({ ...editForm, driver_id: value })}
-                          disabled={readOnly}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a driver" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {drivers.map((driver) => (
-                              <SelectItem key={driver.id} value={driver.id}>
-                                {driver.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      <div>
-                        <label className="text-sm font-medium mb-1 block">Items</label>
-                        <Button 
-                          variant="outline" 
-                          className="w-full justify-between text-left font-normal"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onOpenItemsDialog && onOpenItemsDialog();
-                          }}
-                        >
-                          <span className="truncate">
-                            {editForm.items || 'Select items'}
-                          </span>
-                          <Package className="h-4 w-4 opacity-50 flex-shrink-0" />
-                        </Button>
-                        {editForm.items && (
-                          <p className="text-sm text-gray-500 mt-1">
-                            Price: ${calculatePrice(editForm.items).toFixed(2)}
-                          </p>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="space-y-1">
+                            <div className="text-sm font-medium">Customer:</div>
+                            <div>{getCustomerName(stop.customer_id)}</div>
+                            
+                            {stop.customer_phone && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 p-0 text-muted-foreground flex items-center"
+                                onClick={() => handlePhoneCall(stop.customer_phone)}
+                              >
+                                <Phone className="h-3 w-3 mr-1" />
+                                <span className="text-xs">{stop.customer_phone}</span>
+                              </Button>
+                            )}
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <div className="text-sm font-medium">Driver:</div>
+                            <div>{getDriverName(stop.driver_id)}</div>
+                          </div>
+                        </div>
+                        
+                        {stop.customer_address && (
+                          <div className="space-y-1">
+                            <div className="text-sm font-medium">Address:</div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-auto p-0 w-full text-left flex items-start"
+                              onClick={() => handleOpenMap(stop.customer_address)}
+                            >
+                              <MapPin className="h-3 w-3 mr-1 mt-0.5 flex-shrink-0" />
+                              <span className="text-xs">{stop.customer_address}</span>
+                            </Button>
+                          </div>
+                        )}
+                        
+                        {stop.items && (
+                          <div className="space-y-1">
+                            <div className="text-sm font-medium">Items:</div>
+                            <div className="text-sm break-words">{stop.items}</div>
+                          </div>
+                        )}
+                        
+                        {stop.notes && (
+                          <div className="space-y-1">
+                            <div className="text-sm font-medium">Notes:</div>
+                            <div className="text-sm break-words">{stop.notes}</div>
+                          </div>
                         )}
                       </div>
-                      
-                      <div>
-                        <label className="text-sm font-medium mb-1 block">Notes</label>
-                        <Input 
-                          value={editForm.notes || ""}
-                          onChange={(e) => onEditFormChange({ ...editForm, notes: e.target.value })}
-                          disabled={readOnly}
-                          placeholder="Add notes..."
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  // View mode
-                  <div>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="font-medium text-gray-500">Stop #{stop.stop_number || index + 1}</div>
-                        <div className="text-lg font-semibold">{customer?.name || "Unknown Customer"}</div>
-                      </div>
-                      
-                      {!readOnly && (
-                        <div className="flex space-x-1">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onEditStart(index);
-                            }}
-                            className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                          >
-                            <Edit className="h-4 w-4" />
+                    )}
+                  </CardContent>
+                  
+                  <CardFooter className="px-3 py-2 flex justify-end gap-2">
+                    {isEditing ? (
+                      <>
+                        <Button variant="outline" size="sm" onClick={onEditCancel}>
+                          <X className="h-4 w-4 mr-1" />
+                          Cancel
+                        </Button>
+                        <Button variant="default" size="sm" onClick={onEditSave}>
+                          <Save className="h-4 w-4 mr-1" />
+                          Save
+                        </Button>
+                      </>
+                    ) : !readOnly ? (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            <Pencil className="h-4 w-4 mr-1" />
+                            Actions
                           </Button>
-                          
-                          {onDuplicateStop && (
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onDuplicateStop(index);
-                              }}
-                              className="h-8 w-8 p-0 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                          )}
-                          
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onRemoveStop(index);
-                            }}
-                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <Trash className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="mt-3 space-y-2 text-sm">
-                      {customer?.address && (
-                        <div className="text-gray-700 flex">
-                          <span className="font-medium w-20">Address:</span> 
-                          <span className="flex-1">{customer.address}</span>
-                        </div>
-                      )}
-                      {customer?.phone && (
-                        <div className="text-gray-700 flex">
-                          <span className="font-medium w-20">Phone:</span> 
-                          <span className="flex-1">{customer.phone}</span>
-                        </div>
-                      )}
-                      <div className="text-gray-700 flex">
-                        <span className="font-medium w-20">Driver:</span> 
-                        <span className="flex-1">{driver?.name || "Not assigned"}</span>
-                      </div>
-                      {stop.items && (
-                        <div className="text-gray-700 flex">
-                          <span className="font-medium w-20">Items:</span> 
-                          <span className="flex-1">{stop.items}</span>
-                        </div>
-                      )}
-                      <div className="text-gray-700 flex">
-                        <span className="font-medium w-20">Price:</span> 
-                        <span className="flex-1">${stop.price || calculatePrice(stop.items || "")}</span>
-                      </div>
-                      {stop.notes && (
-                        <div className="text-gray-700 flex">
-                          <span className="font-medium w-20">Notes:</span> 
-                          <span className="flex-1">{stop.notes}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })
-      )}
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => onEditStart(index)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => onDuplicateStop(index)}>
+                            <Copy className="mr-2 h-4 w-4" />
+                            Duplicate
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => onRemoveStop(index)}>
+                            <Trash className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    ) : (
+                      <Button variant="outline" size="sm" disabled={true}>
+                        <Pencil className="h-4 w-4 mr-1" />
+                        View Only
+                      </Button>
+                    )}
+                  </CardFooter>
+                </Card>
+              </div>
+            )}
+          </Draggable>
+        );
+      })}
     </div>
   );
-}
+};
+
+export { StopsMobileCards };

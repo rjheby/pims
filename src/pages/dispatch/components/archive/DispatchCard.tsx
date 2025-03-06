@@ -16,7 +16,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Download, Copy, Share, MoreHorizontal, Phone, Mail, Link, Trash2, Calendar, Truck } from "lucide-react";
+import { 
+  Edit, 
+  Download, 
+  Copy, 
+  Share, 
+  MoreHorizontal, 
+  Phone, 
+  Mail, 
+  Link, 
+  Trash2, 
+  Calendar, 
+  Truck,
+  MapPin
+} from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -83,12 +96,23 @@ export function DispatchCard({
       case 'processing':
         return 'warning';
       case 'completed':
-        return 'success';
+        return 'default';
       case 'cancelled':
         return 'destructive';
       default:
         return 'outline';
     }
+  };
+
+  const openPhoneApp = (phone: string) => {
+    window.location.href = `tel:${phone}`;
+  };
+
+  const openMapApp = (address: string) => {
+    // Encode the address for URL
+    const encodedAddress = encodeURIComponent(address);
+    // Open in Google Maps by default
+    window.open(`https://maps.google.com/maps?q=${encodedAddress}`, '_blank');
   };
 
   return (
