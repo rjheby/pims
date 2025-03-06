@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Loader2, X } from "lucide-react";
+import { Search, Loader2 } from "lucide-react";
 import { Customer } from "./types";
 
 interface CustomerSelectorProps {
@@ -69,14 +69,7 @@ export const CustomerSelector = ({
   };
 
   return (
-    <div className="p-4 max-h-[80vh] flex flex-col">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">Select Customer</h2>
-        <Button variant="ghost" size="sm" onClick={onCancel}>
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
-      
+    <div className="max-h-[60vh] flex flex-col">
       <div className="relative mb-4">
         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
@@ -92,7 +85,7 @@ export const CustomerSelector = ({
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto mb-4">
+        <div className="flex-1 overflow-y-auto mb-4 max-h-[40vh]">
           {filteredCustomers.length === 0 ? (
             <div className="text-center py-6 text-muted-foreground">
               No customers found.
