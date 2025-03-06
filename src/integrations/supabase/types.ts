@@ -176,6 +176,85 @@ export type Database = {
           },
         ]
       }
+      delivery_stops: {
+        Row: {
+          created_at: string | null
+          customer_address: string | null
+          customer_id: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          driver_id: string | null
+          driver_name: string | null
+          id: string
+          items: string | null
+          master_schedule_id: string | null
+          notes: string | null
+          price: number | null
+          sequence: number | null
+          status: string | null
+          stop_number: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          customer_address?: string | null
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          driver_id?: string | null
+          driver_name?: string | null
+          id?: string
+          items?: string | null
+          master_schedule_id?: string | null
+          notes?: string | null
+          price?: number | null
+          sequence?: number | null
+          status?: string | null
+          stop_number?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          customer_address?: string | null
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          driver_id?: string | null
+          driver_name?: string | null
+          id?: string
+          items?: string | null
+          master_schedule_id?: string | null
+          notes?: string | null
+          price?: number | null
+          sequence?: number | null
+          status?: string | null
+          stop_number?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_stops_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_stops_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_stops_master_schedule_id_fkey"
+            columns: ["master_schedule_id"]
+            isOneToOne: false
+            referencedRelation: "dispatch_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dispatch_schedules: {
         Row: {
           created_at: string | null

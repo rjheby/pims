@@ -21,6 +21,8 @@ export interface DeliveryStop {
   sequence?: number;
   master_schedule_id?: string;
   status?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface StopFormData {

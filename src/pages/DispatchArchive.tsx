@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,8 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { DispatchList } from "./dispatch/components";
 import { generateDispatchPDF } from "./dispatch/utils/pdfGenerator";
+import { DeliveryStop } from "./dispatch/components/stops/types";
 
-// Updated interface to match dispatch_schedules table
 interface DispatchSchedule {
   id: string;
   schedule_number: string;
@@ -87,7 +86,6 @@ export default function DispatchArchive() {
         description: "The schedule has been duplicated successfully."
       });
 
-      // Fetch the stops from the original schedule
       const { data: stops, error: stopsError } = await supabase
         .from("delivery_stops")
         .select("*")
@@ -95,9 +93,8 @@ export default function DispatchArchive() {
 
       if (stopsError) throw stopsError;
 
-      // If there are stops, duplicate them for the new schedule
       if (stops && stops.length > 0) {
-        const newStops = stops.map(stop => {
+        const newStops = stops.map((stop: DeliveryStop) => {
           const { id: stopId, master_schedule_id, ...stopData } = stop;
           return {
             ...stopData,
@@ -112,7 +109,6 @@ export default function DispatchArchive() {
         if (newStopsError) throw newStopsError;
       }
 
-      // Refresh the schedule list
       const { data: refreshedData, error: refreshError } = await supabase
         .from("dispatch_schedules")
         .select("*")
@@ -134,7 +130,6 @@ export default function DispatchArchive() {
 
   const handleDownloadSchedule = async (schedule: DispatchSchedule) => {
     try {
-      // Fetch the stops for this schedule
       const { data: stops, error: stopsError } = await supabase
         .from("delivery_stops")
         .select(`
@@ -146,8 +141,7 @@ export default function DispatchArchive() {
 
       if (stopsError) throw stopsError;
 
-      // Format the stops for the PDF
-      const formattedStops = stops?.map(stop => ({
+      const formattedStops = stops?.map((stop) => ({
         stop_number: stop.stop_number,
         customer_name: stop.customers?.name || "N/A",
         customer_address: stop.customers?.address || "N/A",
@@ -155,7 +149,6 @@ export default function DispatchArchive() {
         items: stop.items
       })) || [];
 
-      // Generate and download the PDF
       const pdf = generateDispatchPDF({
         schedule_number: schedule.schedule_number,
         schedule_date: schedule.schedule_date,
@@ -211,7 +204,6 @@ export default function DispatchArchive() {
 
   const handleDeleteSchedule = async (scheduleId: string) => {
     try {
-      // First, delete all stops associated with this schedule
       const { error: stopsDeleteError } = await supabase
         .from("delivery_stops")
         .delete()
@@ -219,7 +211,6 @@ export default function DispatchArchive() {
 
       if (stopsDeleteError) throw stopsDeleteError;
 
-      // Then delete the schedule itself
       const { error } = await supabase
         .from("dispatch_schedules")
         .delete()
@@ -227,7 +218,6 @@ export default function DispatchArchive() {
 
       if (error) throw error;
 
-      // Update the local state
       setSchedules(schedules.filter(schedule => schedule.id !== scheduleId));
 
       toast({
