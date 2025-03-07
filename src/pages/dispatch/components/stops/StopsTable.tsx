@@ -42,9 +42,9 @@ const StopsTable = ({
   const [sortBy, setSortBy] = useState<string>("stop_number");
   const [filterByDriver, setFilterByDriver] = useState<string | null>(null);
   
+  const [isAddingNewStop, setIsAddingNewStop] = useState(false);
   const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
   const [itemsDialogOpen, setItemsDialogOpen] = useState(false);
-  const [addStopDialogOpen, setAddStopDialogOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -114,7 +114,7 @@ const StopsTable = ({
       stop_number: stopNumber
     });
     
-    setAddStopDialogOpen(true);
+    setIsAddingNewStop(true);
     setCustomerDialogOpen(true);
   };
 
@@ -131,6 +131,11 @@ const StopsTable = ({
   };
 
   const handleEditSave = () => {
+    if (editingIndex < 0 || editingIndex >= stops.length) {
+      console.error("Invalid editing index:", editingIndex);
+      return;
+    }
+    
     const price = calculatePrice(editForm.items);
     
     const selectedCustomer = customers.find(c => c.id === editForm.customer_id);
@@ -150,26 +155,24 @@ const StopsTable = ({
     newStops[editingIndex] = updatedStop;
     
     onStopsChange(newStops);
+    resetEditState();
+  };
+
+  const resetEditState = () => {
     setEditingIndex(-1);
-    
+    setIsAddingNewStop(false);
     setCustomerDialogOpen(false);
     setItemsDialogOpen(false);
-    setAddStopDialogOpen(false);
   };
 
   const handleEditCancel = () => {
-    setEditingIndex(-1);
-    setCustomerDialogOpen(false);
-    setItemsDialogOpen(false);
-    
-    if (addStopDialogOpen) {
+    if (isAddingNewStop) {
       const newStops = [...stops];
-      if (editingIndex === newStops.length - 1) {
-        newStops.pop();
-        onStopsChange(newStops);
-      }
-      setAddStopDialogOpen(false);
+      newStops.pop();
+      onStopsChange(newStops);
     }
+    
+    resetEditState();
   };
 
   const handleRemoveStop = (index: number) => {
@@ -271,12 +274,13 @@ const StopsTable = ({
       ...prev,
       customer_id: customer.id
     }));
+    
     setCustomerDialogOpen(false);
     
-    if (addStopDialogOpen) {
+    if (isAddingNewStop) {
       setTimeout(() => {
         setItemsDialogOpen(true);
-      }, 100);
+      }, 250);
     }
   };
   
@@ -285,13 +289,13 @@ const StopsTable = ({
       ...prev,
       items
     }));
+    
     setItemsDialogOpen(false);
     
-    if (addStopDialogOpen) {
+    if (isAddingNewStop) {
       setTimeout(() => {
         handleEditSave();
-        setAddStopDialogOpen(false);
-      }, 100);
+      }, 250);
     }
   };
 
@@ -351,10 +355,15 @@ const StopsTable = ({
         </div>
       </div>
       
-      <Dialog open={customerDialogOpen} onOpenChange={(open) => {
-        setCustomerDialogOpen(open);
-        if (!open) handleEditCancel();
-      }}>
+      <Dialog 
+        open={customerDialogOpen} 
+        onOpenChange={(open) => {
+          if (!open) {
+            handleEditCancel();
+          }
+          setCustomerDialogOpen(open);
+        }}
+      >
         <DialogContent className="sm:max-w-[550px] max-w-[90vw] max-h-[90vh] overflow-y-auto">
           <DialogTitle>Select Customer</DialogTitle>
           <DialogDescription>Choose a customer for this stop</DialogDescription>
@@ -366,10 +375,15 @@ const StopsTable = ({
         </DialogContent>
       </Dialog>
       
-      <Dialog open={itemsDialogOpen} onOpenChange={(open) => {
-        setItemsDialogOpen(open);
-        if (!open && addStopDialogOpen) handleEditCancel();
-      }}>
+      <Dialog 
+        open={itemsDialogOpen} 
+        onOpenChange={(open) => {
+          if (!open) {
+            handleEditCancel();
+          }
+          setItemsDialogOpen(open);
+        }}
+      >
         <DialogContent className="sm:max-w-[550px] max-w-[90vw] max-h-[90vh] overflow-y-auto">
           <DialogTitle>Select Items</DialogTitle>
           <DialogDescription>Add items for this delivery</DialogDescription>
