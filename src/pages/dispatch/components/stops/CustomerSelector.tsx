@@ -101,7 +101,7 @@ export const CustomerSelector = ({
                   `}
                   onClick={() => setSelectedId(customer.id)}
                 >
-                  <div className="font-medium">{customer.name}</div>
+                  <div className="font-medium">{customer.name || "Unnamed Customer"}</div>
                   {customer.address && (
                     <div className="text-sm text-muted-foreground">{customer.address}</div>
                   )}
