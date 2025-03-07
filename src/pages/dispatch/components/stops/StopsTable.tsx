@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { DragDropContext, Droppable } from "@hello-pangea/dnd";
 import { MapPinPlus, Search } from "lucide-react";
@@ -99,7 +98,8 @@ const StopsTable = ({
       driver_id: null,
       items: null,
       price: 0,
-      stop_number: stopNumber
+      stop_number: stopNumber,
+      sequence: stopNumber
     };
     
     const newStops = [...stops, newStop];
@@ -114,7 +114,6 @@ const StopsTable = ({
       stop_number: stopNumber
     });
     
-    // Open the customer dialog to start the stop creation flow
     setAddStopDialogOpen(true);
     setCustomerDialogOpen(true);
   };
@@ -153,7 +152,6 @@ const StopsTable = ({
     onStopsChange(newStops);
     setEditingIndex(-1);
     
-    // Close all dialogs
     setCustomerDialogOpen(false);
     setItemsDialogOpen(false);
     setAddStopDialogOpen(false);
@@ -163,13 +161,14 @@ const StopsTable = ({
     setEditingIndex(-1);
     setCustomerDialogOpen(false);
     setItemsDialogOpen(false);
-    setAddStopDialogOpen(false);
     
-    // If we were adding a new stop and canceled, remove it
-    if (editingIndex === stops.length - 1 && addStopDialogOpen) {
+    if (addStopDialogOpen) {
       const newStops = [...stops];
-      newStops.pop();
-      onStopsChange(newStops);
+      if (editingIndex === newStops.length - 1) {
+        newStops.pop();
+        onStopsChange(newStops);
+      }
+      setAddStopDialogOpen(false);
     }
   };
 
@@ -274,9 +273,10 @@ const StopsTable = ({
     }));
     setCustomerDialogOpen(false);
     
-    // After customer selection, open the items dialog
     if (addStopDialogOpen) {
-      setItemsDialogOpen(true);
+      setTimeout(() => {
+        setItemsDialogOpen(true);
+      }, 100);
     }
   };
   
@@ -287,9 +287,11 @@ const StopsTable = ({
     }));
     setItemsDialogOpen(false);
     
-    // If we're in the add stop flow, save the stop after selecting items
     if (addStopDialogOpen) {
-      handleEditSave();
+      setTimeout(() => {
+        handleEditSave();
+        setAddStopDialogOpen(false);
+      }, 100);
     }
   };
 
@@ -349,9 +351,11 @@ const StopsTable = ({
         </div>
       </div>
       
-      {/* Customer Selection Dialog */}
-      <Dialog open={customerDialogOpen} onOpenChange={setCustomerDialogOpen}>
-        <DialogContent className="sm:max-w-[550px]">
+      <Dialog open={customerDialogOpen} onOpenChange={(open) => {
+        setCustomerDialogOpen(open);
+        if (!open) handleEditCancel();
+      }}>
+        <DialogContent className="sm:max-w-[550px] max-w-[90vw] max-h-[90vh] overflow-y-auto">
           <DialogTitle>Select Customer</DialogTitle>
           <DialogDescription>Choose a customer for this stop</DialogDescription>
           <CustomerSelector 
@@ -362,9 +366,11 @@ const StopsTable = ({
         </DialogContent>
       </Dialog>
       
-      {/* Items Selection Dialog */}
-      <Dialog open={itemsDialogOpen} onOpenChange={setItemsDialogOpen}>
-        <DialogContent className="sm:max-w-[550px]">
+      <Dialog open={itemsDialogOpen} onOpenChange={(open) => {
+        setItemsDialogOpen(open);
+        if (!open && addStopDialogOpen) handleEditCancel();
+      }}>
+        <DialogContent className="sm:max-w-[550px] max-w-[90vw] max-h-[90vh] overflow-y-auto">
           <DialogTitle>Select Items</DialogTitle>
           <DialogDescription>Add items for this delivery</DialogDescription>
           <ItemSelector 

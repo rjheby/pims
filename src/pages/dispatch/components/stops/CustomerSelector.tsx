@@ -54,9 +54,9 @@ export const CustomerSelector = ({
   }, []);
 
   const filteredCustomers = customers.filter(customer => 
-    customer.name?.toLowerCase().includes(search.toLowerCase()) ||
-    customer.address?.toLowerCase().includes(search.toLowerCase()) ||
-    customer.phone?.toLowerCase().includes(search.toLowerCase())
+    (customer.name || "").toLowerCase().includes(search.toLowerCase()) ||
+    (customer.address || "").toLowerCase().includes(search.toLowerCase()) ||
+    (customer.phone || "").toLowerCase().includes(search.toLowerCase())
   );
 
   const handleConfirm = () => {
