@@ -150,16 +150,16 @@ const StopsMobileCards: React.FC<StopsMobileCardsProps> = ({
                         <div>
                           <label className="text-sm font-medium mb-1 block">Driver</label>
                           <Select
-                            value={editForm.driver_id || ""}
+                            value={editForm.driver_id || "unassigned"}
                             onValueChange={(value) => 
-                              onEditFormChange({ ...editForm, driver_id: value || null })
+                              onEditFormChange({ ...editForm, driver_id: value === "unassigned" ? null : value })
                             }
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Select driver" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">Unassigned</SelectItem>
+                              <SelectItem value="unassigned">Unassigned</SelectItem>
                               {drivers.map((driver) => (
                                 <SelectItem key={driver.id} value={driver.id}>
                                   {driver.name}
@@ -196,9 +196,10 @@ const StopsMobileCards: React.FC<StopsMobileCardsProps> = ({
                           <label className="text-sm font-medium mb-1 block">Status</label>
                           <Select
                             value={stop.status || "pending"}
-                            onValueChange={(value) => 
-                              stop.status = value
-                            }
+                            onValueChange={(value) => {
+                              const newStop = {...stop, status: value};
+                              stop.status = value;
+                            }}
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Select status" />

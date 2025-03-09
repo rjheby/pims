@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { DragDropContext, Droppable } from "@hello-pangea/dnd";
 import { MapPinPlus, Search } from "lucide-react";
@@ -91,6 +92,12 @@ const StopsTable = ({
   }, [fetchData]);
 
   const handleAddStop = () => {
+    // Validate before proceeding
+    if (isAddingNewStop) {
+      console.log("Already adding a stop, please complete or cancel first");
+      return;
+    }
+    
     const stopNumber = stops.length + 1;
     const newStop: DeliveryStop = {
       customer_id: null,
@@ -119,6 +126,11 @@ const StopsTable = ({
   };
 
   const handleEditStart = (index: number) => {
+    if (isAddingNewStop) {
+      console.log("Cannot edit while adding a new stop");
+      return;
+    }
+    
     setEditingIndex(index);
     const stopToEdit = stops[index];
     setEditForm({
@@ -360,8 +372,9 @@ const StopsTable = ({
         onOpenChange={(open) => {
           if (!open) {
             handleEditCancel();
+          } else {
+            setCustomerDialogOpen(open);
           }
-          setCustomerDialogOpen(open);
         }}
       >
         <DialogContent className="sm:max-w-[550px] max-w-[90vw] max-h-[90vh] overflow-y-auto">
@@ -380,8 +393,9 @@ const StopsTable = ({
         onOpenChange={(open) => {
           if (!open) {
             handleEditCancel();
+          } else {
+            setItemsDialogOpen(open);
           }
-          setItemsDialogOpen(open);
         }}
       >
         <DialogContent className="sm:max-w-[550px] max-w-[90vw] max-h-[90vh] overflow-y-auto">
