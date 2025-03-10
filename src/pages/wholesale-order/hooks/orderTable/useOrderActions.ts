@@ -8,9 +8,10 @@ export function useOrderActions() {
   const { 
     items = [], 
     setItems, 
-    options = initialOptions, // Ensure options has a default value of initialOptions
+    options = initialOptions,
     setOptions, 
-    setEditingField
+    setEditingField,
+    setNewOption
   } = useWholesaleOrder();
 
   const [lastOptionField, setLastOptionField] = useState<keyof DropdownOptions | null>(null);
@@ -63,8 +64,10 @@ export function useOrderActions() {
 
   // Start editing a dropdown field
   const handleStartEditingField = (field: keyof DropdownOptions) => {
+    console.log("Starting to edit field:", field);
     setEditingField(field);
     setLastOptionField(field);
+    setNewOption(""); // Reset the new option input value
   };
 
   // Update dropdown options
@@ -72,10 +75,17 @@ export function useOrderActions() {
     field: keyof DropdownOptions,
     option: string
   ) => {
-    if (!option || option.trim() === "") return;
+    console.log("Updating options for field:", field, "with new option:", option);
+    
+    if (!option || option.trim() === "") {
+      console.log("Empty option, ignoring");
+      setEditingField(null);
+      return;
+    }
 
     // Check if the option already exists
     if (options[field]?.includes(option)) {
+      console.log("Option already exists, ignoring");
       setEditingField(null);
       return;
     }
@@ -91,6 +101,9 @@ export function useOrderActions() {
     
     // Update the specific field
     updatedOptions[field] = [...(options[field] || []), option];
+    
+    // Log the update for debugging
+    console.log("Updating options:", updatedOptions);
     
     // Set the updated options
     setOptions(updatedOptions);
