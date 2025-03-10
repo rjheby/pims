@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Plus, Edit } from "lucide-react";
+import { CheckCircle, Plus, Edit, Pencil } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -43,6 +43,7 @@ export function OrderTableDropdownCell({
 }: OrderTableDropdownCellProps) {
   const isEditing = editingField === fieldName;
   const [showNewOptionInput, setShowNewOptionInput] = useState(false);
+  const [editableOption, setEditableOption] = useState("");
 
   const handleKeyDown = (event: any) => {
     if (event.key === "Enter") {
@@ -55,6 +56,18 @@ export function OrderTableDropdownCell({
     e.preventDefault();
     e.stopPropagation();
     setShowNewOptionInput(true);
+    setEditableOption("");
+    if (onStartEditing) {
+      onStartEditing(fieldName);
+    }
+  };
+
+  const handleEditOptionClick = (e: React.MouseEvent, option: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowNewOptionInput(true);
+    setEditableOption(option);
+    onNewOptionChange(option);
     if (onStartEditing) {
       onStartEditing(fieldName);
     }
@@ -81,7 +94,7 @@ export function OrderTableDropdownCell({
             onKeyDown={handleKeyDown}
             className="h-8 w-full text-sm"
             autoFocus
-            placeholder={`New ${fieldName}...`}
+            placeholder={editableOption ? `Edit ${fieldName}...` : `New ${fieldName}...`}
           />
           <Button
             variant="outline"
@@ -107,9 +120,21 @@ export function OrderTableDropdownCell({
           </SelectTrigger>
           <SelectContent className="max-h-[300px] min-w-[8rem] w-auto max-w-[var(--radix-select-trigger-width)] overflow-hidden">
             {options.map((option) => (
-              <SelectItem key={option} value={option} className="truncate text-sm">
-                {option}
-              </SelectItem>
+              <div key={option} className="flex items-center justify-between">
+                <SelectItem value={option} className="truncate text-sm flex-grow">
+                  {option}
+                </SelectItem>
+                {isAdmin && !readOnly && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-6 w-6 p-0 mr-2"
+                    onClick={(e) => handleEditOptionClick(e, option)}
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
             ))}
             {isAdmin && !readOnly && (
               <div 

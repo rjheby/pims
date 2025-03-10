@@ -83,13 +83,6 @@ export function useOrderActions() {
       return;
     }
 
-    // Check if the option already exists
-    if (options[field]?.includes(option)) {
-      console.log("Option already exists, ignoring");
-      setEditingField(null);
-      return;
-    }
-
     // Create a deep copy of the current options
     const updatedOptions = { ...options };
     
@@ -98,8 +91,16 @@ export function useOrderActions() {
       updatedOptions[field] = [];
     }
     
-    // Add the new option to the field's array
-    updatedOptions[field] = [...updatedOptions[field], option];
+    // Check if we're editing an existing option (by checking if it already exists)
+    const existingOptionIndex = updatedOptions[field].findIndex(
+      (existingOption) => existingOption === option
+    );
+    
+    if (existingOptionIndex === -1) {
+      // This is a new option, add it to the array
+      updatedOptions[field] = [...updatedOptions[field], option];
+      console.log("Added new option:", option);
+    }
     
     // Log the update for debugging
     console.log("Updated options:", updatedOptions);
