@@ -60,6 +60,16 @@ export function OrderTableDropdownCell({
     }
   };
 
+  const handleSaveOption = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (newOption.trim()) {
+      onUpdateOptions(newOption);
+      setShowNewOptionInput(false);
+    }
+  };
+
   return (
     <div className="flex flex-col w-full max-w-full">
       {isEditing ? (
@@ -71,14 +81,12 @@ export function OrderTableDropdownCell({
             onKeyDown={handleKeyDown}
             className="h-8 w-full text-sm"
             autoFocus
+            placeholder={`New ${fieldName}...`}
           />
           <Button
             variant="outline"
             size="sm"
-            onClick={() => {
-              onUpdateOptions(newOption);
-              setShowNewOptionInput(false);
-            }}
+            onClick={handleSaveOption}
             className="mt-1 sm:mt-0 whitespace-nowrap text-xs"
           >
             <CheckCircle className="h-3 w-3 mr-1" />
@@ -104,16 +112,15 @@ export function OrderTableDropdownCell({
               </SelectItem>
             ))}
             {isAdmin && !readOnly && (
-              <SelectItem
-                value="add_new"
+              <div 
+                className="text-green-600 font-medium border-t border-gray-200 mt-1 pt-1 cursor-pointer hover:bg-accent px-2 py-1.5 rounded-sm text-sm"
                 onClick={handleAddOptionClick}
-                className="text-green-600 font-medium border-t border-gray-200 mt-1 pt-1 text-sm"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between pl-6">
                   <span className="truncate">Add new {fieldName}</span>
                   <Plus className="h-4 w-4 ml-1 flex-shrink-0" />
                 </div>
-              </SelectItem>
+              </div>
             )}
           </SelectContent>
         </Select>

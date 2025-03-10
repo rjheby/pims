@@ -90,24 +90,22 @@ export function useOrderActions() {
       return;
     }
 
-    // Create a properly typed DropdownOptions object with all required fields
-    const updatedOptions: DropdownOptions = {
-      species: [...(options.species || [])],
-      length: [...(options.length || [])],
-      bundleType: [...(options.bundleType || [])],
-      thickness: [...(options.thickness || [])],
-      packaging: [...(options.packaging || [])]
-    };
+    // Create a deep copy of the current options
+    const updatedOptions = { ...options };
     
-    // Update the specific field
-    updatedOptions[field] = [...(options[field] || []), option];
+    // Ensure the field exists and is an array before updating
+    if (!updatedOptions[field]) {
+      updatedOptions[field] = [];
+    }
+    
+    // Add the new option to the field's array
+    updatedOptions[field] = [...updatedOptions[field], option];
     
     // Log the update for debugging
-    console.log("Updating options:", updatedOptions);
+    console.log("Updated options:", updatedOptions);
     
     // Set the updated options
     setOptions(updatedOptions);
-
     setEditingField(null);
   };
 
