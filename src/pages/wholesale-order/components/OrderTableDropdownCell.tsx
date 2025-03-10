@@ -60,9 +60,6 @@ export function OrderTableDropdownCell({
     }
   };
 
-  // This console log will help us debug admin functionality
-  console.log(`Rendering dropdown for ${fieldName}. isAdmin=${isAdmin}, readOnly=${readOnly}`);
-
   return (
     <div className="flex flex-col w-full max-w-full">
       {isEditing ? (
@@ -106,9 +103,9 @@ export function OrderTableDropdownCell({
                 {option}
               </SelectItem>
             ))}
-            {isAdmin && !showNewOptionInput && !readOnly && (
+            {isAdmin && !readOnly && (
               <SelectItem
-                value="new"
+                value="add_new"
                 onClick={handleAddOptionClick}
                 className="text-green-600 font-medium border-t border-gray-200 mt-1 pt-1 text-sm"
               >
