@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +22,7 @@ interface OrderTableMobileRowProps {
   onKeyPress: (event: any, fieldName: string) => void;
   onUpdateItem: (item: OrderItem) => void;
   onUpdateOptions: (field: keyof DropdownOptions, option: string) => void;
+  onStartEditing?: (field: keyof DropdownOptions) => void;
   onRemoveRow: (id: number) => void;
   onCopyRow: (item: OrderItem) => void;
   onAddItem: () => void;
@@ -43,6 +43,7 @@ export function OrderTableMobileRow({
   onKeyPress,
   onUpdateItem,
   onUpdateOptions,
+  onStartEditing,
   onRemoveRow,
   onCopyRow,
   onAddItem,
@@ -138,6 +139,7 @@ export function OrderTableMobileRow({
                   onUpdateItem={(value) => onUpdateItem({ ...item, [field]: value })}
                   onUpdateOptions={(option) => onUpdateOptions(field as keyof DropdownOptions, option)}
                   onPress={(e) => onKeyPress(e, field)}
+                  onStartEditing={onStartEditing}
                   isAdmin={isAdmin}
                   readOnly={readOnly}
                 />
