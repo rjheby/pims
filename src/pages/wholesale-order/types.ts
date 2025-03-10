@@ -49,7 +49,7 @@ export const initialOptions: DropdownOptions = {
   length: ["16\"", "18\"", "24\"", "36\"", "48\""],
   bundleType: ["Standard", "Premium", "Loose"],
   thickness: ["1\"", "2\"", "3\"", "4\""],
-  packaging: ["Pallets", "Crates", "Boxes"]
+  packaging: ["Pallets", "Crates", "Boxes", "12x10\" Boxes"]
 };
 
 // Utility functions for OrderTable

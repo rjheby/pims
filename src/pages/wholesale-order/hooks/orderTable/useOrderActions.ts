@@ -10,7 +10,7 @@ export function useOrderActions() {
     setItems, 
     options = initialOptions, // Ensure options has a default value of initialOptions
     setOptions, 
-    setEditingField 
+    setEditingField
   } = useWholesaleOrder();
 
   const [lastOptionField, setLastOptionField] = useState<keyof DropdownOptions | null>(null);
@@ -61,6 +61,12 @@ export function useOrderActions() {
     }
   };
 
+  // Start editing a dropdown field
+  const handleStartEditingField = (field: keyof DropdownOptions) => {
+    setEditingField(field);
+    setLastOptionField(field);
+  };
+
   // Update dropdown options
   const handleUpdateOptions = (
     field: keyof DropdownOptions,
@@ -92,6 +98,21 @@ export function useOrderActions() {
     setEditingField(null);
   };
 
+  // Calculate item capacity in pallet equivalents
+  const calculateItemCapacity = (item: OrderItem): number => {
+    // If packaging is "12x10" Boxes", convert to pallet equivalents (60 boxes = 1 pallet)
+    if (item.packaging === "12x10\" Boxes") {
+      return safeNumber(item.pallets) / 60;
+    }
+    // For all other packaging types (including "Pallets"), use actual pallet count
+    return safeNumber(item.pallets);
+  };
+
+  // Calculate total order capacity in pallet equivalents
+  const calculateTotalCapacity = (orderItems: OrderItem[]): number => {
+    return orderItems.reduce((total, item) => total + calculateItemCapacity(item), 0);
+  };
+
   return {
     handleUpdateItem,
     handleRemoveRow,
@@ -99,5 +120,8 @@ export function useOrderActions() {
     handleAddItem,
     handleKeyPress,
     handleUpdateOptions,
+    handleStartEditingField,
+    calculateItemCapacity,
+    calculateTotalCapacity,
   };
 }

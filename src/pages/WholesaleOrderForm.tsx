@@ -153,6 +153,17 @@ export function WholesaleOrderForm() {
     return orderData.items.reduce((sum, item) => sum + safeNumber(item.pallets), 0);
   };
 
+  const calculateTotalEquivalentPallets = () => {
+    if (!orderData?.items) return 0;
+    
+    return orderData.items.reduce((sum, item) => {
+      if (item.packaging === "12x10\" Boxes") {
+        return sum + (safeNumber(item.pallets) / 60);
+      }
+      return sum + safeNumber(item.pallets);
+    }, 0);
+  };
+
   const calculateTotalCost = () => {
     if (!orderData?.items) return 0;
     return orderData.items.reduce((sum, item) => sum + (safeNumber(item.pallets) * safeNumber(item.unitCost)), 0);
@@ -441,22 +452,28 @@ export function WholesaleOrderForm() {
 
   const renderCustomSummary = () => {
     const totalPallets = calculateTotalPallets();
+    const totalEquivalentPallets = calculateTotalEquivalentPallets();
+    const maxLoad = 24;
     
     return (
       <div className="mt-4 pt-4 border-t border-gray-200">
-        {safeNumber(totalPallets) < 24 && (
+        <div className="text-sm text-gray-500 mb-2">
+          Total physical items: {totalPallets} ({totalEquivalentPallets.toFixed(2)} pallet equivalents)
+        </div>
+        
+        {totalEquivalentPallets < maxLoad && (
           <div className="text-sm text-amber-600 text-center">
-            {24 - safeNumber(totalPallets)} pallets remaining before full load
+            {(maxLoad - totalEquivalentPallets).toFixed(2)} pallet equivalents remaining before full load
           </div>
         )}
-        {safeNumber(totalPallets) > 24 && (
+        {totalEquivalentPallets > maxLoad && (
           <div className="text-sm text-red-600 text-center">
-            Exceeds maximum load by {safeNumber(totalPallets) - 24} pallets
+            Exceeds maximum load by {(totalEquivalentPallets - maxLoad).toFixed(2)} pallet equivalents
           </div>
         )}
-        {safeNumber(totalPallets) === 24 && (
+        {totalEquivalentPallets === maxLoad && (
           <div className="text-sm text-green-600 text-center">
-            Perfect load! Exactly 24 pallets.
+            Perfect load! Exactly {maxLoad} pallet equivalents.
           </div>
         )}
       </div>

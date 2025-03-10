@@ -31,6 +31,7 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
     handleAddItem,
     generateItemName,
     handleUpdateOptions,
+    handleStartEditingField,
     toggleCompressed,
     setNewOption,
     sortConfig,
@@ -122,6 +123,7 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
                 onAddItem={handleAddItem}
                 generateItemName={generateItemName}
                 onUpdateOptions={handleUpdateOptions}
+                onStartEditing={handleStartEditingField}
                 isCompressed={false}
                 onToggleCompressed={toggleCompressed}
                 readOnly={readOnly}
@@ -154,6 +156,7 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
               onKeyPress={handleKeyPress}
               onUpdateItem={handleUpdateItem}
               onUpdateOptions={handleUpdateOptions}
+              onStartEditing={handleStartEditingField}
               onRemoveRow={handleRemoveRow}
               onCopyRow={handleCopyRow}
               onAddItem={handleAddItem}

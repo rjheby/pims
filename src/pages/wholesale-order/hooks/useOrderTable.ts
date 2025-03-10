@@ -44,6 +44,11 @@ export function useOrderTable() {
   // Process items with sorting and filtering
   const processedItems = orderFiltering.applyFiltersAndSorting(items, generateItemName);
 
+  // Calculate total capacity considering box-to-pallet ratio
+  const calculateTotalCapacity = () => {
+    return orderActions.calculateTotalCapacity(items);
+  };
+
   // Return a consolidated object with all the functionality
   return {
     items: processedItems,
@@ -60,11 +65,13 @@ export function useOrderTable() {
     handleAddItem: orderActions.handleAddItem,
     generateItemName,
     handleUpdateOptions: orderActions.handleUpdateOptions,
+    handleStartEditingField: orderActions.handleStartEditingField,
     toggleCompressed: orderDisplay.toggleCompressed,
     setNewOption,
     hasValidItems,
     calculateTotalPallets,
     calculateTotalCost,
+    calculateTotalCapacity,
     formatCurrency,
     sortConfig: orderFiltering.sortConfig,
     setSortConfig: orderFiltering.setSortConfig,

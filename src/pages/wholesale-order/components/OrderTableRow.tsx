@@ -40,6 +40,7 @@ interface OrderTableRowProps {
   onAddItem: () => void;
   generateItemName: (item: OrderItem) => string;
   onUpdateOptions: (field: keyof DropdownOptions, option: string) => void;
+  onStartEditing?: (field: keyof DropdownOptions) => void;
   isCompressed: boolean;
   onToggleCompressed: (id: number) => void;
   readOnly?: boolean;
@@ -59,6 +60,7 @@ export function OrderTableRow({
   onAddItem,
   generateItemName,
   onUpdateOptions,
+  onStartEditing,
   isCompressed,
   onToggleCompressed,
   readOnly = false,
@@ -136,6 +138,7 @@ export function OrderTableRow({
               onUpdateItem={(value) => onUpdateItem({ ...item, [field]: value })}
               onUpdateOptions={(option) => onUpdateOptions(field, option)}
               onPress={onKeyPress}
+              onStartEditing={onStartEditing}
               isAdmin={isAdmin}
               readOnly={readOnly}
             />

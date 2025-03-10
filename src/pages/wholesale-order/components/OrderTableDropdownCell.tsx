@@ -1,7 +1,8 @@
+
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Plus } from "lucide-react";
+import { CheckCircle, Plus, Edit } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -21,6 +22,7 @@ interface OrderTableDropdownCellProps {
   onUpdateItem: (value: string) => void;
   onUpdateOptions: (option: string) => void;
   onPress: (event: any) => void;
+  onStartEditing?: (fieldName: keyof DropdownOptions) => void;
   isAdmin: boolean;
   readOnly?: boolean;
 }
@@ -35,6 +37,7 @@ export function OrderTableDropdownCell({
   onUpdateItem,
   onUpdateOptions,
   onPress,
+  onStartEditing,
   isAdmin,
   readOnly = false,
 }: OrderTableDropdownCellProps) {
@@ -48,6 +51,15 @@ export function OrderTableDropdownCell({
     }
   };
 
+  const handleAddOptionClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowNewOptionInput(true);
+    if (onStartEditing) {
+      onStartEditing(fieldName);
+    }
+  };
+
   return (
     <div className="flex flex-col w-full">
       {isEditing ? (
@@ -58,6 +70,7 @@ export function OrderTableDropdownCell({
             onChange={(e) => onNewOptionChange(e.target.value)}
             onKeyDown={handleKeyDown}
             className="h-8 w-full"
+            autoFocus
           />
           <Button
             variant="outline"
@@ -92,10 +105,7 @@ export function OrderTableDropdownCell({
             {isAdmin && !showNewOptionInput && (
               <SelectItem
                 value="new"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowNewOptionInput(true);
-                }}
+                onClick={handleAddOptionClick}
               >
                 <div className="flex items-center justify-between">
                   <span className="truncate">Add new {fieldName}</span>
