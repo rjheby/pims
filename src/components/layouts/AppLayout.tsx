@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { cn } from "@/lib/utils";
@@ -9,19 +8,16 @@ import { GlobalControls } from "@/components/GlobalControls";
 import { useHistory } from "@/context/HistoryContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-// Component to handle keyboard shortcuts
 function KeyboardShortcuts() {
   const { undo, redo, canUndo, canRedo } = useHistory();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Handle Ctrl+Z for undo
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey && canUndo) {
         e.preventDefault();
         undo();
       }
       
-      // Handle Ctrl+Y or Ctrl+Shift+Z for redo
       if (((e.ctrlKey || e.metaKey) && e.key === 'y') || 
           ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z')) {
         if (canRedo) {
@@ -49,10 +45,9 @@ export default function AppLayout({
   const isWholesaleOrder = location.pathname === "/wholesale-order";
   const isMobile = useIsMobile();
 
-  // Add extra padding at the bottom of the page for mobile
   useEffect(() => {
     if (isMobile) {
-      document.body.style.paddingBottom = '140px'; // Increased padding for mobile
+      document.body.style.paddingBottom = '140px';
     } else {
       document.body.style.paddingBottom = '0';
     }
@@ -66,7 +61,6 @@ export default function AppLayout({
     <SidebarProvider>
       <KeyboardShortcuts />
       <div className="relative min-h-screen overflow-x-hidden w-full">
-        {/* Admin Mode Overlay */}
         <div
           className={cn(
             "fixed inset-0 bg-red-500 bg-opacity-10 transition-opacity duration-500 pointer-events-none",
@@ -74,11 +68,10 @@ export default function AppLayout({
           )}
         />
 
-        {/* Main Content with Top Navigation */}
         <div className="relative flex flex-col w-full">
           <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b">
-            <div className="flex items-center justify-between h-[72px] px-4">
-              <div className="flex items-center gap-4">
+            <div className="flex items-center justify-between h-[72px] px-2 sm:px-4 max-w-full">
+              <div className="flex items-center gap-2 sm:gap-4">
                 <AppSidebar />
                 <Link to="/" className="block md:hidden">
                   <img 
@@ -96,7 +89,7 @@ export default function AppLayout({
           </div>
           
           <main className="w-full min-h-screen pt-[72px] pb-36 overflow-x-hidden">
-            <div className="w-full px-3 mx-auto md:w-[95%] lg:max-w-[1440px]">
+            <div className="w-full px-2 sm:px-3 mx-auto md:w-[95%] lg:max-w-[1440px]">
               {children}
             </div>
           </main>
