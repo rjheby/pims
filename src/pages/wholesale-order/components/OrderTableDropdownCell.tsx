@@ -64,15 +64,15 @@ export function OrderTableDropdownCell({
   console.log(`Rendering dropdown for ${fieldName}. isAdmin=${isAdmin}, readOnly=${readOnly}`);
 
   return (
-    <div className="flex flex-col w-full">
+    <div className="flex flex-col w-full max-w-full">
       {isEditing ? (
-        <div className="flex space-x-2 w-full">
+        <div className="flex flex-col sm:flex-row sm:space-x-2 w-full gap-2">
           <Input
             type="text"
             value={newOption}
             onChange={(e) => onNewOptionChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="h-8 w-full"
+            className="h-8 w-full text-sm"
             autoFocus
           />
           <Button
@@ -82,8 +82,9 @@ export function OrderTableDropdownCell({
               onUpdateOptions(newOption);
               setShowNewOptionInput(false);
             }}
+            className="mt-1 sm:mt-0 whitespace-nowrap text-xs"
           >
-            <CheckCircle className="h-4 w-4 mr-2" />
+            <CheckCircle className="h-3 w-3 mr-1" />
             Save
           </Button>
         </div>
@@ -93,15 +94,15 @@ export function OrderTableDropdownCell({
           onValueChange={onUpdateItem}
           disabled={readOnly}
         >
-          <SelectTrigger className="h-8 w-full !min-w-0">
+          <SelectTrigger className="h-8 w-full min-w-0 max-w-full text-sm">
             <SelectValue 
               placeholder={fieldName}
-              className="text-ellipsis overflow-hidden" 
+              className="text-ellipsis overflow-hidden w-full truncate" 
             />
           </SelectTrigger>
-          <SelectContent className="max-h-[300px]">
+          <SelectContent className="max-h-[300px] min-w-[8rem] w-auto max-w-[var(--radix-select-trigger-width)] overflow-hidden">
             {options.map((option) => (
-              <SelectItem key={option} value={option} className="truncate">
+              <SelectItem key={option} value={option} className="truncate text-sm">
                 {option}
               </SelectItem>
             ))}
@@ -109,7 +110,7 @@ export function OrderTableDropdownCell({
               <SelectItem
                 value="new"
                 onClick={handleAddOptionClick}
-                className="text-green-600 font-medium border-t border-gray-200 mt-1 pt-1"
+                className="text-green-600 font-medium border-t border-gray-200 mt-1 pt-1 text-sm"
               >
                 <div className="flex items-center justify-between">
                   <span className="truncate">Add new {fieldName}</span>
