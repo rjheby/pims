@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -87,9 +88,9 @@ export function OrderTableMobileRow({
               <ChevronUp className="h-4 w-4" />
             )}
           </div>
-          <div className="font-medium break-words w-full">
+          <div className="font-medium break-words w-full text-center">
             <div 
-              className="cursor-pointer hover:underline text-blue-600 whitespace-normal break-words truncate" 
+              className="cursor-pointer hover:underline text-blue-600 whitespace-normal break-words" 
               onClick={(e) => {
                 e.stopPropagation();
                 openProductSelector();
@@ -127,7 +128,7 @@ export function OrderTableMobileRow({
         <CardContent className="p-4 pt-0 grid gap-3">
           {optionFields.map((field) => (
             <div key={field} className="grid grid-cols-2 gap-2 items-center">
-              <Label htmlFor={`${field}-${item.id}`}>{field}</Label>
+              <Label htmlFor={`${field}-${item.id}`} className="text-center">{field}</Label>
               <div className="w-full">
                 <OrderTableDropdownCell
                   fieldName={field as keyof DropdownOptions}
@@ -148,7 +149,7 @@ export function OrderTableMobileRow({
           ))}
 
           <div className="grid grid-cols-2 gap-2 items-center">
-            <Label htmlFor={`pallets-${item.id}`}>Pallets</Label>
+            <Label htmlFor={`pallets-${item.id}`} className="text-center">Pallets</Label>
             <Input
               id={`pallets-${item.id}`}
               type="number"
@@ -158,13 +159,13 @@ export function OrderTableMobileRow({
               onChange={(e) =>
                 onUpdateItem({ ...item, pallets: Number(e.target.value) })
               }
-              className="h-8 w-full"
+              className="h-8 w-full text-center"
               disabled={readOnly}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-2 items-center">
-            <Label htmlFor={`unitCost-${item.id}`}>Unit Cost</Label>
+            <Label htmlFor={`unitCost-${item.id}`} className="text-center">Unit Cost</Label>
             <Input
               id={`unitCost-${item.id}`}
               type="number"
@@ -174,14 +175,14 @@ export function OrderTableMobileRow({
               onChange={(e) =>
                 onUpdateItem({ ...item, unitCost: Number(e.target.value) })
               }
-              className="h-8 w-full"
+              className="h-8 w-full text-center"
               disabled={readOnly}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-2 items-center">
-            <Label>Total Cost</Label>
-            <div className="text-right font-medium">
+            <Label className="text-center">Total Cost</Label>
+            <div className="text-center font-medium">
               ${(safeNumber(item.pallets) * safeNumber(item.unitCost)).toFixed(2)}
             </div>
           </div>

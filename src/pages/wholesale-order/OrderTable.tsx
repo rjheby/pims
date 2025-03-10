@@ -49,17 +49,17 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
 
   // Define column widths that will scale proportionally
   const headers = [
-    { key: 'name', label: 'Name', sortable: true, className: 'w-[22%]' },
+    { key: 'name', label: 'Name', sortable: true, className: 'w-[22%] text-center' },
     ...optionFields.map(field => ({
       key: field,
       label: field.charAt(0).toUpperCase() + field.slice(1),
       sortable: true,
-      className: `w-[10%]`
+      className: `w-[10%] text-center`
     })),
-    { key: 'pallets', label: 'Qty', sortable: true, className: 'w-[8%]' },
-    { key: 'unitCost', label: 'Unit Cost', sortable: true, className: 'w-[10%]' },
-    { key: 'totalCost', label: 'Total Cost', sortable: true, className: 'w-[10%]' },
-    { key: 'actions', label: 'Actions', className: 'w-[10%]' }
+    { key: 'pallets', label: 'Qty', sortable: true, className: 'w-[8%] text-center' },
+    { key: 'unitCost', label: 'Unit Cost', sortable: true, className: 'w-[10%] text-center' },
+    { key: 'totalCost', label: 'Total Cost', sortable: true, className: 'w-[10%] text-center' },
+    { key: 'actions', label: 'Actions', className: 'w-[10%] text-center' }
   ];
 
   const tableData = items.map(item => ({

@@ -92,7 +92,7 @@ export function OrderTableDropdownCell({
             value={newOption}
             onChange={(e) => onNewOptionChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="h-8 w-full text-sm"
+            className="h-8 w-full text-sm text-center"
             autoFocus
             placeholder={editableOption ? `Edit ${fieldName}...` : `New ${fieldName}...`}
           />
@@ -112,23 +112,23 @@ export function OrderTableDropdownCell({
           onValueChange={onUpdateItem}
           disabled={readOnly}
         >
-          <SelectTrigger className="h-8 w-full min-w-0 max-w-full text-sm">
+          <SelectTrigger className="h-8 w-full min-w-0 max-w-full text-sm text-center">
             <SelectValue 
               placeholder={fieldName}
-              className="text-ellipsis overflow-hidden w-full truncate" 
+              className="text-center overflow-hidden w-full truncate" 
             />
           </SelectTrigger>
-          <SelectContent className="max-h-[300px] min-w-[8rem] w-auto max-w-[var(--radix-select-trigger-width)] overflow-hidden">
+          <SelectContent className="max-h-[300px] min-w-[8rem] w-auto max-w-[var(--radix-select-trigger-width)] overflow-hidden bg-white">
             {options.map((option) => (
-              <div key={option} className="flex items-center justify-between">
-                <SelectItem value={option} className="truncate text-sm flex-grow">
+              <div key={option} className="flex items-center justify-between group">
+                <SelectItem value={option} className="truncate text-sm flex-grow text-center">
                   {option}
                 </SelectItem>
                 {isAdmin && !readOnly && (
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="h-6 w-6 p-0 mr-2"
+                    className="h-6 w-6 p-0 mr-1 opacity-0 group-hover:opacity-100 transition-opacity"
                     onClick={(e) => handleEditOptionClick(e, option)}
                   >
                     <Pencil className="h-3 w-3" />
@@ -141,8 +141,8 @@ export function OrderTableDropdownCell({
                 className="text-green-600 font-medium border-t border-gray-200 mt-1 pt-1 cursor-pointer hover:bg-accent px-2 py-1.5 rounded-sm text-sm"
                 onClick={handleAddOptionClick}
               >
-                <div className="flex items-center justify-between pl-6">
-                  <span className="truncate">Add new {fieldName}</span>
+                <div className="flex items-center justify-center">
+                  <span className="truncate text-center">Add new {fieldName}</span>
                   <Plus className="h-4 w-4 ml-1 flex-shrink-0" />
                 </div>
               </div>

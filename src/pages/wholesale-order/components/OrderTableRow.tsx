@@ -1,4 +1,3 @@
-
 import {
   ChevronDown,
   ChevronUp,
@@ -100,7 +99,7 @@ export function OrderTableRow({
               onClick={() => onToggleCompressed(item.id)}
             >
               <ChevronDown className="h-4 w-4 flex-shrink-0" />
-              <span className="whitespace-normal">{generateItemName(item)}</span>
+              <span className="whitespace-normal text-center">{generateItemName(item)}</span>
             </div>
           ) : (
             <div
@@ -112,7 +111,7 @@ export function OrderTableRow({
             >
               <ChevronUp className="h-4 w-4 flex-shrink-0" />
               <div 
-                className="cursor-pointer hover:underline text-blue-600 whitespace-normal break-words" 
+                className="cursor-pointer hover:underline text-blue-600 whitespace-normal break-words text-center" 
                 onClick={(e) => {
                   e.stopPropagation();
                   openProductSelector();
@@ -154,7 +153,7 @@ export function OrderTableRow({
           onChange={(e) =>
             onUpdateItem({ ...item, pallets: Number(e.target.value) })
           }
-          className="h-8 w-full !min-w-0"
+          className="h-8 w-full !min-w-0 text-center"
           disabled={readOnly}
         />
       </TableCell>
@@ -168,7 +167,7 @@ export function OrderTableRow({
           onChange={(e) =>
             onUpdateItem({ ...item, unitCost: Number(e.target.value) })
           }
-          className="h-8 w-full !min-w-0"
+          className="h-8 w-full !min-w-0 text-center"
           disabled={readOnly}
         />
       </TableCell>
