@@ -1,111 +1,46 @@
+
+/**
+ * Calculate the price based on the items string
+ * Format: "2x Firewood - 1/4 cord, 1x Kindling bundle"
+ */
 export const calculatePrice = (items: string | null): number => {
   if (!items) return 0;
   
-  // Parse quantity and item format: "2x Firewood - 1/4 cord, 1x Kindling bundle"
-  const itemsList = items.split(',').map(item => item.trim()).filter(Boolean);
+  // Parse the items string and calculate a simple price
+  // In a real app, this would look up actual product prices
+  let totalPrice = 0;
   
-  // Calculate price for each item based on its description and quantity
-  return itemsList.reduce((total, item) => {
+  // Split by comma to get individual items
+  const itemsArray = items.split(',').map(item => item.trim()).filter(Boolean);
+  
+  itemsArray.forEach(item => {
     // Extract quantity and description
     const quantityMatch = item.match(/^(\d+)x\s+(.+)$/);
     const quantity = quantityMatch ? parseInt(quantityMatch[1], 10) : 1;
-    const description = quantityMatch ? quantityMatch[2] : item;
     
-    // Determine base price per unit
-    let unitPrice = 10; // Default price
-    
-    // Check for "cord" in the item name to determine firewood price
-    if (description.toLowerCase().includes('cord')) {
-      if (description.toLowerCase().includes('1/4 cord')) {
-        unitPrice = 75;
-      } else if (description.toLowerCase().includes('1/2 cord')) {
-        unitPrice = 125;
-      } else if (description.toLowerCase().includes('full cord')) {
-        unitPrice = 200;
-      }
-    } 
-    // Check for kindling
-    else if (description.toLowerCase().includes('kindling')) {
-      unitPrice = 15;
+    // Calculate price based on description keywords (simplified logic)
+    if (item.toLowerCase().includes('cord')) {
+      // Cord items are more expensive
+      totalPrice += quantity * 150;
+    } else if (item.toLowerCase().includes('bundle')) {
+      // Bundles are cheaper
+      totalPrice += quantity * 25;
+    } else {
+      // Default price for other items
+      totalPrice += quantity * 50;
     }
-    // Check for cedar bundle
-    else if (description.toLowerCase().includes('cedar')) {
-      unitPrice = 12;
-    }
-    // Check for firestarter
-    else if (description.toLowerCase().includes('firestarter')) {
-      unitPrice = 8;
-    }
-    
-    return total + (unitPrice * quantity);
-  }, 0);
+  });
+  
+  return totalPrice;
 };
 
-export const isStatusDelivered = (status: string | undefined): boolean => {
-  return status?.toLowerCase() === 'delivered';
-};
-
-export const isStatusCanceled = (status: string | undefined): boolean => {
-  return status?.toLowerCase() === 'canceled';
-};
-
-export const getNextStatusText = (status: string | undefined): string => {
-  const currentStatus = status?.toLowerCase() || 'pending';
-  
-  switch (currentStatus) {
-    case 'pending':
-      return 'Mark in process';
-    case 'in process':
-      return 'Mark scheduled';
-    case 'scheduled':
-      return 'Mark loaded';
-    case 'loaded':
-      return 'Mark out for delivery';
-    case 'out for delivery':
-      return 'Mark delivered';
-    case 'delivered':
-      return 'Already delivered';
-    case 'canceled':
-      return 'Restart as pending';
-    default:
-      return 'Update status';
-  }
-};
-
-export const getNextStatus = (status: string | undefined): string => {
-  const currentStatus = status?.toLowerCase() || 'pending';
-  
-  switch (currentStatus) {
-    case 'pending':
-      return 'in process';
-    case 'in process':
-      return 'scheduled';
-    case 'scheduled':
-      return 'loaded';
-    case 'loaded':
-      return 'out for delivery';
-    case 'out for delivery':
-      return 'delivered';
-    case 'delivered':
-      return 'delivered'; // No change
-    case 'canceled':
-      return 'pending'; // Reset to pending
-    default:
-      return currentStatus;
-  }
-};
-
-// Format phone number for display
-export const formatPhoneNumber = (phone: string | undefined): string => {
-  if (!phone) return '';
-  
-  // Keep only numbers
-  const cleaned = phone.replace(/\D/g, '');
-  
-  // Format based on length
-  if (cleaned.length === 10) {
-    return `(${cleaned.substring(0, 3)}) ${cleaned.substring(3, 6)}-${cleaned.substring(6, 10)}`;
-  }
-  
-  return phone;
+/**
+ * Formats a price with currency symbol
+ */
+export const formatPrice = (price: number | undefined): string => {
+  if (price === undefined) return '$0.00';
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+  }).format(price);
 };

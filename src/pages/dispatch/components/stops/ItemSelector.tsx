@@ -157,6 +157,7 @@ export const ItemSelector = ({
       ...customItems.map(item => `${item.quantity}x ${item.name}`)
     ].join(', ');
     
+    console.log("Saving items:", formattedItems);
     onSelect(formattedItems);
   };
 

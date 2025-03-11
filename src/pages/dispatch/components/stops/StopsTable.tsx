@@ -148,6 +148,7 @@ const StopsTable = ({
       return;
     }
     
+    console.log("Saving stop with form data:", editForm);
     const price = calculatePrice(editForm.items);
     
     const selectedCustomer = customers.find(c => c.id === editForm.customer_id);
@@ -162,6 +163,8 @@ const StopsTable = ({
       customer_phone: selectedCustomer?.phone,
       driver_name: selectedDriver?.name,
     };
+    
+    console.log("Updated stop data:", updatedStop);
     
     const newStops = [...stops];
     newStops[editingIndex] = updatedStop;
@@ -297,6 +300,7 @@ const StopsTable = ({
   };
   
   const handleItemsSelect = (items: string) => {
+    console.log("Selected items:", items);
     setEditForm(prev => ({
       ...prev,
       items
