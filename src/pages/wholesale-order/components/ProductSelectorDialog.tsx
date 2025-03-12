@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { useState } from "react";
 import { OrderItem } from "../types";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProductSelectorDialogProps {
   open: boolean;
@@ -25,13 +26,23 @@ export function ProductSelectorDialog({
   onOpenChange,
   onSelect,
 }: ProductSelectorDialogProps) {
-  const { options, isAdmin, handleUpdateOptions } = useWholesaleOrder();
+  const { toast } = useToast();
+  const { 
+    options, 
+    isAdmin, 
+    setOptions,
+    setEditingField,
+    setNewOption,
+    editingField,
+    newOption
+  } = useWholesaleOrder();
+  
   const [selectedSpecies, setSelectedSpecies] = useState("");
   const [selectedLength, setSelectedLength] = useState("");
   const [selectedThickness, setSelectedThickness] = useState("");
   const [selectedBundleType, setSelectedBundleType] = useState("");
-  const [editingField, setEditingField] = useState<string | null>(null);
-  const [newOptionValue, setNewOptionValue] = useState("");
+  const [selectedPackaging, setSelectedPackaging] = useState("Pallets");
+  const [unitCost, setUnitCost] = useState(250);
 
   const handleSelect = () => {
     const product: Partial<OrderItem> = {
@@ -39,8 +50,9 @@ export function ProductSelectorDialog({
       length: selectedLength,
       thickness: selectedThickness,
       bundleType: selectedBundleType,
-      packaging: "Pallets", // Default
-      unitCost: 250, // Default
+      packaging: selectedPackaging,
+      unitCost: unitCost,
+      pallets: 0,
     };
     onSelect(product);
     onOpenChange(false);
@@ -52,19 +64,38 @@ export function ProductSelectorDialog({
     setSelectedLength("");
     setSelectedThickness("");
     setSelectedBundleType("");
+    setSelectedPackaging("Pallets");
+    setUnitCost(250);
     setEditingField(null);
-    setNewOptionValue("");
+    setNewOption("");
   };
 
-  const handleAddOption = async (field: string) => {
-    if (!newOptionValue.trim()) return;
+  const handleAddOption = async (field: keyof typeof options) => {
+    if (!newOption.trim()) return;
     
     try {
-      await handleUpdateOptions(field as any, newOptionValue);
+      // Add new option to the appropriate options array
+      const updatedOptions = { ...options };
+      updatedOptions[field] = [...options[field], newOption];
+      
+      // Update options in context
+      setOptions(updatedOptions);
+      
+      // Reset editing state
       setEditingField(null);
-      setNewOptionValue("");
+      setNewOption("");
+      
+      toast({
+        title: "Success",
+        description: `Added new ${field}: ${newOption}`,
+      });
     } catch (error) {
       console.error("Failed to add option:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add option",
+        variant: "destructive"
+      });
     }
   };
 
@@ -78,10 +109,10 @@ export function ProductSelectorDialog({
       <label className="text-lg font-semibold">{label}</label>
       <div className="flex gap-2">
         <Select value={value} onValueChange={onChange}>
-          <SelectTrigger className="w-full">
+          <SelectTrigger className="w-full bg-white">
             <SelectValue placeholder={`Select ${label.toLowerCase()}`} />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-white">
             {options.map((option) => (
               <SelectItem key={option} value={option}>
                 {option}
@@ -93,21 +124,21 @@ export function ProductSelectorDialog({
           <Button
             variant="outline"
             size="icon"
-            onClick={() => setEditingField(label)}
+            onClick={() => setEditingField(label.toLowerCase() as any)}
           >
             <Plus className="h-4 w-4" />
           </Button>
         )}
       </div>
-      {editingField === label && (
+      {editingField === label.toLowerCase() && (
         <div className="flex gap-2 mt-2">
           <Input
-            value={newOptionValue}
-            onChange={(e) => setNewOptionValue(e.target.value)}
+            value={newOption}
+            onChange={(e) => setNewOption(e.target.value)}
             placeholder={`Add new ${label.toLowerCase()}`}
             className="flex-1"
           />
-          <Button onClick={() => handleAddOption(label.toLowerCase())}>
+          <Button onClick={() => handleAddOption(label.toLowerCase() as any)}>
             Add
           </Button>
         </div>
@@ -117,20 +148,32 @@ export function ProductSelectorDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] bg-white">
         <div className="space-y-6 py-4">
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Select Product</h2>
             <p className="text-muted-foreground">
-              Choose a product or search for one by attributes
+              Choose product attributes or add new options
             </p>
           </div>
 
           <div className="grid gap-6">
             {renderSelect("Species", selectedSpecies, setSelectedSpecies, options.species)}
             {renderSelect("Length", selectedLength, setSelectedLength, options.length)}
-            {renderSelect("Bundle Type", selectedBundleType, setSelectedBundleType, options.bundleType)}
             {renderSelect("Thickness", selectedThickness, setSelectedThickness, options.thickness)}
+            {renderSelect("BundleType", selectedBundleType, setSelectedBundleType, options.bundleType)}
+            {renderSelect("Packaging", selectedPackaging, setSelectedPackaging, options.packaging)}
+            
+            <div className="space-y-2">
+              <label className="text-lg font-semibold">Unit Cost</label>
+              <Input
+                type="number"
+                value={unitCost}
+                onChange={(e) => setUnitCost(Number(e.target.value))}
+                placeholder="Enter unit cost"
+                min={0}
+              />
+            </div>
           </div>
 
           <div className="flex justify-end gap-3">
