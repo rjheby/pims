@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useWholesaleOrder } from "../../context/WholesaleOrderContext";
 import { DropdownOptions, OrderItem, initialOptions, safeNumber } from "../../types";
 import { generateEmptyOrderItem } from "../../utils";
@@ -18,49 +18,76 @@ export function useOrderActions() {
 
   const [lastOptionField, setLastOptionField] = useState<keyof DropdownOptions | null>(null);
 
-  // Update an item in the order
-  const handleUpdateItem = (updatedItem: OrderItem) => {
-    console.log('Updating item:', updatedItem);
-    setItems(
-      items.map((item) => (item.id === updatedItem.id ? updatedItem : item))
-    );
-  };
-
-  // Remove a row from the order
-  const handleRemoveRow = (id: number) => {
-    console.log('Removing row:', id);
-    setItems(items.filter((item) => item.id !== id));
-  };
-
-  // Copy a row in the order
-  const handleCopyRow = (itemToCopy: OrderItem) => {
-    console.log('Copying row:', itemToCopy);
-    const newItem = {
-      ...itemToCopy,
-      id: Date.now(),
-    };
-    setItems([...items, newItem]);
-  };
-
-  // Add a new empty item to the order
-  const handleAddItem = () => {
-    console.log('Adding new item');
+  // Update an item in the order - rebuilt with better error handling
+  const handleUpdateItem = useCallback((updatedItem: OrderItem) => {
     try {
+      console.log('Updating item:', updatedItem);
+      setItems(prevItems => 
+        prevItems.map(item => (item.id === updatedItem.id ? updatedItem : item))
+      );
+    } catch (error) {
+      console.error('Error updating item:', error);
+      toast.error("Failed to update item");
+    }
+  }, [setItems]);
+
+  // Remove a row from the order - rebuilt with better error handling
+  const handleRemoveRow = useCallback((id: number) => {
+    try {
+      console.log('Removing row:', id);
+      setItems(prevItems => prevItems.filter(item => item.id !== id));
+      toast.success("Row removed");
+    } catch (error) {
+      console.error('Error removing row:', error);
+      toast.error("Failed to remove row");
+    }
+  }, [setItems]);
+
+  // Copy a row in the order - rebuilt with better error handling
+  const handleCopyRow = useCallback((itemToCopy: OrderItem) => {
+    try {
+      console.log('Copying row:', itemToCopy);
+      const newItem = {
+        ...itemToCopy,
+        id: Date.now(), // Ensure unique ID
+      };
+      
+      setItems(prevItems => [...prevItems, newItem]);
+      toast.success("Row copied");
+    } catch (error) {
+      console.error('Error copying row:', error);
+      toast.error("Failed to copy row");
+    }
+  }, [setItems]);
+
+  // Add a new empty item to the order - completely rebuilt
+  const handleAddItem = useCallback(() => {
+    console.log('handleAddItem called');
+    
+    try {
+      // Generate new item with timestamp-based ID to ensure uniqueness
       const newItem = generateEmptyOrderItem();
       console.log('Generated new item:', newItem);
+      
+      // Use functional update to ensure we're working with the latest state
       setItems(prevItems => {
-        console.log('Previous items:', prevItems);
-        return [...prevItems, newItem];
+        console.log('Previous items count:', prevItems.length);
+        const updatedItems = [...prevItems, newItem];
+        console.log('New items count:', updatedItems.length);
+        return updatedItems;
       });
+      
+      // Show success notification
       toast.success("New row added");
     } catch (error) {
+      // Log and show error notification
       console.error('Error adding new item:', error);
       toast.error("Failed to add new row");
     }
-  };
+  }, [setItems]);
 
   // Handle key press events in the form
-  const handleKeyPress = (
+  const handleKeyPress = useCallback((
     e: React.KeyboardEvent<HTMLInputElement>,
     fieldName: string
   ) => {
@@ -76,18 +103,18 @@ export function useOrderActions() {
         setLastOptionField(null);
       }
     }
-  };
+  }, [lastOptionField]);
 
   // Start editing a dropdown field
-  const handleStartEditingField = (field: keyof DropdownOptions) => {
+  const handleStartEditingField = useCallback((field: keyof DropdownOptions) => {
     console.log("Starting to edit field:", field);
     setEditingField(field);
     setLastOptionField(field);
     setNewOption(""); // Reset the new option input value
-  };
+  }, [setEditingField, setLastOptionField, setNewOption]);
 
   // Update dropdown options
-  const handleUpdateOptions = async (option: string) => {
+  const handleUpdateOptions = useCallback(async (option: string) => {
     console.log("Updating options for field:", lastOptionField, "with new option:", option);
     
     if (!option || option.trim() === "" || !lastOptionField) {
@@ -108,6 +135,7 @@ export function useOrderActions() {
       if (updatedOptions) {
         console.log("Updated options:", updatedOptions);
         setOptions(updatedOptions);
+        toast.success(`Added new ${lastOptionField} option: ${option}`);
       }
       
       // Clear the editing state
@@ -115,18 +143,20 @@ export function useOrderActions() {
       
     } catch (err) {
       console.error('Error in handleUpdateOptions:', err);
+      toast.error(`Failed to add option: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
-  };
+  }, [lastOptionField, options, setEditingField, setOptions]);
 
   // Set updated options from the dropdown cell component
-  const handleOptionsUpdated = (updatedOptions: DropdownOptions) => {
+  const handleOptionsUpdated = useCallback((updatedOptions: DropdownOptions) => {
     console.log("Setting updated options:", updatedOptions);
     setOptions(updatedOptions);
     setEditingField(null);
-  };
+    toast.success("Options updated");
+  }, [setOptions, setEditingField]);
 
   // Calculate total order capacity in pallet equivalents
-  const calculateTotalCapacity = (orderItems: OrderItem[]): number => {
+  const calculateTotalCapacity = useCallback((orderItems: OrderItem[]): number => {
     return orderItems.reduce((total, item) => {
       // If packaging is "12x10" Boxes", convert to pallet equivalents (60 boxes = 1 pallet)
       if (item.packaging === "12x10\" Boxes") {
@@ -135,7 +165,7 @@ export function useOrderActions() {
       // For all other packaging types, use actual pallet count
       return total + safeNumber(item.pallets);
     }, 0);
-  };
+  }, []);
 
   return {
     handleUpdateItem,

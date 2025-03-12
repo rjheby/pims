@@ -1,18 +1,21 @@
-
 import { OrderItem } from "./types";
 
-export function generateEmptyOrderItem(): OrderItem {
+export const generateEmptyOrderItem = (): OrderItem => {
+  // Use timestamp for guaranteed unique ID
+  const uniqueId = Date.now();
+  console.log('Generating empty order item with ID:', uniqueId);
+  
   return {
-    id: Date.now(),
-    bundleType: "",
-    length: "",
-    packaging: "",
-    pallets: 0,
+    id: uniqueId,
     species: "",
+    length: "",
+    bundleType: "",
     thickness: "",
-    unitCost: 0,
+    packaging: "Pallets", // Default packaging type
+    pallets: 0,
+    unitCost: 250, // Default unit cost
   };
-}
+};
 
 export function formatDate(dateString: string | undefined | null): string {
   if (!dateString) return "N/A";

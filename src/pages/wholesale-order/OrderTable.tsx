@@ -76,12 +76,14 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
     setFilterValue(filter);
   };
 
+  // Completely rebuilt AddRowButton component with direct event handling
   const AddRowButton = ({ fullWidth = false, text = "Add Row" }) => (
     <Button 
+      type="button"
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log("Add row button clicked");
+        console.log("Add row button clicked - direct handler");
         handleAddItem();
       }}
       className={`bg-[#2A4131] hover:bg-[#2A4131]/90 ${fullWidth ? 'w-full' : ''}`}
