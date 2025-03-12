@@ -4,9 +4,10 @@ import StopsTable from './stops/StopsTable';
 import { CustomerSelector } from './stops/CustomerSelector';
 import { ItemSelector } from './stops/ItemSelector';
 import { RecurringOrderForm } from './stops/RecurringOrderForm';
-import DispatchFilters from './DispatchFilters';
-import DispatchScheduleContent from './DispatchScheduleContent';
+import { DispatchFilters } from './DispatchFilters';
+import { DispatchScheduleContent } from './DispatchScheduleContent';
 import { ScheduleCreator } from './ScheduleCreator';
+import { DispatchList } from './archive/DispatchList';
 
 export {
   StopsTable,
@@ -15,5 +16,6 @@ export {
   RecurringOrderForm,
   DispatchFilters,
   DispatchScheduleContent,
-  ScheduleCreator
+  ScheduleCreator,
+  DispatchList
 };

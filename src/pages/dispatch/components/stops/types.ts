@@ -1,4 +1,3 @@
-
 export interface FirewoodProduct {
   id: number;
   item_name: string;
@@ -67,11 +66,13 @@ export interface StopFormData {
 }
 
 export const DELIVERY_STATUS_OPTIONS = [
-  { value: 'scheduled', label: 'Scheduled' },
-  { value: 'in-progress', label: 'In Progress' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'cancelled', label: 'Cancelled' }
-];
+  'scheduled',
+  'in-progress',
+  'completed',
+  'cancelled'
+] as const;
+
+export type DeliveryStatus = typeof DELIVERY_STATUS_OPTIONS[number];
 
 export const getStatusBadgeVariant = (status?: string) => {
   switch (status?.toLowerCase()) {

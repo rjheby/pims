@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Draggable } from "@hello-pangea/dnd";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -30,7 +29,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { Customer, DeliveryStop, Driver, StopFormData, DELIVERY_STATUS_OPTIONS, getStatusBadgeVariant } from "./types";
+import { Customer, DeliveryStop, Driver, StopFormData, DELIVERY_STATUS_OPTIONS, getStatusBadgeVariant, DeliveryStatus } from "./types";
 
 interface StopsMobileCardsProps {
   stops: DeliveryStop[];
