@@ -1,4 +1,3 @@
-
 import { useWholesaleOrder } from "../context/WholesaleOrderContext";
 import { OrderItem, initialOptions, safeNumber } from "../types";
 import { useOrderActions } from "./orderTable/useOrderActions";
@@ -12,7 +11,6 @@ import { useToast } from "@/hooks/use-toast";
 export function useOrderTable() {
   const { toast } = useToast();
   
-  // Get context values first to maintain hook order
   const { 
     items = [], 
     options = initialOptions,
@@ -32,45 +30,44 @@ export function useOrderTable() {
     ...options
   };
 
-  // Import all the smaller hooks in a consistent order to prevent React hook ordering issues
   const orderActions = useOrderActions();
   const { generateItemName, calculateTotalPallets, calculateTotalCost, formatCurrency } = useOrderCalculations();
   const orderFiltering = useOrderFiltering();
   const orderDisplay = useOrderDisplay();
   const { hasValidItems } = useOrderValidation(items);
 
-  // Load options from Supabase when component mounts
   useEffect(() => {
     loadOptions();
   }, [loadOptions]);
 
-  // Process items with sorting and filtering
   const processedItems = orderFiltering.applyFiltersAndSorting(items, generateItemName);
 
-  // Add a properly memoized handleAddItem function
-  const handleAddItem = useCallback(() => {
+  const handleAddItem = useCallback((productData?: Partial<OrderItem>) => {
     try {
-      orderActions.handleAddItem();
-      toast({
-        title: "Success",
-        description: "New row added successfully",
-      });
+      const uniqueId = Date.now() + Math.floor(Math.random() * 1000);
+      const newItem: OrderItem = {
+        id: uniqueId,
+        species: productData?.species || "",
+        length: productData?.length || "",
+        bundleType: productData?.bundleType || "",
+        thickness: productData?.thickness || "",
+        packaging: productData?.packaging || "Pallets",
+        pallets: 0,
+        unitCost: productData?.unitCost || 250,
+      };
+      
+      setItems(prevItems => [...prevItems, newItem]);
+      
     } catch (error) {
-      console.error("Error adding new row:", error);
-      toast({
-        title: "Error",
-        description: "Failed to add new row",
-        variant: "destructive"
-      });
+      console.error("Error in handleAddItem:", error);
+      throw error;
     }
-  }, [orderActions, toast]);
+  }, [setItems]);
 
-  // Calculate total capacity considering box-to-pallet ratio
   const calculateTotalCapacity = () => {
     return orderActions.calculateTotalCapacity(items);
   };
 
-  // Return a consolidated object with all the functionality
   return {
     items: processedItems,
     options: safeOptions,

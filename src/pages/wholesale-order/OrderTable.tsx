@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { Plus } from "lucide-react";
 import { OrderTableRow } from "./components/OrderTableRow";
@@ -8,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { useOrderTable } from "./hooks/useOrderTable";
 import { OrderItem } from "./types";
 import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
+import { ProductSelectorDialog } from "./components/ProductSelectorDialog";
 
 interface OrderTableProps {
   readOnly?: boolean;
@@ -16,6 +17,8 @@ interface OrderTableProps {
 
 export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps) {
   const { toast } = useToast();
+  const [productSelectorOpen, setProductSelectorOpen] = useState(false);
+  
   const {
     items,
     options,
@@ -45,7 +48,6 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
     }
   }, [items, onItemsChange]);
 
-  // Define consistent column widths and alignments
   const headers = [
     { key: 'name', label: 'Name', sortable: true, className: 'w-[22%] text-left px-4' },
     ...optionFields.map(field => ({
@@ -74,19 +76,18 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
     setFilterValue(filter);
   };
 
-  const addNewRow = () => {
+  const handleProductSelect = (product: Partial<OrderItem>) => {
     try {
-      console.log("Add row button clicked");
-      handleAddItem();
+      handleAddItem(product);
       toast({
         title: "Success",
-        description: "New row added successfully",
+        description: "New product added successfully",
       });
     } catch (error) {
-      console.error("Error adding new row:", error);
+      console.error("Error adding product:", error);
       toast({
         title: "Error",
-        description: "Failed to add new row",
+        description: "Failed to add product",
         variant: "destructive"
       });
     }
@@ -95,12 +96,12 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
   const TableActions = () => (
     <div className="flex justify-end mb-4">
       <Button 
-        onClick={addNewRow}
+        onClick={() => setProductSelectorOpen(true)}
         className="bg-[#2A4131] hover:bg-[#2A4131]/90"
         disabled={readOnly}
       >
         <Plus className="mr-2 h-4 w-4" />
-        Add New Row
+        Add New Product
       </Button>
     </div>
   );
@@ -109,11 +110,11 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
     <div className="text-center py-10 border rounded-md bg-gray-50">
       <p className="text-gray-500 mb-4">No items added yet</p>
       <Button 
-        onClick={addNewRow}
+        onClick={() => setProductSelectorOpen(true)}
         className="bg-[#2A4131] hover:bg-[#2A4131]/90"
       >
         <Plus className="mr-2 h-4 w-4" />
-        Add Your First Row
+        Add Your First Product
       </Button>
     </div>
   );
@@ -125,6 +126,12 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
   return (
     <div className="space-y-4">
       {!readOnly && <TableActions />}
+      
+      <ProductSelectorDialog
+        open={productSelectorOpen}
+        onOpenChange={setProductSelectorOpen}
+        onSelect={handleProductSelect}
+      />
       
       {/* Desktop View */}
       <div className="hidden md:block">
