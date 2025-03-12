@@ -27,6 +27,34 @@ export function useOrderCalculations() {
     }, 0);
   };
 
+  const calculateCapacityPercentage = (items: OrderItem[]): number => {
+    const totalEquivalents = calculateTotalPalletEquivalents(items);
+    const maxCapacity = 24; // Max truck capacity
+    return (totalEquivalents / maxCapacity) * 100;
+  };
+
+  // Group items by attributes for summary
+  const calculateItemGroups = (items: OrderItem[]) => {
+    const groups: Record<string, number> = {};
+    
+    items.forEach(item => {
+      const key = [
+        item.species,
+        item.bundleType,
+        item.length,
+        item.thickness
+      ].filter(Boolean).join(' - ');
+      
+      if (groups[key]) {
+        groups[key] += safeNumber(item.pallets);
+      } else {
+        groups[key] = safeNumber(item.pallets);
+      }
+    });
+    
+    return groups;
+  };
+
   // Added function to generate item name
   const generateItemName = (item: OrderItem): string => {
     const nameParts = [
@@ -50,6 +78,8 @@ export function useOrderCalculations() {
     generateItemName,
     calculateTotalPallets,
     calculateTotalPalletEquivalents,
+    calculateCapacityPercentage,
+    calculateItemGroups,
     safeNumber
   };
 }
