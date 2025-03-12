@@ -77,7 +77,7 @@ export function OrderTableDropdownCell({
     e.preventDefault();
     e.stopPropagation();
     
-    if (newOption.trim()) {
+    if (newOption && newOption.trim()) {
       onUpdateOptions(newOption);
       setShowNewOptionInput(false);
     }
