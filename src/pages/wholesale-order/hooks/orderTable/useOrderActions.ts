@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useWholesaleOrder } from "../../context/WholesaleOrderContext";
 import { DropdownOptions, OrderItem, initialOptions, safeNumber } from "../../types";
 import { generateEmptyOrderItem } from "../../utils";
+import { supabase } from "@/integrations/supabase/client";
 
 export function useOrderActions() {
   const { 
@@ -60,7 +61,7 @@ export function useOrderActions() {
       const value = target.value.trim();
 
       if (fieldName && value && lastOptionField) {
-        handleUpdateOptions(lastOptionField, value);
+        handleUpdateOptions(value);
         setLastOptionField(null);
       }
     }
@@ -75,41 +76,53 @@ export function useOrderActions() {
   };
 
   // Update dropdown options
-  const handleUpdateOptions = (
-    field: keyof DropdownOptions,
-    option: string
-  ) => {
-    console.log("Updating options for field:", field, "with new option:", option);
+  const handleUpdateOptions = async (option: string) => {
+    console.log("Updating options for field:", lastOptionField, "with new option:", option);
     
-    if (!option || option.trim() === "") {
-      console.log("Empty option, ignoring");
+    if (!option || option.trim() === "" || !lastOptionField) {
+      console.log("Empty option or no field selected, ignoring");
       setEditingField(null);
       return;
     }
 
-    // Create a deep copy of the current options
-    const updatedOptions = JSON.parse(JSON.stringify(options));
-    
-    // Initialize the field as an array if it doesn't exist
-    if (!Array.isArray(updatedOptions[field])) {
-      updatedOptions[field] = [];
+    try {
+      // Create a deep copy of the current options
+      const updatedOptions = JSON.parse(JSON.stringify(options));
+      
+      // Initialize the field as an array if it doesn't exist
+      if (!Array.isArray(updatedOptions[lastOptionField])) {
+        updatedOptions[lastOptionField] = [];
+      }
+      
+      // Check if we're editing an existing option
+      const existingIndex = updatedOptions[lastOptionField].indexOf(option);
+      
+      if (existingIndex === -1) {
+        // This is a new option, add it to the array
+        updatedOptions[lastOptionField] = [...updatedOptions[lastOptionField], option];
+        console.log("Added new option:", option);
+        
+        // Update the options in the database
+        const { error } = await supabase
+          .from('wholesale_order_options')
+          .update({ [lastOptionField]: updatedOptions[lastOptionField] })
+          .eq('id', 1);
+
+        if (error) {
+          console.error('Error updating options in database:', error);
+          throw error;
+        }
+      }
+      
+      // Set the updated options
+      console.log("Updated options:", updatedOptions);
+      setOptions(updatedOptions);
+      setEditingField(null);
+      
+    } catch (err) {
+      console.error('Error in handleUpdateOptions:', err);
+      throw err;
     }
-    
-    // Check if we're editing an existing option
-    const existingIndex = updatedOptions[field].indexOf(option);
-    
-    if (existingIndex === -1) {
-      // This is a new option, add it to the array
-      updatedOptions[field] = [...updatedOptions[field], option];
-      console.log("Added new option:", option);
-    }
-    
-    // Log the update for debugging
-    console.log("Updated options:", updatedOptions);
-    
-    // Set the updated options
-    setOptions(updatedOptions);
-    setEditingField(null);
   };
 
   // Calculate total order capacity in pallet equivalents

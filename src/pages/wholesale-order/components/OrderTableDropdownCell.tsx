@@ -73,13 +73,13 @@ export function OrderTableDropdownCell({
     }
   };
 
-  const handleSaveOption = (e: React.MouseEvent | React.KeyboardEvent) => {
+  const handleSaveOption = async (e: React.MouseEvent | React.KeyboardEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
     if (newOption && newOption.trim()) {
       console.log("Saving option:", newOption, "for field:", fieldName);
-      onUpdateOptions(newOption);
+      await onUpdateOptions(newOption);
       setShowNewOptionInput(false);
       onNewOptionChange(""); // Clear the input after saving
     }
