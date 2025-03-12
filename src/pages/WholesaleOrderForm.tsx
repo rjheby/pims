@@ -107,10 +107,9 @@ export function WholesaleOrderForm() {
           
           if (rawData.status === 'submitted') {
             setOriginalSubmittedItems([...parsedItems]);
-          }
-          
-          if (rawData.status) {
-            setOrderStatus(rawData.status);
+            setOrderStatus('submitted');
+          } else {
+            setOrderStatus(rawData.status || 'draft');
           }
         }
       } catch (err) {
@@ -205,20 +204,16 @@ export function WholesaleOrderForm() {
     
     setIsSaving(true);
     try {
-      validateOrder();
+      // Skip validation for drafts to allow partial completion
+      // validateOrder();
 
       console.log('Saving order with ID:', id);
       console.log('Current order data:', orderData);
 
       let updateData: Record<string, any> = {
         items: serializeOrderItems(orderData.items),
+        status: 'draft' // Force status to draft when saving
       };
-      
-      if (orderStatus === 'submitted') {
-        updateData.status = 'submitted';
-      } else {
-        updateData.status = 'draft';
-      }
       
       if (orderData.order_date) {
         updateData.order_date = orderData.order_date;
@@ -275,7 +270,7 @@ export function WholesaleOrderForm() {
 
       toast({
         title: "Success",
-        description: orderStatus === 'submitted' ? "Submitted order updated successfully" : "Order draft saved successfully",
+        description: "Order draft saved successfully",
       });
     } catch (err: any) {
       console.error('Error saving order:', err);

@@ -84,16 +84,16 @@ export function useOrderActions() {
     }
 
     // Create a deep copy of the current options
-    const updatedOptions = { ...options };
+    const updatedOptions = JSON.parse(JSON.stringify(options));
     
     // Ensure the field exists and is an array before updating
-    if (!updatedOptions[field]) {
+    if (!updatedOptions[field] || !Array.isArray(updatedOptions[field])) {
       updatedOptions[field] = [];
     }
     
     // Check if we're editing an existing option (by checking if it already exists)
     const existingOptionIndex = updatedOptions[field].findIndex(
-      (existingOption) => existingOption === option
+      (existingOption: string) => existingOption === option
     );
     
     if (existingOptionIndex === -1) {

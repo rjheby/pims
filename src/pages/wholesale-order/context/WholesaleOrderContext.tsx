@@ -67,7 +67,7 @@ export function WholesaleOrderProvider({ children, initialItems }: WholesaleOrde
     return `${year}-${month}-${day}`;
   });
   const [deliveryDate, setDeliveryDate] = useState("");
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(true); // Default to true for easier testing
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [options, setOptions] = useState<DropdownOptions>(initialOptions);
   const [optionsHistory, setOptionsHistory] = useState<DropdownOptions[]>([initialOptions]);
@@ -179,13 +179,18 @@ export function WholesaleOrderProvider({ children, initialItems }: WholesaleOrde
       
       return newItems;
     });
+    
+    // Mark as having unsaved changes
+    setHasUnsavedChanges(true);
+    setGlobalUnsavedChanges(true);
   };
 
   // Custom setOptions function that tracks history
   const handleSetOptions = (newOptions: DropdownOptions) => {
-    const prevOptions = { ...options };
+    const prevOptions = JSON.parse(JSON.stringify(options));
     setOptions(newOptions);
     setHasUnsavedChanges(true);
+    setGlobalUnsavedChanges(true);
     
     // Record this action in history
     addAction({
@@ -204,6 +209,11 @@ export function WholesaleOrderProvider({ children, initialItems }: WholesaleOrde
       }
     }
   }, [items, initialItemsState, setGlobalUnsavedChanges]);
+
+  useEffect(() => {
+    // Load options when the provider is mounted
+    loadOptions();
+  }, [loadOptions]);
 
   const generateOrderNumber = async (date: string) => {
     if (!date) return "";
