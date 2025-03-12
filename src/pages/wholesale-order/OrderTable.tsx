@@ -1,3 +1,4 @@
+
 import { useEffect } from "react";
 import { Plus } from "lucide-react";
 import { OrderTableRow } from "./components/OrderTableRow";
@@ -93,8 +94,34 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
     }
   };
 
+  const handleAddEmptyRow = () => {
+    try {
+      handleAddItem();
+      toast({
+        title: "Success",
+        description: "New row added",
+      });
+    } catch (error) {
+      console.error("Error adding row:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add row",
+        variant: "destructive"
+      });
+    }
+  };
+
   const TableActions = () => (
-    <div className="flex justify-end mb-4">
+    <div className="flex justify-between mb-4">
+      <Button 
+        onClick={handleAddEmptyRow}
+        className="bg-[#2A4131] hover:bg-[#2A4131]/90"
+        disabled={readOnly}
+      >
+        <Plus className="mr-2 h-4 w-4" />
+        Add Empty Row
+      </Button>
+      
       <Button 
         onClick={() => setProductSelectorOpen(true)}
         className="bg-[#2A4131] hover:bg-[#2A4131]/90"
@@ -109,13 +136,22 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
   const EmptyState = () => (
     <div className="text-center py-10 border rounded-md bg-gray-50">
       <p className="text-gray-500 mb-4">No items added yet</p>
-      <Button 
-        onClick={() => setProductSelectorOpen(true)}
-        className="bg-[#2A4131] hover:bg-[#2A4131]/90"
-      >
-        <Plus className="mr-2 h-4 w-4" />
-        Add Your First Product
-      </Button>
+      <div className="flex justify-center gap-4">
+        <Button 
+          onClick={handleAddEmptyRow}
+          className="bg-[#2A4131] hover:bg-[#2A4131]/90"
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Add Empty Row
+        </Button>
+        <Button 
+          onClick={() => setProductSelectorOpen(true)}
+          className="bg-[#2A4131] hover:bg-[#2A4131]/90"
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Add Product
+        </Button>
+      </div>
     </div>
   );
 
@@ -140,6 +176,7 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
           data={tableData}
           onSortChange={handleSortChange}
           onFilterChange={handleFilterChange}
+          onAddRow={handleAddEmptyRow}
         >
           {tableData.map(item => (
             <OrderTableRow

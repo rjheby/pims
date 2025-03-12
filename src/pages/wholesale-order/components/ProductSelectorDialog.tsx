@@ -43,6 +43,7 @@ export function ProductSelectorDialog({
   const [selectedBundleType, setSelectedBundleType] = useState("");
   const [selectedPackaging, setSelectedPackaging] = useState("Pallets");
   const [unitCost, setUnitCost] = useState(250);
+  const [quantity, setQuantity] = useState(0);
 
   const handleSelect = () => {
     const product: Partial<OrderItem> = {
@@ -52,7 +53,7 @@ export function ProductSelectorDialog({
       bundleType: selectedBundleType,
       packaging: selectedPackaging,
       unitCost: unitCost,
-      pallets: 0,
+      pallets: quantity,
     };
     onSelect(product);
     onOpenChange(false);
@@ -66,6 +67,7 @@ export function ProductSelectorDialog({
     setSelectedBundleType("");
     setSelectedPackaging("Pallets");
     setUnitCost(250);
+    setQuantity(0);
     setEditingField(null);
     setNewOption("");
   };
@@ -146,6 +148,18 @@ export function ProductSelectorDialog({
     </div>
   );
 
+  // Capacity explanation based on packaging type
+  const getCapacityInfo = () => {
+    if (selectedPackaging === "12x10\" Boxes") {
+      return (
+        <div className="text-sm text-amber-600 mt-2">
+          Note: 60 boxes (12x10") = 1 pallet equivalent for capacity calculations
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] bg-white">
@@ -173,6 +187,18 @@ export function ProductSelectorDialog({
                 placeholder="Enter unit cost"
                 min={0}
               />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-lg font-semibold">Quantity</label>
+              <Input
+                type="number"
+                value={quantity}
+                onChange={(e) => setQuantity(Number(e.target.value))}
+                placeholder="Enter quantity"
+                min={0}
+              />
+              {getCapacityInfo()}
             </div>
           </div>
 

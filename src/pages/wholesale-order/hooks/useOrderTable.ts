@@ -1,3 +1,4 @@
+
 import { useWholesaleOrder } from "../context/WholesaleOrderContext";
 import { OrderItem, initialOptions, safeNumber } from "../types";
 import { useOrderActions } from "./orderTable/useOrderActions";
@@ -31,7 +32,13 @@ export function useOrderTable() {
   };
 
   const orderActions = useOrderActions();
-  const { generateItemName, calculateTotalPallets, calculateTotalCost, formatCurrency } = useOrderCalculations();
+  const { 
+    generateItemName, 
+    calculateTotalPallets, 
+    calculateTotalCost, 
+    calculateTotalPalletEquivalents,
+    formatCurrency 
+  } = useOrderCalculations();
   const orderFiltering = useOrderFiltering();
   const orderDisplay = useOrderDisplay();
   const { hasValidItems } = useOrderValidation(items);
@@ -52,7 +59,7 @@ export function useOrderTable() {
         bundleType: productData?.bundleType || "",
         thickness: productData?.thickness || "",
         packaging: productData?.packaging || "Pallets",
-        pallets: 0,
+        pallets: productData?.pallets || 0,
         unitCost: productData?.unitCost || 250,
       };
       
@@ -65,7 +72,7 @@ export function useOrderTable() {
   }, [setItems]);
 
   const calculateTotalCapacity = () => {
-    return orderActions.calculateTotalCapacity(items);
+    return calculateTotalPalletEquivalents(items);
   };
 
   return {
@@ -90,6 +97,7 @@ export function useOrderTable() {
     calculateTotalPallets,
     calculateTotalCost,
     calculateTotalCapacity,
+    calculateTotalPalletEquivalents,
     formatCurrency,
     sortConfig: orderFiltering.sortConfig,
     setSortConfig: orderFiltering.setSortConfig,
