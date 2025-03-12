@@ -18,6 +18,7 @@ export function useOrderActions() {
 
   // Update an item in the order
   const handleUpdateItem = (updatedItem: OrderItem) => {
+    console.log('Updating item:', updatedItem);
     setItems(
       items.map((item) => (item.id === updatedItem.id ? updatedItem : item))
     );
@@ -25,11 +26,13 @@ export function useOrderActions() {
 
   // Remove a row from the order
   const handleRemoveRow = (id: number) => {
+    console.log('Removing row:', id);
     setItems(items.filter((item) => item.id !== id));
   };
 
   // Copy a row in the order
   const handleCopyRow = (itemToCopy: OrderItem) => {
+    console.log('Copying row:', itemToCopy);
     const newItem = {
       ...itemToCopy,
       id: Date.now(),
@@ -39,6 +42,7 @@ export function useOrderActions() {
 
   // Add a new empty item to the order
   const handleAddItem = () => {
+    console.log('Adding new item');
     const newItem = generateEmptyOrderItem();
     setItems([...items, newItem]);
   };
@@ -86,17 +90,15 @@ export function useOrderActions() {
     // Create a deep copy of the current options
     const updatedOptions = JSON.parse(JSON.stringify(options));
     
-    // Ensure the field exists and is an array before updating
-    if (!updatedOptions[field] || !Array.isArray(updatedOptions[field])) {
+    // Initialize the field as an array if it doesn't exist
+    if (!Array.isArray(updatedOptions[field])) {
       updatedOptions[field] = [];
     }
     
-    // Check if we're editing an existing option (by checking if it already exists)
-    const existingOptionIndex = updatedOptions[field].findIndex(
-      (existingOption: string) => existingOption === option
-    );
+    // Check if we're editing an existing option
+    const existingIndex = updatedOptions[field].indexOf(option);
     
-    if (existingOptionIndex === -1) {
+    if (existingIndex === -1) {
       // This is a new option, add it to the array
       updatedOptions[field] = [...updatedOptions[field], option];
       console.log("Added new option:", option);
@@ -110,19 +112,16 @@ export function useOrderActions() {
     setEditingField(null);
   };
 
-  // Calculate item capacity in pallet equivalents
-  const calculateItemCapacity = (item: OrderItem): number => {
-    // If packaging is "12x10" Boxes", convert to pallet equivalents (60 boxes = 1 pallet)
-    if (item.packaging === "12x10\" Boxes") {
-      return safeNumber(item.pallets) / 60;
-    }
-    // For all other packaging types (including "Pallets"), use actual pallet count
-    return safeNumber(item.pallets);
-  };
-
   // Calculate total order capacity in pallet equivalents
   const calculateTotalCapacity = (orderItems: OrderItem[]): number => {
-    return orderItems.reduce((total, item) => total + calculateItemCapacity(item), 0);
+    return orderItems.reduce((total, item) => {
+      // If packaging is "12x10" Boxes", convert to pallet equivalents (60 boxes = 1 pallet)
+      if (item.packaging === "12x10\" Boxes") {
+        return total + (safeNumber(item.pallets) / 60);
+      }
+      // For all other packaging types, use actual pallet count
+      return total + safeNumber(item.pallets);
+    }, 0);
   };
 
   return {
@@ -133,7 +132,6 @@ export function useOrderActions() {
     handleKeyPress,
     handleUpdateOptions,
     handleStartEditingField,
-    calculateItemCapacity,
     calculateTotalCapacity,
   };
 }

@@ -48,7 +48,7 @@ export function OrderTableDropdownCell({
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === "Enter") {
       event.preventDefault();
-      onPress(event);
+      handleSaveOption(event);
     }
   };
 
@@ -73,13 +73,14 @@ export function OrderTableDropdownCell({
     }
   };
 
-  const handleSaveOption = (e: React.MouseEvent) => {
+  const handleSaveOption = (e: React.MouseEvent | React.KeyboardEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
     if (newOption && newOption.trim()) {
       onUpdateOptions(newOption);
       setShowNewOptionInput(false);
+      onNewOptionChange(""); // Clear the input after saving
     }
   };
 
