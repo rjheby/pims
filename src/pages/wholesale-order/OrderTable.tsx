@@ -78,7 +78,12 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
 
   const AddRowButton = ({ fullWidth = false, text = "Add Row" }) => (
     <Button 
-      onClick={handleAddItem}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log("Add row button clicked");
+        handleAddItem();
+      }}
       className={`bg-[#2A4131] hover:bg-[#2A4131]/90 ${fullWidth ? 'w-full' : ''}`}
     >
       <Plus className="mr-2 h-4 w-4" />

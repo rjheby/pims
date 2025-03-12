@@ -4,6 +4,7 @@ import { useWholesaleOrder } from "../../context/WholesaleOrderContext";
 import { DropdownOptions, OrderItem, initialOptions, safeNumber } from "../../types";
 import { generateEmptyOrderItem } from "../../utils";
 import { handleOptionOperation } from "../../utils/optionManagement";
+import { toast } from "sonner";
 
 export function useOrderActions() {
   const { 
@@ -44,8 +45,18 @@ export function useOrderActions() {
   // Add a new empty item to the order
   const handleAddItem = () => {
     console.log('Adding new item');
-    const newItem = generateEmptyOrderItem();
-    setItems([...items, newItem]);
+    try {
+      const newItem = generateEmptyOrderItem();
+      console.log('Generated new item:', newItem);
+      setItems(prevItems => {
+        console.log('Previous items:', prevItems);
+        return [...prevItems, newItem];
+      });
+      toast.success("New row added");
+    } catch (error) {
+      console.error('Error adding new item:', error);
+      toast.error("Failed to add new row");
+    }
   };
 
   // Handle key press events in the form
