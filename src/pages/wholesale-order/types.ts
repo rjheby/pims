@@ -31,7 +31,7 @@ export interface OrderItem {
   packaging: string;
   pallets: number;
   unitCost: number;
-  productId?: string; // Added to match usage in code
+  productId?: string;
 }
 
 // OrderTable dropdown options
@@ -125,7 +125,7 @@ export interface FirewoodProduct {
   package_size: string;
   item_full_name: string;
   item_name: string;
-  split_size: string;  // Similar to thickness in wood products
+  split_size: string;
   product_type: string;
   minimum_quantity: number;
   image_reference?: string;
