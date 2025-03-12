@@ -1,16 +1,12 @@
 
 import { useEffect } from "react";
 import { Plus } from "lucide-react";
-
-// Components
 import { OrderTableRow } from "./components/OrderTableRow";
 import { OrderTableMobileRow } from "./components/OrderTableMobileRow";
 import { BaseOrderTable } from "@/components/templates/BaseOrderTable";
 import { Button } from "@/components/ui/button";
-
-// Hooks and Types
 import { useOrderTable } from "./hooks/useOrderTable";
-import { OrderItem, calculateItemTotal, safeNumber } from "./types";
+import { OrderItem } from "./types";
 import { useToast } from "@/hooks/use-toast";
 
 interface OrderTableProps {
@@ -20,7 +16,6 @@ interface OrderTableProps {
 
 export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps) {
   const { toast } = useToast();
-  
   const {
     items,
     options,
@@ -50,25 +45,25 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
     }
   }, [items, onItemsChange]);
 
-  // Define column widths that will scale proportionally
+  // Define consistent column widths and alignments
   const headers = [
-    { key: 'name', label: 'Name', sortable: true, className: 'w-[22%] text-center' },
+    { key: 'name', label: 'Name', sortable: true, className: 'w-[22%] text-left px-4' },
     ...optionFields.map(field => ({
       key: field,
       label: field.charAt(0).toUpperCase() + field.slice(1),
       sortable: true,
-      className: `w-[10%] text-center`
+      className: 'w-[10%] text-center px-2'
     })),
-    { key: 'pallets', label: 'QTY', sortable: true, className: 'w-[8%] text-center' },
-    { key: 'unitCost', label: 'Unit Cost', sortable: true, className: 'w-[10%] text-center' },
-    { key: 'totalCost', label: 'Total Cost', sortable: true, className: 'w-[10%] text-center' },
-    { key: 'actions', label: 'Actions', className: 'w-[10%] text-center' }
+    { key: 'pallets', label: 'QTY', sortable: true, className: 'w-[8%] text-center px-2' },
+    { key: 'unitCost', label: 'Unit Cost', sortable: true, className: 'w-[10%] text-right px-2' },
+    { key: 'totalCost', label: 'Total Cost', sortable: true, className: 'w-[10%] text-right px-2' },
+    { key: 'actions', label: '', className: 'w-[10%] text-center px-2' }
   ];
 
   const tableData = items.map(item => ({
     ...item,
     name: generateItemName(item),
-    totalCost: safeNumber(item.pallets) * safeNumber(item.unitCost)
+    totalCost: Number(item.pallets) * Number(item.unitCost)
   }));
 
   const handleSortChange = (key: string, direction: 'asc' | 'desc') => {
@@ -79,12 +74,9 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
     setFilterValue(filter);
   };
 
-  const addNewRow = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
+  const addNewRow = () => {
     try {
-      console.log("Add row button clicked - direct handler");
+      console.log("Add row button clicked");
       handleAddItem();
       toast({
         title: "Success",
@@ -99,6 +91,19 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
       });
     }
   };
+
+  const TableActions = () => (
+    <div className="flex justify-end mb-4">
+      <Button 
+        onClick={addNewRow}
+        className="bg-[#2A4131] hover:bg-[#2A4131]/90"
+        disabled={readOnly}
+      >
+        <Plus className="mr-2 h-4 w-4" />
+        Add New Row
+      </Button>
+    </div>
+  );
 
   const EmptyState = () => (
     <div className="text-center py-10 border rounded-md bg-gray-50">
@@ -119,6 +124,8 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
 
   return (
     <div className="space-y-4">
+      {!readOnly && <TableActions />}
+      
       {/* Desktop View */}
       <div className="hidden md:block">
         <BaseOrderTable
@@ -126,7 +133,6 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
           data={tableData}
           onSortChange={handleSortChange}
           onFilterChange={handleFilterChange}
-          onAddRow={!readOnly ? addNewRow : undefined}
         >
           {tableData.map(item => (
             <OrderTableRow
@@ -181,18 +187,6 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
           ))}
         </div>
       </div>
-      
-      {!readOnly && items.length > 0 && (
-        <div className="flex justify-center mt-4">
-          <Button 
-            onClick={addNewRow}
-            className="bg-[#2A4131] hover:bg-[#2A4131]/90 w-full md:w-auto"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Add New Row
-          </Button>
-        </div>
-      )}
     </div>
   );
 }
