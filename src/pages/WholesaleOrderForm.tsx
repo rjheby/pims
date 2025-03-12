@@ -14,6 +14,7 @@ import { BaseOrderSummary } from "@/components/templates/BaseOrderSummary";
 import { BaseOrderActions } from "@/components/templates/BaseOrderActions";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { updateInventoryFromOrder } from "./wholesale-order/utils/inventoryUtils";
+import { useOrderCalculations } from "./wholesale-order/hooks/orderTable/useOrderCalculations";
 
 interface DatabaseOrderData {
   id: string;
@@ -450,7 +451,8 @@ export function WholesaleOrderForm() {
     const totalEquivalentPallets = calculateTotalEquivalentPallets();
     const capacityPercentage = (totalEquivalentPallets / 24) * 100;
     const maxLoad = 24;
-    const itemGroups = useOrderCalculations().calculateItemGroups(orderData?.items || []);
+    const { calculateItemGroups } = useOrderCalculations();
+    const itemGroups = calculateItemGroups(orderData?.items || []);
     
     return (
       <div className="mt-4 pt-4 border-t border-gray-200 space-y-4">
