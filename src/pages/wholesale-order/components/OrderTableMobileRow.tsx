@@ -149,7 +149,7 @@ export function OrderTableMobileRow({
           ))}
 
           <div className="grid grid-cols-2 gap-2 items-center">
-            <Label htmlFor={`pallets-${item.id}`} className="text-center">Pallets</Label>
+            <Label htmlFor={`pallets-${item.id}`} className="text-center">QTY</Label>
             <Input
               id={`pallets-${item.id}`}
               type="number"

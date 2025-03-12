@@ -56,7 +56,7 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
       sortable: true,
       className: `w-[10%] text-center`
     })),
-    { key: 'pallets', label: 'Qty', sortable: true, className: 'w-[8%] text-center' },
+    { key: 'pallets', label: 'QTY', sortable: true, className: 'w-[8%] text-center' },
     { key: 'unitCost', label: 'Unit Cost', sortable: true, className: 'w-[10%] text-center' },
     { key: 'totalCost', label: 'Total Cost', sortable: true, className: 'w-[10%] text-center' },
     { key: 'actions', label: 'Actions', className: 'w-[10%] text-center' }
