@@ -78,6 +78,7 @@ export function OrderTableDropdownCell({
     e.stopPropagation();
     
     if (newOption && newOption.trim()) {
+      console.log("Saving option:", newOption, "for field:", fieldName);
       onUpdateOptions(newOption);
       setShowNewOptionInput(false);
       onNewOptionChange(""); // Clear the input after saving
