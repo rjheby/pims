@@ -10,6 +10,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { ProductSelector } from "./ProductSelector";
 import { OrderTableDropdownCell } from "./OrderTableDropdownCell";
+import { useWholesaleOrder } from "../context/WholesaleOrderContext";
 
 interface OrderTableMobileRowProps {
   item: OrderItem;
@@ -53,6 +54,7 @@ export function OrderTableMobileRow({
   readOnly = false,
 }: OrderTableMobileRowProps) {
   const [showProductSelector, setShowProductSelector] = useState(false);
+  const { setOptions } = useWholesaleOrder();
 
   const handleProductSelect = (product: WoodProduct) => {
     onUpdateItem({
@@ -72,6 +74,11 @@ export function OrderTableMobileRow({
     if (!readOnly) {
       setShowProductSelector(true);
     }
+  };
+
+  const handleOptionsUpdated = (updatedOptions: DropdownOptions) => {
+    console.log("Options updated in OrderTableMobileRow:", updatedOptions);
+    setOptions(updatedOptions);
   };
   
   return (
@@ -139,6 +146,7 @@ export function OrderTableMobileRow({
                   onNewOptionChange={onNewOptionChange}
                   onUpdateItem={(value) => onUpdateItem({ ...item, [field]: value })}
                   onUpdateOptions={(option) => onUpdateOptions(field as keyof DropdownOptions, option)}
+                  onOptionsUpdated={handleOptionsUpdated}
                   onPress={(e) => onKeyPress(e, field)}
                   onStartEditing={onStartEditing}
                   isAdmin={isAdmin}

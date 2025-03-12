@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DropdownOptions } from "../types";
+import { handleOptionOperation } from "../utils/optionManagement";
 
 interface OrderTableDropdownCellProps {
   fieldName: keyof DropdownOptions;
@@ -23,6 +24,7 @@ interface OrderTableDropdownCellProps {
   onUpdateOptions: (option: string) => void;
   onPress: (event: any) => void;
   onStartEditing?: (fieldName: keyof DropdownOptions) => void;
+  onOptionsUpdated?: (updatedOptions: DropdownOptions) => void;
   isAdmin: boolean;
   readOnly?: boolean;
 }
@@ -38,12 +40,14 @@ export function OrderTableDropdownCell({
   onUpdateOptions,
   onPress,
   onStartEditing,
+  onOptionsUpdated,
   isAdmin,
   readOnly = false,
 }: OrderTableDropdownCellProps) {
   const isEditing = editingField === fieldName;
   const [showNewOptionInput, setShowNewOptionInput] = useState(false);
   const [editableOption, setEditableOption] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === "Enter") {
@@ -77,11 +81,50 @@ export function OrderTableDropdownCell({
     e.preventDefault();
     e.stopPropagation();
     
-    if (newOption && newOption.trim()) {
+    if (!newOption || newOption.trim() === "") {
+      setShowNewOptionInput(false);
+      return;
+    }
+    
+    setIsProcessing(true);
+    
+    try {
       console.log("Saving option:", newOption, "for field:", fieldName);
-      await onUpdateOptions(newOption);
+      
+      // Get all current options from our context via hook
+      const allCurrentOptions = {} as DropdownOptions;
+      
+      // Convert array of options for this field to a full DropdownOptions object
+      allCurrentOptions[fieldName] = options;
+      
+      // Determine if this is adding or updating an option
+      const operation = editableOption ? 'update' : 'add';
+      
+      // Use the utility function to handle the option operation
+      const updatedOptions = await handleOptionOperation(
+        operation, 
+        fieldName, 
+        newOption, 
+        allCurrentOptions, 
+        editableOption
+      );
+      
+      if (updatedOptions && onOptionsUpdated) {
+        // Notify parent component of the updated options
+        onOptionsUpdated(updatedOptions);
+      }
+      
+      // If we're adding a new option, also send it to the callback for updating options
+      if (operation === 'add' && updatedOptions) {
+        onUpdateOptions(newOption);
+      }
+      
       setShowNewOptionInput(false);
       onNewOptionChange(""); // Clear the input after saving
+    } catch (error) {
+      console.error("Error saving option:", error);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -96,15 +139,17 @@ export function OrderTableDropdownCell({
           className="h-8 w-full text-sm text-center"
           autoFocus
           placeholder={editableOption ? `Edit ${fieldName}...` : `New ${fieldName}...`}
+          disabled={isProcessing}
         />
         <Button
           variant="outline"
           size="sm"
           onClick={handleSaveOption}
           className="mt-1 sm:mt-0 whitespace-nowrap text-xs"
+          disabled={isProcessing}
         >
           <CheckCircle className="h-3 w-3 mr-1" />
-          Save
+          {isProcessing ? "Saving..." : "Save"}
         </Button>
       </div>
     );

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useWholesaleOrder } from "../../context/WholesaleOrderContext";
 import { DropdownOptions, OrderItem, initialOptions, safeNumber } from "../../types";
 import { generateEmptyOrderItem } from "../../utils";
-import { supabase } from "@/integrations/supabase/client";
+import { handleOptionOperation } from "../../utils/optionManagement";
 
 export function useOrderActions() {
   const { 
@@ -86,43 +86,32 @@ export function useOrderActions() {
     }
 
     try {
-      // Create a deep copy of the current options
-      const updatedOptions = JSON.parse(JSON.stringify(options));
+      // Use the utility function to handle adding the option
+      const updatedOptions = await handleOptionOperation(
+        'add',
+        lastOptionField,
+        option,
+        options
+      );
       
-      // Initialize the field as an array if it doesn't exist
-      if (!Array.isArray(updatedOptions[lastOptionField])) {
-        updatedOptions[lastOptionField] = [];
+      if (updatedOptions) {
+        console.log("Updated options:", updatedOptions);
+        setOptions(updatedOptions);
       }
       
-      // Check if we're editing an existing option
-      const existingIndex = updatedOptions[lastOptionField].indexOf(option);
-      
-      if (existingIndex === -1) {
-        // This is a new option, add it to the array
-        updatedOptions[lastOptionField] = [...updatedOptions[lastOptionField], option];
-        console.log("Added new option:", option);
-        
-        // Update the options in the database
-        const { error } = await supabase
-          .from('wholesale_order_options')
-          .update({ [lastOptionField]: updatedOptions[lastOptionField] })
-          .eq('id', 1);
-
-        if (error) {
-          console.error('Error updating options in database:', error);
-          throw error;
-        }
-      }
-      
-      // Set the updated options
-      console.log("Updated options:", updatedOptions);
-      setOptions(updatedOptions);
+      // Clear the editing state
       setEditingField(null);
       
     } catch (err) {
       console.error('Error in handleUpdateOptions:', err);
-      throw err;
     }
+  };
+
+  // Set updated options from the dropdown cell component
+  const handleOptionsUpdated = (updatedOptions: DropdownOptions) => {
+    console.log("Setting updated options:", updatedOptions);
+    setOptions(updatedOptions);
+    setEditingField(null);
   };
 
   // Calculate total order capacity in pallet equivalents
@@ -145,6 +134,7 @@ export function useOrderActions() {
     handleKeyPress,
     handleUpdateOptions,
     handleStartEditingField,
+    handleOptionsUpdated,
     calculateTotalCapacity,
   };
 }

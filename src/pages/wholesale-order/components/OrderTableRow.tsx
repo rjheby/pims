@@ -1,3 +1,4 @@
+
 import {
   ChevronDown,
   ChevronUp,
@@ -24,6 +25,7 @@ import { OrderItem, DropdownOptions, WoodProduct, safeNumber } from "../types";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { ProductSelector } from "./ProductSelector";
 import { OrderTableDropdownCell } from "./OrderTableDropdownCell";
+import { useWholesaleOrder } from "../context/WholesaleOrderContext";
 
 interface OrderTableRowProps {
   item: OrderItem;
@@ -66,6 +68,7 @@ export function OrderTableRow({
 }: OrderTableRowProps) {
   const optionFields = Object.keys(options) as Array<keyof typeof options>;
   const [showProductSelector, setShowProductSelector] = useState(false);
+  const { setOptions } = useWholesaleOrder();
 
   const handleProductSelect = (product: WoodProduct) => {
     onUpdateItem({
@@ -84,6 +87,11 @@ export function OrderTableRow({
     if (!readOnly) {
       setShowProductSelector(true);
     }
+  };
+
+  const handleOptionsUpdated = (updatedOptions: DropdownOptions) => {
+    console.log("Options updated in OrderTableRow:", updatedOptions);
+    setOptions(updatedOptions);
   };
 
   return (
@@ -136,6 +144,7 @@ export function OrderTableRow({
               onNewOptionChange={onNewOptionChange}
               onUpdateItem={(value) => onUpdateItem({ ...item, [field]: value })}
               onUpdateOptions={(option) => onUpdateOptions(field, option)}
+              onOptionsUpdated={handleOptionsUpdated}
               onPress={onKeyPress}
               onStartEditing={onStartEditing}
               isAdmin={isAdmin}
