@@ -39,3 +39,50 @@ export interface DeliveryStop {
   created_at?: string;
   updated_at?: string;
 }
+
+export interface Customer {
+  id: string;
+  name: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  notes?: string;
+  type?: string;
+}
+
+export interface Driver {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  status?: string;
+}
+
+export interface StopFormData {
+  customer_id: string | null;
+  notes: string | null;
+  driver_id: string | null;
+  items: string | null;
+  stop_number?: number;
+}
+
+export const DELIVERY_STATUS_OPTIONS = [
+  { value: 'scheduled', label: 'Scheduled' },
+  { value: 'in-progress', label: 'In Progress' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'cancelled', label: 'Cancelled' }
+];
+
+export const getStatusBadgeVariant = (status?: string) => {
+  switch (status?.toLowerCase()) {
+    case 'completed':
+      return 'success';
+    case 'in-progress':
+      return 'warning';
+    case 'cancelled':
+      return 'destructive';
+    case 'scheduled':
+    default:
+      return 'outline';
+  }
+};

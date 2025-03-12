@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Loader2, Plus, Minus, Trash } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { FirewoodProduct } from "./types";
+import { FirewoodProduct, RecurringOrderSettings } from "./types";
 import { RecurringOrderForm, RecurrenceData } from "./RecurringOrderForm";
 
 interface ItemSelectorProps {

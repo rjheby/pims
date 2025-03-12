@@ -12,6 +12,7 @@ import { CustomerSelector } from "./CustomerSelector";
 import { ItemSelector } from "./ItemSelector";
 import { Driver, DeliveryStop, StopFormData, Customer } from "./types";
 import { calculatePrice } from "./utils";
+import { RecurrenceData } from "./RecurringOrderForm";
 
 interface StopsTableProps {
   stops: DeliveryStop[];
@@ -46,6 +47,10 @@ const StopsTable = ({
   const [isAddingNewStop, setIsAddingNewStop] = useState(false);
   const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
   const [itemsDialogOpen, setItemsDialogOpen] = useState(false);
+  const [recurrenceData, setRecurrenceData] = useState<RecurrenceData>({ 
+    isRecurring: false, 
+    frequency: 'none'
+  });
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -140,6 +145,22 @@ const StopsTable = ({
       items: stopToEdit.items || null,
       stop_number: stopToEdit.stop_number || index + 1,
     });
+    
+    // Set recurrence data if available
+    if (stopToEdit.recurring) {
+      setRecurrenceData({
+        isRecurring: stopToEdit.recurring.isRecurring,
+        frequency: stopToEdit.recurring.frequency,
+        preferredDay: stopToEdit.recurring.preferredDay,
+        startDate: stopToEdit.recurring.startDate,
+        endDate: stopToEdit.recurring.endDate
+      });
+    } else {
+      setRecurrenceData({
+        isRecurring: false,
+        frequency: 'none'
+      });
+    }
   };
 
   const handleEditSave = () => {
@@ -162,6 +183,13 @@ const StopsTable = ({
       customer_address: selectedCustomer?.address,
       customer_phone: selectedCustomer?.phone,
       driver_name: selectedDriver?.name,
+      recurring: recurrenceData.isRecurring ? {
+        isRecurring: recurrenceData.isRecurring,
+        frequency: recurrenceData.frequency,
+        preferredDay: recurrenceData.preferredDay,
+        startDate: recurrenceData.startDate,
+        endDate: recurrenceData.endDate
+      } : undefined
     };
     
     console.log("Updated stop data:", updatedStop);
@@ -178,6 +206,10 @@ const StopsTable = ({
     setIsAddingNewStop(false);
     setCustomerDialogOpen(false);
     setItemsDialogOpen(false);
+    setRecurrenceData({
+      isRecurring: false,
+      frequency: 'none'
+    });
   };
 
   const handleEditCancel = () => {
@@ -299,12 +331,17 @@ const StopsTable = ({
     }
   };
   
-  const handleItemsSelect = (items: string) => {
+  const handleItemsSelect = (items: string, recurrenceInfo?: RecurrenceData) => {
     console.log("Selected items:", items);
     setEditForm(prev => ({
       ...prev,
       items
     }));
+    
+    // Store recurrence data if provided
+    if (recurrenceInfo) {
+      setRecurrenceData(recurrenceInfo);
+    }
     
     setItemsDialogOpen(false);
     
@@ -409,6 +446,7 @@ const StopsTable = ({
             onSelect={handleItemsSelect}
             onCancel={handleEditCancel}
             initialItems={editForm.items}
+            initialRecurrence={recurrenceData}
           />
         </DialogContent>
       </Dialog>

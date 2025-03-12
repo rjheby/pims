@@ -1,9 +1,15 @@
 
 import { useState } from 'react';
-import { Select } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
 import { recurrenceOptions, dayOptions } from './utils';
 
 interface RecurringOrderFormProps {
@@ -67,16 +73,16 @@ export const RecurringOrderForm = ({
               value={recurrenceData.frequency}
               onValueChange={(value) => handleChange('frequency', value)}
             >
-              <Select.Trigger id="frequency" className="w-full">
-                <Select.Value placeholder="Select frequency" />
-              </Select.Trigger>
-              <Select.Content>
+              <SelectTrigger id="frequency" className="w-full">
+                <SelectValue placeholder="Select frequency" />
+              </SelectTrigger>
+              <SelectContent>
                 {recurrenceOptions.filter(option => option.value !== 'none').map((option) => (
-                  <Select.Item key={option.value} value={option.value}>
+                  <SelectItem key={option.value} value={option.value}>
                     {option.label}
-                  </Select.Item>
+                  </SelectItem>
                 ))}
-              </Select.Content>
+              </SelectContent>
             </Select>
           </div>
           
@@ -86,16 +92,16 @@ export const RecurringOrderForm = ({
               value={recurrenceData.preferredDay}
               onValueChange={(value) => handleChange('preferredDay', value)}
             >
-              <Select.Trigger id="preferredDay" className="w-full">
-                <Select.Value placeholder="Select day" />
-              </Select.Trigger>
-              <Select.Content>
+              <SelectTrigger id="preferredDay" className="w-full">
+                <SelectValue placeholder="Select day" />
+              </SelectTrigger>
+              <SelectContent>
                 {dayOptions.map((option) => (
-                  <Select.Item key={option.value} value={option.value}>
+                  <SelectItem key={option.value} value={option.value}>
                     {option.label}
-                  </Select.Item>
+                  </SelectItem>
                 ))}
-              </Select.Content>
+              </SelectContent>
             </Select>
           </div>
           
