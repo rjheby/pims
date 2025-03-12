@@ -6,9 +6,12 @@ import { useOrderCalculations } from "./orderTable/useOrderCalculations";
 import { useOrderFiltering } from "./orderTable/useOrderFiltering";
 import { useOrderDisplay } from "./orderTable/useOrderDisplay";
 import { useOrderValidation } from "./orderTable/useOrderValidation";
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export function useOrderTable() {
+  const { toast } = useToast();
+  
   // Get context values first to maintain hook order
   const { 
     items = [], 
@@ -44,6 +47,24 @@ export function useOrderTable() {
   // Process items with sorting and filtering
   const processedItems = orderFiltering.applyFiltersAndSorting(items, generateItemName);
 
+  // Add a properly memoized handleAddItem function
+  const handleAddItem = useCallback(() => {
+    try {
+      orderActions.handleAddItem();
+      toast({
+        title: "Success",
+        description: "New row added successfully",
+      });
+    } catch (error) {
+      console.error("Error adding new row:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add new row",
+        variant: "destructive"
+      });
+    }
+  }, [orderActions, toast]);
+
   // Calculate total capacity considering box-to-pallet ratio
   const calculateTotalCapacity = () => {
     return orderActions.calculateTotalCapacity(items);
@@ -62,7 +83,7 @@ export function useOrderTable() {
     handleUpdateItem: orderActions.handleUpdateItem,
     handleRemoveRow: orderActions.handleRemoveRow,
     handleCopyRow: orderActions.handleCopyRow,
-    handleAddItem: orderActions.handleAddItem,
+    handleAddItem,
     generateItemName,
     handleUpdateOptions: orderActions.handleUpdateOptions,
     handleStartEditingField: orderActions.handleStartEditingField,

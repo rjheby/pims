@@ -1,8 +1,9 @@
+
 import { OrderItem } from "./types";
 
 export const generateEmptyOrderItem = (): OrderItem => {
-  // Use timestamp for guaranteed unique ID
-  const uniqueId = Date.now();
+  // Use timestamp plus random number for guaranteed unique ID
+  const uniqueId = Date.now() + Math.floor(Math.random() * 1000);
   console.log('Generating empty order item with ID:', uniqueId);
   
   return {

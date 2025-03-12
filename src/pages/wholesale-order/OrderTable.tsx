@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 // Hooks and Types
 import { useOrderTable } from "./hooks/useOrderTable";
 import { OrderItem, calculateItemTotal, safeNumber } from "./types";
+import { useToast } from "@/hooks/use-toast";
 
 interface OrderTableProps {
   readOnly?: boolean;
@@ -18,6 +19,8 @@ interface OrderTableProps {
 }
 
 export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps) {
+  const { toast } = useToast();
+  
   const {
     items,
     options,
@@ -76,27 +79,37 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
     setFilterValue(filter);
   };
 
-  // Completely rebuilt AddRowButton component with direct event handling
-  const AddRowButton = ({ fullWidth = false, text = "Add Row" }) => (
-    <Button 
-      type="button"
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        console.log("Add row button clicked - direct handler");
-        handleAddItem();
-      }}
-      className={`bg-[#2A4131] hover:bg-[#2A4131]/90 ${fullWidth ? 'w-full' : ''}`}
-    >
-      <Plus className="mr-2 h-4 w-4" />
-      {text}
-    </Button>
-  );
+  const addNewRow = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    try {
+      console.log("Add row button clicked - direct handler");
+      handleAddItem();
+      toast({
+        title: "Success",
+        description: "New row added successfully",
+      });
+    } catch (error) {
+      console.error("Error adding new row:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add new row",
+        variant: "destructive"
+      });
+    }
+  };
 
   const EmptyState = () => (
     <div className="text-center py-10 border rounded-md bg-gray-50">
       <p className="text-gray-500 mb-4">No items added yet</p>
-      <AddRowButton text="Add Your First Row" />
+      <Button 
+        onClick={addNewRow}
+        className="bg-[#2A4131] hover:bg-[#2A4131]/90"
+      >
+        <Plus className="mr-2 h-4 w-4" />
+        Add Your First Row
+      </Button>
     </div>
   );
 
@@ -105,46 +118,39 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
   }
 
   return (
-    <>
+    <div className="space-y-4">
       {/* Desktop View */}
       <div className="hidden md:block">
-        <div className="w-full p-4 md:p-6 lg:p-8">
-          <BaseOrderTable
-            headers={headers}
-            data={tableData}
-            onSortChange={handleSortChange}
-            onFilterChange={handleFilterChange}
-          >
-            {tableData.map(item => (
-              <OrderTableRow
-                key={item.id}
-                item={item}
-                options={options}
-                isAdmin={isAdmin}
-                editingField={editingField}
-                newOption={newOption}
-                onNewOptionChange={setNewOption}
-                onKeyPress={(e) => handleKeyPress(e, editingField || "")}
-                onUpdateItem={handleUpdateItem}
-                onRemoveRow={handleRemoveRow}
-                onCopyRow={handleCopyRow}
-                onAddItem={handleAddItem}
-                generateItemName={generateItemName}
-                onUpdateOptions={handleUpdateOptions}
-                onStartEditing={handleStartEditingField}
-                isCompressed={false}
-                onToggleCompressed={toggleCompressed}
-                readOnly={readOnly}
-              />
-            ))}
-          </BaseOrderTable>
-          
-          {!readOnly && (
-            <div className="mt-4 flex justify-end">
-              <AddRowButton />
-            </div>
-          )}
-        </div>
+        <BaseOrderTable
+          headers={headers}
+          data={tableData}
+          onSortChange={handleSortChange}
+          onFilterChange={handleFilterChange}
+          onAddRow={!readOnly ? addNewRow : undefined}
+        >
+          {tableData.map(item => (
+            <OrderTableRow
+              key={item.id}
+              item={item}
+              options={options}
+              isAdmin={isAdmin}
+              editingField={editingField}
+              newOption={newOption}
+              onNewOptionChange={setNewOption}
+              onKeyPress={(e) => handleKeyPress(e, editingField || "")}
+              onUpdateItem={handleUpdateItem}
+              onRemoveRow={handleRemoveRow}
+              onCopyRow={handleCopyRow}
+              onAddItem={handleAddItem}
+              generateItemName={generateItemName}
+              onUpdateOptions={handleUpdateOptions}
+              onStartEditing={handleStartEditingField}
+              isCompressed={false}
+              onToggleCompressed={toggleCompressed}
+              readOnly={readOnly}
+            />
+          ))}
+        </BaseOrderTable>
       </div>
 
       {/* Mobile View */}
@@ -173,14 +179,20 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
               readOnly={readOnly}
             />
           ))}
-          
-          {!readOnly && (
-            <div className="mt-4">
-              <AddRowButton fullWidth={true} />
-            </div>
-          )}
         </div>
       </div>
-    </>
+      
+      {!readOnly && items.length > 0 && (
+        <div className="flex justify-center mt-4">
+          <Button 
+            onClick={addNewRow}
+            className="bg-[#2A4131] hover:bg-[#2A4131]/90 w-full md:w-auto"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add New Row
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }

@@ -83,7 +83,8 @@ export function OrderTableRow({
     setShowProductSelector(false);
   };
   
-  const openProductSelector = () => {
+  const openProductSelector = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!readOnly) {
       setShowProductSelector(true);
     }
@@ -95,35 +96,32 @@ export function OrderTableRow({
   };
 
   return (
-    <TableRow>
+    <TableRow className="hover:bg-gray-50">
       <TableCell className="font-medium">
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center justify-center space-x-2">
           {isCompressed ? (
             <div
               className={cn(
                 "cursor-pointer hover:text-blue-600",
-                "flex space-x-2 items-center"
+                "flex space-x-2 items-center justify-center"
               )}
               onClick={() => onToggleCompressed(item.id)}
             >
               <ChevronDown className="h-4 w-4 flex-shrink-0" />
-              <span className="whitespace-normal text-center">{generateItemName(item)}</span>
+              <span className="truncate">{generateItemName(item)}</span>
             </div>
           ) : (
             <div
               className={cn(
                 "cursor-pointer hover:text-blue-600",
-                "flex space-x-2 items-center"
+                "flex space-x-2 items-center justify-center"
               )}
               onClick={() => onToggleCompressed(item.id)}
             >
               <ChevronUp className="h-4 w-4 flex-shrink-0" />
               <div 
-                className="cursor-pointer hover:underline text-blue-600 whitespace-normal break-words text-center" 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openProductSelector();
-                }}
+                className="cursor-pointer hover:underline text-blue-600 overflow-hidden text-ellipsis" 
+                onClick={openProductSelector}
               >
                 {generateItemName(item) || "Select product"}
               </div>
@@ -181,12 +179,12 @@ export function OrderTableRow({
         />
       </TableCell>
 
-      <TableCell className="text-right p-1">
+      <TableCell className="text-center p-1">
         ${(safeNumber(item.pallets) * safeNumber(item.unitCost)).toFixed(2)}
       </TableCell>
 
       <TableCell className={isCompressed ? "hidden" : "p-1"}>
-        <div className="flex space-x-1 justify-end">
+        <div className="flex space-x-1 justify-center">
           {!readOnly && (
             <>
               <Button

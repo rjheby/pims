@@ -1,7 +1,8 @@
+
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ArrowUpDown, Search, X, Filter, ArrowUp, ArrowDown } from "lucide-react";
+import { ArrowUpDown, Search, X, Filter, ArrowUp, ArrowDown, Plus } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
@@ -18,6 +19,7 @@ interface BaseOrderTableProps {
   data: Array<Record<string, any>>;
   onSortChange?: (key: string, direction: 'asc' | 'desc') => void;
   onFilterChange?: (filter: string) => void;
+  onAddRow?: (e: React.MouseEvent) => void;
 }
 
 function getColumnWidth(key: string, className?: string): string {
@@ -43,7 +45,8 @@ export function BaseOrderTable({
   headers,
   data,
   onSortChange,
-  onFilterChange 
+  onFilterChange,
+  onAddRow
 }: BaseOrderTableProps) {
   const [sortConfig, setSortConfig] = useState<{
     key: string;
@@ -166,20 +169,32 @@ export function BaseOrderTable({
           )}
         </div>
         
-        <Button 
-          variant={hasActiveFilters ? "default" : "outline"}
-          size="sm" 
-          onClick={() => setShowFiltersPanel(true)}
-          className="flex items-center"
-        >
-          <Filter className="h-4 w-4 mr-2" />
-          Filters
-          {activeFilterCount > 0 && (
-            <Badge className="ml-2 bg-primary-foreground text-primary">
-              {activeFilterCount}
-            </Badge>
+        <div className="flex gap-2">
+          {onAddRow && (
+            <Button 
+              onClick={onAddRow}
+              className="bg-[#2A4131] hover:bg-[#2A4131]/90"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add Row
+            </Button>
           )}
-        </Button>
+          
+          <Button 
+            variant={hasActiveFilters ? "default" : "outline"}
+            size="sm" 
+            onClick={() => setShowFiltersPanel(true)}
+            className="flex items-center"
+          >
+            <Filter className="h-4 w-4 mr-2" />
+            Filters
+            {activeFilterCount > 0 && (
+              <Badge className="ml-2 bg-primary-foreground text-primary">
+                {activeFilterCount}
+              </Badge>
+            )}
+          </Button>
+        </div>
       </div>
 
       {hasActiveFilters && (
