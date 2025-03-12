@@ -44,3 +44,27 @@ export const formatPrice = (price: number | undefined): string => {
     currency: 'USD',
   }).format(price);
 };
+
+/**
+ * Available recurrence options for deliveries
+ */
+export const recurrenceOptions = [
+  { value: 'none', label: 'One-time Delivery' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'biweekly', label: 'Every Two Weeks' },
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'custom', label: 'Custom Schedule' }
+];
+
+/**
+ * Day of week options for recurring deliveries
+ */
+export const dayOptions = [
+  { value: 'monday', label: 'Monday' },
+  { value: 'tuesday', label: 'Tuesday' },
+  { value: 'wednesday', label: 'Wednesday' },
+  { value: 'thursday', label: 'Thursday' },
+  { value: 'friday', label: 'Friday' },
+  { value: 'saturday', label: 'Saturday' },
+  { value: 'sunday', label: 'Sunday' },
+];

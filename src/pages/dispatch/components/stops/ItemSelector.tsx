@@ -5,17 +5,20 @@ import { Input } from "@/components/ui/input";
 import { Search, Loader2, Plus, Minus, Trash } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { FirewoodProduct } from "./types";
+import { RecurringOrderForm, RecurrenceData } from "./RecurringOrderForm";
 
 interface ItemSelectorProps {
-  onSelect: (items: string) => void;
+  onSelect: (items: string, recurrenceData?: RecurrenceData) => void;
   onCancel: () => void;
   initialItems?: string | null;
+  initialRecurrence?: RecurrenceData;
 }
 
 export const ItemSelector = ({
   onSelect,
   onCancel,
-  initialItems = null
+  initialItems = null,
+  initialRecurrence
 }: ItemSelectorProps) => {
   const [products, setProducts] = useState<FirewoodProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,6 +26,9 @@ export const ItemSelector = ({
   const [selectedItems, setSelectedItems] = useState<{ productId: number; quantity: number; name: string }[]>([]);
   const [customItems, setCustomItems] = useState<{ name: string; quantity: number }[]>([]);
   const [customItemInput, setCustomItemInput] = useState("");
+  const [recurrenceData, setRecurrenceData] = useState<RecurrenceData>(
+    initialRecurrence || { isRecurring: false, frequency: 'none' }
+  );
 
   useEffect(() => {
     async function fetchProducts() {
@@ -158,7 +164,12 @@ export const ItemSelector = ({
     ].join(', ');
     
     console.log("Saving items:", formattedItems);
-    onSelect(formattedItems);
+    console.log("Recurrence data:", recurrenceData);
+    onSelect(formattedItems, recurrenceData);
+  };
+
+  const handleRecurrenceChange = (data: RecurrenceData) => {
+    setRecurrenceData(data);
   };
 
   const filteredProducts = products.filter(product => 
@@ -305,6 +316,12 @@ export const ItemSelector = ({
         </div>
       )}
       
+      {/* Recurring Order Options */}
+      <RecurringOrderForm 
+        onRecurrenceChange={handleRecurrenceChange}
+        initialRecurrence={initialRecurrence}
+      />
+      
       <div className="flex justify-end space-x-2 mt-auto pt-4 border-t">
         <Button variant="outline" onClick={onCancel}>
           Cancel
@@ -313,7 +330,7 @@ export const ItemSelector = ({
           onClick={handleConfirm} 
           disabled={selectedItems.length === 0 && customItems.length === 0}
         >
-          Confirm Selection
+          {recurrenceData.isRecurring ? 'Set Up Recurring Order' : 'Place Order'}
         </Button>
       </div>
     </div>
