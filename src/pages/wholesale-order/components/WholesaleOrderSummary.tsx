@@ -13,7 +13,8 @@ export function WholesaleOrderSummary({ items }: WholesaleOrderSummaryProps) {
     calculateTotalCost,
     calculateTotalPalletEquivalents,
     calculateCapacityPercentage,
-    calculateItemGroups
+    calculateItemGroups,
+    getPackagingConversion
   } = useOrderCalculations();
 
   const totalPallets = calculateTotalPallets(items);
@@ -26,9 +27,15 @@ export function WholesaleOrderSummary({ items }: WholesaleOrderSummaryProps) {
   // Check if we have different packaging types in the order
   const packagingTypes = new Set(items.map(item => item.packaging));
   const hasMultiplePackagingTypes = packagingTypes.size > 1;
-  const hasBoxes = packagingTypes.has("12x10\" Boxes");
-  const hasCrates = packagingTypes.has("Crates");
-  const hasStandardBoxes = packagingTypes.has("Boxes");
+  
+  // Create an object to explain each packaging type's conversion ratio
+  const packagingConversions = {};
+  packagingTypes.forEach(type => {
+    if (type) {
+      const conversion = getPackagingConversion(type);
+      packagingConversions[type] = conversion;
+    }
+  });
 
   const renderCustomSummary = () => {
     return (
@@ -48,10 +55,18 @@ export function WholesaleOrderSummary({ items }: WholesaleOrderSummaryProps) {
         {hasMultiplePackagingTypes && (
           <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded">
             <p>Note: Capacity calculations consider packaging types differently:</p>
-            {hasBoxes && <p>• Each 12x10" box = 1/60 of a pallet (1/1440 of truck capacity)</p>}
-            {hasStandardBoxes && <p>• Each standard box = 1/30 of a pallet</p>}
-            {hasCrates && <p>• Each crate = 1.5 pallets</p>}
-            <p>• Each pallet = 1 pallet (1/24 of truck capacity)</p>
+            {Array.from(packagingTypes).filter(Boolean).map(type => {
+              const conversion = getPackagingConversion(type);
+              const ratio = conversion.palletEquivalent === 1 
+                ? "1 pallet" 
+                : conversion.palletEquivalent > 1 
+                  ? `${conversion.palletEquivalent} pallets` 
+                  : `1/${1/conversion.palletEquivalent} of a pallet`;
+              
+              return (
+                <p key={type}>• Each {type} = {ratio} ({conversion.palletEquivalent * 100 / 24}% of truck capacity)</p>
+              );
+            })}
           </div>
         )}
 

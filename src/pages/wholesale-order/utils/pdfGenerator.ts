@@ -1,3 +1,4 @@
+
 import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
 import { OrderItem, safeNumber } from "../types";
@@ -21,6 +22,29 @@ interface OrderData {
   notes?: string;
   status?: string;
 }
+
+// Object defining the packaging type conversions
+const PACKAGING_CONVERSIONS = {
+  'Pallets': { unitsPerPallet: 1, palletEquivalent: 1 },
+  'Bundles': { unitsPerPallet: 75, palletEquivalent: 1/75 },
+  'Boxes (Plastic)': { unitsPerPallet: 30, palletEquivalent: 1/30 },
+  '12x10" Boxes': { unitsPerPallet: 60, palletEquivalent: 1/60 },
+  '16x12" Boxes': { unitsPerPallet: 48, palletEquivalent: 1/48 },
+  'Packages': { unitsPerPallet: 500, palletEquivalent: 1/500 },
+  'Crates': { unitsPerPallet: 1, palletEquivalent: 1.5 },
+  'Boxes': { unitsPerPallet: 30, palletEquivalent: 1/30 } // Legacy fallback
+};
+
+// Helper function to get packaging conversion info
+const getPackagingConversion = (packagingType: string) => {
+  const packagingKey = Object.keys(PACKAGING_CONVERSIONS).find(key => 
+    packagingType.includes(key)
+  );
+  
+  return packagingKey 
+    ? PACKAGING_CONVERSIONS[packagingKey as keyof typeof PACKAGING_CONVERSIONS] 
+    : PACKAGING_CONVERSIONS['Pallets']; // Default to pallets
+};
 
 export const generateOrderPDF = (orderData: OrderData) => {
   // Create PDF document with autotable plugin
@@ -112,32 +136,35 @@ export const generateOrderPDF = (orderData: OrderData) => {
     yPos += 8;
   }
 
-  // Calculate totals - count boxes and pallets separately
-  let totalBoxes = 0;
-  let totalPallets = 0;
+  // Calculate totals using packaging conversion ratios
+  const parsedItems = orderData.items || [];
   
-  orderData.items.forEach(item => {
+  let totalPhysicalItems = 0;
+  let totalPalletEquivalents = 0;
+  let packagingCounts = {};
+  
+  parsedItems.forEach(item => {
     const quantity = safeNumber(item.pallets);
-    // Safely check packaging property
-    const packagingText = (item.packaging || '').toLowerCase();
+    const packagingType = item.packaging || 'Pallets';
     
-    if (packagingText.includes('box')) {
-      // Item is measured in boxes
-      totalBoxes += quantity;
-      // Convert boxes to pallets (60 boxes = 1 pallet)
-      totalPallets += Math.ceil(quantity / 60);
-    } else {
-      // Item is already in pallets
-      totalPallets += quantity;
+    // Track physical counts by packaging type
+    if (!packagingCounts[packagingType]) {
+      packagingCounts[packagingType] = 0;
     }
+    packagingCounts[packagingType] += quantity;
+    totalPhysicalItems += quantity;
+    
+    // Calculate pallet equivalents for capacity
+    const conversion = getPackagingConversion(packagingType);
+    totalPalletEquivalents += quantity * conversion.palletEquivalent;
   });
   
   // Calculate total value
   const totalValue = orderData.totalValue || 
-    orderData.items.reduce((sum, item) => sum + (safeNumber(item.pallets) * safeNumber(item.unitCost)), 0);
+    parsedItems.reduce((sum, item) => sum + (safeNumber(item.pallets) * safeNumber(item.unitCost)), 0);
   
   // Format items data for table with packaging type information
-  const tableData = orderData.items.map(item => {
+  const tableData = parsedItems.map(item => {
     // Create concatenated name field with packaging type included
     const name = [
       item.species, 
@@ -247,21 +274,15 @@ export const generateOrderPDF = (orderData: OrderData) => {
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 0, 0); // Black text for maximum contrast
     
-    // Only show boxes total if there are any boxes
-    if (totalBoxes > 0) {
-      doc.text(`Total Boxes: ${totalBoxes}`, pageWidth - 110, summaryBoxY + 10);
-      doc.text(`Total Pallets: ${totalPallets}*`, pageWidth - 110, summaryBoxY + 22);
-      doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 34);
-      
-      // Add pallet calculation footnote
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'italic');
-      doc.text("* 60 boxes = 1 pallet", pageWidth - 110, summaryBoxY + 44);
-    } else {
-      // If no boxes, just show pallets without asterisk
-      doc.text(`Total Pallets: ${totalPallets}`, pageWidth - 110, summaryBoxY + 15);
-      doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 30);
-    }
+    // Show truck capacity details
+    doc.text(`Truck Capacity: ${(totalPalletEquivalents / 24 * 100).toFixed(1)}%`, pageWidth - 110, summaryBoxY + 10);
+    doc.text(`Total Units: ${totalPhysicalItems}`, pageWidth - 110, summaryBoxY + 22);
+    doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 34);
+    
+    // Add small footnote about capacity calculation
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'italic');
+    doc.text("* Based on pallet-equivalent calculations", pageWidth - 110, summaryBoxY + 44);
     
     // Add notes if available
     if (orderData.notes) {
@@ -291,21 +312,15 @@ export const generateOrderPDF = (orderData: OrderData) => {
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 0, 0);
     
-    // Only show boxes total if there are any boxes
-    if (totalBoxes > 0) {
-      doc.text(`Total Boxes: ${totalBoxes}`, pageWidth - 110, summaryBoxY + 10);
-      doc.text(`Total Pallets: ${totalPallets}*`, pageWidth - 110, summaryBoxY + 22);
-      doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 34);
-      
-      // Add pallet calculation footnote
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'italic');
-      doc.text("* 60 boxes = 1 pallet", pageWidth - 110, summaryBoxY + 44);
-    } else {
-      // If no boxes, just show pallets without asterisk
-      doc.text(`Total Pallets: ${totalPallets}`, pageWidth - 110, summaryBoxY + 15);
-      doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 30);
-    }
+    // Show truck capacity details
+    doc.text(`Truck Capacity: ${(totalPalletEquivalents / 24 * 100).toFixed(1)}%`, pageWidth - 110, summaryBoxY + 10);
+    doc.text(`Total Units: ${totalPhysicalItems}`, pageWidth - 110, summaryBoxY + 22);
+    doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 34);
+    
+    // Add small footnote about capacity calculation
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'italic');
+    doc.text("* Based on pallet-equivalent calculations", pageWidth - 110, summaryBoxY + 44);
     
     // Add notes if available
     if (orderData.notes) {

@@ -1,6 +1,29 @@
 
 import { OrderItem, safeNumber } from "../../types";
 
+// Object defining the packaging type conversions
+export const PACKAGING_CONVERSIONS = {
+  'Pallets': { unitsPerPallet: 1, palletEquivalent: 1 },
+  'Bundles': { unitsPerPallet: 75, palletEquivalent: 1/75 },
+  'Boxes (Plastic)': { unitsPerPallet: 30, palletEquivalent: 1/30 },
+  '12x10" Boxes': { unitsPerPallet: 60, palletEquivalent: 1/60 },
+  '16x12" Boxes': { unitsPerPallet: 48, palletEquivalent: 1/48 },
+  'Packages': { unitsPerPallet: 500, palletEquivalent: 1/500 },
+  'Crates': { unitsPerPallet: 1, palletEquivalent: 1.5 },
+  'Boxes': { unitsPerPallet: 30, palletEquivalent: 1/30 } // Legacy fallback
+};
+
+// Helper function to get packaging conversion info
+export const getPackagingConversion = (packagingType: string) => {
+  const packagingKey = Object.keys(PACKAGING_CONVERSIONS).find(key => 
+    packagingType.includes(key)
+  );
+  
+  return packagingKey 
+    ? PACKAGING_CONVERSIONS[packagingKey as keyof typeof PACKAGING_CONVERSIONS] 
+    : PACKAGING_CONVERSIONS['Pallets']; // Default to pallets
+};
+
 export function useOrderCalculations() {
   const calculateTotalQuantity = (items: OrderItem[]): number => {
     return items.reduce((total, item) => total + safeNumber(item.pallets), 0);
@@ -21,22 +44,11 @@ export function useOrderCalculations() {
   // Each packaging type has its own capacity relationship to the truck
   const calculateTotalPalletEquivalents = (items: OrderItem[]): number => {
     return items.reduce((total, item) => {
-      // Different packaging types have different equivalents
-      switch(item.packaging) {
-        case "12x10\" Boxes":
-          // 1 box = 1/1440 of truck capacity = 1/60 of a pallet
-          return total + (safeNumber(item.pallets) / 60);
-        case "Crates":
-          // A crate is counted as 1.5 pallets for capacity
-          return total + (safeNumber(item.pallets) * 1.5);
-        case "Boxes":
-          // Standard boxes are 1/30 of a pallet
-          return total + (safeNumber(item.pallets) / 30);
-        case "Pallets":
-        default:
-          // Standard pallet is 1 pallet equivalent
-          return total + safeNumber(item.pallets);
-      }
+      const packaging = item.packaging || 'Pallets';
+      const quantity = safeNumber(item.pallets);
+      const conversion = getPackagingConversion(packaging);
+      
+      return total + (quantity * conversion.palletEquivalent);
     }, 0);
   };
 
@@ -93,6 +105,7 @@ export function useOrderCalculations() {
     calculateTotalPalletEquivalents,
     calculateCapacityPercentage,
     calculateItemGroups,
-    safeNumber
+    safeNumber,
+    getPackagingConversion
   };
 }
