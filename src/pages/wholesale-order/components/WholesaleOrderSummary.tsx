@@ -22,6 +22,9 @@ export function WholesaleOrderSummary({ items }: WholesaleOrderSummaryProps) {
   const maxLoad = 24;
   const itemGroups = calculateItemGroups(items);
 
+  // Check if we have any 12x10" boxes in the order
+  const hasBoxes = items.some(item => item.packaging === "12x10\" Boxes");
+
   const renderCustomSummary = () => {
     return (
       <div className="mt-4 pt-4 border-t border-gray-200 space-y-4">
@@ -36,6 +39,12 @@ export function WholesaleOrderSummary({ items }: WholesaleOrderSummaryProps) {
           <span className="text-sm text-gray-600">Total Physical Items:</span>
           <span className="text-sm font-medium">{totalPallets} items</span>
         </div>
+
+        {hasBoxes && (
+          <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded">
+            Note: For capacity calculations, 60 boxes (12x10") = 1 pallet equivalent
+          </div>
+        )}
 
         <div className="border-t pt-4">
           <div className="text-sm font-medium mb-2">Items Summary:</div>

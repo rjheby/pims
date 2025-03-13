@@ -21,6 +21,7 @@ export function useOrderCalculations() {
   const calculateTotalPalletEquivalents = (items: OrderItem[]): number => {
     return items.reduce((total, item) => {
       if (item.packaging === "12x10\" Boxes") {
+        // 60 boxes = 1 pallet equivalent
         return total + (safeNumber(item.pallets) / 60);
       }
       return total + safeNumber(item.pallets);
