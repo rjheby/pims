@@ -1,3 +1,4 @@
+
 import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
 import { OrderItem, safeNumber } from "../types";
@@ -20,6 +21,30 @@ interface OrderData {
   customer?: string;
   notes?: string;
   status?: string;
+}
+
+// Add a helper function to calculate pallet equivalents based on packaging type
+function calculatePalletEquivalents(item: OrderItem): number {
+  const quantity = safeNumber(item.pallets);
+  
+  // Different packaging types have different pallet equivalents
+  if (!item.packaging) return quantity; // Default to treating as pallets
+  
+  const packaging = item.packaging.toLowerCase();
+  
+  if (packaging.includes('12x10" box')) {
+    // 60 boxes = 1 pallet
+    return quantity / 60;
+  } else if (packaging.includes('box')) {
+    // Standard boxes (assume 30 boxes = 1 pallet)
+    return quantity / 30;
+  } else if (packaging.includes('crate')) {
+    // Crates are larger than pallets
+    return quantity * 1.5;
+  } else {
+    // Default: assume it's already in pallets
+    return quantity;
+  }
 }
 
 export const generateOrderPDF = (orderData: OrderData) => {
@@ -112,24 +137,28 @@ export const generateOrderPDF = (orderData: OrderData) => {
     yPos += 8;
   }
 
-  // Calculate totals - count boxes and pallets separately
+  // Calculate totals - with improved packaging handling
   let totalBoxes = 0;
+  let totalCrates = 0;
   let totalPallets = 0;
+  let totalPalletEquivalents = 0;
   
   orderData.items.forEach(item => {
     const quantity = safeNumber(item.pallets);
-    // Safely check packaging property
-    const packagingText = (item.packaging || '').toLowerCase();
+    const packaging = (item.packaging || '').toLowerCase();
     
-    if (packagingText.includes('box')) {
-      // Item is measured in boxes
+    // Store actual item counts by packaging type
+    if (packaging.includes('box')) {
       totalBoxes += quantity;
-      // Convert boxes to pallets (60 boxes = 1 pallet)
-      totalPallets += Math.ceil(quantity / 60);
+    } else if (packaging.includes('crate')) {
+      totalCrates += quantity;
     } else {
-      // Item is already in pallets
+      // Default: assume it's already in pallets
       totalPallets += quantity;
     }
+    
+    // Calculate pallet equivalents for truck capacity
+    totalPalletEquivalents += calculatePalletEquivalents(item);
   });
   
   // Calculate total value
@@ -218,7 +247,7 @@ export const generateOrderPDF = (orderData: OrderData) => {
   const finalY = (doc as any).lastAutoTable.finalY + 10;
   
   // Add summary box
-  const summaryBoxHeight = 50;
+  const summaryBoxHeight = 60; // Increased height for more information
   const summaryBoxY = finalY;
   
   // Check if there's enough space for the summary box
@@ -247,25 +276,48 @@ export const generateOrderPDF = (orderData: OrderData) => {
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 0, 0); // Black text for maximum contrast
     
-    // Only show boxes total if there are any boxes
+    let summaryTextY = summaryBoxY + 10;
+    
+    // Add physical item counts by packaging type
     if (totalBoxes > 0) {
-      doc.text(`Total Boxes: ${totalBoxes}`, pageWidth - 110, summaryBoxY + 10);
-      doc.text(`Total Pallets: ${totalPallets}*`, pageWidth - 110, summaryBoxY + 22);
-      doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 34);
-      
-      // Add pallet calculation footnote
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'italic');
-      doc.text("* 60 boxes = 1 pallet", pageWidth - 110, summaryBoxY + 44);
-    } else {
-      // If no boxes, just show pallets without asterisk
-      doc.text(`Total Pallets: ${totalPallets}`, pageWidth - 110, summaryBoxY + 15);
-      doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 30);
+      doc.text(`Total Boxes: ${totalBoxes}`, pageWidth - 110, summaryTextY);
+      summaryTextY += 10;
+    }
+    
+    if (totalCrates > 0) {
+      doc.text(`Total Crates: ${totalCrates}`, pageWidth - 110, summaryTextY);
+      summaryTextY += 10;
+    }
+    
+    if (totalPallets > 0 || (totalBoxes === 0 && totalCrates === 0)) {
+      doc.text(`Total Pallets: ${totalPallets}`, pageWidth - 110, summaryTextY);
+      summaryTextY += 10;
+    }
+    
+    // Add truck capacity percentage
+    const truckCapacity = 24; // Standard truck capacity in pallets
+    const capacityPercentage = (totalPalletEquivalents / truckCapacity) * 100;
+    
+    doc.text(`Truck Capacity: ${capacityPercentage.toFixed(1)}%`, pageWidth - 110, summaryTextY);
+    summaryTextY += 10;
+    doc.text(`(${totalPalletEquivalents.toFixed(2)} / ${truckCapacity} pallets)`, pageWidth - 110, summaryTextY);
+    summaryTextY += 10;
+    
+    // Add total value
+    doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, summaryTextY);
+    
+    // Add capacity warning if needed
+    if (capacityPercentage > 100) {
+      doc.setTextColor(180, 30, 30); // Red warning text
+      doc.setFontSize(10);
+      doc.text(`Warning: Exceeds truck capacity by ${(totalPalletEquivalents - truckCapacity).toFixed(2)} pallets`, 
+        pageWidth - 110, summaryTextY + 15);
+      doc.setTextColor(0, 0, 0); // Reset text color
     }
     
     // Add notes if available
     if (orderData.notes) {
-      const notesY = summaryBoxY + 60;
+      const notesY = summaryBoxY + summaryBoxHeight + 10;
       doc.setFillColor(224, 224, 224); // Very light gray
       doc.roundedRect(15, notesY - 5, pageWidth - 30, 40, 3, 3, 'F');
       
@@ -291,25 +343,48 @@ export const generateOrderPDF = (orderData: OrderData) => {
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 0, 0);
     
-    // Only show boxes total if there are any boxes
+    let summaryTextY = summaryBoxY + 10;
+    
+    // Add physical item counts by packaging type
     if (totalBoxes > 0) {
-      doc.text(`Total Boxes: ${totalBoxes}`, pageWidth - 110, summaryBoxY + 10);
-      doc.text(`Total Pallets: ${totalPallets}*`, pageWidth - 110, summaryBoxY + 22);
-      doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 34);
-      
-      // Add pallet calculation footnote
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'italic');
-      doc.text("* 60 boxes = 1 pallet", pageWidth - 110, summaryBoxY + 44);
-    } else {
-      // If no boxes, just show pallets without asterisk
-      doc.text(`Total Pallets: ${totalPallets}`, pageWidth - 110, summaryBoxY + 15);
-      doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 30);
+      doc.text(`Total Boxes: ${totalBoxes}`, pageWidth - 110, summaryTextY);
+      summaryTextY += 10;
+    }
+    
+    if (totalCrates > 0) {
+      doc.text(`Total Crates: ${totalCrates}`, pageWidth - 110, summaryTextY);
+      summaryTextY += 10;
+    }
+    
+    if (totalPallets > 0 || (totalBoxes === 0 && totalCrates === 0)) {
+      doc.text(`Total Pallets: ${totalPallets}`, pageWidth - 110, summaryTextY);
+      summaryTextY += 10;
+    }
+    
+    // Add truck capacity percentage
+    const truckCapacity = 24; // Standard truck capacity in pallets
+    const capacityPercentage = (totalPalletEquivalents / truckCapacity) * 100;
+    
+    doc.text(`Truck Capacity: ${capacityPercentage.toFixed(1)}%`, pageWidth - 110, summaryTextY);
+    summaryTextY += 10;
+    doc.text(`(${totalPalletEquivalents.toFixed(2)} / ${truckCapacity} pallets)`, pageWidth - 110, summaryTextY);
+    summaryTextY += 10;
+    
+    // Add total value
+    doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, summaryTextY);
+    
+    // Add capacity warning if needed
+    if (capacityPercentage > 100) {
+      doc.setTextColor(180, 30, 30); // Red warning text
+      doc.setFontSize(10);
+      doc.text(`Warning: Exceeds truck capacity by ${(totalPalletEquivalents - truckCapacity).toFixed(2)} pallets`, 
+        pageWidth - 110, summaryTextY + 15);
+      doc.setTextColor(0, 0, 0); // Reset text color
     }
     
     // Add notes if available
     if (orderData.notes) {
-      const notesY = summaryBoxY + 50;
+      const notesY = summaryBoxY + summaryBoxHeight + 10;
       
       // Check if there's room for notes
       if (notesY + 50 > pageHeight) {
