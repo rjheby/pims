@@ -12,13 +12,14 @@ export function WholesaleOrderSummary({ items }: WholesaleOrderSummaryProps) {
     calculateTotalPallets,
     calculateTotalCost,
     calculateTotalPalletEquivalents,
+    calculateCapacityPercentage,
     calculateItemGroups
   } = useOrderCalculations();
 
   const totalPallets = calculateTotalPallets(items);
   const totalCost = calculateTotalCost(items);
   const totalEquivalentPallets = calculateTotalPalletEquivalents(items);
-  const capacityPercentage = (totalEquivalentPallets / 24) * 100;
+  const capacityPercentage = calculateCapacityPercentage(items);
   const maxLoad = 24;
   const itemGroups = calculateItemGroups(items);
 
@@ -58,7 +59,7 @@ export function WholesaleOrderSummary({ items }: WholesaleOrderSummaryProps) {
         
         {capacityPercentage > 100 && (
           <div className="text-sm text-amber-600 text-center border-t pt-4">
-            Warning: Load exceeds truck capacity by {((capacityPercentage - 100) / 100 * maxLoad).toFixed(2)} pallets
+            Warning: Load exceeds truck capacity by {(totalEquivalentPallets - maxLoad).toFixed(2)} pallets
           </div>
         )}
       </div>
