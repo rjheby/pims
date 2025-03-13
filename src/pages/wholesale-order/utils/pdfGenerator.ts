@@ -119,9 +119,24 @@ export const generateOrderPDF = (orderData: OrderData) => {
   }
 
   // Calculate totals - boxes and pallets
-  // Note: In the data model, item.pallets actually represents box counts
-  const totalBoxes = orderData.items.reduce((sum, item) => sum + safeNumber(item.pallets), 0);
-  const totalPallets = calculatePalletsFromBoxes(totalBoxes);
+  // Count boxes and pallets separately based on packaging type
+  let totalBoxes = 0;
+  let totalPallets = 0;
+  
+  // Loop through items to calculate totals correctly
+  orderData.items.forEach(item => {
+    const quantity = safeNumber(item.pallets);
+    // Check if item is in boxes or already in pallets
+    if (item.packaging && item.packaging.toLowerCase().includes('box')) {
+      // This item is in boxes
+      totalBoxes += quantity;
+      // Add calculated pallets
+      totalPallets += calculatePalletsFromBoxes(quantity);
+    } else {
+      // This item is already in pallets
+      totalPallets += quantity;
+    }
+  });
   
   const totalValue = orderData.totalValue || 
     orderData.items.reduce((sum, item) => sum + (safeNumber(item.pallets) * safeNumber(item.unitCost)), 0);
@@ -141,10 +156,10 @@ export const generateOrderPDF = (orderData: OrderData) => {
     const itemTotal = itemBoxes * itemUnitCost;
     
     return [
-      itemBoxes.toString(),
+      itemQuantity.toString(),
       name,
-      `$${itemUnitCost.toFixed(2)}`,
-      `$${itemTotal.toFixed(2)}`
+      `${itemUnitCost.toFixed(2)}`,
+      `${itemTotal.toFixed(2)}`
     ];
   });
   
@@ -153,7 +168,7 @@ export const generateOrderPDF = (orderData: OrderData) => {
   
   // Add items table
   autoTable(doc, {
-    head: [['Boxes', 'Product Description', 'Unit Price', 'Total']],
+    head: [['Quantity', 'Product Description', 'Unit Price', 'Total']],
     body: tableData,
     startY: yPos + 2,
     styles: { 
