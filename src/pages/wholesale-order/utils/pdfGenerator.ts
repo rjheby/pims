@@ -1,5 +1,4 @@
-// Define the boxes to pallets conversion function
-const calculatePalletsFromBoxes = (boxes: number) => Math.ceil(boxes / 60); // 60 boxes = 1 palletimport { jsPDF } from "jspdf";
+import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
 import { OrderItem, safeNumber } from "../types";
 
@@ -44,6 +43,9 @@ const ADA_COLORS = {
   completed: [16, 124, 86],         // Darker green for better contrast
   cancelled: [180, 30, 30]          // Darker red for better contrast
 };
+
+// Define the boxes to pallets conversion function
+const calculatePalletsFromBoxes = (boxes: number) => Math.ceil(boxes / 60); // 60 boxes = 1 pallet
 
 export const generateOrderPDF = (orderData: OrderData) => {
   // Create PDF document with autotable plugin
@@ -135,7 +137,6 @@ export const generateOrderPDF = (orderData: OrderData) => {
     yPos += 8;
   }
 
-  // Calculate totals if not provided
   // Calculate total boxes (which is what's stored in item.pallets)
   const totalBoxes = orderData.items.reduce((sum, item) => sum + safeNumber(item.pallets), 0);
   
@@ -160,17 +161,14 @@ export const generateOrderPDF = (orderData: OrderData) => {
     ].filter(Boolean).join(' - ');
     
     const itemUnitCost = safeNumber(item.unitCost);
-    const itemBoxes = safeNumber(item.pallets); // This is actually boxes in the data
-    // Calculate pallets for display (60 boxes = 1 pallet)
-    const boxesPerPallet = 60;
-    const itemPallets = Math.ceil(itemBoxes / boxesPerPallet);
+    const itemBoxes = safeNumber(item.pallets); // NOTE: In the data model, item.pallets actually stores box counts
     const itemTotal = itemBoxes * itemUnitCost;
     
     return [
       itemBoxes.toString(),                           // Qty (Boxes)
       name,                                           // Name
-      `${itemUnitCost.toFixed(2)}`,                  // Unit Cost
-      `${itemTotal.toFixed(2)}`                      // Total Cost
+      `$${itemUnitCost.toFixed(2)}`,                  // Unit Cost
+      `$${itemTotal.toFixed(2)}`                      // Total Cost
     ];
   });
   
@@ -234,7 +232,7 @@ export const generateOrderPDF = (orderData: OrderData) => {
   const finalY = (doc as any).lastAutoTable.finalY + 10;
   
   // Add summary box with ADA compliant colors
-      const summaryBoxHeight = 50;
+  const summaryBoxHeight = 50;
   const summaryBoxY = finalY;
   
   // Check if there's enough space for the summary box
@@ -264,13 +262,13 @@ export const generateOrderPDF = (orderData: OrderData) => {
     doc.setDrawColor(180, 180, 180); // Slightly darker border for definition
     doc.roundedRect(pageWidth - 120, summaryBoxY, 105, summaryBoxHeight, 3, 3, 'FD');
     
-          // Add summary text - black text on light background (ADA compliant)
+    // Add summary text - black text on light background (ADA compliant)
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...ADA_COLORS.black); // Black text for maximum contrast
     doc.text(`Total Boxes: ${totalBoxes}`, pageWidth - 110, summaryBoxY + 10);
     doc.text(`Total Pallets: ${totalPallets}*`, pageWidth - 110, summaryBoxY + 22);
-    doc.text(`Total Value: ${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 34);
+    doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 34);
     
     // Add notes if available
     if (orderData.notes) {
@@ -280,7 +278,7 @@ export const generateOrderPDF = (orderData: OrderData) => {
       
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(...ADA_COLORS.black); // Black text for maximum contrast on light background
+      doc.setTextColor(...ADA_COLORS.black); // Black for maximum contrast on light background
       doc.text("Notes:", 25, notesY + 5);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
@@ -301,7 +299,7 @@ export const generateOrderPDF = (orderData: OrderData) => {
     doc.setTextColor(...ADA_COLORS.black); // Black text for maximum contrast
     doc.text(`Total Boxes: ${totalBoxes}`, pageWidth - 110, summaryBoxY + 10);
     doc.text(`Total Pallets: ${totalPallets}*`, pageWidth - 110, summaryBoxY + 22);
-    doc.text(`Total Value: ${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 34);
+    doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 34);
     
     // Add footnote about pallet calculation
     doc.setFontSize(8);
@@ -318,7 +316,7 @@ export const generateOrderPDF = (orderData: OrderData) => {
         doc.addPage();
         
         const newPageNotesY = 40;
-        doc.setFillColor(...ADA_COLORS.lightGreenTint);
+        doc.setFillColor(...ADA_COLORS.veryLightGray);
         doc.roundedRect(15, newPageNotesY - 5, pageWidth - 30, 40, 3, 3, 'F');
         
         doc.setFontSize(12);
@@ -332,7 +330,7 @@ export const generateOrderPDF = (orderData: OrderData) => {
         doc.text(splitNotes, 25, newPageNotesY + 15);
       } else {
         // Add notes on the same page
-        doc.setFillColor(...ADA_COLORS.lightGreenTint);
+        doc.setFillColor(...ADA_COLORS.veryLightGray);
         doc.roundedRect(15, notesY - 5, pageWidth - 30, 40, 3, 3, 'F');
         
         doc.setFontSize(12);
