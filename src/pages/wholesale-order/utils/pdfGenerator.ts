@@ -22,92 +22,86 @@ interface OrderData {
   status?: string;
 }
 
-// Define ADA-compliant color constants
-const ADA_COLORS = {
-  woodbourneGreen: [42, 65, 49],    // Dark green - requires white text
-  white: [255, 255, 255],           // White - requires dark text
-  lightGray: [245, 245, 245],       // Light gray - requires dark text
-  veryLightGray: [224, 224, 224],   // Very light gray (#e0e0e0) - requires dark text
-  black: [0, 0, 0],                 // Black text
-  darkGray: [60, 60, 60],           // Dark gray text
-  // Status colors with better contrast
-  draft: [100, 100, 100],
-  submitted: [25, 80, 170],
-  processing: [180, 95, 6],
-  completed: [16, 124, 86],
-  cancelled: [180, 30, 30]
-};
-
-// Helper function to calculate pallets from boxes (60 boxes = 1 pallet)
-const calculatePalletsFromBoxes = (boxes: number) => Math.ceil(boxes / 60);
-
 export const generateOrderPDF = (orderData: OrderData) => {
-  // Create PDF document
+  // Create PDF document with autotable plugin
   const doc = new jsPDF('p', 'mm', 'a4') as jsPDFWithAutoTable;
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   
-  // Create header
-  doc.setFillColor(...ADA_COLORS.white);
+  // Create white background for the header
+  doc.setFillColor(255, 255, 255);
   doc.rect(0, 0, pageWidth, 40, 'F');
   
-  // Add logo
+  // Add logo with improved positioning
   try {
     const logoUrl = '/lovable-uploads/21d56fd9-ffa2-4b0c-9d82-b10f7d03a546.png';
     doc.addImage(logoUrl, 'PNG', pageWidth / 2 - 35, 8, 70, 18, undefined, 'FAST');
   } catch (error) {
     console.error("Error adding logo to PDF:", error);
-    doc.setTextColor(...ADA_COLORS.woodbourneGreen);
+    // Fallback if image loading fails
+    doc.setTextColor(42, 65, 49); // Woodbourne Green text instead
     doc.setFontSize(24);
     doc.setFont('helvetica', 'bold');
     doc.text("Order Summary", pageWidth / 2, 20, { align: "center" });
   }
   
-  // Add separator line
-  doc.setDrawColor(...ADA_COLORS.woodbourneGreen);
+  // Add a separator line under the header
+  doc.setDrawColor(42, 65, 49); // Woodbourne Green
   doc.setLineWidth(0.5);
   doc.line(15, 32, pageWidth - 15, 32);
   
-  // Reset text color
-  doc.setTextColor(...ADA_COLORS.black);
+  // Reset text color for the rest of the document
+  doc.setTextColor(0, 0, 0);
   
   // Add title with status
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
   doc.text(`Order #${orderData.order_number}`, 15, 45);
   
-  // Add status if available
   if (orderData.status) {
+    // Add status indicator
     const statusX = pageWidth - 60;
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     
-    // Select status color
     let statusColor;
     switch (orderData.status.toLowerCase()) {
-      case 'draft': statusColor = ADA_COLORS.draft; break;
-      case 'submitted': statusColor = ADA_COLORS.submitted; break;
-      case 'processing': statusColor = ADA_COLORS.processing; break;
-      case 'completed': statusColor = ADA_COLORS.completed; break;
-      case 'cancelled': statusColor = ADA_COLORS.cancelled; break;
-      default: statusColor = ADA_COLORS.draft;
+      case 'draft':
+        statusColor = [100, 100, 100]; // Darker gray for better contrast
+        break;
+      case 'submitted':
+        statusColor = [25, 80, 170]; // Darker blue for better contrast
+        break;
+      case 'processing':
+        statusColor = [180, 95, 6]; // Darker amber for better contrast
+        break;
+      case 'completed':
+        statusColor = [16, 124, 86]; // Darker green for better contrast
+        break;
+      case 'cancelled':
+        statusColor = [180, 30, 30]; // Darker red for better contrast
+        break;
+      default:
+        statusColor = [100, 100, 100]; // Default darker gray
     }
     
-    doc.setFillColor(...statusColor);
+    doc.setFillColor(statusColor[0], statusColor[1], statusColor[2]);
     doc.roundedRect(statusX - 5, 38, 50, 14, 3, 3, 'F');
-    doc.setTextColor(...ADA_COLORS.white);
+    doc.setTextColor(255, 255, 255);
     doc.text(orderData.status.toUpperCase(), statusX + 20, 46, { align: "center" });
-    doc.setTextColor(...ADA_COLORS.black);
+    doc.setTextColor(0, 0, 0);
   }
   
   // Add order details
   doc.setFontSize(12);
   let yPos = 60;
   
+  // Order date
   doc.setFont('helvetica', 'normal');
   doc.text(`Order Date: ${new Date(orderData.order_date).toLocaleDateString()}`, 15, yPos);
   yPos += 8;
   
+  // Delivery date
   if (orderData.delivery_date) {
     doc.text(`Delivery Date: ${new Date(orderData.delivery_date).toLocaleDateString()}`, 15, yPos);
     yPos += 8;
@@ -118,55 +112,57 @@ export const generateOrderPDF = (orderData: OrderData) => {
     yPos += 8;
   }
 
-  // Calculate totals - boxes and pallets
-  // Count boxes and pallets separately based on packaging type
+  // Calculate totals - count boxes and pallets separately
   let totalBoxes = 0;
   let totalPallets = 0;
   
-  // Loop through items to calculate totals correctly
   orderData.items.forEach(item => {
     const quantity = safeNumber(item.pallets);
-    // Check if item is in boxes or already in pallets
-    if (item.packaging && item.packaging.toLowerCase().includes('box')) {
-      // This item is in boxes
+    // Safely check packaging property
+    const packagingText = (item.packaging || '').toLowerCase();
+    
+    if (packagingText.includes('box')) {
+      // Item is measured in boxes
       totalBoxes += quantity;
-      // Add calculated pallets
-      totalPallets += calculatePalletsFromBoxes(quantity);
+      // Convert boxes to pallets (60 boxes = 1 pallet)
+      totalPallets += Math.ceil(quantity / 60);
     } else {
-      // This item is already in pallets
+      // Item is already in pallets
       totalPallets += quantity;
     }
   });
   
+  // Calculate total value
   const totalValue = orderData.totalValue || 
     orderData.items.reduce((sum, item) => sum + (safeNumber(item.pallets) * safeNumber(item.unitCost)), 0);
   
-  // Format items data for table
+  // Format items data for table with packaging type information
   const tableData = orderData.items.map(item => {
+    // Create concatenated name field with packaging type included
     const name = [
       item.species, 
       item.length, 
       item.bundleType, 
       item.thickness,
-      item.packaging
+      item.packaging // Added packaging to the description
     ].filter(Boolean).join(' - ');
     
     const itemUnitCost = safeNumber(item.unitCost);
-    const itemBoxes = safeNumber(item.pallets); // This is boxes, not pallets
-    const itemTotal = itemBoxes * itemUnitCost;
+    const itemQuantity = safeNumber(item.pallets);
+    const itemTotal = itemQuantity * itemUnitCost;
     
     return [
-      itemQuantity.toString(),
-      name,
-      `${itemUnitCost.toFixed(2)}`,
-      `${itemTotal.toFixed(2)}`
+      itemQuantity.toString(),                        // Quantity
+      name,                                           // Name
+      `$${itemUnitCost.toFixed(2)}`,                  // Unit Cost
+      `$${itemTotal.toFixed(2)}`                      // Total Cost
     ];
   });
   
-  // Define column alignments
+  // Define consistent column alignment with correct HAlignType values
   const colAlignments: HAlignType[] = ['center', 'left', 'center', 'center'];
   
-  // Add items table
+  // Add items table with improved formatting
   autoTable(doc, {
     head: [['Quantity', 'Product Description', 'Unit Price', 'Total']],
     body: tableData,
@@ -179,8 +175,8 @@ export const generateOrderPDF = (orderData: OrderData) => {
       textColor: [0, 0, 0]
     },
     headStyles: { 
-      fillColor: ADA_COLORS.woodbourneGreen,
-      textColor: ADA_COLORS.white,
+      fillColor: [42, 65, 49],  // Woodbourne Green 
+      textColor: [255, 255, 255],
       fontStyle: 'bold',
       fontSize: 12,
       halign: 'center'
@@ -192,7 +188,7 @@ export const generateOrderPDF = (orderData: OrderData) => {
       3: { halign: colAlignments[3], cellWidth: 30 }
     },
     alternateRowStyles: { 
-      fillColor: ADA_COLORS.veryLightGray
+      fillColor: [224, 224, 224] // Very light gray (#e0e0e0)
     },
     margin: { top: 10, right: 15, bottom: 20, left: 15 },
     showHead: 'everyPage',
@@ -202,17 +198,17 @@ export const generateOrderPDF = (orderData: OrderData) => {
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         doc.setFontSize(8);
-        doc.setTextColor(...ADA_COLORS.darkGray);
+        doc.setTextColor(60, 60, 60);
         doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 10, { align: "center" });
       }
       
-      // Add header to continuations
+      // Add header to every page after the first
       if (data.pageNumber > 1) {
-        doc.setFillColor(...ADA_COLORS.white);
+        doc.setFillColor(255, 255, 255);
         doc.rect(0, 0, pageWidth, 20, 'F');
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...ADA_COLORS.woodbourneGreen);
+        doc.setTextColor(42, 65, 49);
         doc.text(`Order #${orderData.order_number} - Continued`, pageWidth / 2, 15, { align: "center" });
       }
     }
@@ -238,61 +234,78 @@ export const generateOrderPDF = (orderData: OrderData) => {
     // Add a small header on the new page
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...ADA_COLORS.woodbourneGreen);
+    doc.setTextColor(42, 65, 49);
     doc.text(`Order #${orderData.order_number} - Summary`, pageWidth / 2, 15, { align: "center" });
     
-    // Draw the summary box
-    doc.setFillColor(...ADA_COLORS.lightGray);
+    // Draw the summary box with light gray background
+    doc.setFillColor(245, 245, 245);
     doc.setDrawColor(180, 180, 180);
     doc.roundedRect(pageWidth - 120, summaryBoxY, 105, summaryBoxHeight, 3, 3, 'FD');
     
     // Add summary text
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...ADA_COLORS.black);
-    doc.text(`Total Boxes: ${totalBoxes}`, pageWidth - 110, summaryBoxY + 10);
-    doc.text(`Total Pallets: ${totalPallets}*`, pageWidth - 110, summaryBoxY + 22);
-    doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 34);
+    doc.setTextColor(0, 0, 0); // Black text for maximum contrast
     
-    // Add pallet calculation footnote
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'italic');
-    doc.text("* 60 boxes = 1 pallet", pageWidth - 110, summaryBoxY + 44);
+    // Only show boxes total if there are any boxes
+    if (totalBoxes > 0) {
+      doc.text(`Total Boxes: ${totalBoxes}`, pageWidth - 110, summaryBoxY + 10);
+      doc.text(`Total Pallets: ${totalPallets}*`, pageWidth - 110, summaryBoxY + 22);
+      doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 34);
+      
+      // Add pallet calculation footnote
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'italic');
+      doc.text("* 60 boxes = 1 pallet", pageWidth - 110, summaryBoxY + 44);
+    } else {
+      // If no boxes, just show pallets without asterisk
+      doc.text(`Total Pallets: ${totalPallets}`, pageWidth - 110, summaryBoxY + 15);
+      doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 30);
+    }
     
     // Add notes if available
     if (orderData.notes) {
       const notesY = summaryBoxY + 60;
-      doc.setFillColor(...ADA_COLORS.veryLightGray);
+      doc.setFillColor(224, 224, 224); // Very light gray
       doc.roundedRect(15, notesY - 5, pageWidth - 30, 40, 3, 3, 'F');
       
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(...ADA_COLORS.black);
+      doc.setTextColor(0, 0, 0);
       doc.text("Notes:", 25, notesY + 5);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
       
+      // Split long notes into multiple lines with word wrap
       const splitNotes = doc.splitTextToSize(orderData.notes, pageWidth - 60);
       doc.text(splitNotes, 25, notesY + 15);
     }
   } else {
     // Draw the summary box on the same page
-    doc.setFillColor(...ADA_COLORS.lightGray);
+    doc.setFillColor(245, 245, 245); // Light gray background
     doc.setDrawColor(180, 180, 180);
     doc.roundedRect(pageWidth - 120, summaryBoxY, 105, summaryBoxHeight, 3, 3, 'FD');
     
     // Add summary text
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...ADA_COLORS.black);
-    doc.text(`Total Boxes: ${totalBoxes}`, pageWidth - 110, summaryBoxY + 10);
-    doc.text(`Total Pallets: ${totalPallets}*`, pageWidth - 110, summaryBoxY + 22);
-    doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 34);
+    doc.setTextColor(0, 0, 0);
     
-    // Add pallet calculation footnote
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'italic');
-    doc.text("* 60 boxes = 1 pallet", pageWidth - 110, summaryBoxY + 44);
+    // Only show boxes total if there are any boxes
+    if (totalBoxes > 0) {
+      doc.text(`Total Boxes: ${totalBoxes}`, pageWidth - 110, summaryBoxY + 10);
+      doc.text(`Total Pallets: ${totalPallets}*`, pageWidth - 110, summaryBoxY + 22);
+      doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 34);
+      
+      // Add pallet calculation footnote
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'italic');
+      doc.text("* 60 boxes = 1 pallet", pageWidth - 110, summaryBoxY + 44);
+    } else {
+      // If no boxes, just show pallets without asterisk
+      doc.text(`Total Pallets: ${totalPallets}`, pageWidth - 110, summaryBoxY + 15);
+      doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 30);
+    }
     
     // Add notes if available
     if (orderData.notes) {
@@ -304,12 +317,12 @@ export const generateOrderPDF = (orderData: OrderData) => {
         doc.addPage();
         
         const newPageNotesY = 40;
-        doc.setFillColor(...ADA_COLORS.veryLightGray);
+        doc.setFillColor(224, 224, 224); // Very light gray
         doc.roundedRect(15, newPageNotesY - 5, pageWidth - 30, 40, 3, 3, 'F');
         
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...ADA_COLORS.black);
+        doc.setTextColor(0, 0, 0);
         doc.text("Notes:", 25, newPageNotesY + 5);
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(10);
@@ -318,12 +331,12 @@ export const generateOrderPDF = (orderData: OrderData) => {
         doc.text(splitNotes, 25, newPageNotesY + 15);
       } else {
         // Add notes on the same page
-        doc.setFillColor(...ADA_COLORS.veryLightGray);
+        doc.setFillColor(224, 224, 224); // Very light gray
         doc.roundedRect(15, notesY - 5, pageWidth - 30, 40, 3, 3, 'F');
         
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...ADA_COLORS.black);
+        doc.setTextColor(0, 0, 0);
         doc.text("Notes:", 25, notesY + 5);
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(10);
@@ -339,7 +352,7 @@ export const generateOrderPDF = (orderData: OrderData) => {
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.setFontSize(8);
-    doc.setTextColor(...ADA_COLORS.darkGray);
+    doc.setTextColor(60, 60, 60);
     const footerY = pageHeight - 5;
     doc.text(`Generated on ${new Date().toLocaleString()}`, pageWidth / 2, footerY, { align: "center" });
   }
@@ -352,7 +365,10 @@ export const getOrderPdfUrl = async (orderData: OrderData): Promise<string> => {
   try {
     const pdfDoc = generateOrderPDF(orderData);
     const pdfBlob = pdfDoc.output('blob');
+    
+    // Create a downloadable URL for the PDF
     const pdfUrl = URL.createObjectURL(pdfBlob);
+    
     return pdfUrl;
   } catch (error) {
     console.error("Error creating shareable PDF:", error);
@@ -363,9 +379,13 @@ export const getOrderPdfUrl = async (orderData: OrderData): Promise<string> => {
 // Helper function to render PDF directly in browser for linked view
 export const renderOrderPDFInIframe = (orderData: OrderData, iframeElement: HTMLIFrameElement) => {
   try {
+    // Generate the PDF document
     const pdfDoc = generateOrderPDF(orderData);
+    
+    // Convert to binary data URL
     const pdfDataUri = pdfDoc.output('datauristring');
     
+    // Set the iframe source to the data URL
     if (iframeElement) {
       iframeElement.src = pdfDataUri;
     }
