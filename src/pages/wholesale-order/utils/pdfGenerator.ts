@@ -1,3 +1,4 @@
+
 import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
 import { OrderItem, safeNumber } from "../types";
@@ -21,7 +22,7 @@ interface OrderData {
 
 export const generateOrderPDF = (orderData: OrderData) => {
   // Create PDF document with autotable plugin
-  const doc = new jsPDF() as jsPDFWithAutoTable;
+  const doc = new jsPDF('p', 'mm', 'a4') as jsPDFWithAutoTable;
   const pageWidth = doc.internal.pageSize.getWidth();
   
   // Create white background for the header for better logo visibility
@@ -97,7 +98,7 @@ export const generateOrderPDF = (orderData: OrderData) => {
   doc.text(`Order Date: ${new Date(orderData.order_date).toLocaleDateString()}`, 15, yPos);
   yPos += 10;
   
-  // Delivery date - now bold
+  // Delivery date
   if (orderData.delivery_date) {
     doc.setFont('helvetica', 'bold');
     doc.text(`Delivery Date: ${new Date(orderData.delivery_date).toLocaleDateString()}`, 15, yPos);
@@ -119,7 +120,7 @@ export const generateOrderPDF = (orderData: OrderData) => {
   
   yPos += 5;
   
-  // Format items data for table - include both name and pallets
+  // Format items data for table with packaging type information
   const tableData = orderData.items.map(item => {
     // Create concatenated name field with packaging type included
     const name = [
@@ -200,7 +201,7 @@ export const generateOrderPDF = (orderData: OrderData) => {
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(0, 0, 0);
-  doc.text(`Total Quantity: ${totalPallets} pallets`, pageWidth - 110, finalY + 5);
+  doc.text(`Total Quantity: ${totalPallets} items`, pageWidth - 110, finalY + 5);
   doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, finalY + 25);
   
   // Add notes if available
@@ -231,9 +232,20 @@ export const generateOrderPDF = (orderData: OrderData) => {
   return doc;
 };
 
-// Helper function to get a public URL for the PDF for sharing
+// Helper function to generate a shareable URL for the order
 export const getOrderPdfUrl = async (orderData: OrderData): Promise<string> => {
-  // For now, we'll just return a frontend route that would handle displaying the order
-  const baseUrl = window.location.origin;
-  return `${baseUrl}/wholesale-orders/${orderData.order_number}/view`;
+  try {
+    // First create a blob URL from the PDF
+    const pdfDoc = generateOrderPDF(orderData);
+    const pdfBlob = pdfDoc.output('blob');
+    
+    // For browser sharing, create a download URL
+    // In a real production app, you'd upload this to storage and return a persistent URL
+    return URL.createObjectURL(pdfBlob);
+  } catch (error) {
+    console.error("Error creating shareable PDF:", error);
+    // If PDF generation fails, fall back to a view URL
+    const baseUrl = window.location.origin;
+    return `${baseUrl}/wholesale-orders/${orderData.order_number}/view`;
+  }
 };

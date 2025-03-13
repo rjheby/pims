@@ -4,11 +4,11 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { OrderList } from "./wholesale-order/components/OrderList";
 import { useOrders } from "./wholesale-order/hooks/useOrders";
-import { generateOrderPDF } from "./wholesale-order/utils/pdfGenerator";
+import { generateOrderPDF, getOrderPdfUrl } from "./wholesale-order/utils/pdfGenerator";
 
 export function WholesaleOrderArchive() {
   const navigate = useNavigate();
@@ -102,10 +102,23 @@ export function WholesaleOrderArchive() {
     }
   };
 
-  const handleCopyLink = (orderId: string) => {
+  const handleCopyLink = async (orderId: string) => {
     try {
+      // Get the order data
+      const { data: order, error } = await supabase
+        .from("wholesale_orders")
+        .select("*")
+        .eq("id", orderId)
+        .maybeSingle();
+        
+      if (error) throw error;
+      if (!order) throw new Error("Order not found");
+      
+      // Create a shareable link directly to the view page
       const link = `${window.location.origin}/wholesale-orders/${orderId}/view`;
-      navigator.clipboard.writeText(link);
+      
+      // Copy to clipboard
+      await navigator.clipboard.writeText(link);
       
       toast({
         title: "Link copied",
@@ -122,7 +135,9 @@ export function WholesaleOrderArchive() {
   };
 
   const handleShare = (orderId: string, method: 'email' | 'sms') => {
+    // Create a shareable link directly to the view page
     const link = `${window.location.origin}/wholesale-orders/${orderId}/view`;
+    
     if (method === 'email') {
       window.location.href = `mailto:?subject=Timber Order Details&body=View the order details here: ${link}`;
     } else if (method === 'sms') {
