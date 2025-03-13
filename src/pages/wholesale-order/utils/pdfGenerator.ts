@@ -1,4 +1,3 @@
-
 import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
 import { OrderItem, safeNumber } from "../types";
@@ -23,6 +22,28 @@ interface OrderData {
   status?: string;
 }
 
+// Define ADA-compliant color constants for better consistency
+const ADA_COLORS = {
+  // Background colors
+  woodbourneGreen: [42, 65, 49],    // Dark green - requires white text
+  lightGray: [245, 245, 245],       // Light gray - requires dark text
+  white: [255, 255, 255],           // White - requires dark text
+  darkGreenTint: [42, 65, 49],      // Dark green (almost black) - requires white text
+
+  // Text colors
+  black: [0, 0, 0],                 // Black - high contrast on light backgrounds
+  white: [255, 255, 255],           // White - high contrast on dark backgrounds
+  darkGray: [60, 60, 60],           // Dark gray - good for secondary text on light backgrounds
+  midGray: [100, 100, 100],         // Mid gray - only for non-essential text
+
+  // Status colors - with ADA compliant alternatives
+  draft: [100, 100, 100],           // Darker gray for better contrast
+  submitted: [25, 80, 170],         // Darker blue for better contrast
+  processing: [180, 95, 6],         // Darker amber for better contrast
+  completed: [16, 124, 86],         // Darker green for better contrast
+  cancelled: [180, 30, 30]          // Darker red for better contrast
+};
+
 export const generateOrderPDF = (orderData: OrderData) => {
   // Create PDF document with autotable plugin
   const doc = new jsPDF('p', 'mm', 'a4') as jsPDFWithAutoTable;
@@ -30,7 +51,7 @@ export const generateOrderPDF = (orderData: OrderData) => {
   const pageHeight = doc.internal.pageSize.getHeight();
   
   // Create white background for the header
-  doc.setFillColor(255, 255, 255);
+  doc.setFillColor(...ADA_COLORS.white);
   doc.rect(0, 0, pageWidth, 40, 'F');
   
   // Add logo with improved positioning
@@ -40,19 +61,19 @@ export const generateOrderPDF = (orderData: OrderData) => {
   } catch (error) {
     console.error("Error adding logo to PDF:", error);
     // Fallback if image loading fails
-    doc.setTextColor(42, 65, 49); // Woodbourne Green text instead
+    doc.setTextColor(...ADA_COLORS.woodbourneGreen); // Woodbourne Green text on white background
     doc.setFontSize(24);
     doc.setFont('helvetica', 'bold');
     doc.text("Order Summary", pageWidth / 2, 20, { align: "center" });
   }
   
   // Add a separator line under the header
-  doc.setDrawColor(42, 65, 49); // Woodbourne Green
+  doc.setDrawColor(...ADA_COLORS.woodbourneGreen);
   doc.setLineWidth(0.5);
   doc.line(15, 32, pageWidth - 15, 32);
   
   // Reset text color for the rest of the document
-  doc.setTextColor(0, 0, 0);
+  doc.setTextColor(...ADA_COLORS.black); // Black text for maximum contrast
   
   // Add title with status
   doc.setFontSize(18);
@@ -68,29 +89,29 @@ export const generateOrderPDF = (orderData: OrderData) => {
     let statusColor;
     switch (orderData.status.toLowerCase()) {
       case 'draft':
-        statusColor = [120, 120, 120]; // Gray
+        statusColor = ADA_COLORS.draft;
         break;
       case 'submitted':
-        statusColor = [38, 114, 236]; // Blue
+        statusColor = ADA_COLORS.submitted;
         break;
       case 'processing':
-        statusColor = [245, 158, 11]; // Amber
+        statusColor = ADA_COLORS.processing;
         break;
       case 'completed':
-        statusColor = [16, 185, 129]; // Green
+        statusColor = ADA_COLORS.completed;
         break;
       case 'cancelled':
-        statusColor = [239, 68, 68]; // Red
+        statusColor = ADA_COLORS.cancelled;
         break;
       default:
-        statusColor = [120, 120, 120]; // Default gray
+        statusColor = ADA_COLORS.draft;
     }
     
-    doc.setFillColor(statusColor[0], statusColor[1], statusColor[2]);
+    doc.setFillColor(...statusColor);
     doc.roundedRect(statusX - 5, 38, 50, 14, 3, 3, 'F');
-    doc.setTextColor(255, 255, 255);
+    doc.setTextColor(...ADA_COLORS.white); // Always use white text on color backgrounds for contrast
     doc.text(orderData.status.toUpperCase(), statusX + 20, 46, { align: "center" });
-    doc.setTextColor(0, 0, 0);
+    doc.setTextColor(...ADA_COLORS.black); // Reset to black text
   }
   
   // Add order details
@@ -146,22 +167,23 @@ export const generateOrderPDF = (orderData: OrderData) => {
   // Define consistent column alignment with correct HAlignType values
   const colAlignments: HAlignType[] = ['center', 'left', 'center', 'center'];
   
-  // Add items table with improved formatting and wider quantity column
+  // Add items table with improved ADA-compliant formatting
   autoTable(doc, {
     head: [['Qty', 'Product Description', 'Unit Price', 'Total']],
     body: tableData,
     startY: yPos + 2,
     styles: { 
-      fontSize: 10,
+      fontSize: 11, // Increased font size for better readability
       cellPadding: 6,
       halign: 'center', // Default alignment for all cells
-      valign: 'middle'
+      valign: 'middle',
+      textColor: [0, 0, 0] // Ensure black text in main table body
     },
     headStyles: { 
-      fillColor: [42, 65, 49],  // Woodbourne Green 
-      textColor: [255, 255, 255],
+      fillColor: ADA_COLORS.woodbourneGreen,  // Woodbourne Green 
+      textColor: ADA_COLORS.white, // White text on dark background
       fontStyle: 'bold',
-      fontSize: 11,
+      fontSize: 12, // Slightly increased for better readability
       halign: 'center'
     },
     columnStyles: {
@@ -171,7 +193,8 @@ export const generateOrderPDF = (orderData: OrderData) => {
       3: { halign: colAlignments[3], cellWidth: 30 }
     },
     alternateRowStyles: { 
-      fillColor: [245, 247, 245] // Very light green tint for alternate rows
+      fillColor: ADA_COLORS.darkGreenTint, // Dark green (almost black) for alternate rows
+      textColor: ADA_COLORS.white // White text on dark backgrounds
     },
     margin: { top: 10, right: 15, bottom: 20, left: 15 },
     showHead: 'everyPage',
@@ -181,17 +204,17 @@ export const generateOrderPDF = (orderData: OrderData) => {
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         doc.setFontSize(8);
-        doc.setTextColor(100, 100, 100);
+        doc.setTextColor(...ADA_COLORS.darkGray); // Darker gray for better contrast
         doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 10, { align: "center" });
       }
       
       // Add header to every page after the first
       if (data.pageNumber > 1) {
-        doc.setFillColor(255, 255, 255);
+        doc.setFillColor(...ADA_COLORS.white);
         doc.rect(0, 0, pageWidth, 20, 'F');
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(42, 65, 49);
+        doc.setTextColor(...ADA_COLORS.woodbourneGreen);
         doc.text(`Order #${orderData.order_number} - Continued`, pageWidth / 2, 15, { align: "center" });
       }
     }
@@ -217,30 +240,30 @@ export const generateOrderPDF = (orderData: OrderData) => {
     // Add a small header on the new page
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(42, 65, 49);
+    doc.setTextColor(...ADA_COLORS.woodbourneGreen);
     doc.text(`Order #${orderData.order_number} - Summary`, pageWidth / 2, 15, { align: "center" });
     
-    // Draw the summary box with ADA compliant colors - light gray background (245, 245, 245) with black text
-    doc.setFillColor(245, 245, 245);
-    doc.setDrawColor(200, 200, 200);
+    // Draw the summary box with ADA compliant colors
+    doc.setFillColor(...ADA_COLORS.lightGray);
+    doc.setDrawColor(180, 180, 180); // Slightly darker border for definition
     doc.roundedRect(pageWidth - 120, summaryBoxY, 105, summaryBoxHeight, 3, 3, 'FD');
     
     // Add summary text - black text on light background (ADA compliant)
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(0, 0, 0); // Black text for maximum contrast
+    doc.setTextColor(...ADA_COLORS.black); // Black text for maximum contrast
     doc.text(`Total Quantity: ${totalPallets} items`, pageWidth - 110, summaryBoxY + 15);
     doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 30);
     
     // Add notes if available
     if (orderData.notes) {
       const notesY = summaryBoxY + 60;
-      doc.setFillColor(245, 247, 245);
+      doc.setFillColor(...ADA_COLORS.darkGreenTint);
       doc.roundedRect(15, notesY - 5, pageWidth - 30, 40, 3, 3, 'F');
       
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(0, 0, 0); // Black for maximum contrast
+      doc.setTextColor(...ADA_COLORS.white); // White for maximum contrast on dark background
       doc.text("Notes:", 25, notesY + 5);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
@@ -251,14 +274,14 @@ export const generateOrderPDF = (orderData: OrderData) => {
     }
   } else {
     // Draw the summary box on the same page with ADA compliant colors
-    doc.setFillColor(245, 245, 245); // Light gray background
-    doc.setDrawColor(200, 200, 200); // Darker border
+    doc.setFillColor(...ADA_COLORS.lightGray);
+    doc.setDrawColor(180, 180, 180); // Slightly darker border for definition
     doc.roundedRect(pageWidth - 120, summaryBoxY, 105, summaryBoxHeight, 3, 3, 'FD');
     
     // Add summary text - black text on light gray background (ADA compliant)
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(0, 0, 0); // Black text for maximum contrast
+    doc.setTextColor(...ADA_COLORS.black); // Black text for maximum contrast
     doc.text(`Total Quantity: ${totalPallets} items`, pageWidth - 110, summaryBoxY + 15);
     doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 30);
     
@@ -272,30 +295,28 @@ export const generateOrderPDF = (orderData: OrderData) => {
         doc.addPage();
         
         const newPageNotesY = 40;
-        doc.setFillColor(245, 247, 245);
+        doc.setFillColor(...ADA_COLORS.lightGreenTint);
         doc.roundedRect(15, newPageNotesY - 5, pageWidth - 30, 40, 3, 3, 'F');
         
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(0, 0, 0); // Black for maximum contrast
+        doc.setTextColor(...ADA_COLORS.black); // Black for maximum contrast
         doc.text("Notes:", 25, newPageNotesY + 5);
         doc.setFont('helvetica', 'normal');
-        doc.setTextColor(0, 0, 0);
         doc.setFontSize(10);
         
         const splitNotes = doc.splitTextToSize(orderData.notes, pageWidth - 60);
         doc.text(splitNotes, 25, newPageNotesY + 15);
       } else {
         // Add notes on the same page
-        doc.setFillColor(245, 247, 245);
+        doc.setFillColor(...ADA_COLORS.lightGreenTint);
         doc.roundedRect(15, notesY - 5, pageWidth - 30, 40, 3, 3, 'F');
         
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(0, 0, 0); // Black for maximum contrast
+        doc.setTextColor(...ADA_COLORS.black); // Black for maximum contrast
         doc.text("Notes:", 25, notesY + 5);
         doc.setFont('helvetica', 'normal');
-        doc.setTextColor(0, 0, 0);
         doc.setFontSize(10);
         
         const splitNotes = doc.splitTextToSize(orderData.notes, pageWidth - 60);
@@ -309,7 +330,7 @@ export const generateOrderPDF = (orderData: OrderData) => {
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.setFontSize(8);
-    doc.setTextColor(100, 100, 100);
+    doc.setTextColor(...ADA_COLORS.darkGray); // Darker gray for better contrast
     const footerY = pageHeight - 5;
     doc.text(`Generated on ${new Date().toLocaleString()}`, pageWidth / 2, footerY, { align: "center" });
   }
