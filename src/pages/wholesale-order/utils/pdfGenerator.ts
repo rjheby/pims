@@ -1,4 +1,5 @@
-import { jsPDF } from "jspdf";
+// Define the boxes to pallets conversion function
+const calculatePalletsFromBoxes = (boxes: number) => Math.ceil(boxes / 60); // 60 boxes = 1 palletimport { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
 import { OrderItem, safeNumber } from "../types";
 
@@ -28,7 +29,7 @@ const ADA_COLORS = {
   woodbourneGreen: [42, 65, 49],    // Dark green - requires white text
   lightGray: [245, 245, 245],       // Light gray - requires dark text
   white: [255, 255, 255],           // White - requires dark text
-  darkGreenTint: [42, 65, 49],      // Dark green (almost black) - requires white text
+  veryLightGray: [224, 224, 224],   // Very light gray (#e0e0e0) - requires dark text
 
   // Text colors
   black: [0, 0, 0],                 // Black - high contrast on light backgrounds
@@ -135,13 +136,14 @@ export const generateOrderPDF = (orderData: OrderData) => {
   }
 
   // Calculate totals if not provided
-  // Use the formula: 60 boxes (12x10") = 1 pallet
-  // First calculate boxes
-  const calculatePalletsFromBoxes = (boxes: number) => Math.ceil(boxes / 60);
-  
+  // Calculate total boxes (which is what's stored in item.pallets)
   const totalBoxes = orderData.items.reduce((sum, item) => sum + safeNumber(item.pallets), 0);
-  // Convert boxes to pallets using the universal formula (60 boxes = 1 pallet)
-  const totalPallets = orderData.totalPallets || calculatePalletsFromBoxes(totalBoxes);
+  
+  // Get total pallets from orderData if provided, otherwise calculate it based on boxes
+  // Note: In the data model, item.pallets actually contains box counts
+  const totalPallets = orderData.totalPallets !== undefined
+    ? orderData.totalPallets  // Use the provided total if available
+    : calculatePalletsFromBoxes(totalBoxes);
   
   const totalValue = orderData.totalValue || 
     orderData.items.reduce((sum, item) => sum + (safeNumber(item.pallets) * safeNumber(item.unitCost)), 0);
@@ -201,8 +203,8 @@ export const generateOrderPDF = (orderData: OrderData) => {
       3: { halign: colAlignments[3], cellWidth: 30 }
     },
     alternateRowStyles: { 
-      fillColor: ADA_COLORS.darkGreenTint, // Dark green (almost black) for alternate rows
-      textColor: ADA_COLORS.white // White text on dark backgrounds
+      fillColor: ADA_COLORS.veryLightGray, // Very light gray for alternate rows
+      textColor: ADA_COLORS.black // Black text on light backgrounds
     },
     margin: { top: 10, right: 15, bottom: 20, left: 15 },
     showHead: 'everyPage',
@@ -273,12 +275,12 @@ export const generateOrderPDF = (orderData: OrderData) => {
     // Add notes if available
     if (orderData.notes) {
       const notesY = summaryBoxY + 60;
-      doc.setFillColor(...ADA_COLORS.darkGreenTint);
+      doc.setFillColor(...ADA_COLORS.veryLightGray);
       doc.roundedRect(15, notesY - 5, pageWidth - 30, 40, 3, 3, 'F');
       
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(...ADA_COLORS.white); // White for maximum contrast on dark background
+      doc.setTextColor(...ADA_COLORS.black); // Black text for maximum contrast on light background
       doc.text("Notes:", 25, notesY + 5);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
