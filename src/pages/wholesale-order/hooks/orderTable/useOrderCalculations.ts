@@ -17,11 +17,13 @@ export function useOrderCalculations() {
     return calculateTotalQuantity(items);
   };
 
-  // Calculate total pallet equivalents considering that 60 12x10" boxes = 1 pallet
+  // Calculate total pallet equivalents based on the updated capacities:
+  // - Each pallet is 1/24 of truck capacity
+  // - Each 12x10" box is 1/1440 of truck capacity (1/60 of a pallet)
   const calculateTotalPalletEquivalents = (items: OrderItem[]): number => {
     return items.reduce((total, item) => {
       if (item.packaging === "12x10\" Boxes") {
-        // 60 boxes = 1 pallet equivalent
+        // 1 box = 1/1440 of truck capacity = 1/60 of a pallet
         return total + (safeNumber(item.pallets) / 60);
       }
       return total + safeNumber(item.pallets);
@@ -30,7 +32,7 @@ export function useOrderCalculations() {
 
   const calculateCapacityPercentage = (items: OrderItem[]): number => {
     const totalEquivalents = calculateTotalPalletEquivalents(items);
-    const maxCapacity = 24; // Max truck capacity
+    const maxCapacity = 24; // Max truck capacity in pallets
     return (totalEquivalents / maxCapacity) * 100;
   };
 

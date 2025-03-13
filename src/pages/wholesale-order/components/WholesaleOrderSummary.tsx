@@ -43,7 +43,7 @@ export function WholesaleOrderSummary({ items }: WholesaleOrderSummaryProps) {
 
         {hasBoxes && (
           <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded">
-            Note: For capacity calculations, 60 boxes (12x10") = 1 pallet equivalent
+            Note: For capacity calculations, each box (12x10") = 1/60 of a pallet (1/1440 of truck capacity)
           </div>
         )}
 
