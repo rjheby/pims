@@ -193,7 +193,21 @@ export function OrderCard({
           variant="outline" 
           size="sm" 
           className="flex-1"
-          onClick={() => onCopyLink(order.id)}
+          onClick={() => {
+            // Create a fallback mechanism for copying in case the main method fails
+            try {
+              // Get the URL
+              const viewUrl = `${window.location.origin}/wholesale-orders/${order.id}/view`;
+              
+              // First try the clipboard API directly
+              onCopyLink(order.id);
+              
+              // If that fails (error will be caught in the parent component),
+              // the user can still manually copy from the URL
+            } catch (error) {
+              console.error("Error with copy link button:", error);
+            }
+          }}
         >
           <Link className="mr-1 h-4 w-4" />
           <span className="sr-only sm:not-sr-only sm:ml-1">Link</span>

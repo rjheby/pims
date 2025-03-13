@@ -108,8 +108,18 @@ export function WholesaleOrderArchive() {
       // Create a proper view URL
       const viewUrl = `${window.location.origin}/wholesale-orders/${orderId}/view`;
       
-      // Copy to clipboard
-      await navigator.clipboard.writeText(viewUrl);
+      // Use a more reliable approach for clipboard copying
+      // Create a temporary input element
+      const tempInput = document.createElement('input');
+      tempInput.value = viewUrl;
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      
+      // Execute the copy command
+      const success = document.execCommand('copy');
+      document.body.removeChild(tempInput);
+      
+      if (!success) throw new Error("Copy command failed");
       
       toast({
         title: "Link copied",
@@ -119,7 +129,7 @@ export function WholesaleOrderArchive() {
       console.error("Error copying link:", error);
       toast({
         title: "Error",
-        description: "Failed to copy link to clipboard.",
+        description: "Failed to copy link to clipboard. Try selecting and copying the URL manually.",
         variant: "destructive"
       });
     }
