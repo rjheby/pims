@@ -135,8 +135,13 @@ export const generateOrderPDF = (orderData: OrderData) => {
   }
 
   // Calculate totals if not provided
-  const totalPallets = orderData.totalPallets || 
-    orderData.items.reduce((sum, item) => sum + safeNumber(item.pallets), 0);
+  // Use the formula: 60 boxes (12x10") = 1 pallet
+  // First calculate boxes
+  const calculatePalletsFromBoxes = (boxes: number) => Math.ceil(boxes / 60);
+  
+  const totalBoxes = orderData.items.reduce((sum, item) => sum + safeNumber(item.pallets), 0);
+  // Convert boxes to pallets using the universal formula (60 boxes = 1 pallet)
+  const totalPallets = orderData.totalPallets || calculatePalletsFromBoxes(totalBoxes);
   
   const totalValue = orderData.totalValue || 
     orderData.items.reduce((sum, item) => sum + (safeNumber(item.pallets) * safeNumber(item.unitCost)), 0);
@@ -153,14 +158,17 @@ export const generateOrderPDF = (orderData: OrderData) => {
     ].filter(Boolean).join(' - ');
     
     const itemUnitCost = safeNumber(item.unitCost);
-    const itemPallets = safeNumber(item.pallets);
-    const itemTotal = itemPallets * itemUnitCost;
+    const itemBoxes = safeNumber(item.pallets); // This is actually boxes in the data
+    // Calculate pallets for display (60 boxes = 1 pallet)
+    const boxesPerPallet = 60;
+    const itemPallets = Math.ceil(itemBoxes / boxesPerPallet);
+    const itemTotal = itemBoxes * itemUnitCost;
     
     return [
-      itemPallets.toString(),                         // Qty
+      itemBoxes.toString(),                           // Qty (Boxes)
       name,                                           // Name
-      `$${itemUnitCost.toFixed(2)}`,                  // Unit Cost
-      `$${itemTotal.toFixed(2)}`                      // Total Cost
+      `${itemUnitCost.toFixed(2)}`,                  // Unit Cost
+      `${itemTotal.toFixed(2)}`                      // Total Cost
     ];
   });
   
@@ -169,7 +177,7 @@ export const generateOrderPDF = (orderData: OrderData) => {
   
   // Add items table with improved ADA-compliant formatting
   autoTable(doc, {
-    head: [['Qty', 'Product Description', 'Unit Price', 'Total']],
+    head: [['Boxes', 'Product Description', 'Unit Price', 'Total']],
     body: tableData,
     startY: yPos + 2,
     styles: { 
@@ -224,7 +232,7 @@ export const generateOrderPDF = (orderData: OrderData) => {
   const finalY = (doc as any).lastAutoTable.finalY + 10;
   
   // Add summary box with ADA compliant colors
-  const summaryBoxHeight = 40;
+      const summaryBoxHeight = 50;
   const summaryBoxY = finalY;
   
   // Check if there's enough space for the summary box
@@ -243,17 +251,24 @@ export const generateOrderPDF = (orderData: OrderData) => {
     doc.setTextColor(...ADA_COLORS.woodbourneGreen);
     doc.text(`Order #${orderData.order_number} - Summary`, pageWidth / 2, 15, { align: "center" });
     
+    // Add explanation for pallet calculation
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(...ADA_COLORS.darkGray);
+    doc.text("* Pallets calculated at 60 boxes per pallet", pageWidth / 2, 25, { align: "center" });
+    
     // Draw the summary box with ADA compliant colors
     doc.setFillColor(...ADA_COLORS.lightGray);
     doc.setDrawColor(180, 180, 180); // Slightly darker border for definition
     doc.roundedRect(pageWidth - 120, summaryBoxY, 105, summaryBoxHeight, 3, 3, 'FD');
     
-    // Add summary text - black text on light background (ADA compliant)
+          // Add summary text - black text on light background (ADA compliant)
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...ADA_COLORS.black); // Black text for maximum contrast
-    doc.text(`Total Quantity: ${totalPallets} items`, pageWidth - 110, summaryBoxY + 15);
-    doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 30);
+    doc.text(`Total Boxes: ${totalBoxes}`, pageWidth - 110, summaryBoxY + 10);
+    doc.text(`Total Pallets: ${totalPallets}*`, pageWidth - 110, summaryBoxY + 22);
+    doc.text(`Total Value: ${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 34);
     
     // Add notes if available
     if (orderData.notes) {
@@ -282,8 +297,14 @@ export const generateOrderPDF = (orderData: OrderData) => {
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...ADA_COLORS.black); // Black text for maximum contrast
-    doc.text(`Total Quantity: ${totalPallets} items`, pageWidth - 110, summaryBoxY + 15);
-    doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 30);
+    doc.text(`Total Boxes: ${totalBoxes}`, pageWidth - 110, summaryBoxY + 10);
+    doc.text(`Total Pallets: ${totalPallets}*`, pageWidth - 110, summaryBoxY + 22);
+    doc.text(`Total Value: ${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 34);
+    
+    // Add footnote about pallet calculation
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'italic');
+    doc.text("* 60 boxes = 1 pallet", pageWidth - 110, summaryBoxY + 44);
     
     // Add notes if available
     if (orderData.notes) {
