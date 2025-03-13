@@ -108,14 +108,25 @@ export function WholesaleOrderArchive() {
       // Create a proper view URL
       const viewUrl = `${window.location.origin}/wholesale-orders/${orderId}/view`;
       
-      // Use a more reliable approach for clipboard copying
-      // Create a temporary input element
+      // Try the modern clipboard API first
+      try {
+        await navigator.clipboard.writeText(viewUrl);
+        toast({
+          title: "Link copied",
+          description: "The shareable order link has been copied to your clipboard."
+        });
+        return; // Early return if successful
+      } catch (clipboardError) {
+        console.error("Clipboard API failed:", clipboardError);
+        // Fall back to older method if clipboard API fails
+      }
+      
+      // Fallback method using execCommand
       const tempInput = document.createElement('input');
       tempInput.value = viewUrl;
       document.body.appendChild(tempInput);
       tempInput.select();
       
-      // Execute the copy command
       const success = document.execCommand('copy');
       document.body.removeChild(tempInput);
       

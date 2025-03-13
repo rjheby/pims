@@ -165,7 +165,7 @@ export const generateOrderPDF = (orderData: OrderData) => {
       halign: 'center'
     },
     columnStyles: {
-      0: { halign: colAlignments[0], cellWidth: 15 },
+      0: { halign: colAlignments[0], cellWidth: 25 }, // Increased width for quantity field
       1: { halign: colAlignments[1], cellWidth: 'auto' },
       2: { halign: colAlignments[2], cellWidth: 30 },
       3: { halign: colAlignments[3], cellWidth: 30 }
@@ -202,7 +202,7 @@ export const generateOrderPDF = (orderData: OrderData) => {
   
   // Add summary box with border
   doc.setDrawColor(200, 200, 200);
-  doc.setFillColor(245, 245, 245);
+  doc.setFillColor(245, 245, 245);  // Light gray background instead of dark green
   const summaryBoxHeight = 40;
   const summaryBoxY = finalY;
   
@@ -222,13 +222,13 @@ export const generateOrderPDF = (orderData: OrderData) => {
     doc.setTextColor(42, 65, 49);
     doc.text(`Order #${orderData.order_number} - Summary`, pageWidth / 2, 15, { align: "center" });
     
-    // Draw the summary box
+    // Draw the summary box with light background
     doc.roundedRect(pageWidth - 120, summaryBoxY, 105, summaryBoxHeight, 3, 3, 'FD');
     
-    // Add summary text
+    // Add summary text with dark text on light background
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(0, 0, 0);
+    doc.setTextColor(42, 65, 49);  // Dark green text for better contrast
     doc.text(`Total Quantity: ${totalPallets} items`, pageWidth - 110, summaryBoxY + 15);
     doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 30);
     
@@ -251,13 +251,13 @@ export const generateOrderPDF = (orderData: OrderData) => {
       doc.text(splitNotes, 25, notesY + 15);
     }
   } else {
-    // Draw the summary box on the same page
+    // Draw the summary box on the same page with light background
     doc.roundedRect(pageWidth - 120, summaryBoxY, 105, summaryBoxHeight, 3, 3, 'FD');
     
-    // Add summary text
+    // Add summary text with dark text on light background
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(0, 0, 0);
+    doc.setTextColor(42, 65, 49);  // Dark green text for better contrast
     doc.text(`Total Quantity: ${totalPallets} items`, pageWidth - 110, summaryBoxY + 15);
     doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 30);
     
