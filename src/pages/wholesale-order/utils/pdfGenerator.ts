@@ -56,7 +56,7 @@ export const generateOrderPDF = (orderData: OrderData) => {
   // Add title with status
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text(`Order #${orderData.order_number}`, 15, 45);
+  doc.text(`Purchase Order #${orderData.order_number}`, 15, 45);
   
   if (orderData.status) {
     // Add status indicator
