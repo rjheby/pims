@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +11,9 @@ interface WholesaleOrderData {
   delivery_date?: string | null;
   items: OrderItem[];
 }
+
+// Helper function to calculate pallets from boxes
+const calculatePalletsFromBoxes = (boxes: number) => Math.ceil(boxes / 60); // 60 boxes = 1 pallet
 
 export function WholesaleOrderForm() {
   const { id } = useParams();
@@ -83,15 +85,25 @@ export function WholesaleOrderForm() {
     });
   };
 
-  // Calculate summary information
+  // Calculate summary information with proper box-to-pallet conversion
   const summaryInfo = orderData.items.reduce((acc, item) => {
-    const totalCost = safeNumber(item.pallets) * safeNumber(item.unitCost);
+    const quantity = safeNumber(item.pallets);
+    const totalCost = quantity * safeNumber(item.unitCost);
+    
+    // Check if item is in boxes or pallets based on packaging field
+    const packagingText = (item.packaging || '').toLowerCase();
+    const isBoxes = packagingText.includes('box');
+    
+    // Calculate total actual pallets properly
+    const palletEquivalent = isBoxes ? calculatePalletsFromBoxes(quantity) : quantity;
+    
     return {
-      totalPallets: acc.totalPallets + safeNumber(item.pallets),
+      totalQuantity: acc.totalQuantity + quantity,
+      totalPallets: acc.totalPallets + palletEquivalent,
       totalCost: acc.totalCost + totalCost,
       totalItems: acc.totalItems + 1
     };
-  }, { totalPallets: 0, totalCost: 0, totalItems: 0 });
+  }, { totalQuantity: 0, totalPallets: 0, totalCost: 0, totalItems: 0 });
 
   return (
     <div className="flex-1">
@@ -149,17 +161,27 @@ export function WholesaleOrderForm() {
                 <h3 className="text-xl font-semibold mb-6 text-center">Order Summary</h3>
                 <div className="flex flex-col gap-4 p-6 bg-slate-50 rounded-lg">
                   <div className="text-center">
+                    <div className="text-gray-600 text-lg mb-1">Total Quantity</div>
+                    <div className="text-2xl font-semibold">
+                      {summaryInfo.totalQuantity}
+                    </div>
+                  </div>
+                  <div className="text-center">
                     <div className="text-gray-600 text-lg mb-1">Total Pallets</div>
                     <div className="text-2xl font-semibold">
-                      {orderData.items.reduce((sum, item) => sum + safeNumber(item.pallets), 0)}
+                      {summaryInfo.totalPallets}
                     </div>
+                    {/* Add explanatory note about pallet calculation if boxes are present */}
+                    {summaryInfo.totalQuantity !== summaryInfo.totalPallets && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        (1 pallet = 60 boxes)
+                      </div>
+                    )}
                   </div>
                   <div className="text-center">
                     <div className="text-gray-600 text-lg mb-1">Total Order Value</div>
                     <div className="text-2xl font-semibold">
-                      ${orderData.items.reduce((sum, item) => {
-                        return sum + (safeNumber(item.pallets) * safeNumber(item.unitCost));
-                      }, 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                      ${summaryInfo.totalCost.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                     </div>
                   </div>
                 </div>
