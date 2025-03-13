@@ -28,6 +28,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { OrderItem, safeNumber } from "../types";
 
 interface OrderCardProps {
   order: any;
@@ -49,6 +50,46 @@ function highlightText(text: string, searchTerm: string) {
   return parts.map((part, i) => 
     regex.test(part) ? <mark key={i} className="bg-yellow-200">{part}</mark> : part
   );
+}
+
+// Helper function to format the quantity display based on packaging types
+function formatQuantityDisplay(items: any[]) {
+  if (!items || !items.length) return "0 pallets";
+  
+  try {
+    // Parse items if they're in string format
+    const parsedItems = items.map(item => 
+      typeof item === 'string' ? JSON.parse(item) : item
+    );
+    
+    // Group items by packaging type
+    const countByType: Record<string, number> = {};
+    
+    parsedItems.forEach((item: OrderItem) => {
+      const packaging = item.packaging || 'Pallets';
+      const quantity = safeNumber(item.pallets);
+      
+      if (countByType[packaging]) {
+        countByType[packaging] += quantity;
+      } else {
+        countByType[packaging] = quantity;
+      }
+    });
+    
+    // Create display string
+    const parts = Object.entries(countByType).map(([type, count]) => {
+      if (count === 0) return null;
+      if (count === 1) {
+        return `${count} ${type.replace(/s$/, '')}`; // Remove trailing 's' for singular
+      }
+      return `${count} ${type}`;
+    }).filter(Boolean);
+    
+    return parts.join(', ');
+  } catch (error) {
+    console.error("Error formatting quantity display:", error);
+    return "Unknown quantity";
+  }
 }
 
 export function OrderCard({ 
@@ -82,12 +123,12 @@ export function OrderCard({
     (sum: number, item: any) => sum + (item.pallets || 0) * (item.unitCost || 0),
     0
   ) || order.totalPrice || 0;
-
-  const totalPallets = order.items?.reduce(
-    (sum: number, item: any) => sum + (Number(item.pallets) || 0),
-    0
-  ) || order.totalPallets || 0;
-
+  
+  // Use our formatted quantity display
+  const itemsDisplay = formatQuantityDisplay(
+    typeof order.items === 'string' ? JSON.parse(order.items) : order.items || []
+  );
+  
   return (
     <Card className="h-full flex flex-col overflow-hidden">
       <CardHeader className="pb-3">
@@ -150,7 +191,7 @@ export function OrderCard({
             </div>
             <div>
               <span className="text-muted-foreground mr-2">Items:</span>
-              <span>{totalPallets} {totalPallets === 1 ? 'pallet' : 'pallets'}</span>
+              <span>{itemsDisplay}</span>
             </div>
           </div>
           

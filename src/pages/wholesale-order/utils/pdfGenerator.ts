@@ -165,7 +165,7 @@ export const generateOrderPDF = (orderData: OrderData) => {
       halign: 'center'
     },
     columnStyles: {
-      0: { halign: colAlignments[0], cellWidth: 30 }, // Increased width for quantity field
+      0: { halign: colAlignments[0], cellWidth: 35 }, // Increased width for quantity field
       1: { halign: colAlignments[1], cellWidth: 'auto' },
       2: { halign: colAlignments[2], cellWidth: 30 },
       3: { halign: colAlignments[3], cellWidth: 30 }
@@ -200,9 +200,7 @@ export const generateOrderPDF = (orderData: OrderData) => {
   // Get final Y position after the table
   const finalY = (doc as any).lastAutoTable.finalY + 10;
   
-  // Add summary box with white background and dark text (ADA compliant)
-  doc.setDrawColor(200, 200, 200);
-  doc.setFillColor(245, 245, 245);  // Light gray background
+  // Add summary box with ADA compliant colors
   const summaryBoxHeight = 40;
   const summaryBoxY = finalY;
   
@@ -222,13 +220,15 @@ export const generateOrderPDF = (orderData: OrderData) => {
     doc.setTextColor(42, 65, 49);
     doc.text(`Order #${orderData.order_number} - Summary`, pageWidth / 2, 15, { align: "center" });
     
-    // Draw the summary box with ADA compliant colors
+    // Draw the summary box with ADA compliant colors - light gray background (245, 245, 245) with black text
+    doc.setFillColor(245, 245, 245);
+    doc.setDrawColor(200, 200, 200);
     doc.roundedRect(pageWidth - 120, summaryBoxY, 105, summaryBoxHeight, 3, 3, 'FD');
     
-    // Add summary text - dark text on light background (ADA compliant)
+    // Add summary text - black text on light background (ADA compliant)
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(0, 0, 0);  // Black text for maximum contrast
+    doc.setTextColor(0, 0, 0); // Black text for maximum contrast
     doc.text(`Total Quantity: ${totalPallets} items`, pageWidth - 110, summaryBoxY + 15);
     doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 30);
     
@@ -243,7 +243,6 @@ export const generateOrderPDF = (orderData: OrderData) => {
       doc.setTextColor(0, 0, 0); // Black for maximum contrast
       doc.text("Notes:", 25, notesY + 5);
       doc.setFont('helvetica', 'normal');
-      doc.setTextColor(0, 0, 0);
       doc.setFontSize(10);
       
       // Split long notes into multiple lines with word wrap
@@ -252,12 +251,14 @@ export const generateOrderPDF = (orderData: OrderData) => {
     }
   } else {
     // Draw the summary box on the same page with ADA compliant colors
+    doc.setFillColor(245, 245, 245); // Light gray background
+    doc.setDrawColor(200, 200, 200); // Darker border
     doc.roundedRect(pageWidth - 120, summaryBoxY, 105, summaryBoxHeight, 3, 3, 'FD');
     
-    // Add summary text - dark text on light background (ADA compliant)
+    // Add summary text - black text on light gray background (ADA compliant)
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(0, 0, 0);  // Black text for maximum contrast
+    doc.setTextColor(0, 0, 0); // Black text for maximum contrast
     doc.text(`Total Quantity: ${totalPallets} items`, pageWidth - 110, summaryBoxY + 15);
     doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 30);
     

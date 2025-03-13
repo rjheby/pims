@@ -1,111 +1,125 @@
 
-import React, { useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, Download, Printer } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { useToast } from '@/components/ui/use-toast';
-import { renderOrderPDFInIframe, generateOrderPDF } from './utils/pdfGenerator';
-import { OrderItem } from './types';
+import { useEffect, useRef, useState } from "react";
+import { useParams } from "react-router-dom";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Download, Printer } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { renderOrderPDFInIframe, generateOrderPDF } from "./utils/pdfGenerator";
+import { OrderItem } from "./types";
+import { useToast } from "@/components/ui/use-toast";
 
 export function OrderView() {
-  const { orderId } = useParams<{ orderId: string }>();
-  const { toast } = useToast();
+  const { id } = useParams<{ id: string }>();
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [order, setOrder] = useState<any>(null);
+  const [orderData, setOrderData] = useState<any>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
-    const fetchOrder = async () => {
+    async function fetchOrder() {
+      if (!id) return;
+
       try {
         setLoading(true);
-        if (!orderId) {
-          throw new Error('Order ID is missing');
-        }
-
         const { data, error } = await supabase
-          .from('wholesale_orders')
-          .select('*')
-          .eq('id', orderId)
-          .maybeSingle();
+          .from("wholesale_orders")
+          .select("*")
+          .eq("id", id)
+          .single();
 
         if (error) throw error;
-        if (!data) throw new Error('Order not found');
 
-        setOrder(data);
-
-        // Parse items if they're in string format
-        const items = typeof data.items === 'string' 
-          ? JSON.parse(data.items) 
-          : data.items || [];
-
-        // Wait for the iframe to be available in the DOM
-        setTimeout(() => {
-          if (iframeRef.current) {
-            renderOrderPDFInIframe({
-              order_number: data.order_number || data.id?.substring(0, 8),
-              order_date: data.order_date || data.created_at,
-              delivery_date: data.delivery_date,
-              items: items as OrderItem[],
-              totalPallets: data.totalPallets,
-              totalValue: data.totalValue,
-              customer: data.customer,
-              notes: data.notes,
-              status: data.status
-            }, iframeRef.current);
+        // Parse items if they're stored as a string
+        if (data) {
+          if (typeof data.items === 'string') {
+            data.items = JSON.parse(data.items);
           }
-        }, 100);
-      } catch (err) {
-        console.error('Error fetching order:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load order');
+          setOrderData(data);
+        }
+      } catch (error) {
+        console.error("Error fetching order:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load order details",
+          variant: "destructive"
+        });
       } finally {
         setLoading(false);
       }
-    };
+    }
 
     fetchOrder();
-  }, [orderId]);
+  }, [id, toast]);
+
+  useEffect(() => {
+    if (orderData && iframeRef.current) {
+      // Calculate totals from items
+      const parsedItems = orderData.items || [];
+      
+      // Calculate totalPallets and totalValue from items
+      const totalPallets = parsedItems.reduce(
+        (sum: number, item: OrderItem) => sum + (Number(item.pallets) || 0), 
+        0
+      );
+      
+      const totalValue = parsedItems.reduce(
+        (sum: number, item: OrderItem) => sum + ((Number(item.pallets) || 0) * (Number(item.unitCost) || 0)), 
+        0
+      );
+      
+      // Render the PDF in the iframe
+      renderOrderPDFInIframe({
+        order_number: orderData.order_number || orderData.id?.substring(0, 8),
+        order_date: orderData.order_date || orderData.created_at,
+        delivery_date: orderData.delivery_date,
+        items: parsedItems,
+        totalPallets,
+        totalValue,
+        customer: orderData.customer_id, // Using customer_id as customer name
+        notes: orderData.notes,
+        status: orderData.status
+      }, iframeRef.current);
+    }
+  }, [orderData]);
 
   const handlePrint = () => {
-    if (iframeRef.current) {
-      try {
-        iframeRef.current.contentWindow?.print();
-      } catch (error) {
-        console.error('Error printing:', error);
-        toast({
-          title: 'Print Error',
-          description: 'Could not print the document. Try downloading it instead.',
-          variant: 'destructive',
-        });
-      }
+    if (iframeRef.current && iframeRef.current.contentWindow) {
+      iframeRef.current.contentWindow.print();
     }
   };
 
   const handleDownload = () => {
+    if (!orderData) return;
+    
     try {
-      if (!order) return;
+      // Calculate totals from items
+      const parsedItems = orderData.items || [];
       
-      // Parse items if they're in string format
-      const items = typeof order.items === 'string' 
-        ? JSON.parse(order.items) 
-        : order.items || [];
+      // Calculate totalPallets and totalValue from items
+      const totalPallets = parsedItems.reduce(
+        (sum: number, item: OrderItem) => sum + (Number(item.pallets) || 0), 
+        0
+      );
+      
+      const totalValue = parsedItems.reduce(
+        (sum: number, item: OrderItem) => sum + ((Number(item.pallets) || 0) * (Number(item.unitCost) || 0)), 
+        0
+      );
       
       const pdf = generateOrderPDF({
-        order_number: order.order_number || order.id?.substring(0, 8),
-        order_date: order.order_date || order.created_at,
-        delivery_date: order.delivery_date,
-        items: items as OrderItem[],
-        totalPallets: order.totalPallets,
-        totalValue: order.totalValue,
-        customer: order.customer,
-        notes: order.notes,
-        status: order.status
+        order_number: orderData.order_number || orderData.id?.substring(0, 8),
+        order_date: orderData.order_date || orderData.created_at,
+        delivery_date: orderData.delivery_date,
+        items: parsedItems,
+        totalPallets,
+        totalValue,
+        customer: orderData.customer_id, // Using customer_id as customer name
+        notes: orderData.notes,
+        status: orderData.status
       });
       
-      const fileName = `order-${order.order_number || order.id?.substring(0, 8)}.pdf`;
+      const fileName = `order-${orderData.order_number || orderData.id?.substring(0, 8)}.pdf`;
       pdf.save(fileName);
       
       toast({
@@ -122,60 +136,44 @@ export function OrderView() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-700"></div>
+      </div>
+    );
+  }
+
+  if (!orderData) {
+    return (
+      <div className="flex justify-center items-center h-full">
+        <p className="text-red-500">Order not found</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="container mx-auto px-4 py-6">
-      <div className="mb-4 flex justify-between items-center">
-        <Link to="/wholesale-orders">
-          <Button variant="outline" size="sm">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Orders
-          </Button>
-        </Link>
-        
-        <div className="flex space-x-2">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handlePrint}
-            disabled={loading || !!error}
-          >
+    <div className="flex flex-col h-full">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Order #{orderData.order_number || orderData.id?.substring(0, 8)}</h1>
+        <div className="flex gap-2">
+          <Button onClick={handlePrint} variant="outline">
             <Printer className="mr-2 h-4 w-4" />
             Print
           </Button>
-          
-          <Button 
-            variant="default" 
-            size="sm"
-            onClick={handleDownload}
-            disabled={loading || !!error}
-            className="bg-[#2A4131] hover:bg-[#2A4131]/90"
-          >
+          <Button onClick={handleDownload} variant="default" className="bg-[#2A4131] hover:bg-[#2A4131]/90">
             <Download className="mr-2 h-4 w-4" />
             Download
           </Button>
         </div>
       </div>
-      
-      <Card className="w-full overflow-hidden">
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="h-[60vh] flex items-center justify-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2A4131]"></div>
-            </div>
-          ) : error ? (
-            <div className="h-[60vh] flex items-center justify-center">
-              <div className="text-center">
-                <p className="text-destructive text-lg">{error}</p>
-                <p className="mt-2">Please check the order ID and try again.</p>
-              </div>
-            </div>
-          ) : (
-            <iframe 
-              ref={iframeRef}
-              className="w-full h-[80vh] border-0"
-              title="Order Preview"
-            />
-          )}
+      <Card className="flex-1 overflow-hidden">
+        <CardContent className="p-0 h-full">
+          <iframe 
+            ref={iframeRef}
+            title="Order PDF View"
+            className="w-full h-full min-h-[80vh] border-0"
+          />
         </CardContent>
       </Card>
     </div>

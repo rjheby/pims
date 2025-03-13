@@ -1,4 +1,3 @@
-
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -108,44 +107,42 @@ export function WholesaleOrderArchive() {
       // Create a proper view URL
       const viewUrl = `${window.location.origin}/wholesale-orders/${orderId}/view`;
       
-      // Create a temporary input element
+      // Simplified copy approach - use an input element with direct selection
       const tempInput = document.createElement('input');
-      tempInput.style.position = 'fixed';
-      tempInput.style.opacity = '0';
-      tempInput.value = viewUrl;
       document.body.appendChild(tempInput);
+      tempInput.value = viewUrl;
       tempInput.select();
       
-      let copied = false;
-      
-      // First try execCommand which has better compatibility
+      // Try to copy using document.execCommand (most reliable across browsers)
+      let copySuccess = false;
       try {
-        copied = document.execCommand('copy');
-      } catch (execErr) {
-        console.error("execCommand failed:", execErr);
+        copySuccess = document.execCommand('copy');
+      } catch(e) {
+        console.error("execCommand failed:", e);
       }
       
       // Clean up the temporary element
       document.body.removeChild(tempInput);
       
-      // If execCommand failed, try clipboard API
-      if (!copied) {
+      // If execCommand failed, try the Clipboard API
+      if (!copySuccess) {
         try {
           await navigator.clipboard.writeText(viewUrl);
-          copied = true;
-        } catch (clipboardErr) {
-          console.error("Clipboard API failed:", clipboardErr);
+          copySuccess = true;
+        } catch(e) {
+          console.error("Clipboard API failed:", e);
+          throw new Error("Could not copy to clipboard");
         }
       }
       
-      if (!copied) {
-        throw new Error("Failed to copy to clipboard");
+      if (copySuccess) {
+        toast({
+          title: "Link copied",
+          description: "The shareable order link has been copied to your clipboard."
+        });
+      } else {
+        throw new Error("Failed to copy link");
       }
-      
-      toast({
-        title: "Link copied",
-        description: "The shareable order link has been copied to your clipboard."
-      });
     } catch (error) {
       console.error("Error copying link:", error);
       toast({
