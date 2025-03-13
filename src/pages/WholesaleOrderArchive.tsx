@@ -8,7 +8,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { OrderList } from "./wholesale-order/components/OrderList";
 import { useOrders } from "./wholesale-order/hooks/useOrders";
-import { generateOrderPDF, getOrderPdfUrl } from "./wholesale-order/utils/pdfGenerator";
+import { generateOrderPDF, getOrderPdfUrl, renderOrderPDFInIframe } from "./wholesale-order/utils/pdfGenerator";
 import { OrderItem } from "./wholesale-order/types";
 
 export function WholesaleOrderArchive() {
@@ -110,24 +110,36 @@ export function WholesaleOrderArchive() {
       
       // Create a temporary input element
       const tempInput = document.createElement('input');
+      tempInput.style.position = 'fixed';
+      tempInput.style.opacity = '0';
       tempInput.value = viewUrl;
       document.body.appendChild(tempInput);
       tempInput.select();
       
-      // Execute the copy command and capture the result
-      const success = document.execCommand('copy');
+      let copied = false;
       
-      // Always remove the temporary element
+      // First try execCommand which has better compatibility
+      try {
+        copied = document.execCommand('copy');
+      } catch (execErr) {
+        console.error("execCommand failed:", execErr);
+      }
+      
+      // Clean up the temporary element
       document.body.removeChild(tempInput);
       
-      if (!success) {
-        // If the execCommand method failed, try the clipboard API as a fallback
+      // If execCommand failed, try clipboard API
+      if (!copied) {
         try {
           await navigator.clipboard.writeText(viewUrl);
-        } catch (clipboardError) {
-          console.error("Both copy methods failed:", clipboardError);
-          throw new Error("Failed to copy to clipboard");
+          copied = true;
+        } catch (clipboardErr) {
+          console.error("Clipboard API failed:", clipboardErr);
         }
+      }
+      
+      if (!copied) {
+        throw new Error("Failed to copy to clipboard");
       }
       
       toast({

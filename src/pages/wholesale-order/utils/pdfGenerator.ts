@@ -146,7 +146,7 @@ export const generateOrderPDF = (orderData: OrderData) => {
   // Define consistent column alignment with correct HAlignType values
   const colAlignments: HAlignType[] = ['center', 'left', 'center', 'center'];
   
-  // Add items table with improved formatting
+  // Add items table with improved formatting and wider quantity column
   autoTable(doc, {
     head: [['Qty', 'Product Description', 'Unit Price', 'Total']],
     body: tableData,
@@ -165,7 +165,7 @@ export const generateOrderPDF = (orderData: OrderData) => {
       halign: 'center'
     },
     columnStyles: {
-      0: { halign: colAlignments[0], cellWidth: 25 }, // Increased width for quantity field
+      0: { halign: colAlignments[0], cellWidth: 30 }, // Increased width for quantity field
       1: { halign: colAlignments[1], cellWidth: 'auto' },
       2: { halign: colAlignments[2], cellWidth: 30 },
       3: { halign: colAlignments[3], cellWidth: 30 }
@@ -200,9 +200,9 @@ export const generateOrderPDF = (orderData: OrderData) => {
   // Get final Y position after the table
   const finalY = (doc as any).lastAutoTable.finalY + 10;
   
-  // Add summary box with border
+  // Add summary box with white background and dark text (ADA compliant)
   doc.setDrawColor(200, 200, 200);
-  doc.setFillColor(245, 245, 245);  // Light gray background instead of dark green
+  doc.setFillColor(245, 245, 245);  // Light gray background
   const summaryBoxHeight = 40;
   const summaryBoxY = finalY;
   
@@ -222,13 +222,13 @@ export const generateOrderPDF = (orderData: OrderData) => {
     doc.setTextColor(42, 65, 49);
     doc.text(`Order #${orderData.order_number} - Summary`, pageWidth / 2, 15, { align: "center" });
     
-    // Draw the summary box with light background
+    // Draw the summary box with ADA compliant colors
     doc.roundedRect(pageWidth - 120, summaryBoxY, 105, summaryBoxHeight, 3, 3, 'FD');
     
-    // Add summary text with dark text on light background
+    // Add summary text - dark text on light background (ADA compliant)
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(42, 65, 49);  // Dark green text for better contrast
+    doc.setTextColor(0, 0, 0);  // Black text for maximum contrast
     doc.text(`Total Quantity: ${totalPallets} items`, pageWidth - 110, summaryBoxY + 15);
     doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 30);
     
@@ -240,7 +240,7 @@ export const generateOrderPDF = (orderData: OrderData) => {
       
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(42, 65, 49);
+      doc.setTextColor(0, 0, 0); // Black for maximum contrast
       doc.text("Notes:", 25, notesY + 5);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(0, 0, 0);
@@ -251,13 +251,13 @@ export const generateOrderPDF = (orderData: OrderData) => {
       doc.text(splitNotes, 25, notesY + 15);
     }
   } else {
-    // Draw the summary box on the same page with light background
+    // Draw the summary box on the same page with ADA compliant colors
     doc.roundedRect(pageWidth - 120, summaryBoxY, 105, summaryBoxHeight, 3, 3, 'FD');
     
-    // Add summary text with dark text on light background
+    // Add summary text - dark text on light background (ADA compliant)
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(42, 65, 49);  // Dark green text for better contrast
+    doc.setTextColor(0, 0, 0);  // Black text for maximum contrast
     doc.text(`Total Quantity: ${totalPallets} items`, pageWidth - 110, summaryBoxY + 15);
     doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 30);
     
@@ -276,7 +276,7 @@ export const generateOrderPDF = (orderData: OrderData) => {
         
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(42, 65, 49);
+        doc.setTextColor(0, 0, 0); // Black for maximum contrast
         doc.text("Notes:", 25, newPageNotesY + 5);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(0, 0, 0);
@@ -291,7 +291,7 @@ export const generateOrderPDF = (orderData: OrderData) => {
         
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(42, 65, 49);
+        doc.setTextColor(0, 0, 0); // Black for maximum contrast
         doc.text("Notes:", 25, notesY + 5);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(0, 0, 0);
@@ -331,5 +331,26 @@ export const getOrderPdfUrl = async (orderData: OrderData): Promise<string> => {
   } catch (error) {
     console.error("Error creating shareable PDF:", error);
     throw new Error("Failed to generate shareable PDF");
+  }
+};
+
+// Helper function to render PDF directly in browser for linked view
+export const renderOrderPDFInIframe = (orderData: OrderData, iframeElement: HTMLIFrameElement) => {
+  try {
+    // Generate the PDF document
+    const pdfDoc = generateOrderPDF(orderData);
+    
+    // Convert to binary data URL
+    const pdfDataUri = pdfDoc.output('datauristring');
+    
+    // Set the iframe source to the data URL
+    if (iframeElement) {
+      iframeElement.src = pdfDataUri;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error rendering PDF in iframe:", error);
+    return false;
   }
 };
