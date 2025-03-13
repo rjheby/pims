@@ -22,111 +22,92 @@ interface OrderData {
   status?: string;
 }
 
-// Define ADA-compliant color constants for better consistency
+// Define ADA-compliant color constants
 const ADA_COLORS = {
-  // Background colors
   woodbourneGreen: [42, 65, 49],    // Dark green - requires white text
-  lightGray: [245, 245, 245],       // Light gray - requires dark text
   white: [255, 255, 255],           // White - requires dark text
+  lightGray: [245, 245, 245],       // Light gray - requires dark text
   veryLightGray: [224, 224, 224],   // Very light gray (#e0e0e0) - requires dark text
-
-  // Text colors
-  black: [0, 0, 0],                 // Black - high contrast on light backgrounds
-  white: [255, 255, 255],           // White - high contrast on dark backgrounds
-  darkGray: [60, 60, 60],           // Dark gray - good for secondary text on light backgrounds
-  midGray: [100, 100, 100],         // Mid gray - only for non-essential text
-
-  // Status colors - with ADA compliant alternatives
-  draft: [100, 100, 100],           // Darker gray for better contrast
-  submitted: [25, 80, 170],         // Darker blue for better contrast
-  processing: [180, 95, 6],         // Darker amber for better contrast
-  completed: [16, 124, 86],         // Darker green for better contrast
-  cancelled: [180, 30, 30]          // Darker red for better contrast
+  black: [0, 0, 0],                 // Black text
+  darkGray: [60, 60, 60],           // Dark gray text
+  // Status colors with better contrast
+  draft: [100, 100, 100],
+  submitted: [25, 80, 170],
+  processing: [180, 95, 6],
+  completed: [16, 124, 86],
+  cancelled: [180, 30, 30]
 };
 
-// Define the boxes to pallets conversion function
-const calculatePalletsFromBoxes = (boxes: number) => Math.ceil(boxes / 60); // 60 boxes = 1 pallet
+// Helper function to calculate pallets from boxes (60 boxes = 1 pallet)
+const calculatePalletsFromBoxes = (boxes: number) => Math.ceil(boxes / 60);
 
 export const generateOrderPDF = (orderData: OrderData) => {
-  // Create PDF document with autotable plugin
+  // Create PDF document
   const doc = new jsPDF('p', 'mm', 'a4') as jsPDFWithAutoTable;
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   
-  // Create white background for the header
+  // Create header
   doc.setFillColor(...ADA_COLORS.white);
   doc.rect(0, 0, pageWidth, 40, 'F');
   
-  // Add logo with improved positioning
+  // Add logo
   try {
     const logoUrl = '/lovable-uploads/21d56fd9-ffa2-4b0c-9d82-b10f7d03a546.png';
     doc.addImage(logoUrl, 'PNG', pageWidth / 2 - 35, 8, 70, 18, undefined, 'FAST');
   } catch (error) {
     console.error("Error adding logo to PDF:", error);
-    // Fallback if image loading fails
-    doc.setTextColor(...ADA_COLORS.woodbourneGreen); // Woodbourne Green text on white background
+    doc.setTextColor(...ADA_COLORS.woodbourneGreen);
     doc.setFontSize(24);
     doc.setFont('helvetica', 'bold');
     doc.text("Order Summary", pageWidth / 2, 20, { align: "center" });
   }
   
-  // Add a separator line under the header
+  // Add separator line
   doc.setDrawColor(...ADA_COLORS.woodbourneGreen);
   doc.setLineWidth(0.5);
   doc.line(15, 32, pageWidth - 15, 32);
   
-  // Reset text color for the rest of the document
-  doc.setTextColor(...ADA_COLORS.black); // Black text for maximum contrast
+  // Reset text color
+  doc.setTextColor(...ADA_COLORS.black);
   
   // Add title with status
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
   doc.text(`Order #${orderData.order_number}`, 15, 45);
   
+  // Add status if available
   if (orderData.status) {
-    // Add status indicator
     const statusX = pageWidth - 60;
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     
+    // Select status color
     let statusColor;
     switch (orderData.status.toLowerCase()) {
-      case 'draft':
-        statusColor = ADA_COLORS.draft;
-        break;
-      case 'submitted':
-        statusColor = ADA_COLORS.submitted;
-        break;
-      case 'processing':
-        statusColor = ADA_COLORS.processing;
-        break;
-      case 'completed':
-        statusColor = ADA_COLORS.completed;
-        break;
-      case 'cancelled':
-        statusColor = ADA_COLORS.cancelled;
-        break;
-      default:
-        statusColor = ADA_COLORS.draft;
+      case 'draft': statusColor = ADA_COLORS.draft; break;
+      case 'submitted': statusColor = ADA_COLORS.submitted; break;
+      case 'processing': statusColor = ADA_COLORS.processing; break;
+      case 'completed': statusColor = ADA_COLORS.completed; break;
+      case 'cancelled': statusColor = ADA_COLORS.cancelled; break;
+      default: statusColor = ADA_COLORS.draft;
     }
     
     doc.setFillColor(...statusColor);
     doc.roundedRect(statusX - 5, 38, 50, 14, 3, 3, 'F');
-    doc.setTextColor(...ADA_COLORS.white); // Always use white text on color backgrounds for contrast
+    doc.setTextColor(...ADA_COLORS.white);
     doc.text(orderData.status.toUpperCase(), statusX + 20, 46, { align: "center" });
-    doc.setTextColor(...ADA_COLORS.black); // Reset to black text
+    doc.setTextColor(...ADA_COLORS.black);
   }
   
   // Add order details
   doc.setFontSize(12);
   let yPos = 60;
   
-  // Order date
   doc.setFont('helvetica', 'normal');
   doc.text(`Order Date: ${new Date(orderData.order_date).toLocaleDateString()}`, 15, yPos);
   yPos += 8;
   
-  // Delivery date
   if (orderData.delivery_date) {
     doc.text(`Delivery Date: ${new Date(orderData.delivery_date).toLocaleDateString()}`, 15, yPos);
     yPos += 8;
@@ -137,72 +118,66 @@ export const generateOrderPDF = (orderData: OrderData) => {
     yPos += 8;
   }
 
-  // Calculate total boxes (which is what's stored in item.pallets)
+  // Calculate totals - boxes and pallets
+  // Note: In the data model, item.pallets actually represents box counts
   const totalBoxes = orderData.items.reduce((sum, item) => sum + safeNumber(item.pallets), 0);
-  
-  // Get total pallets from orderData if provided, otherwise calculate it based on boxes
-  // Note: In the data model, item.pallets actually contains box counts
-  const totalPallets = orderData.totalPallets !== undefined
-    ? orderData.totalPallets  // Use the provided total if available
-    : calculatePalletsFromBoxes(totalBoxes);
+  const totalPallets = calculatePalletsFromBoxes(totalBoxes);
   
   const totalValue = orderData.totalValue || 
     orderData.items.reduce((sum, item) => sum + (safeNumber(item.pallets) * safeNumber(item.unitCost)), 0);
   
-  // Format items data for table with packaging type information
+  // Format items data for table
   const tableData = orderData.items.map(item => {
-    // Create concatenated name field with packaging type included
     const name = [
       item.species, 
       item.length, 
       item.bundleType, 
       item.thickness,
-      item.packaging // Added packaging to the description
+      item.packaging
     ].filter(Boolean).join(' - ');
     
     const itemUnitCost = safeNumber(item.unitCost);
-    const itemBoxes = safeNumber(item.pallets); // NOTE: In the data model, item.pallets actually stores box counts
+    const itemBoxes = safeNumber(item.pallets); // This is boxes, not pallets
     const itemTotal = itemBoxes * itemUnitCost;
     
     return [
-      itemBoxes.toString(),                           // Qty (Boxes)
-      name,                                           // Name
-      `$${itemUnitCost.toFixed(2)}`,                  // Unit Cost
-      `$${itemTotal.toFixed(2)}`                      // Total Cost
+      itemBoxes.toString(),
+      name,
+      `$${itemUnitCost.toFixed(2)}`,
+      `$${itemTotal.toFixed(2)}`
     ];
   });
   
-  // Define consistent column alignment with correct HAlignType values
+  // Define column alignments
   const colAlignments: HAlignType[] = ['center', 'left', 'center', 'center'];
   
-  // Add items table with improved ADA-compliant formatting
+  // Add items table
   autoTable(doc, {
     head: [['Boxes', 'Product Description', 'Unit Price', 'Total']],
     body: tableData,
     startY: yPos + 2,
     styles: { 
-      fontSize: 11, // Increased font size for better readability
+      fontSize: 11,
       cellPadding: 6,
-      halign: 'center', // Default alignment for all cells
+      halign: 'center',
       valign: 'middle',
-      textColor: [0, 0, 0] // Ensure black text in main table body
+      textColor: [0, 0, 0]
     },
     headStyles: { 
-      fillColor: ADA_COLORS.woodbourneGreen,  // Woodbourne Green 
-      textColor: ADA_COLORS.white, // White text on dark background
+      fillColor: ADA_COLORS.woodbourneGreen,
+      textColor: ADA_COLORS.white,
       fontStyle: 'bold',
-      fontSize: 12, // Slightly increased for better readability
+      fontSize: 12,
       halign: 'center'
     },
     columnStyles: {
-      0: { halign: colAlignments[0], cellWidth: 35 }, // Increased width for quantity field
+      0: { halign: colAlignments[0], cellWidth: 35 },
       1: { halign: colAlignments[1], cellWidth: 'auto' },
       2: { halign: colAlignments[2], cellWidth: 30 },
       3: { halign: colAlignments[3], cellWidth: 30 }
     },
     alternateRowStyles: { 
-      fillColor: ADA_COLORS.veryLightGray, // Very light gray for alternate rows
-      textColor: ADA_COLORS.black // Black text on light backgrounds
+      fillColor: ADA_COLORS.veryLightGray
     },
     margin: { top: 10, right: 15, bottom: 20, left: 15 },
     showHead: 'everyPage',
@@ -212,11 +187,11 @@ export const generateOrderPDF = (orderData: OrderData) => {
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         doc.setFontSize(8);
-        doc.setTextColor(...ADA_COLORS.darkGray); // Darker gray for better contrast
+        doc.setTextColor(...ADA_COLORS.darkGray);
         doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 10, { align: "center" });
       }
       
-      // Add header to every page after the first
+      // Add header to continuations
       if (data.pageNumber > 1) {
         doc.setFillColor(...ADA_COLORS.white);
         doc.rect(0, 0, pageWidth, 20, 'F');
@@ -231,7 +206,7 @@ export const generateOrderPDF = (orderData: OrderData) => {
   // Get final Y position after the table
   const finalY = (doc as any).lastAutoTable.finalY + 10;
   
-  // Add summary box with ADA compliant colors
+  // Add summary box
   const summaryBoxHeight = 50;
   const summaryBoxY = finalY;
   
@@ -251,24 +226,23 @@ export const generateOrderPDF = (orderData: OrderData) => {
     doc.setTextColor(...ADA_COLORS.woodbourneGreen);
     doc.text(`Order #${orderData.order_number} - Summary`, pageWidth / 2, 15, { align: "center" });
     
-    // Add explanation for pallet calculation
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'italic');
-    doc.setTextColor(...ADA_COLORS.darkGray);
-    doc.text("* Pallets calculated at 60 boxes per pallet", pageWidth / 2, 25, { align: "center" });
-    
-    // Draw the summary box with ADA compliant colors
+    // Draw the summary box
     doc.setFillColor(...ADA_COLORS.lightGray);
-    doc.setDrawColor(180, 180, 180); // Slightly darker border for definition
+    doc.setDrawColor(180, 180, 180);
     doc.roundedRect(pageWidth - 120, summaryBoxY, 105, summaryBoxHeight, 3, 3, 'FD');
     
-    // Add summary text - black text on light background (ADA compliant)
+    // Add summary text
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...ADA_COLORS.black); // Black text for maximum contrast
+    doc.setTextColor(...ADA_COLORS.black);
     doc.text(`Total Boxes: ${totalBoxes}`, pageWidth - 110, summaryBoxY + 10);
     doc.text(`Total Pallets: ${totalPallets}*`, pageWidth - 110, summaryBoxY + 22);
     doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 34);
+    
+    // Add pallet calculation footnote
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'italic');
+    doc.text("* 60 boxes = 1 pallet", pageWidth - 110, summaryBoxY + 44);
     
     // Add notes if available
     if (orderData.notes) {
@@ -278,30 +252,29 @@ export const generateOrderPDF = (orderData: OrderData) => {
       
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(...ADA_COLORS.black); // Black for maximum contrast on light background
+      doc.setTextColor(...ADA_COLORS.black);
       doc.text("Notes:", 25, notesY + 5);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
       
-      // Split long notes into multiple lines with word wrap
       const splitNotes = doc.splitTextToSize(orderData.notes, pageWidth - 60);
       doc.text(splitNotes, 25, notesY + 15);
     }
   } else {
-    // Draw the summary box on the same page with ADA compliant colors
+    // Draw the summary box on the same page
     doc.setFillColor(...ADA_COLORS.lightGray);
-    doc.setDrawColor(180, 180, 180); // Slightly darker border for definition
+    doc.setDrawColor(180, 180, 180);
     doc.roundedRect(pageWidth - 120, summaryBoxY, 105, summaryBoxHeight, 3, 3, 'FD');
     
-    // Add summary text - black text on light gray background (ADA compliant)
+    // Add summary text
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...ADA_COLORS.black); // Black text for maximum contrast
+    doc.setTextColor(...ADA_COLORS.black);
     doc.text(`Total Boxes: ${totalBoxes}`, pageWidth - 110, summaryBoxY + 10);
     doc.text(`Total Pallets: ${totalPallets}*`, pageWidth - 110, summaryBoxY + 22);
     doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 34);
     
-    // Add footnote about pallet calculation
+    // Add pallet calculation footnote
     doc.setFontSize(8);
     doc.setFont('helvetica', 'italic');
     doc.text("* 60 boxes = 1 pallet", pageWidth - 110, summaryBoxY + 44);
@@ -321,7 +294,7 @@ export const generateOrderPDF = (orderData: OrderData) => {
         
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...ADA_COLORS.black); // Black for maximum contrast
+        doc.setTextColor(...ADA_COLORS.black);
         doc.text("Notes:", 25, newPageNotesY + 5);
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(10);
@@ -335,7 +308,7 @@ export const generateOrderPDF = (orderData: OrderData) => {
         
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...ADA_COLORS.black); // Black for maximum contrast
+        doc.setTextColor(...ADA_COLORS.black);
         doc.text("Notes:", 25, notesY + 5);
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(10);
@@ -351,7 +324,7 @@ export const generateOrderPDF = (orderData: OrderData) => {
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.setFontSize(8);
-    doc.setTextColor(...ADA_COLORS.darkGray); // Darker gray for better contrast
+    doc.setTextColor(...ADA_COLORS.darkGray);
     const footerY = pageHeight - 5;
     doc.text(`Generated on ${new Date().toLocaleString()}`, pageWidth / 2, footerY, { align: "center" });
   }
@@ -364,12 +337,7 @@ export const getOrderPdfUrl = async (orderData: OrderData): Promise<string> => {
   try {
     const pdfDoc = generateOrderPDF(orderData);
     const pdfBlob = pdfDoc.output('blob');
-    
-    // Create a downloadable URL for the PDF
     const pdfUrl = URL.createObjectURL(pdfBlob);
-    
-    // In a real production environment, you'd upload this to cloud storage
-    // For now, we'll use a client-side blob URL
     return pdfUrl;
   } catch (error) {
     console.error("Error creating shareable PDF:", error);
@@ -380,13 +348,9 @@ export const getOrderPdfUrl = async (orderData: OrderData): Promise<string> => {
 // Helper function to render PDF directly in browser for linked view
 export const renderOrderPDFInIframe = (orderData: OrderData, iframeElement: HTMLIFrameElement) => {
   try {
-    // Generate the PDF document
     const pdfDoc = generateOrderPDF(orderData);
-    
-    // Convert to binary data URL
     const pdfDataUri = pdfDoc.output('datauristring');
     
-    // Set the iframe source to the data URL
     if (iframeElement) {
       iframeElement.src = pdfDataUri;
     }
