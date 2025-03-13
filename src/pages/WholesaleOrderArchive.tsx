@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { OrderList } from "./wholesale-order/components/OrderList";
 import { useOrders } from "./wholesale-order/hooks/useOrders";
 import { generateOrderPDF, getOrderPdfUrl } from "./wholesale-order/utils/pdfGenerator";
+import { OrderItem } from "./wholesale-order/types";
 
 export function WholesaleOrderArchive() {
   const navigate = useNavigate();
@@ -58,11 +59,16 @@ export function WholesaleOrderArchive() {
 
   const handleDownloadOrder = (order: any) => {
     try {
+      // Parse items if they're in string format
+      const items = typeof order.items === 'string' 
+        ? JSON.parse(order.items) 
+        : order.items || [];
+      
       const pdf = generateOrderPDF({
         order_number: order.order_number || order.id?.substring(0, 8),
         order_date: order.order_date || order.created_at,
         delivery_date: order.delivery_date,
-        items: order.items || [],
+        items: items as OrderItem[],
         totalPallets: order.totalPallets,
         totalValue: order.totalValue,
         customer: order.customer,
@@ -81,24 +87,9 @@ export function WholesaleOrderArchive() {
       console.error("Error downloading order as PDF:", error);
       toast({
         title: "Error",
-        description: "Failed to generate PDF. Falling back to JSON download.",
+        description: "Failed to generate PDF.",
         variant: "destructive"
       });
-      
-      try {
-        const jsonContent = JSON.stringify(order, null, 2);
-        const blob = new Blob([jsonContent], { type: 'application/json' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `order-${order.order_number || order.id?.substring(0, 8)}.json`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-      } catch (fallbackError) {
-        console.error("Error with fallback JSON download:", fallbackError);
-      }
     }
   };
 
@@ -114,11 +105,11 @@ export function WholesaleOrderArchive() {
       if (error) throw error;
       if (!order) throw new Error("Order not found");
       
-      // Create a shareable link directly to the view page
-      const link = `${window.location.origin}/wholesale-orders/${orderId}/view`;
+      // Create a proper view URL
+      const viewUrl = `${window.location.origin}/wholesale-orders/${orderId}/view`;
       
       // Copy to clipboard
-      await navigator.clipboard.writeText(link);
+      await navigator.clipboard.writeText(viewUrl);
       
       toast({
         title: "Link copied",

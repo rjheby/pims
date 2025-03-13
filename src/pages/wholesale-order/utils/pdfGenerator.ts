@@ -24,14 +24,15 @@ export const generateOrderPDF = (orderData: OrderData) => {
   // Create PDF document with autotable plugin
   const doc = new jsPDF('p', 'mm', 'a4') as jsPDFWithAutoTable;
   const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
   
-  // Create white background for the header for better logo visibility
+  // Create white background for the header
   doc.setFillColor(255, 255, 255);
   doc.rect(0, 0, pageWidth, 40, 'F');
   
   // Add logo with improved positioning
-  const logoUrl = '/lovable-uploads/21d56fd9-ffa2-4b0c-9d82-b10f7d03a546.png';
   try {
+    const logoUrl = '/lovable-uploads/21d56fd9-ffa2-4b0c-9d82-b10f7d03a546.png';
     doc.addImage(logoUrl, 'PNG', pageWidth / 2 - 35, 8, 70, 18, undefined, 'FAST');
   } catch (error) {
     console.error("Error adding logo to PDF:", error);
@@ -39,13 +40,13 @@ export const generateOrderPDF = (orderData: OrderData) => {
     doc.setTextColor(42, 65, 49); // Woodbourne Green text instead
     doc.setFontSize(24);
     doc.setFont('helvetica', 'bold');
-    doc.text("Order Summary", pageWidth / 2, 25, { align: "center" });
+    doc.text("Order Summary", pageWidth / 2, 20, { align: "center" });
   }
   
   // Add a separator line under the header
   doc.setDrawColor(42, 65, 49); // Woodbourne Green
   doc.setLineWidth(0.5);
-  doc.line(15, 40, pageWidth - 15, 40);
+  doc.line(15, 32, pageWidth - 15, 32);
   
   // Reset text color for the rest of the document
   doc.setTextColor(0, 0, 0);
@@ -53,7 +54,7 @@ export const generateOrderPDF = (orderData: OrderData) => {
   // Add title with status
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text(`Order #${orderData.order_number}`, 15, 55);
+  doc.text(`Order #${orderData.order_number}`, 15, 45);
   
   if (orderData.status) {
     // Add status indicator
@@ -83,32 +84,30 @@ export const generateOrderPDF = (orderData: OrderData) => {
     }
     
     doc.setFillColor(statusColor[0], statusColor[1], statusColor[2]);
-    doc.roundedRect(statusX - 5, 50, 50, 14, 3, 3, 'F');
+    doc.roundedRect(statusX - 5, 38, 50, 14, 3, 3, 'F');
     doc.setTextColor(255, 255, 255);
-    doc.text(orderData.status.toUpperCase(), statusX + 20, 58, { align: "center" });
+    doc.text(orderData.status.toUpperCase(), statusX + 20, 46, { align: "center" });
     doc.setTextColor(0, 0, 0);
   }
   
   // Add order details
   doc.setFontSize(12);
-  let yPos = 70;
+  let yPos = 60;
   
   // Order date
   doc.setFont('helvetica', 'normal');
   doc.text(`Order Date: ${new Date(orderData.order_date).toLocaleDateString()}`, 15, yPos);
-  yPos += 10;
+  yPos += 8;
   
   // Delivery date
   if (orderData.delivery_date) {
-    doc.setFont('helvetica', 'bold');
     doc.text(`Delivery Date: ${new Date(orderData.delivery_date).toLocaleDateString()}`, 15, yPos);
-    doc.setFont('helvetica', 'normal');
-    yPos += 10;
+    yPos += 8;
   }
   
   if (orderData.customer) {
     doc.text(`Customer: ${orderData.customer}`, 15, yPos);
-    yPos += 10;
+    yPos += 8;
   }
 
   // Calculate totals if not provided
@@ -117,8 +116,6 @@ export const generateOrderPDF = (orderData: OrderData) => {
   
   const totalValue = orderData.totalValue || 
     orderData.items.reduce((sum, item) => sum + (safeNumber(item.pallets) * safeNumber(item.unitCost)), 0);
-  
-  yPos += 5;
   
   // Format items data for table with packaging type information
   const tableData = orderData.items.map(item => {
@@ -138,44 +135,43 @@ export const generateOrderPDF = (orderData: OrderData) => {
     return [
       itemPallets.toString(),                         // Qty
       name,                                           // Name
-      itemUnitCost ? `$${itemUnitCost.toFixed(2)}` : '$0.00',  // Unit Cost
-      itemTotal ? `$${itemTotal.toFixed(2)}` : '$0.00'  // Total Cost
+      `$${itemUnitCost.toFixed(2)}`,                  // Unit Cost
+      `$${itemTotal.toFixed(2)}`                      // Total Cost
     ];
   });
+  
+  // Define consistent column alignment
+  const colAlignments = ['center', 'left', 'center', 'center'];
   
   // Add items table with improved formatting
   autoTable(doc, {
     head: [['Qty', 'Product Description', 'Unit Price', 'Total']],
     body: tableData,
-    startY: yPos,
+    startY: yPos + 2,
     styles: { 
       fontSize: 10,
       cellPadding: 6,
-      font: 'helvetica',
-      overflow: 'linebreak',
-      lineWidth: 0.1
+      halign: 'center', // Default alignment for all cells
+      valign: 'middle'
     },
     headStyles: { 
       fillColor: [42, 65, 49],  // Woodbourne Green 
       textColor: [255, 255, 255],
       fontStyle: 'bold',
       fontSize: 11,
-      halign: 'center',
-      cellPadding: 5
+      halign: 'center'
     },
     columnStyles: {
-      0: { halign: 'center', cellWidth: 20 },                // Qty - centered, narrow column
-      1: { halign: 'left', cellWidth: 'auto' },              // Product Description - left-aligned, flexible width
-      2: { halign: 'right', cellWidth: 35 },                 // Unit Price - right-aligned
-      3: { halign: 'right', cellWidth: 35 }                  // Total - right-aligned
+      0: { halign: colAlignments[0], cellWidth: 15 },
+      1: { halign: colAlignments[1], cellWidth: 'auto' },
+      2: { halign: colAlignments[2], cellWidth: 30 },
+      3: { halign: colAlignments[3], cellWidth: 30 }
     },
     alternateRowStyles: { 
       fillColor: [245, 247, 245] // Very light green tint for alternate rows
     },
-    margin: { top: 60, right: 15, bottom: 15, left: 15 },
-    tableLineColor: [220, 220, 220],
-    tableLineWidth: 0.2,
-    showHead: 'firstPage',
+    margin: { top: 10, right: 15, bottom: 20, left: 15 },
+    showHead: 'everyPage',
     didDrawPage: function(data) {
       // Add page number on each page
       const pageCount = doc.getNumberOfPages();
@@ -183,51 +179,136 @@ export const generateOrderPDF = (orderData: OrderData) => {
         doc.setPage(i);
         doc.setFontSize(8);
         doc.setTextColor(100, 100, 100);
-        doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 5, { align: "center" });
+        doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 10, { align: "center" });
+      }
+      
+      // Add header to every page after the first
+      if (data.pageNumber > 1) {
+        doc.setFillColor(255, 255, 255);
+        doc.rect(0, 0, pageWidth, 20, 'F');
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(42, 65, 49);
+        doc.text(`Order #${orderData.order_number} - Continued`, pageWidth / 2, 15, { align: "center" });
       }
     }
   });
   
-  // Get final Y position
-  const finalY = (doc as any).lastAutoTable.finalY + 20;
+  // Get final Y position after the table
+  const finalY = (doc as any).lastAutoTable.finalY + 10;
   
   // Add summary box with border
   doc.setDrawColor(200, 200, 200);
-  doc.setFillColor(250, 250, 250);
-  const summaryBoxHeight = 50;
-  doc.roundedRect(pageWidth - 120, finalY - 10, 105, summaryBoxHeight, 3, 3, 'FD');
+  doc.setFillColor(245, 245, 245);
+  const summaryBoxHeight = 40;
+  const summaryBoxY = finalY;
   
-  // Add summary text
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(0, 0, 0);
-  doc.text(`Total Quantity: ${totalPallets} items`, pageWidth - 110, finalY + 5);
-  doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, finalY + 25);
+  // Check if there's enough space for the summary box
+  const isEnoughSpace = summaryBoxY + summaryBoxHeight + 20 < pageHeight;
   
-  // Add notes if available
-  if (orderData.notes) {
-    const notesY = finalY + 60;
-    doc.setFillColor(245, 247, 245);
-    doc.roundedRect(15, notesY - 5, pageWidth - 30, 40, 3, 3, 'F');
+  if (!isEnoughSpace) {
+    // Add a new page if there's not enough space
+    doc.addPage();
     
-    doc.setFontSize(12);
+    // Reset the summary box position for the new page
+    const summaryBoxY = 30;
+    
+    // Add a small header on the new page
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(42, 65, 49);
-    doc.text("Notes:", 25, notesY + 5);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(10);
+    doc.text(`Order #${orderData.order_number} - Summary`, pageWidth / 2, 15, { align: "center" });
     
-    // Split long notes into multiple lines with word wrap
-    const splitNotes = doc.splitTextToSize(orderData.notes, pageWidth - 60);
-    doc.text(splitNotes, 25, notesY + 20);
+    // Draw the summary box
+    doc.roundedRect(pageWidth - 120, summaryBoxY, 105, summaryBoxHeight, 3, 3, 'FD');
+    
+    // Add summary text
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Total Quantity: ${totalPallets} items`, pageWidth - 110, summaryBoxY + 15);
+    doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 30);
+    
+    // Add notes if available
+    if (orderData.notes) {
+      const notesY = summaryBoxY + 60;
+      doc.setFillColor(245, 247, 245);
+      doc.roundedRect(15, notesY - 5, pageWidth - 30, 40, 3, 3, 'F');
+      
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(42, 65, 49);
+      doc.text("Notes:", 25, notesY + 5);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(10);
+      
+      // Split long notes into multiple lines with word wrap
+      const splitNotes = doc.splitTextToSize(orderData.notes, pageWidth - 60);
+      doc.text(splitNotes, 25, notesY + 15);
+    }
+  } else {
+    // Draw the summary box on the same page
+    doc.roundedRect(pageWidth - 120, summaryBoxY, 105, summaryBoxHeight, 3, 3, 'FD');
+    
+    // Add summary text
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Total Quantity: ${totalPallets} items`, pageWidth - 110, summaryBoxY + 15);
+    doc.text(`Total Value: $${totalValue.toFixed(2)}`, pageWidth - 110, summaryBoxY + 30);
+    
+    // Add notes if available
+    if (orderData.notes) {
+      const notesY = summaryBoxY + 50;
+      
+      // Check if there's room for notes
+      if (notesY + 50 > pageHeight) {
+        // Add a new page for notes
+        doc.addPage();
+        
+        const newPageNotesY = 40;
+        doc.setFillColor(245, 247, 245);
+        doc.roundedRect(15, newPageNotesY - 5, pageWidth - 30, 40, 3, 3, 'F');
+        
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(42, 65, 49);
+        doc.text("Notes:", 25, newPageNotesY + 5);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(10);
+        
+        const splitNotes = doc.splitTextToSize(orderData.notes, pageWidth - 60);
+        doc.text(splitNotes, 25, newPageNotesY + 15);
+      } else {
+        // Add notes on the same page
+        doc.setFillColor(245, 247, 245);
+        doc.roundedRect(15, notesY - 5, pageWidth - 30, 40, 3, 3, 'F');
+        
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(42, 65, 49);
+        doc.text("Notes:", 25, notesY + 5);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(10);
+        
+        const splitNotes = doc.splitTextToSize(orderData.notes, pageWidth - 60);
+        doc.text(splitNotes, 25, notesY + 15);
+      }
+    }
   }
   
   // Add footer with generation timestamp
-  const footerY = doc.internal.pageSize.getHeight() - 15;
-  doc.setFontSize(8);
-  doc.setTextColor(100, 100, 100);
-  doc.text(`Generated on ${new Date().toLocaleString()}`, pageWidth / 2, footerY, { align: "center" });
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    const footerY = pageHeight - 5;
+    doc.text(`Generated on ${new Date().toLocaleString()}`, pageWidth / 2, footerY, { align: "center" });
+  }
   
   return doc;
 };
@@ -235,17 +316,17 @@ export const generateOrderPDF = (orderData: OrderData) => {
 // Helper function to generate a shareable URL for the order
 export const getOrderPdfUrl = async (orderData: OrderData): Promise<string> => {
   try {
-    // First create a blob URL from the PDF
     const pdfDoc = generateOrderPDF(orderData);
     const pdfBlob = pdfDoc.output('blob');
     
-    // For browser sharing, create a download URL
-    // In a real production app, you'd upload this to storage and return a persistent URL
-    return URL.createObjectURL(pdfBlob);
+    // Create a downloadable URL for the PDF
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+    
+    // In a real production environment, you'd upload this to cloud storage
+    // For now, we'll use a client-side blob URL
+    return pdfUrl;
   } catch (error) {
     console.error("Error creating shareable PDF:", error);
-    // If PDF generation fails, fall back to a view URL
-    const baseUrl = window.location.origin;
-    return `${baseUrl}/wholesale-orders/${orderData.order_number}/view`;
+    throw new Error("Failed to generate shareable PDF");
   }
 };
