@@ -50,7 +50,7 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
   }, [items, onItemsChange]);
 
   const headers = [
-    { key: 'name', label: 'Name', sortable: true, className: 'w-[22%] text-left px-4' },
+    { key: 'name', label: 'Name', sortable: true, className: 'w-[22%] text-center px-4' },
     ...optionFields.map(field => ({
       key: field,
       label: field.charAt(0).toUpperCase() + field.slice(1),
@@ -58,8 +58,8 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
       className: 'w-[10%] text-center px-2'
     })),
     { key: 'pallets', label: 'QTY', sortable: true, className: 'w-[8%] text-center px-2' },
-    { key: 'unitCost', label: 'Unit Cost', sortable: true, className: 'w-[10%] text-right px-2' },
-    { key: 'totalCost', label: 'Total Cost', sortable: true, className: 'w-[10%] text-right px-2' },
+    { key: 'unitCost', label: 'Unit Cost', sortable: true, className: 'w-[10%] text-center px-2' },
+    { key: 'totalCost', label: 'Total Cost', sortable: true, className: 'w-[10%] text-center px-2' },
     { key: 'actions', label: '', className: 'w-[10%] text-center px-2' }
   ];
 

@@ -97,7 +97,7 @@ export function OrderTableRow({
 
   return (
     <TableRow className="hover:bg-gray-50">
-      <TableCell className="font-medium">
+      <TableCell className="font-medium text-center">
         <div className="flex items-center justify-center space-x-2">
           {isCompressed ? (
             <div
@@ -132,7 +132,7 @@ export function OrderTableRow({
 
       {!isCompressed && !readOnly &&
         optionFields.map((field) => (
-          <TableCell key={field} className="p-1">
+          <TableCell key={field} className="p-1 text-center">
             <OrderTableDropdownCell
               fieldName={field}
               value={item[field] as string}
@@ -151,7 +151,7 @@ export function OrderTableRow({
           </TableCell>
         ))}
 
-      <TableCell className={isCompressed ? "hidden" : "p-1"}>
+      <TableCell className={isCompressed ? "hidden" : "p-1 text-center"}>
         <Input
           type="number"
           min="0"
@@ -165,7 +165,7 @@ export function OrderTableRow({
         />
       </TableCell>
 
-      <TableCell className={isCompressed ? "hidden" : "p-1"}>
+      <TableCell className={isCompressed ? "hidden" : "p-1 text-center"}>
         <Input
           type="number"
           min="0"
@@ -183,7 +183,7 @@ export function OrderTableRow({
         ${(safeNumber(item.pallets) * safeNumber(item.unitCost)).toFixed(2)}
       </TableCell>
 
-      <TableCell className={isCompressed ? "hidden" : "p-1"}>
+      <TableCell className={isCompressed ? "hidden" : "p-1 text-center"}>
         <div className="flex space-x-1 justify-center">
           {!readOnly && (
             <>
