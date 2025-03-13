@@ -23,8 +23,12 @@ export function WholesaleOrderSummary({ items }: WholesaleOrderSummaryProps) {
   const maxLoad = 24;
   const itemGroups = calculateItemGroups(items);
 
-  // Check if we have any 12x10" boxes in the order
-  const hasBoxes = items.some(item => item.packaging === "12x10\" Boxes");
+  // Check if we have different packaging types in the order
+  const packagingTypes = new Set(items.map(item => item.packaging));
+  const hasMultiplePackagingTypes = packagingTypes.size > 1;
+  const hasBoxes = packagingTypes.has("12x10\" Boxes");
+  const hasCrates = packagingTypes.has("Crates");
+  const hasStandardBoxes = packagingTypes.has("Boxes");
 
   const renderCustomSummary = () => {
     return (
@@ -41,9 +45,13 @@ export function WholesaleOrderSummary({ items }: WholesaleOrderSummaryProps) {
           <span className="text-sm font-medium">{totalPallets} items</span>
         </div>
 
-        {hasBoxes && (
+        {hasMultiplePackagingTypes && (
           <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded">
-            Note: For capacity calculations, each box (12x10") = 1/60 of a pallet (1/1440 of truck capacity)
+            <p>Note: Capacity calculations consider packaging types differently:</p>
+            {hasBoxes && <p>• Each 12x10" box = 1/60 of a pallet (1/1440 of truck capacity)</p>}
+            {hasStandardBoxes && <p>• Each standard box = 1/30 of a pallet</p>}
+            {hasCrates && <p>• Each crate = 1.5 pallets</p>}
+            <p>• Each pallet = 1 pallet (1/24 of truck capacity)</p>
           </div>
         )}
 

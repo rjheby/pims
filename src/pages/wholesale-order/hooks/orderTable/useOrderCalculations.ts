@@ -17,16 +17,26 @@ export function useOrderCalculations() {
     return calculateTotalQuantity(items);
   };
 
-  // Calculate total pallet equivalents based on the updated capacities:
-  // - Each pallet is 1/24 of truck capacity
-  // - Each 12x10" box is 1/1440 of truck capacity (1/60 of a pallet)
+  // Calculate total pallet equivalents based on packaging type
+  // Each packaging type has its own capacity relationship to the truck
   const calculateTotalPalletEquivalents = (items: OrderItem[]): number => {
     return items.reduce((total, item) => {
-      if (item.packaging === "12x10\" Boxes") {
-        // 1 box = 1/1440 of truck capacity = 1/60 of a pallet
-        return total + (safeNumber(item.pallets) / 60);
+      // Different packaging types have different equivalents
+      switch(item.packaging) {
+        case "12x10\" Boxes":
+          // 1 box = 1/1440 of truck capacity = 1/60 of a pallet
+          return total + (safeNumber(item.pallets) / 60);
+        case "Crates":
+          // A crate is counted as 1.5 pallets for capacity
+          return total + (safeNumber(item.pallets) * 1.5);
+        case "Boxes":
+          // Standard boxes are 1/30 of a pallet
+          return total + (safeNumber(item.pallets) / 30);
+        case "Pallets":
+        default:
+          // Standard pallet is 1 pallet equivalent
+          return total + safeNumber(item.pallets);
       }
-      return total + safeNumber(item.pallets);
     }, 0);
   };
 
