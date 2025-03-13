@@ -8,6 +8,9 @@ interface jsPDFWithAutoTable extends jsPDF {
   autoTable: typeof autoTable;
 }
 
+// Add type for horizontal alignment from jspdf-autotable
+type HAlignType = 'left' | 'center' | 'right' | undefined;
+
 interface OrderData {
   order_number: string;
   order_date: string;
@@ -140,8 +143,8 @@ export const generateOrderPDF = (orderData: OrderData) => {
     ];
   });
   
-  // Define consistent column alignment
-  const colAlignments = ['center', 'left', 'center', 'center'];
+  // Define consistent column alignment with correct HAlignType values
+  const colAlignments: HAlignType[] = ['center', 'left', 'center', 'center'];
   
   // Add items table with improved formatting
   autoTable(doc, {
