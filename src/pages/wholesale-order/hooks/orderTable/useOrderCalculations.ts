@@ -14,6 +14,14 @@ export const PACKAGING_CONVERSIONS = {
 
 // Helper function to get packaging conversion info
 export const getPackagingConversion = (packagingType: string) => {
+  if (!packagingType) return PACKAGING_CONVERSIONS['Pallets']; // Default to pallets if undefined
+  
+  // First try exact match
+  if (PACKAGING_CONVERSIONS[packagingType as keyof typeof PACKAGING_CONVERSIONS]) {
+    return PACKAGING_CONVERSIONS[packagingType as keyof typeof PACKAGING_CONVERSIONS];
+  }
+  
+  // Then try substring match
   const packagingKey = Object.keys(PACKAGING_CONVERSIONS).find(key => 
     packagingType.includes(key)
   );
@@ -55,6 +63,19 @@ export function useOrderCalculations() {
     const totalEquivalents = calculateTotalPalletEquivalents(items);
     const maxCapacity = 24; // Max truck capacity in pallets
     return (totalEquivalents / maxCapacity) * 100;
+  };
+
+  // Enhanced function to determine if a load exceeds capacity
+  const isOverCapacity = (items: OrderItem[]): boolean => {
+    const capacityPercentage = calculateCapacityPercentage(items);
+    return capacityPercentage > 100;
+  };
+
+  // Function to calculate remaining capacity
+  const calculateRemainingCapacity = (items: OrderItem[]): number => {
+    const totalEquivalents = calculateTotalPalletEquivalents(items);
+    const maxCapacity = 24; // Max truck capacity in pallets
+    return Math.max(0, maxCapacity - totalEquivalents);
   };
 
   // Group items by attributes for summary
@@ -105,6 +126,8 @@ export function useOrderCalculations() {
     calculateCapacityPercentage,
     calculateItemGroups,
     safeNumber,
-    getPackagingConversion
+    getPackagingConversion,
+    isOverCapacity,
+    calculateRemainingCapacity
   };
 }
