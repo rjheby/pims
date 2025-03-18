@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -12,7 +13,8 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import { RecurrenceData } from "./RecurringOrderForm";
-import { useRetailInventory } from "../../hooks/useRetailInventory"; // Import the hook
+import { useRetailInventory } from "../../hooks/useRetailInventory";
+import { Loader2 } from "lucide-react";
 
 interface ItemSelectorProps {
   open: boolean;
@@ -33,6 +35,7 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
 }) => {
   const [items, setItems] = useState<string>(initialItems || '');
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
+  const [selectedItemsWithDetails, setSelectedItemsWithDetails] = useState<any[]>([]);
   
   // Use the retail inventory hook
   const { 
@@ -59,6 +62,14 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
         .map(item => item.id?.toString() || "");
       
       setSelectedItemIds(matchedIds);
+      
+      // Also set details for display
+      const itemsWithDetails = matchedIds.map(id => {
+        const item = inventoryWithProducts.find(inv => inv.id?.toString() === id);
+        return item;
+      }).filter(Boolean);
+      
+      setSelectedItemsWithDetails(itemsWithDetails);
     }
   }, [initialItems, inventoryWithProducts]);
   
@@ -68,9 +79,14 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
     if (!selectedItemIds.includes(itemId)) {
       setSelectedItemIds([...selectedItemIds, itemId]);
       
-      // Update items string
+      // Find the selected item with details
       const selectedItem = inventoryWithProducts.find(item => item.id?.toString() === itemId);
+      
       if (selectedItem && selectedItem.product) {
+        // Add to selected items with details
+        setSelectedItemsWithDetails([...selectedItemsWithDetails, selectedItem]);
+        
+        // Update items string
         const itemName = selectedItem.product.name || selectedItem.product.description || 'Unknown Item';
         const newItems = items ? `${items}, ${itemName}` : itemName;
         setItems(newItems);
@@ -80,6 +96,7 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
   
   const handleRemoveItem = (itemId: string) => {
     setSelectedItemIds(selectedItemIds.filter(id => id !== itemId));
+    setSelectedItemsWithDetails(selectedItemsWithDetails.filter(item => item.id?.toString() !== itemId));
     
     // Update items string
     const selectedItem = inventoryWithProducts.find(item => item.id?.toString() === itemId);
@@ -99,18 +116,30 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
     onCancel();
   };
   
+  // Function to format price for display
+  const formatPrice = (price: number | undefined) => {
+    if (price === undefined) return 'Price N/A';
+    return `$${price.toFixed(2)}`;
+  };
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Select Inventory Items</DialogTitle>
+          <DialogDescription>
+            Choose items from your retail inventory to add to this delivery stop.
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label>Add Items</Label>
             {loading ? (
-              <div className="text-sm text-gray-500">Loading inventory...</div>
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                <span className="text-sm text-gray-500">Loading inventory...</span>
+              </div>
             ) : (
               <Select onValueChange={handleAddItem}>
                 <SelectTrigger>
@@ -121,13 +150,19 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
                     if (!item.id || !item.product) return null;
                     
                     // Use a default value if id is empty
-                    const itemId = item.id.toString() || "placeholder-value";
+                    const itemId = item.id.toString() || "placeholder-id";
                     const itemName = item.product.name || item.product.description || "Unknown Item";
                     const available = item.packages_available || 0;
+                    const price = item.product.price;
                     
                     return (
-                      <SelectItem key={itemId} value={itemId}>
-                        {itemName} ({available} available)
+                      <SelectItem key={itemId} value={itemId} disabled={available <= 0}>
+                        <div className="flex justify-between w-full">
+                          <span>{itemName}</span>
+                          <span className="text-gray-500 ml-2">
+                            {formatPrice(price)} • {available} available
+                          </span>
+                        </div>
                       </SelectItem>
                     );
                   })}
@@ -138,15 +173,23 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
           
           <div className="space-y-2">
             <Label>Selected Items</Label>
-            {selectedItemIds.length > 0 ? (
-              <div className="space-y-2">
-                {selectedItemIds.map((itemId) => {
-                  const selectedItem = inventoryWithProducts.find(item => item.id?.toString() === itemId);
-                  const itemName = selectedItem?.product?.name || selectedItem?.product?.description || "Unknown Item";
+            {selectedItemsWithDetails.length > 0 ? (
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {selectedItemsWithDetails.map((item) => {
+                  const itemId = item.id?.toString() || "";
+                  const itemName = item.product?.name || item.product?.description || "Unknown Item";
+                  const available = item.packages_available || 0;
+                  const price = item.product?.price;
                   
                   return (
                     <div key={itemId} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                      <span>{itemName}</span>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{itemName}</span>
+                        <div className="flex gap-2 mt-1">
+                          <Badge variant="outline">{formatPrice(price)}</Badge>
+                          <Badge variant="secondary">{available} available</Badge>
+                        </div>
+                      </div>
                       <Button 
                         variant="ghost" 
                         size="sm" 
@@ -159,7 +202,9 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
                 })}
               </div>
             ) : (
-              <div className="text-sm text-gray-500 p-2">No items selected</div>
+              <div className="text-sm text-gray-500 p-4 bg-gray-50 rounded text-center">
+                No items selected
+              </div>
             )}
           </div>
           

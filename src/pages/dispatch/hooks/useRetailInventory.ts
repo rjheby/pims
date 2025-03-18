@@ -41,10 +41,10 @@ export const useRetailInventory = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Fetch retail inventory
+        // Fetch retail inventory with pricing information
         const { data: inventoryData, error: inventoryError } = await supabase
           .from('retail_inventory')
-          .select('*');
+          .select('*, firewood_product_id');
 
         if (inventoryError) {
           throw new Error(`Error fetching retail inventory: ${inventoryError.message}`);
@@ -52,22 +52,30 @@ export const useRetailInventory = () => {
 
         setRetailInventory(inventoryData || []);
 
-        // Fetch firewood products
+        // Fetch firewood products with more details
         const { data: productsData, error: productsError } = await supabase
           .from('firewood_products')
-          .select('*');
+          .select('*, product_pricing(unit_price)');
 
         if (productsError) {
           throw new Error(`Error fetching firewood products: ${productsError.message}`);
         }
 
-        // Convert firewood_products to Product format
-        const formattedProducts = (productsData || []).map((product: FirewoodProduct) => ({
-          id: String(product.id), // Convert number to string
-          name: product.item_name,
-          description: product.item_full_name,
-          sku: product.product_type
-        }));
+        // Convert firewood_products to Product format with pricing
+        const formattedProducts = (productsData || []).map((product: FirewoodProduct & { product_pricing?: any[] }) => {
+          // Get the price from the first pricing tier if available
+          const price = product.product_pricing && 
+                       product.product_pricing.length > 0 ? 
+                       product.product_pricing[0]?.unit_price : undefined;
+          
+          return {
+            id: String(product.id), // Convert number to string
+            name: product.item_name,
+            description: product.item_full_name,
+            sku: product.product_type,
+            price: price
+          };
+        });
 
         setFirewoodProducts(formattedProducts);
       } catch (err: any) {
@@ -84,16 +92,22 @@ export const useRetailInventory = () => {
   // Join inventory items with their associated products
   const getInventoryWithProductDetails = () => {
     return retailInventory.map(item => {
-      const productId = typeof item.product_id === 'string' 
-        ? item.product_id 
-        : item.product_id !== undefined ? String(item.product_id) : undefined;
+      // Handle both string and number product IDs
+      const productId = item.firewood_product_id !== undefined 
+        ? String(item.firewood_product_id) 
+        : item.product_id !== undefined 
+          ? String(item.product_id) 
+          : undefined;
       
-      const product = firewoodProducts.find(p => p.id === productId);
+      const product = productId 
+        ? firewoodProducts.find(p => String(p.id) === productId)
+        : undefined;
+      
       return {
         ...item,
         product
       };
-    });
+    }).filter(item => item.product); // Only return items that have associated products
   };
 
   return {
