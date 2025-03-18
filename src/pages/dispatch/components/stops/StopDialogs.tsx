@@ -1,10 +1,18 @@
-
-import React from "react";
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { CustomerSelector } from "./CustomerSelector";
-import { ItemSelector } from "./ItemSelector";
+import React, { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
 import { Customer } from "./types";
-import { RecurrenceData } from "./RecurringOrderForm";
+import { RecurrenceData } from "./RecurringOrderForm"; // Make sure this import exists
+import { ItemsSelector } from "./ItemsSelector"; // Import the ItemsSelector we just created
 
 interface StopDialogsProps {
   customerDialogOpen: boolean;
@@ -12,11 +20,12 @@ interface StopDialogsProps {
   itemsDialogOpen: boolean;
   setItemsDialogOpen: (open: boolean) => void;
   onCustomerSelect: (customer: Customer) => void;
-  onItemsSelect: (items: string, recurrenceInfo?: RecurrenceData) => void;
+  onItemsSelect: (items: string, recurrenceData?: RecurrenceData) => void;
   onCancel: () => void;
   initialCustomerId: string | null;
   initialItems: string | null;
   recurrenceData: RecurrenceData;
+  customers: Customer[];
 }
 
 export const StopDialogs: React.FC<StopDialogsProps> = ({
@@ -29,55 +38,73 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
   onCancel,
   initialCustomerId,
   initialItems,
-  recurrenceData
+  recurrenceData,
+  customers
 }) => {
-  // Enhanced dialog state management to prevent unwanted closures
-  const handleOpenChange = (open: boolean, dialogType: 'customer' | 'items') => {
-    if (!open) {
-      // Only call onCancel when dialog is explicitly closed by user
-      onCancel();
-    } else {
-      // Set the appropriate dialog state
-      if (dialogType === 'customer') {
-        setCustomerDialogOpen(true);
-      } else {
-        setItemsDialogOpen(true);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(initialCustomerId);
+  
+  // Update selectedCustomerId when initialCustomerId changes
+  useEffect(() => {
+    setSelectedCustomerId(initialCustomerId);
+  }, [initialCustomerId]);
+  
+  const handleCustomerSave = () => {
+    if (selectedCustomerId) {
+      const customer = customers.find(c => c.id === selectedCustomerId);
+      if (customer) {
+        onCustomerSelect(customer);
       }
+    } else {
+      onCancel();
     }
   };
-
+  
   return (
     <>
-      <Dialog 
-        open={customerDialogOpen} 
-        onOpenChange={(open) => handleOpenChange(open, 'customer')}
-      >
-        <DialogContent className="sm:max-w-[550px] max-w-[90vw] max-h-[90vh] overflow-y-auto">
-          <DialogTitle>Select Customer</DialogTitle>
-          <DialogDescription>Choose a customer for this stop</DialogDescription>
-          <CustomerSelector 
-            onSelect={onCustomerSelect}
-            onCancel={onCancel}
-            initialCustomerId={initialCustomerId}
-          />
+      <Dialog open={customerDialogOpen} onOpenChange={setCustomerDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Select Customer</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="customer">Customer</Label>
+              <Select 
+                value={selectedCustomerId || undefined} 
+                onValueChange={setSelectedCustomerId}
+              >
+                <SelectTrigger id="customer">
+                  <SelectValue placeholder="Select a customer" />
+                </SelectTrigger>
+                <SelectContent>
+                  {customers.map((customer) => (
+                    // Make sure every item has a non-empty value
+                    <SelectItem key={customer.id} value={customer.id || "placeholder-value"}>
+                      {customer.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={onCancel}>Cancel</Button>
+            <Button onClick={handleCustomerSave}>Continue</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
-      
-      <Dialog 
-        open={itemsDialogOpen} 
-        onOpenChange={(open) => handleOpenChange(open, 'items')}
-      >
-        <DialogContent className="sm:max-w-[550px] max-w-[90vw] max-h-[90vh] overflow-y-auto">
-          <DialogTitle>Select Items</DialogTitle>
-          <DialogDescription>Add items for this delivery</DialogDescription>
-          <ItemSelector 
-            onSelect={onItemsSelect}
-            onCancel={onCancel}
-            initialItems={initialItems}
-            initialRecurrence={recurrenceData}
-          />
-        </DialogContent>
-      </Dialog>
+
+      {/* Use our new ItemsSelector component */}
+      <ItemsSelector
+        open={itemsDialogOpen}
+        onOpenChange={setItemsDialogOpen}
+        onSelect={onItemsSelect}
+        onCancel={onCancel}
+        initialItems={initialItems}
+        recurrenceData={recurrenceData}
+      />
     </>
   );
 };
