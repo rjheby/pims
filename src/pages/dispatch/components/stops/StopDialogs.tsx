@@ -37,6 +37,7 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
     customerDialogOpen, 
     itemsDialogOpen, 
     initialCustomerId,
+    initialItems,
     customersCount: customers?.length 
   });
   

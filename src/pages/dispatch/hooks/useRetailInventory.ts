@@ -8,13 +8,17 @@ export interface Product {
   description?: string;
   price?: number;
   sku?: string;
+  is_popular?: boolean;
+  popularity_rank?: number;
 }
 
 export interface InventoryItem {
   id: string;
   product_id?: string;
-  firewood_product_id?: string; // Added to fix the TypeScript error
+  firewood_product_id?: string | number; // Support both string and number types
   packages_available?: number;
+  quantity?: number; // Added to track selected quantity
+  custom_price?: number; // Added for price customization
   product?: Product;
 }
 
@@ -29,7 +33,17 @@ interface FirewoodProduct {
   product_type?: string;
   minimum_quantity?: number;
   image_reference?: string;
+  is_popular?: boolean;
+  popularity_rank?: number;
 }
+
+// Add popularity ordering for common products
+const POPULAR_PRODUCTS = [
+  "Standard Split Bundles",
+  "Pizza Split Bundles", 
+  "Boxes of Mixed Hardwood",
+  "Bundle of Kindling"
+];
 
 export const useRetailInventory = () => {
   const [retailInventory, setRetailInventory] = useState<InventoryItem[]>([]);
@@ -51,7 +65,13 @@ export const useRetailInventory = () => {
           throw new Error(`Error fetching retail inventory: ${inventoryError.message}`);
         }
 
-        setRetailInventory(inventoryData || []);
+        // Convert any numeric ID to string for consistency in the component
+        const formattedInventory = (inventoryData || []).map((item: any) => ({
+          ...item,
+          quantity: 1, // Initialize quantity to 1 for each item
+        }));
+
+        setRetailInventory(formattedInventory);
 
         // Fetch firewood products with more details
         const { data: productsData, error: productsError } = await supabase
@@ -69,12 +89,21 @@ export const useRetailInventory = () => {
                        product.product_pricing.length > 0 ? 
                        product.product_pricing[0]?.unit_price : undefined;
           
+          // Determine popularity based on name
+          const popularityIndex = POPULAR_PRODUCTS.findIndex(
+            name => product.item_name?.includes(name) || product.item_full_name?.includes(name)
+          );
+          
+          const isPopular = popularityIndex >= 0;
+          
           return {
             id: String(product.id), // Convert number to string
             name: product.item_name,
             description: product.item_full_name,
             sku: product.product_type,
-            price: price
+            price: price,
+            is_popular: isPopular,
+            popularity_rank: isPopular ? popularityIndex : 999 // Use index from popular products array or a high number
           };
         });
 
@@ -108,7 +137,14 @@ export const useRetailInventory = () => {
         ...item,
         product
       };
-    }).filter(item => item.product); // Only return items that have associated products
+    })
+    .filter(item => item.product) // Only return items that have associated products
+    .sort((a, b) => {
+      // Sort by popularity_rank (lower = more popular)
+      const rankA = a.product?.popularity_rank || 999;
+      const rankB = b.product?.popularity_rank || 999;
+      return rankA - rankB;
+    });
   };
 
   return {
