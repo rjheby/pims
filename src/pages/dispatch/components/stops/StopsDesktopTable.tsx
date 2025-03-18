@@ -167,7 +167,7 @@ export const StopsDesktopTable: React.FC<StopsDesktopTableProps> = ({
                     <td className="px-4 py-2 whitespace-nowrap text-sm text-center">
                       {isEditing ? (
                         <Select
-                          value={editForm.driver_id || ""}
+                          value={editForm.driver_id || undefined}
                           onValueChange={(value) =>
                             onEditFormChange({
                               ...editForm,
@@ -179,9 +179,9 @@ export const StopsDesktopTable: React.FC<StopsDesktopTableProps> = ({
                             <SelectValue placeholder="Select Driver" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Unassigned</SelectItem>
+                            <SelectItem value="unassigned-driver">Unassigned</SelectItem>
                             {drivers.map((driver) => (
-                              <SelectItem key={driver.id} value={driver.id}>
+                              <SelectItem key={driver.id} value={driver.id || `driver-${index}`}>
                                 {driver.name}
                               </SelectItem>
                             ))}

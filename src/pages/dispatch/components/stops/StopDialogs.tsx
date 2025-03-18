@@ -115,10 +115,10 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
                 </SelectTrigger>
                 <SelectContent>
                   {customers.map((customer) => (
-                    // Make sure every item has a non-empty value
+                    // Make sure every customer has a valid non-empty ID
                     <SelectItem
                       key={customer.id}
-                      value={customer.id || "placeholder-value"}
+                      value={customer.id || "placeholder-value-" + Math.random()}
                     >
                       {customer.name}
                     </SelectItem>
