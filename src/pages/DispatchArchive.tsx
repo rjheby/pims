@@ -15,7 +15,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
-import { DispatchList } from "./dispatch/components";
+import { DispatchList } from "./dispatch/components/archive/DispatchList";
 import { generateDispatchPDF } from "./dispatch/utils/pdfGenerator";
 import { DeliveryStop, DELIVERY_STATUS_OPTIONS } from "./dispatch/components/stops/types";
 import {
