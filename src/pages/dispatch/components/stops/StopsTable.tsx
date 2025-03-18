@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { DragDropContext, Droppable } from "@hello-pangea/dnd";
 import { MapPinPlus, Search } from "lucide-react";
@@ -10,6 +9,7 @@ import { StopsMobileCards } from "./StopsMobileCards";
 import { StopDialogs } from "./StopDialogs";
 import { Driver, DeliveryStop, StopFormData, Customer } from "./types";
 import { useStopsDialogs } from "../../hooks/useStopsDialogs";
+import ErrorBoundary from "./ErrorBoundary"; // Import the ErrorBoundary component
 
 interface StopsTableProps {
   stops: DeliveryStop[];
@@ -66,7 +66,10 @@ const StopsTable = ({
         throw new Error(`Error fetching customers: ${customersError.message}`);
       }
 
-      const customersWithType = customersData.map((customer) => ({
+      // Make sure all customers have valid IDs
+      const validCustomers = customersData.filter(customer => customer.id);
+      
+      const customersWithType = validCustomers.map((customer) => ({
         ...customer,
         type: 'RETAIL'
       }));
@@ -82,7 +85,9 @@ const StopsTable = ({
         throw new Error(`Error fetching drivers: ${driversError.message}`);
       }
 
-      setDrivers(driversData || []);
+      // Make sure all drivers have valid IDs
+      const validDrivers = driversData ? driversData.filter(driver => driver.id) : [];
+      setDrivers(validDrivers);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -193,133 +198,136 @@ const StopsTable = ({
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
-      <div className="flex flex-wrap justify-between items-center gap-4">
-        <h3 className="text-lg font-medium">Delivery Stops</h3>
-        <div className="flex items-center space-x-2">
-          {!readOnly && (
-            <Button 
-              variant="customAction" 
-              onClick={handleAddStop}
-              className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white"
-            >
-              <MapPinPlus className="mr-2 h-4 w-4" />
-              Add Stop
-            </Button>
-          )}
-        </div>
-      </div>
-
-      <div className="flex flex-wrap gap-4 p-4 bg-gray-50 rounded-lg">
-        <div className="flex items-center space-x-2">
-          <span className="text-sm font-medium">Sort by:</span>
-          <select 
-            className="text-sm border rounded p-2 bg-white"
-            value={sortBy}
-            onChange={(e) => handleSortChange(e.target.value)}
-          >
-            <option value="stop_number">Stop Number</option>
-            <option value="customer">Customer</option>
-            <option value="driver">Driver</option>
-          </select>
-        </div>
-        <div className="flex items-center space-x-2">
-          <span className="text-sm font-medium">Filter by driver:</span>
-          <select 
-            className="text-sm border rounded p-2 bg-white"
-            value={filterByDriver || ""}
-            onChange={(e) => handleDriverFilterChange(e.target.value || null)}
-          >
-            <option value="">All Drivers</option>
-            {drivers.map((driver) => (
-              <option key={driver.id} value={driver.id}>
-                {driver.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-      
-      {/* Dialog components extracted to a dedicated component */}
-      <StopDialogs
-        customerDialogOpen={customerDialogOpen}
-        setCustomerDialogOpen={setCustomerDialogOpen}
-        itemsDialogOpen={itemsDialogOpen}
-        setItemsDialogOpen={setItemsDialogOpen}
-        onCustomerSelect={handleCustomerSelect}
-        onItemsSelect={handleItemsSelect}
-        onCancel={handleEditCancel}
-        initialCustomerId={editForm.customer_id}
-        initialItems={editForm.items}
-        recurrenceData={recurrenceData}
-      />
-      
-      {stops.length > 0 ? (
-        <DragDropContext onDragEnd={handleDragEnd}>
-          <Droppable droppableId="stops">
-            {(provided) => (
-              <div {...provided.droppableProps} ref={provided.innerRef}>
-                {useMobileLayout ? (
-                  <StopsMobileCards
-                    stops={sortedAndFilteredStops}
-                    customers={customers}
-                    drivers={drivers}
-                    editingIndex={editingIndex}
-                    editForm={editForm}
-                    onEditFormChange={setEditForm}
-                    onEditStart={handleEditStart}
-                    onEditSave={handleEditSave}
-                    onEditCancel={handleEditCancel}
-                    onRemoveStop={handleRemoveStop}
-                    readOnly={readOnly}
-                    selectedStops={selectedStops}
-                    onSelectStop={handleSelectStop}
-                    onDuplicateStop={handleDuplicateStop}
-                    onOpenCustomerDialog={openCustomerDialog}
-                    onOpenItemsDialog={openItemsDialog}
-                  />
-                ) : (
-                  <StopsDesktopTable
-                    stops={sortedAndFilteredStops}
-                    customers={customers}
-                    drivers={drivers}
-                    editingIndex={editingIndex}
-                    editForm={editForm}
-                    onEditFormChange={setEditForm}
-                    onEditStart={handleEditStart}
-                    onEditSave={handleEditSave}
-                    onEditCancel={handleEditCancel}
-                    onRemoveStop={handleRemoveStop}
-                    readOnly={readOnly}
-                    selectedStops={selectedStops}
-                    onSelectStop={handleSelectStop}
-                    onDuplicateStop={handleDuplicateStop}
-                    draggable={!readOnly}
-                    onOpenCustomerDialog={openCustomerDialog}
-                    onOpenItemsDialog={openItemsDialog}
-                  />
-                )}
-                {provided.placeholder}
-              </div>
+    <ErrorBoundary>
+      <div className="space-y-6 max-w-6xl mx-auto">
+        <div className="flex flex-wrap justify-between items-center gap-4">
+          <h3 className="text-lg font-medium">Delivery Stops</h3>
+          <div className="flex items-center space-x-2">
+            {!readOnly && (
+              <Button 
+                variant="customAction" 
+                onClick={handleAddStop}
+                className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white"
+              >
+                <MapPinPlus className="mr-2 h-4 w-4" />
+                Add Stop
+              </Button>
             )}
-          </Droppable>
-        </DragDropContext>
-      ) : (
-        <div className="text-center py-12 bg-gray-50 border border-dashed rounded-lg">
-          <p className="text-gray-500">No delivery stops added yet.</p>
-          {!readOnly && (
-            <Button 
-              variant="customAction"
-              onClick={handleAddStop}
-              className="mt-4 bg-[#2A4131] hover:bg-[#2A4131]/90 text-white"
-            >
-              <MapPinPlus className="mr-2 h-4 w-4" />
-              Add First Stop
-            </Button>
-          )}
+          </div>
         </div>
-      )}
-    </div>
+
+        <div className="flex flex-wrap gap-4 p-4 bg-gray-50 rounded-lg">
+          <div className="flex items-center space-x-2">
+            <span className="text-sm font-medium">Sort by:</span>
+            <select 
+              className="text-sm border rounded p-2 bg-white"
+              value={sortBy}
+              onChange={(e) => handleSortChange(e.target.value)}
+            >
+              <option value="stop_number">Stop Number</option>
+              <option value="customer">Customer</option>
+              <option value="driver">Driver</option>
+            </select>
+          </div>
+          <div className="flex items-center space-x-2">
+            <span className="text-sm font-medium">Filter by driver:</span>
+            <select 
+              className="text-sm border rounded p-2 bg-white"
+              value={filterByDriver || ""}
+              onChange={(e) => handleDriverFilterChange(e.target.value || null)}
+            >
+              <option value="">All Drivers</option>
+              {drivers.map((driver) => (
+                <option key={driver.id} value={driver.id}>
+                  {driver.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        
+        {/* Updated StopDialogs component with improved props */}
+        <StopDialogs
+          customerDialogOpen={customerDialogOpen}
+          setCustomerDialogOpen={setCustomerDialogOpen}
+          itemsDialogOpen={itemsDialogOpen}
+          setItemsDialogOpen={setItemsDialogOpen}
+          onCustomerSelect={handleCustomerSelect}
+          onItemsSelect={handleItemsSelect}
+          onCancel={handleEditCancel}
+          initialCustomerId={editForm.customer_id}
+          initialItems={editForm.items}
+          recurrenceData={recurrenceData}
+          customers={customers} // Pass customers to the StopDialogs
+        />
+        
+        {stops.length > 0 ? (
+          <DragDropContext onDragEnd={handleDragEnd}>
+            <Droppable droppableId="stops">
+              {(provided) => (
+                <div {...provided.droppableProps} ref={provided.innerRef}>
+                  {useMobileLayout ? (
+                    <StopsMobileCards
+                      stops={sortedAndFilteredStops}
+                      customers={customers}
+                      drivers={drivers}
+                      editingIndex={editingIndex}
+                      editForm={editForm}
+                      onEditFormChange={setEditForm}
+                      onEditStart={handleEditStart}
+                      onEditSave={handleEditSave}
+                      onEditCancel={handleEditCancel}
+                      onRemoveStop={handleRemoveStop}
+                      readOnly={readOnly}
+                      selectedStops={selectedStops}
+                      onSelectStop={handleSelectStop}
+                      onDuplicateStop={handleDuplicateStop}
+                      onOpenCustomerDialog={openCustomerDialog}
+                      onOpenItemsDialog={openItemsDialog}
+                    />
+                  ) : (
+                    <StopsDesktopTable
+                      stops={sortedAndFilteredStops}
+                      customers={customers}
+                      drivers={drivers}
+                      editingIndex={editingIndex}
+                      editForm={editForm}
+                      onEditFormChange={setEditForm}
+                      onEditStart={handleEditStart}
+                      onEditSave={handleEditSave}
+                      onEditCancel={handleEditCancel}
+                      onRemoveStop={handleRemoveStop}
+                      readOnly={readOnly}
+                      selectedStops={selectedStops}
+                      onSelectStop={handleSelectStop}
+                      onDuplicateStop={handleDuplicateStop}
+                      draggable={!readOnly}
+                      onOpenCustomerDialog={openCustomerDialog}
+                      onOpenItemsDialog={openItemsDialog}
+                    />
+                  )}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext>
+        ) : (
+          <div className="text-center py-12 bg-gray-50 border border-dashed rounded-lg">
+            <p className="text-gray-500">No delivery stops added yet.</p>
+            {!readOnly && (
+              <Button 
+                variant="customAction"
+                onClick={handleAddStop}
+                className="mt-4 bg-[#2A4131] hover:bg-[#2A4131]/90 text-white"
+              >
+                <MapPinPlus className="mr-2 h-4 w-4" />
+                Add First Stop
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+    </ErrorBoundary>
   );
 };
 
