@@ -8,3 +8,4 @@ export { DispatchScheduleContent } from './DispatchScheduleContent';
 export { ItemSelector } from './stops/ItemSelector';
 export { StopDialogs } from './stops/StopDialogs';
 export { RecurringOrderForm } from './stops/RecurringOrderForm';
+export { CustomerSelector } from './stops/CustomerSelector';

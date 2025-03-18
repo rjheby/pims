@@ -13,6 +13,7 @@ import {
 import { RecurrenceData } from "./RecurringOrderForm";
 import { Customer } from "./types";
 import { ItemSelector } from "./ItemSelector";
+import { CustomerSelector } from "./CustomerSelector";
 
 interface StopDialogsProps {
   customerDialogOpen: boolean;
@@ -56,23 +57,6 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
     setSelectedCustomerId(initialCustomerId);
   }, [initialCustomerId]);
 
-  const handleCustomerSave = () => {
-    console.log("Customer save button clicked, selectedCustomerId:", selectedCustomerId);
-    if (selectedCustomerId) {
-      const customer = customers.find((c) => c.id === selectedCustomerId);
-      if (customer) {
-        console.log("Selected customer found:", customer.name);
-        onCustomerSelect(customer);
-      } else {
-        console.error("Selected customer not found in customers list");
-        onCancel();
-      }
-    } else {
-      console.log("No customer selected, cancelling");
-      onCancel();
-    }
-  };
-
   // Add a handler for dialog open/close events
   const handleOpenChange = (open: boolean, dialogType: 'customer' | 'items') => {
     console.log(`${dialogType} dialog openChange event:`, open);
@@ -100,45 +84,11 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
             <DialogTitle>Select Customer</DialogTitle>
           </DialogHeader>
           
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="customer">Customer</Label>
-              <Select 
-                value={selectedCustomerId || undefined} 
-                onValueChange={(value) => {
-                  console.log("Customer select value changed to:", value);
-                  setSelectedCustomerId(value);
-                }}
-              >
-                <SelectTrigger id="customer">
-                  <SelectValue placeholder="Select a customer" />
-                </SelectTrigger>
-                <SelectContent>
-                  {customers.map((customer) => (
-                    // Make sure every customer has a valid non-empty ID
-                    <SelectItem
-                      key={customer.id}
-                      value={customer.id || "placeholder-value-" + Math.random()}
-                    >
-                      {customer.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              console.log("Cancel button clicked in customer dialog");
-              onCancel();
-            }}>
-              Cancel
-            </Button>
-            <Button onClick={handleCustomerSave}>
-              Continue
-            </Button>
-          </DialogFooter>
+          <CustomerSelector
+            onSelect={onCustomerSelect}
+            onCancel={onCancel}
+            initialCustomerId={initialCustomerId}
+          />
         </DialogContent>
       </Dialog>
       
