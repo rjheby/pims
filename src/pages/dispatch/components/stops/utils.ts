@@ -10,6 +10,16 @@ export const calculatePrice = (items: string | null): number => {
   return itemsList.length * 10;
 };
 
+// Format price to display as currency
+export const formatPrice = (price: number | null): string => {
+  if (price === null) return '$0.00';
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2
+  }).format(price);
+};
+
 // Options for recurrence frequency
 export const recurrenceOptions = [
   { value: 'none', label: 'None' },
