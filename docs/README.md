@@ -5,7 +5,8 @@ This directory contains comprehensive documentation for our scheduling and logis
 
 ## Documentation Contents
 
-### Core Documentation
+### System Overview
+- [Project Overview](./PROJECT_OVERVIEW.md) - Vision, goals, and main features of the system
 - [Documentation Plan](./DOCUMENTATION_PLAN.md) - The overall documentation strategy and structure
 - [Feature Implementation Status](./FEATURE_IMPLEMENTATION_STATUS.md) - Current implementation status of all features
 - [API Documentation](./API_DOCUMENTATION.md) - Details of all internal and external APIs
