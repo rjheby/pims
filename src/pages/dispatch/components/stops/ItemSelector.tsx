@@ -1,158 +1,187 @@
-
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { RecurrenceData, RecurringOrderForm } from "./RecurringOrderForm";
+import { Input } from "@/components/ui/input";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
+import { RecurrenceData } from "./RecurringOrderForm"; // Make sure this import exists
 
-interface ItemSelectorProps {
-  onSelect: (items: string, recurrenceInfo?: RecurrenceData) => void;
-  onCancel: () => void;
-  initialItems?: string | null;
-  initialRecurrence?: RecurrenceData;
+interface RetailInventoryItem {
+  id: string;
+  name: string;
+  sku: string;
+  price: number;
+  // Add other fields as needed
 }
 
-export const ItemSelector = ({
+interface ItemsSelectorProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSelect: (items: string, recurrenceData?: RecurrenceData) => void;
+  onCancel: () => void;
+  initialItems: string | null;
+  recurrenceData: RecurrenceData;
+}
+
+export const ItemsSelector: React.FC<ItemsSelectorProps> = ({
+  open,
+  onOpenChange,
   onSelect,
   onCancel,
   initialItems,
-  initialRecurrence = { isRecurring: false, frequency: 'none' }
-}: ItemSelectorProps) => {
+  recurrenceData
+}) => {
   const [items, setItems] = useState<string>(initialItems || '');
-  const [itemType, setItemType] = useState<string>('cord');
-  const [quantity, setQuantity] = useState<string>('1');
-  const [recurrenceData, setRecurrenceData] = useState<RecurrenceData>(initialRecurrence);
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
+  const [inventoryItems, setInventoryItems] = useState<RetailInventoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
   
-  const woodTypes = [
-    { id: 'oak', name: 'Oak' },
-    { id: 'maple', name: 'Maple' },
-    { id: 'pine', name: 'Pine' },
-    { id: 'birch', name: 'Birch' },
-    { id: 'mixed', name: 'Mixed Hardwood' }
-  ];
-  
-  const packageTypes = [
-    { id: 'cord', name: 'Full Cord' },
-    { id: 'half-cord', name: 'Half Cord' },
-    { id: 'quarter-cord', name: 'Quarter Cord' },
-    { id: 'bundle', name: 'Bundle' },
-    { id: 'kindling', name: 'Kindling Box' }
-  ];
-
-  const handleAddItem = () => {
-    const selectedWoodType = document.getElementById('wood-type') as HTMLSelectElement;
-    const woodTypeValue = selectedWoodType?.value;
-    
-    if (!woodTypeValue || !itemType || !quantity) return;
-    
-    const woodTypeName = woodTypes.find(w => w.id === woodTypeValue)?.name;
-    const packageTypeName = packageTypes.find(p => p.id === itemType)?.name;
-    
-    if (!woodTypeName || !packageTypeName) return;
-    
-    const newItem = `${quantity} ${packageTypeName} - ${woodTypeName}`;
-    
-    setItems(prev => {
-      if (prev && prev.trim() !== '') {
-        return `${prev}, ${newItem}`;
+  // Fetch inventory items when component mounts
+  useEffect(() => {
+    async function fetchInventory() {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('retailinventory')
+          .select('*')
+          .order('name');
+          
+        if (error) {
+          console.error('Error fetching inventory:', error);
+          return;
+        }
+        
+        setInventoryItems(data || []);
+      } catch (err) {
+        console.error('Error in fetch operation:', err);
+      } finally {
+        setLoading(false);
       }
-      return newItem;
-    });
-  };
-
-  const handleConfirm = () => {
-    if (!items || items.trim() === '') return;
+    }
     
+    fetchInventory();
+  }, []);
+  
+  // Initialize selected items from initialItems string
+  useEffect(() => {
+    if (initialItems) {
+      const itemsList = initialItems.split(',').map(item => item.trim());
+      setSelectedItemIds(
+        inventoryItems
+          .filter(invItem => itemsList.includes(invItem.name))
+          .map(item => item.id)
+      );
+    }
+  }, [initialItems, inventoryItems]);
+  
+  const handleAddItem = (itemId: string) => {
+    if (!itemId || itemId === '') return;
+    
+    if (!selectedItemIds.includes(itemId)) {
+      setSelectedItemIds([...selectedItemIds, itemId]);
+      
+      // Update items string
+      const selectedItem = inventoryItems.find(item => item.id === itemId);
+      if (selectedItem) {
+        const newItems = items ? `${items},${selectedItem.name}` : selectedItem.name;
+        setItems(newItems);
+      }
+    }
+  };
+  
+  const handleRemoveItem = (itemId: string) => {
+    setSelectedItemIds(selectedItemIds.filter(id => id !== itemId));
+    
+    // Update items string
+    const selectedItem = inventoryItems.find(item => item.id === itemId);
+    if (selectedItem) {
+      const itemsList = items.split(',').map(item => item.trim());
+      const filteredItems = itemsList.filter(item => item !== selectedItem.name);
+      setItems(filteredItems.join(', '));
+    }
+  };
+  
+  const handleSave = () => {
     onSelect(items, recurrenceData);
   };
-
+  
+  const handleCancel = () => {
+    onCancel();
+  };
+  
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="current-items">Current Items</Label>
-          <Input
-            id="current-items"
-            value={items}
-            onChange={(e) => setItems(e.target.value)}
-            placeholder="No items added yet"
-          />
-        </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Select Inventory Items</DialogTitle>
+        </DialogHeader>
         
-        <div className="border-t my-4"></div>
-        
-        <div className="space-y-4">
-          <h4 className="font-medium">Add an Item</h4>
-          
-          <div className="grid grid-cols-3 gap-2">
-            <div>
-              <Label htmlFor="quantity">Quantity</Label>
-              <Input
-                id="quantity"
-                type="number"
-                min="1"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="item-type">Package</Label>
-              <Select value={itemType} onValueChange={setItemType}>
-                <SelectTrigger id="item-type">
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {packageTypes.map((pkg) => (
-                    <SelectItem key={pkg.id} value={pkg.id}>
-                      {pkg.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <Label htmlFor="wood-type">Wood Type</Label>
-              <Select defaultValue={woodTypes[0].id}>
-                <SelectTrigger id="wood-type">
-                  <SelectValue placeholder="Select wood" />
-                </SelectTrigger>
-                <SelectContent>
-                  {woodTypes.map((wood) => (
-                    <SelectItem key={wood.id} value={wood.id}>
-                      {wood.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>Add Items</Label>
+            <Select onValueChange={handleAddItem}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select an item to add" />
+              </SelectTrigger>
+              <SelectContent>
+                {inventoryItems.map((item) => (
+                  // Using a non-empty string for value
+                  <SelectItem key={item.id} value={item.id || "placeholder-value"}>
+                    {item.name} {item.sku ? `(${item.sku})` : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           
-          <Button type="button" variant="outline" onClick={handleAddItem} className="w-full">
-            Add Item to List
-          </Button>
+          <div className="space-y-2">
+            <Label>Selected Items</Label>
+            {selectedItemIds.length > 0 ? (
+              <div className="space-y-2">
+                {selectedItemIds.map((itemId) => {
+                  const item = inventoryItems.find(i => i.id === itemId);
+                  return (
+                    <div key={itemId} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                      <span>{item?.name}</span>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleRemoveItem(itemId)}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-sm text-gray-500 p-2">No items selected</div>
+            )}
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="items">Items (comma separated)</Label>
+            <Input
+              id="items"
+              value={items}
+              onChange={(e) => setItems(e.target.value)}
+              placeholder="e.g. Item1, Item2, Item3"
+            />
+          </div>
         </div>
         
-        <div className="border-t my-4"></div>
-        
-        <RecurringOrderForm
-          recurrenceData={recurrenceData}
-          onRecurrenceChange={setRecurrenceData}
-          initialRecurrence={initialRecurrence}
-        />
-      </div>
-      
-      <div className="flex justify-end space-x-2 mt-6 pt-4 border-t">
-        <Button variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button onClick={handleConfirm} disabled={!items || items.trim() === ''}>
-          Confirm Selection
-        </Button>
-      </div>
-    </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={handleCancel}>Cancel</Button>
+          <Button onClick={handleSave}>Save</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
