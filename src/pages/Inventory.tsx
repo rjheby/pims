@@ -95,8 +95,11 @@ export default function Inventory() {
         
         <TabsContent value="packaged" className="mt-4">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Packaged Products Inventory</CardTitle>
+              <div className="text-sm text-muted-foreground">
+                These are the same products available in dispatch schedules
+              </div>
             </CardHeader>
             <CardContent>
               <PackagedProductsTable 

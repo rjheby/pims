@@ -1,4 +1,3 @@
-
 import { useState, useMemo, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -191,6 +190,11 @@ export function PackagedProductsTable({
       });
       setSelectedItems([]);
     }
+  };
+
+  const formatProductName = (product: any) => {
+    if (!product) return "Unknown Product";
+    return product.item_name || product.item_full_name || "Unknown Product";
   };
 
   if (loading) {
@@ -425,7 +429,7 @@ export function PackagedProductsTable({
                                 <ChevronDown className="h-4 w-4 flex-shrink-0" />
                               )}
                               <span className="font-medium whitespace-normal break-words">
-                                {simplifyDisplayName(item.product?.item_name) || 'Unknown Product'}
+                                {formatProductName(item.product) || 'Unknown Product'}
                               </span>
                             </div>
                           </TableCell>

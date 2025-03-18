@@ -11,10 +11,10 @@ export function calculateInventoryTotals(stops: any[]): InventoryTotals {
     if (!stop.items) return;
     
     // Parse items from the stop
-    const stopItems = stop.items.split(',').map((item: string) => item.trim());
+    const itemsList = stop.items.split(',').map((item: string) => item.trim()).filter(Boolean);
     
     // Add each item to the totals
-    stopItems.forEach((item: string) => {
+    itemsList.forEach((item: string) => {
       if (!item) return;
       inventoryTotals[item] = (inventoryTotals[item] || 0) + 1;
     });
@@ -28,8 +28,8 @@ export function calculateTotals(stops: any[]) {
   
   // Count stops by driver
   const totalByDriver = stops.reduce((acc: Record<string, number>, stop: any) => {
-    const driverId = stop.driver_id || 'unassigned';
-    acc[driverId] = (acc[driverId] || 0) + 1;
+    const driverName = stop.driver_name || 'Unassigned';
+    acc[driverName] = (acc[driverName] || 0) + 1;
     return acc;
   }, {});
 

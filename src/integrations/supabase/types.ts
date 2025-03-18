@@ -561,6 +561,41 @@ export type Database = {
           },
         ]
       }
+      retail_inventory: {
+        Row: {
+          firewood_product_id: number
+          id: string
+          last_updated: string
+          packages_allocated: number
+          packages_available: number
+          total_packages: number
+        }
+        Insert: {
+          firewood_product_id: number
+          id?: string
+          last_updated?: string
+          packages_allocated?: number
+          packages_available?: number
+          total_packages?: number
+        }
+        Update: {
+          firewood_product_id?: number
+          id?: string
+          last_updated?: string
+          packages_allocated?: number
+          packages_available?: number
+          total_packages?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "retail_inventory_firewood_product_id_fkey"
+            columns: ["firewood_product_id"]
+            isOneToOne: false
+            referencedRelation: "firewood_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wholesale_order_options: {
         Row: {
           bundleType: string[]

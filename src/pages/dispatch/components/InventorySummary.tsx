@@ -1,15 +1,57 @@
 
 import React from 'react';
 import { InventoryTotals } from '../utils/inventoryUtils';
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from '@tanstack/react-query';
 
 interface InventorySummaryProps {
   inventoryTotals: InventoryTotals;
 }
 
+// Fetch product details to display better product names
+const useProductDetails = () => {
+  return useQuery({
+    queryKey: ['firewood-products'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('firewood_products')
+        .select('*')
+        .order('item_name');
+        
+      if (error) throw error;
+      return data || [];
+    }
+  });
+};
+
 export function InventorySummary({ inventoryTotals }: InventorySummaryProps) {
+  const { data: products, isLoading } = useProductDetails();
   const hasItems = Object.keys(inventoryTotals).length > 0;
   
   if (!hasItems) return null;
+  
+  // Helper function to find product name from item description
+  const getProductDisplayName = (itemDescription: string) => {
+    if (!products || isLoading) return itemDescription;
+    
+    // Parse format like "2x Firewood - 1/4 cord"
+    const match = itemDescription.match(/^(\d+)x\s+(.+)$/);
+    const quantity = match ? match[1] : "1";
+    const description = match ? match[2] : itemDescription;
+    
+    // Try to find a matching product by name or full name
+    const product = products.find(p => 
+      description.includes(p.item_name) || 
+      (p.item_full_name && description.includes(p.item_full_name))
+    );
+    
+    // Return formatted display name
+    if (product) {
+      return `${quantity}x ${product.item_name}`;
+    }
+    
+    return itemDescription;
+  };
   
   return (
     <div className="mt-4 pt-4 border-t border-gray-200">
@@ -17,7 +59,7 @@ export function InventorySummary({ inventoryTotals }: InventorySummaryProps) {
       <div className="space-y-1">
         {Object.entries(inventoryTotals).map(([item, count]) => (
           <div key={item} className="flex justify-between text-sm">
-            <span>{item}</span>
+            <span>{getProductDisplayName(item)}</span>
             <span className="font-medium">{count}</span>
           </div>
         ))}
