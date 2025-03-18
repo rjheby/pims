@@ -17,6 +17,19 @@ export interface InventoryItem {
   product?: Product;
 }
 
+interface FirewoodProduct {
+  id: number | string;
+  item_name: string;
+  item_full_name: string;
+  species?: string;
+  length?: string;
+  split_size?: string;
+  package_size?: string;
+  product_type?: string;
+  minimum_quantity?: number;
+  image_reference?: string;
+}
+
 export const useRetailInventory = () => {
   const [retailInventory, setRetailInventory] = useState<InventoryItem[]>([]);
   const [firewoodProducts, setFirewoodProducts] = useState<Product[]>([]);
@@ -39,17 +52,24 @@ export const useRetailInventory = () => {
 
         setRetailInventory(inventoryData || []);
 
-        // Fetch products
+        // Fetch firewood products
         const { data: productsData, error: productsError } = await supabase
-          .from('products')
-          .select('*')
-          .eq('type', 'FIREWOOD');
+          .from('firewood_products')
+          .select('*');
 
         if (productsError) {
           throw new Error(`Error fetching firewood products: ${productsError.message}`);
         }
 
-        setFirewoodProducts(productsData || []);
+        // Convert firewood_products to Product format
+        const formattedProducts = (productsData || []).map((product: FirewoodProduct) => ({
+          id: String(product.id), // Convert number to string
+          name: product.item_name,
+          description: product.item_full_name,
+          sku: product.product_type
+        }));
+
+        setFirewoodProducts(formattedProducts);
       } catch (err: any) {
         console.error('Error in useRetailInventory:', err);
         setError(err.message);
@@ -64,7 +84,11 @@ export const useRetailInventory = () => {
   // Join inventory items with their associated products
   const getInventoryWithProductDetails = () => {
     return retailInventory.map(item => {
-      const product = firewoodProducts.find(p => p.id === item.product_id);
+      const productId = typeof item.product_id === 'string' 
+        ? item.product_id 
+        : item.product_id !== undefined ? String(item.product_id) : undefined;
+      
+      const product = firewoodProducts.find(p => p.id === productId);
       return {
         ...item,
         product

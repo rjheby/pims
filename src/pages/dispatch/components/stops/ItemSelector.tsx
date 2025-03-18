@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,7 @@ import {
 import { RecurrenceData } from "./RecurringOrderForm";
 import { useRetailInventory } from "../../hooks/useRetailInventory"; // Import the hook
 
-interface ItemsSelectorProps {
+interface ItemSelectorProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSelect: (items: string, recurrenceData?: RecurrenceData) => void;
@@ -22,7 +23,7 @@ interface ItemsSelectorProps {
   recurrenceData: RecurrenceData;
 }
 
-export const ItemsSelector: React.FC<ItemsSelectorProps> = ({
+export const ItemSelector: React.FC<ItemSelectorProps> = ({
   open,
   onOpenChange,
   onSelect,

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -11,10 +12,7 @@ import {
 } from "@/components/ui/select";
 import { RecurrenceData } from "./RecurringOrderForm";
 import { Customer } from "./types";
-
-// Import the ItemsSelector directly from the file that contains it
-// The ItemsSelector is already in the same file as StopDialogs in your setup
-// No need to import from separate file
+import { ItemSelector } from "./ItemSelector";
 
 interface StopDialogsProps {
   customerDialogOpen: boolean;
@@ -144,8 +142,7 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
         </DialogContent>
       </Dialog>
       
-      {/* Use the ItemsSelector component from our existing file instead of importing */}
-      <ItemSelectorWrapped
+      <ItemSelector
         open={itemsDialogOpen}
         onOpenChange={(open) => handleOpenChange(open, 'items')}
         onSelect={(items, recurrenceData) => {
@@ -153,7 +150,7 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
           onItemsSelect(items, recurrenceData);
         }}
         onCancel={() => {
-          console.log("Cancel called from ItemsSelector");
+          console.log("Cancel called from ItemSelector");
           onCancel();
         }}
         initialItems={initialItems}
@@ -163,26 +160,5 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
   );
 };
 
-// Create a wrapper component that uses our existing ItemsSelector from ItemSelector.tsx
-// This avoids the import error and reuses the existing component
-interface ItemSelectorWrappedProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSelect: (items: string, recurrenceData?: RecurrenceData) => void;
-  onCancel: () => void;
-  initialItems: string | null;
-  recurrenceData: RecurrenceData;
-}
-
-// Wrapper component that re-exports the existing ItemsSelector functionality
-const ItemSelectorWrapped: React.FC<ItemSelectorWrappedProps> = (props) => {
-  // Import ItemsSelector from "../components/stops/ItemSelector" at runtime to avoid import issues
-  const { ItemsSelector } = require("../index");
-  
-  return (
-    <ItemsSelector {...props} />
-  );
-};
-
-// Also export the existing component to make it available via the index
-export { ItemsSelector } from "./ItemSelector";
+// Export the ItemSelector from this file
+export { ItemSelector } from "./ItemSelector";
