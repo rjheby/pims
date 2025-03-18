@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Customer, DeliveryStop, StopFormData } from "../components/stops/types";
 import { RecurrenceData } from "../components/stops/RecurringOrderForm";
@@ -55,6 +54,8 @@ export const useStopsDialogs = (
     });
     
     setIsAddingNewStop(true);
+    
+    console.log("Opening customer dialog for new stop");
     setCustomerDialogOpen(true);
   };
 
@@ -74,7 +75,6 @@ export const useStopsDialogs = (
       stop_number: stopToEdit.stop_number || index + 1,
     });
     
-    // Set recurrence data if available
     if (stopToEdit.recurring) {
       setRecurrenceData({
         isRecurring: stopToEdit.recurring.isRecurring,
@@ -141,6 +141,7 @@ export const useStopsDialogs = (
   };
 
   const handleEditCancel = () => {
+    console.log("Cancelling stop edit/add operation");
     if (isAddingNewStop) {
       const newStops = [...stops];
       newStops.pop();
@@ -151,6 +152,7 @@ export const useStopsDialogs = (
   };
 
   const handleCustomerSelect = (customer: Customer) => {
+    console.log("Customer selected:", customer.name, customer.id);
     setEditForm(prev => ({
       ...prev,
       customer_id: customer.id
@@ -159,9 +161,11 @@ export const useStopsDialogs = (
     setCustomerDialogOpen(false);
     
     if (isAddingNewStop) {
+      console.log("Will open items dialog after customer selection");
       setTimeout(() => {
+        console.log("Opening items dialog now");
         setItemsDialogOpen(true);
-      }, 250);
+      }, 300);
     }
   };
   
@@ -172,7 +176,6 @@ export const useStopsDialogs = (
       items
     }));
     
-    // Store recurrence data if provided
     if (recurrenceInfo) {
       setRecurrenceData(recurrenceInfo);
     }
@@ -180,17 +183,21 @@ export const useStopsDialogs = (
     setItemsDialogOpen(false);
     
     if (isAddingNewStop) {
+      console.log("Will save stop after items selection");
       setTimeout(() => {
+        console.log("Saving stop now");
         handleEditSave();
-      }, 250);
+      }, 300);
     }
   };
 
   const openCustomerDialog = () => {
+    console.log("Explicitly opening customer dialog");
     setCustomerDialogOpen(true);
   };
 
   const openItemsDialog = () => {
+    console.log("Explicitly opening items dialog");
     setItemsDialogOpen(true);
   };
 

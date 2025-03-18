@@ -31,17 +31,27 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
   initialItems,
   recurrenceData
 }) => {
+  // Fix: This ensures dialogs remain open when they should be open
+  // The previous implementation had an issue where the dialog would close itself
+  const handleOpenChange = (open: boolean, dialogType: 'customer' | 'items') => {
+    if (!open) {
+      // Only call onCancel when dialog is explicitly closed by user
+      onCancel();
+    } else {
+      // Set the appropriate dialog state
+      if (dialogType === 'customer') {
+        setCustomerDialogOpen(true);
+      } else {
+        setItemsDialogOpen(true);
+      }
+    }
+  };
+
   return (
     <>
       <Dialog 
         open={customerDialogOpen} 
-        onOpenChange={(open) => {
-          if (!open) {
-            onCancel();
-          } else {
-            setCustomerDialogOpen(open);
-          }
-        }}
+        onOpenChange={(open) => handleOpenChange(open, 'customer')}
       >
         <DialogContent className="sm:max-w-[550px] max-w-[90vw] max-h-[90vh] overflow-y-auto">
           <DialogTitle>Select Customer</DialogTitle>
@@ -56,13 +66,7 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
       
       <Dialog 
         open={itemsDialogOpen} 
-        onOpenChange={(open) => {
-          if (!open) {
-            onCancel();
-          } else {
-            setItemsDialogOpen(open);
-          }
-        }}
+        onOpenChange={(open) => handleOpenChange(open, 'items')}
       >
         <DialogContent className="sm:max-w-[550px] max-w-[90vw] max-h-[90vh] overflow-y-auto">
           <DialogTitle>Select Items</DialogTitle>
