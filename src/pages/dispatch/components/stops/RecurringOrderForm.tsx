@@ -12,11 +12,6 @@ import {
 } from '@/components/ui/select';
 import { recurrenceOptions, dayOptions } from './utils';
 
-interface RecurringOrderFormProps {
-  onRecurrenceChange: (recurrenceData: RecurrenceData) => void;
-  initialRecurrence?: RecurrenceData;
-}
-
 export interface RecurrenceData {
   isRecurring: boolean;
   frequency: string;
@@ -25,17 +20,17 @@ export interface RecurrenceData {
   endDate?: string;
 }
 
+export interface RecurringOrderFormProps {
+  recurrenceData: RecurrenceData;
+  onRecurrenceChange: (recurrenceData: RecurrenceData) => void;
+  initialRecurrence?: RecurrenceData;
+}
+
 export const RecurringOrderForm = ({ 
-  onRecurrenceChange, 
+  recurrenceData, 
+  onRecurrenceChange,
   initialRecurrence 
 }: RecurringOrderFormProps) => {
-  const [recurrenceData, setRecurrenceData] = useState<RecurrenceData>(
-    initialRecurrence || {
-      isRecurring: false,
-      frequency: 'none',
-    }
-  );
-
   const handleChange = (field: keyof RecurrenceData, value: any) => {
     const updatedData = { ...recurrenceData, [field]: value };
     
@@ -50,7 +45,6 @@ export const RecurringOrderForm = ({
       updatedData.frequency = 'weekly';
     }
     
-    setRecurrenceData(updatedData);
     onRecurrenceChange(updatedData);
   };
 

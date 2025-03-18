@@ -141,6 +141,7 @@ export const ItemSelector = ({
         <RecurringOrderForm
           recurrenceData={recurrenceData}
           onRecurrenceChange={setRecurrenceData}
+          initialRecurrence={initialRecurrence}
         />
       </div>
       
