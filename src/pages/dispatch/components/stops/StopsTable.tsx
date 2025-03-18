@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { DragDropContext, Droppable } from "@hello-pangea/dnd";
 import { MapPinPlus, Search } from "lucide-react";
@@ -10,7 +9,7 @@ import { StopsMobileCards } from "./StopsMobileCards";
 import { StopDialogs } from "./StopDialogs";
 import { Driver, DeliveryStop, StopFormData, Customer } from "./types";
 import { useStopsDialogs } from "../../hooks/useStopsDialogs";
-import ErrorBoundary from "./ErrorBoundary"; // Import the ErrorBoundary component
+import ErrorBoundary from "./ErrorBoundary";
 
 interface StopsTableProps {
   stops: DeliveryStop[];
@@ -227,7 +226,6 @@ const StopsTable = ({
     setFilterByDriver(value);
   };
 
-  // Log when Add Stop button is clicked
   const handleAddStopClick = () => {
     console.log("Add Stop button clicked");
     handleAddStop();
@@ -286,7 +284,6 @@ const StopsTable = ({
           <pre className="hidden">{JSON.stringify({ customerDialogOpen, itemsDialogOpen }, null, 2)}</pre>
         </div>
         
-        {/* Updated StopDialogs component with improved props */}
         <StopDialogs
           customerDialogOpen={customerDialogOpen}
           setCustomerDialogOpen={setCustomerDialogOpen}
@@ -298,7 +295,7 @@ const StopsTable = ({
           initialCustomerId={editForm.customer_id}
           initialItems={editForm.items}
           recurrenceData={recurrenceData}
-          customers={customers} // Pass customers to the StopDialogs
+          customers={customers}
         />
         
         {stops.length > 0 ? (

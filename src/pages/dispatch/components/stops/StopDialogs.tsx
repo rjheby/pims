@@ -1,9 +1,7 @@
-
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -12,9 +10,162 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import { RecurrenceData } from "./RecurringOrderForm";
-import { useRetailInventory } from "../../hooks/useRetailInventory"; // Import the retail inventory hook
+import { Customer } from "./types";
 
-interface ItemsSelectorProps {
+// Import the ItemsSelector directly from the file that contains it
+// The ItemsSelector is already in the same file as StopDialogs in your setup
+// No need to import from separate file
+
+interface StopDialogsProps {
+  customerDialogOpen: boolean;
+  setCustomerDialogOpen: (open: boolean) => void;
+  itemsDialogOpen: boolean;
+  setItemsDialogOpen: (open: boolean) => void;
+  onCustomerSelect: (customer: Customer) => void;
+  onItemsSelect: (items: string, recurrenceData?: RecurrenceData) => void;
+  onCancel: () => void;
+  initialCustomerId: string | null;
+  initialItems: string | null;
+  recurrenceData: RecurrenceData;
+  customers: Customer[];
+}
+
+export const StopDialogs: React.FC<StopDialogsProps> = ({
+  customerDialogOpen,
+  setCustomerDialogOpen,
+  itemsDialogOpen,
+  setItemsDialogOpen,
+  onCustomerSelect,
+  onItemsSelect,
+  onCancel,
+  initialCustomerId,
+  initialItems,
+  recurrenceData,
+  customers
+}) => {
+  console.log("StopDialogs rendering with props:", { 
+    customerDialogOpen, 
+    itemsDialogOpen, 
+    initialCustomerId,
+    customersCount: customers?.length 
+  });
+  
+  const [selectedCustomerId, setSelectedCustomerId] = useState(initialCustomerId);
+
+  // Update selectedCustomerId when initialCustomerId changes
+  useEffect(() => {
+    console.log("StopDialogs: initialCustomerId changed to:", initialCustomerId);
+    setSelectedCustomerId(initialCustomerId);
+  }, [initialCustomerId]);
+
+  const handleCustomerSave = () => {
+    console.log("Customer save button clicked, selectedCustomerId:", selectedCustomerId);
+    if (selectedCustomerId) {
+      const customer = customers.find((c) => c.id === selectedCustomerId);
+      if (customer) {
+        console.log("Selected customer found:", customer.name);
+        onCustomerSelect(customer);
+      } else {
+        console.error("Selected customer not found in customers list");
+        onCancel();
+      }
+    } else {
+      console.log("No customer selected, cancelling");
+      onCancel();
+    }
+  };
+
+  // Add a handler for dialog open/close events
+  const handleOpenChange = (open: boolean, dialogType: 'customer' | 'items') => {
+    console.log(`${dialogType} dialog openChange event:`, open);
+    if (dialogType === 'customer') {
+      if (!open) {
+        console.log("Customer dialog closing via UI interaction");
+      }
+      setCustomerDialogOpen(open);
+    } else {
+      if (!open) {
+        console.log("Items dialog closing via UI interaction");
+      }
+      setItemsDialogOpen(open);
+    }
+  };
+
+  return (
+    <>
+      <Dialog 
+        open={customerDialogOpen} 
+        onOpenChange={(open) => handleOpenChange(open, 'customer')}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Select Customer</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="customer">Customer</Label>
+              <Select 
+                value={selectedCustomerId || undefined} 
+                onValueChange={(value) => {
+                  console.log("Customer select value changed to:", value);
+                  setSelectedCustomerId(value);
+                }}
+              >
+                <SelectTrigger id="customer">
+                  <SelectValue placeholder="Select a customer" />
+                </SelectTrigger>
+                <SelectContent>
+                  {customers.map((customer) => (
+                    // Make sure every item has a non-empty value
+                    <SelectItem
+                      key={customer.id}
+                      value={customer.id || "placeholder-value"}
+                    >
+                      {customer.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              console.log("Cancel button clicked in customer dialog");
+              onCancel();
+            }}>
+              Cancel
+            </Button>
+            <Button onClick={handleCustomerSave}>
+              Continue
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Use the ItemsSelector component from our existing file instead of importing */}
+      <ItemSelectorWrapped
+        open={itemsDialogOpen}
+        onOpenChange={(open) => handleOpenChange(open, 'items')}
+        onSelect={(items, recurrenceData) => {
+          console.log("Items selected:", items);
+          onItemsSelect(items, recurrenceData);
+        }}
+        onCancel={() => {
+          console.log("Cancel called from ItemsSelector");
+          onCancel();
+        }}
+        initialItems={initialItems}
+        recurrenceData={recurrenceData}
+      />
+    </>
+  );
+};
+
+// Create a wrapper component that uses our existing ItemsSelector from ItemSelector.tsx
+// This avoids the import error and reuses the existing component
+interface ItemSelectorWrappedProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSelect: (items: string, recurrenceData?: RecurrenceData) => void;
@@ -23,213 +174,15 @@ interface ItemsSelectorProps {
   recurrenceData: RecurrenceData;
 }
 
-export const ItemsSelector: React.FC<ItemsSelectorProps> = ({
-  open,
-  onOpenChange,
-  onSelect,
-  onCancel,
-  initialItems,
-  recurrenceData
-}) => {
-  console.log("ItemsSelector rendering with props:", { 
-    open, 
-    initialItems
-  });
-  
-  const [items, setItems] = useState<string>(initialItems || '');
-  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
-  
-  // Use the retail inventory hook
-  const { 
-    retailInventory, 
-    firewoodProducts, 
-    loading,
-    getInventoryWithProductDetails 
-  } = useRetailInventory();
-  
-  // Get inventory with product details
-  const inventoryWithProducts = getInventoryWithProductDetails();
-  
-  // Log inventory data for debugging
-  useEffect(() => {
-    console.log("Retail inventory loaded:", { 
-      retailInventoryCount: retailInventory.length,
-      firewoodProductsCount: firewoodProducts.length,
-      inventoryWithProductsCount: inventoryWithProducts.length
-    });
-  }, [retailInventory, firewoodProducts, inventoryWithProducts]);
-  
-  // Initialize selected items from initialItems string
-  useEffect(() => {
-    if (initialItems && inventoryWithProducts.length > 0) {
-      console.log("Initializing selected items from:", initialItems);
-      const itemsList = initialItems.split(',').map(item => item.trim());
-      
-      // Try to match by product name
-      const matchedIds = inventoryWithProducts
-        .filter(invItem => 
-          itemsList.includes(invItem.product?.name || '') || 
-          itemsList.includes(invItem.product?.description || '')
-        )
-        .map(item => item.id?.toString() || "");
-      
-      console.log("Matched item IDs:", matchedIds);
-      setSelectedItemIds(matchedIds);
-    }
-  }, [initialItems, inventoryWithProducts]);
-  
-  const handleAddItem = (itemId: string) => {
-    console.log("Adding item with ID:", itemId);
-    if (!itemId || itemId === '') {
-      console.warn("Attempted to add item with empty ID");
-      return;
-    }
-    
-    if (!selectedItemIds.includes(itemId)) {
-      const newSelectedIds = [...selectedItemIds, itemId];
-      setSelectedItemIds(newSelectedIds);
-      console.log("Updated selected item IDs:", newSelectedIds);
-      
-      // Update items string
-      const selectedItem = inventoryWithProducts.find(item => item.id?.toString() === itemId);
-      if (selectedItem && selectedItem.product) {
-        const itemName = selectedItem.product.name || selectedItem.product.description || 'Unknown Item';
-        const newItems = items ? `${items}, ${itemName}` : itemName;
-        console.log("Updated items string:", newItems);
-        setItems(newItems);
-      } else {
-        console.warn("Selected item or product not found in inventory:", itemId);
-      }
-    } else {
-      console.log("Item already selected, not adding again:", itemId);
-    }
-  };
-  
-  const handleRemoveItem = (itemId: string) => {
-    console.log("Removing item with ID:", itemId);
-    const newSelectedIds = selectedItemIds.filter(id => id !== itemId);
-    setSelectedItemIds(newSelectedIds);
-    console.log("Updated selected item IDs after removal:", newSelectedIds);
-    
-    // Update items string
-    const selectedItem = inventoryWithProducts.find(item => item.id?.toString() === itemId);
-    if (selectedItem && selectedItem.product) {
-      const itemName = selectedItem.product.name || selectedItem.product.description || '';
-      const itemsList = items.split(',').map(item => item.trim());
-      const filteredItems = itemsList.filter(item => item !== itemName);
-      const newItemsString = filteredItems.join(', ');
-      console.log("Updated items string after removal:", newItemsString);
-      setItems(newItemsString);
-    } else {
-      console.warn("Item to remove not found in inventory:", itemId);
-    }
-  };
-  
-  const handleSave = () => {
-    console.log("Saving items:", items);
-    onSelect(items, recurrenceData);
-  };
-  
-  const handleCancel = () => {
-    console.log("Cancelling item selection");
-    onCancel();
-  };
+// Wrapper component that re-exports the existing ItemsSelector functionality
+const ItemSelectorWrapped: React.FC<ItemSelectorWrappedProps> = (props) => {
+  // Import ItemsSelector from "../components/stops/ItemSelector" at runtime to avoid import issues
+  const { ItemsSelector } = require("../index");
   
   return (
-    <Dialog 
-      open={open} 
-      onOpenChange={(newOpen) => {
-        console.log("ItemsSelector dialog openChange:", newOpen);
-        onOpenChange(newOpen);
-      }}
-    >
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Select Inventory Items</DialogTitle>
-        </DialogHeader>
-        
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label>Add Items</Label>
-            {loading ? (
-              <div className="text-sm text-gray-500">Loading inventory...</div>
-            ) : (
-              <Select onValueChange={handleAddItem}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select an item to add" />
-                </SelectTrigger>
-                <SelectContent>
-                  {inventoryWithProducts.map((item) => {
-                    if (!item.id || !item.product) {
-                      console.warn("Skipping item without ID or product:", item);
-                      return null;
-                    }
-                    
-                    // Use a default value if id is empty
-                    const itemId = item.id.toString() || "placeholder-value";
-                    const itemName = item.product.name || item.product.description || "Unknown Item";
-                    const available = item.packages_available || 0;
-                    
-                    return (
-                      <SelectItem key={itemId} value={itemId}>
-                        {itemName} ({available} available)
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-          
-          <div className="space-y-2">
-            <Label>Selected Items</Label>
-            {selectedItemIds.length > 0 ? (
-              <div className="space-y-2">
-                {selectedItemIds.map((itemId) => {
-                  const selectedItem = inventoryWithProducts.find(item => item.id?.toString() === itemId);
-                  const itemName = selectedItem?.product?.name || selectedItem?.product?.description || "Unknown Item";
-                  
-                  return (
-                    <div key={itemId} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                      <span>{itemName}</span>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => handleRemoveItem(itemId)}
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-sm text-gray-500 p-2">No items selected</div>
-            )}
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="items">Items (comma separated)</Label>
-            <Input
-              id="items"
-              value={items}
-              onChange={(e) => {
-                console.log("Items input changed:", e.target.value);
-                setItems(e.target.value);
-              }}
-              placeholder="e.g. Oak Firewood, Kindling, Cedar"
-            />
-            <p className="text-xs text-gray-500">
-              These items will be added to the delivery stop.
-            </p>
-          </div>
-        </div>
-        
-        <DialogFooter>
-          <Button variant="outline" onClick={handleCancel}>Cancel</Button>
-          <Button onClick={handleSave}>Save</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <ItemsSelector {...props} />
   );
 };
+
+// Also export the existing component to make it available via the index
+export { ItemsSelector } from "./ItemSelector";
