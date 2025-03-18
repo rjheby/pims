@@ -13,6 +13,7 @@ export interface Product {
 export interface InventoryItem {
   id: string;
   product_id?: string;
+  firewood_product_id?: string; // Added to fix the TypeScript error
   packages_available?: number;
   product?: Product;
 }
