@@ -5,14 +5,11 @@ import { MapPinPlus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { StopsDesktopTable } from "./StopsDesktopTable";
 import { StopsMobileCards } from "./StopsMobileCards";
-import { CustomerSelector } from "./CustomerSelector";
-import { ItemSelector } from "./ItemSelector";
+import { StopDialogs } from "./StopDialogs";
 import { Driver, DeliveryStop, StopFormData, Customer } from "./types";
-import { calculatePrice } from "./utils";
-import { RecurrenceData } from "./RecurringOrderForm";
+import { useStopsDialogs } from "../../hooks/useStopsDialogs";
 
 interface StopsTableProps {
   stops: DeliveryStop[];
@@ -33,24 +30,29 @@ const StopsTable = ({
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingIndex, setEditingIndex] = useState(-1);
-  const [editForm, setEditForm] = useState<StopFormData>({
-    customer_id: null,
-    notes: null,
-    driver_id: null,
-    items: null,
-  });
   const [selectedStops, setSelectedStops] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<string>("stop_number");
   const [filterByDriver, setFilterByDriver] = useState<string | null>(null);
   
-  const [isAddingNewStop, setIsAddingNewStop] = useState(false);
-  const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
-  const [itemsDialogOpen, setItemsDialogOpen] = useState(false);
-  const [recurrenceData, setRecurrenceData] = useState<RecurrenceData>({ 
-    isRecurring: false, 
-    frequency: 'none'
-  });
+  const {
+    editingIndex,
+    isAddingNewStop,
+    customerDialogOpen,
+    setCustomerDialogOpen,
+    itemsDialogOpen,
+    setItemsDialogOpen,
+    editForm,
+    setEditForm,
+    recurrenceData,
+    handleAddStop,
+    handleEditStart,
+    handleEditSave,
+    handleEditCancel,
+    handleCustomerSelect,
+    handleItemsSelect,
+    openCustomerDialog,
+    openItemsDialog
+  } = useStopsDialogs(stops, onStopsChange, customers, drivers);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -95,132 +97,6 @@ const StopsTable = ({
   useEffect(() => {
     fetchData();
   }, [fetchData]);
-
-  const handleAddStop = () => {
-    // Validate before proceeding
-    if (isAddingNewStop) {
-      console.log("Already adding a stop, please complete or cancel first");
-      return;
-    }
-    
-    const stopNumber = stops.length + 1;
-    const newStop: DeliveryStop = {
-      customer_id: null,
-      notes: null,
-      driver_id: null,
-      items: null,
-      price: 0,
-      stop_number: stopNumber,
-      sequence: stopNumber
-    };
-    
-    const newStops = [...stops, newStop];
-    onStopsChange(newStops);
-    
-    setEditingIndex(newStops.length - 1);
-    setEditForm({
-      customer_id: null,
-      notes: null,
-      driver_id: null,
-      items: null,
-      stop_number: stopNumber
-    });
-    
-    setIsAddingNewStop(true);
-    setCustomerDialogOpen(true);
-  };
-
-  const handleEditStart = (index: number) => {
-    if (isAddingNewStop) {
-      console.log("Cannot edit while adding a new stop");
-      return;
-    }
-    
-    setEditingIndex(index);
-    const stopToEdit = stops[index];
-    setEditForm({
-      customer_id: stopToEdit.customer_id || null,
-      notes: stopToEdit.notes || null,
-      driver_id: stopToEdit.driver_id || null,
-      items: stopToEdit.items || null,
-      stop_number: stopToEdit.stop_number || index + 1,
-    });
-    
-    // Set recurrence data if available
-    if (stopToEdit.recurring) {
-      setRecurrenceData({
-        isRecurring: stopToEdit.recurring.isRecurring,
-        frequency: stopToEdit.recurring.frequency,
-        preferredDay: stopToEdit.recurring.preferredDay,
-        startDate: stopToEdit.recurring.startDate,
-        endDate: stopToEdit.recurring.endDate
-      });
-    } else {
-      setRecurrenceData({
-        isRecurring: false,
-        frequency: 'none'
-      });
-    }
-  };
-
-  const handleEditSave = () => {
-    if (editingIndex < 0 || editingIndex >= stops.length) {
-      console.error("Invalid editing index:", editingIndex);
-      return;
-    }
-    
-    console.log("Saving stop with form data:", editForm);
-    const price = calculatePrice(editForm.items);
-    
-    const selectedCustomer = customers.find(c => c.id === editForm.customer_id);
-    const selectedDriver = drivers.find(d => d.id === editForm.driver_id);
-    
-    const updatedStop = {
-      ...stops[editingIndex],
-      ...editForm,
-      price,
-      customer_name: selectedCustomer?.name,
-      customer_address: selectedCustomer?.address,
-      customer_phone: selectedCustomer?.phone,
-      driver_name: selectedDriver?.name,
-      recurring: recurrenceData.isRecurring ? {
-        isRecurring: recurrenceData.isRecurring,
-        frequency: recurrenceData.frequency,
-        preferredDay: recurrenceData.preferredDay,
-        startDate: recurrenceData.startDate,
-        endDate: recurrenceData.endDate
-      } : undefined
-    };
-    
-    console.log("Updated stop data:", updatedStop);
-    
-    const newStops = [...stops];
-    newStops[editingIndex] = updatedStop;
-    
-    onStopsChange(newStops);
-    resetEditState();
-  };
-
-  const resetEditState = () => {
-    setEditingIndex(-1);
-    setIsAddingNewStop(false);
-    setCustomerDialogOpen(false);
-    setItemsDialogOpen(false);
-    setRecurrenceData({
-      isRecurring: false,
-      frequency: 'none'
-    });
-  };
-
-  const handleEditCancel = () => {
-    if (isAddingNewStop) {
-      const newStops = [...stops];
-      newStops.pop();
-      onStopsChange(newStops);
-    }
-    
-    resetEditState();
-  };
 
   const handleRemoveStop = (index: number) => {
     const newStops = [...stops];
@@ -315,50 +191,6 @@ const StopsTable = ({
   const handleDriverFilterChange = (value: string | null) => {
     setFilterByDriver(value);
   };
-  
-  const handleCustomerSelect = (customer: Customer) => {
-    setEditForm(prev => ({
-      ...prev,
-      customer_id: customer.id
-    }));
-    
-    setCustomerDialogOpen(false);
-    
-    if (isAddingNewStop) {
-      setTimeout(() => {
-        setItemsDialogOpen(true);
-      }, 250);
-    }
-  };
-  
-  const handleItemsSelect = (items: string, recurrenceInfo?: RecurrenceData) => {
-    console.log("Selected items:", items);
-    setEditForm(prev => ({
-      ...prev,
-      items
-    }));
-    
-    // Store recurrence data if provided
-    if (recurrenceInfo) {
-      setRecurrenceData(recurrenceInfo);
-    }
-    
-    setItemsDialogOpen(false);
-    
-    if (isAddingNewStop) {
-      setTimeout(() => {
-        handleEditSave();
-      }, 250);
-    }
-  };
-
-  const openCustomerDialog = () => {
-    setCustomerDialogOpen(true);
-  };
-
-  const openItemsDialog = () => {
-    setItemsDialogOpen(true);
-  };
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
@@ -408,48 +240,19 @@ const StopsTable = ({
         </div>
       </div>
       
-      <Dialog 
-        open={customerDialogOpen} 
-        onOpenChange={(open) => {
-          if (!open) {
-            handleEditCancel();
-          } else {
-            setCustomerDialogOpen(open);
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-[550px] max-w-[90vw] max-h-[90vh] overflow-y-auto">
-          <DialogTitle>Select Customer</DialogTitle>
-          <DialogDescription>Choose a customer for this stop</DialogDescription>
-          <CustomerSelector 
-            onSelect={handleCustomerSelect}
-            onCancel={handleEditCancel}
-            initialCustomerId={editForm.customer_id}
-          />
-        </DialogContent>
-      </Dialog>
-      
-      <Dialog 
-        open={itemsDialogOpen} 
-        onOpenChange={(open) => {
-          if (!open) {
-            handleEditCancel();
-          } else {
-            setItemsDialogOpen(open);
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-[550px] max-w-[90vw] max-h-[90vh] overflow-y-auto">
-          <DialogTitle>Select Items</DialogTitle>
-          <DialogDescription>Add items for this delivery</DialogDescription>
-          <ItemSelector 
-            onSelect={handleItemsSelect}
-            onCancel={handleEditCancel}
-            initialItems={editForm.items}
-            initialRecurrence={recurrenceData}
-          />
-        </DialogContent>
-      </Dialog>
+      {/* Dialog components extracted to a dedicated component */}
+      <StopDialogs
+        customerDialogOpen={customerDialogOpen}
+        setCustomerDialogOpen={setCustomerDialogOpen}
+        itemsDialogOpen={itemsDialogOpen}
+        setItemsDialogOpen={setItemsDialogOpen}
+        onCustomerSelect={handleCustomerSelect}
+        onItemsSelect={handleItemsSelect}
+        onCancel={handleEditCancel}
+        initialCustomerId={editForm.customer_id}
+        initialItems={editForm.items}
+        recurrenceData={recurrenceData}
+      />
       
       {stops.length > 0 ? (
         <DragDropContext onDragEnd={handleDragEnd}>

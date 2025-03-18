@@ -43,7 +43,7 @@ export const ItemSelector = ({
 
   const handleAddItem = () => {
     const selectedWoodType = document.getElementById('wood-type') as HTMLSelectElement;
-    const woodTypeValue = selectedWoodType.value;
+    const woodTypeValue = selectedWoodType?.value;
     
     if (!woodTypeValue || !itemType || !quantity) return;
     
