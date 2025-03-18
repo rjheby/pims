@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { InventoryTotals } from '../utils/inventoryUtils';
+import { InventoryTotals, normalizeProductName } from '../utils/inventoryUtils';
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from '@tanstack/react-query';
 
@@ -32,7 +32,7 @@ export function InventorySummary({ inventoryTotals }: InventorySummaryProps) {
   
   // Helper function to find product name from item description
   const getProductDisplayName = (itemDescription: string) => {
-    if (!products || isLoading) return itemDescription;
+    if (!products || isLoading) return normalizeProductName(itemDescription);
     
     // Parse format like "2x Firewood - 1/4 cord"
     const match = itemDescription.match(/^(\d+)x\s+(.+)$/);
@@ -47,10 +47,12 @@ export function InventorySummary({ inventoryTotals }: InventorySummaryProps) {
     
     // Return formatted display name
     if (product) {
+      // Use item_name as the common name for consistent display
       return `${quantity}x ${product.item_name}`;
     }
     
-    return itemDescription;
+    // If no match found, normalize the name for consistent display
+    return normalizeProductName(itemDescription);
   };
   
   return (

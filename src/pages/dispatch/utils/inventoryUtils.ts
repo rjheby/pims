@@ -23,6 +23,23 @@ export function calculateInventoryTotals(stops: any[]): InventoryTotals {
   return inventoryTotals;
 }
 
+// Helper function to normalize product names for consistent display
+export function normalizeProductName(itemDescription: string): string {
+  // Parse format like "2x Firewood - 1/4 cord"
+  const match = itemDescription.match(/^(\d+)x\s+(.+)$/);
+  if (!match) return itemDescription;
+  
+  const quantity = match[1];
+  const description = match[2];
+  
+  // Extract common name by removing detailed specifications
+  // This handles formats like "Firewood - 1/4 cord, Cherry, 16 inch"
+  const commonNameMatch = description.match(/^([^,\-]+)(?:\s*[-,].*)?$/);
+  const commonName = commonNameMatch ? commonNameMatch[1].trim() : description;
+  
+  return `${quantity}x ${commonName}`;
+}
+
 export function calculateTotals(stops: any[]) {
   const totalStops = stops.length;
   
