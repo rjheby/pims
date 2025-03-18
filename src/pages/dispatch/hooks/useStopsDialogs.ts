@@ -30,33 +30,38 @@ export const useStopsDialogs = (
       return;
     }
     
-    const stopNumber = stops.length + 1;
-    const newStop: DeliveryStop = {
-      customer_id: null,
-      notes: null,
-      driver_id: null,
-      items: null,
-      price: 0,
-      stop_number: stopNumber,
-      sequence: stopNumber
-    };
-    
-    const newStops = [...stops, newStop];
-    onStopsChange(newStops);
-    
-    setEditingIndex(newStops.length - 1);
-    setEditForm({
-      customer_id: null,
-      notes: null,
-      driver_id: null,
-      items: null,
-      stop_number: stopNumber
-    });
-    
-    setIsAddingNewStop(true);
-    
-    console.log("Opening customer dialog for new stop");
-    setCustomerDialogOpen(true);
+    try {
+      const stopNumber = stops.length + 1;
+      const newStop: DeliveryStop = {
+        customer_id: null,
+        notes: null,
+        driver_id: null,
+        items: null,
+        price: 0,
+        stop_number: stopNumber,
+        sequence: stopNumber
+      };
+      
+      const newStops = [...stops, newStop];
+      onStopsChange(newStops);
+      
+      setEditingIndex(newStops.length - 1);
+      setEditForm({
+        customer_id: null,
+        notes: null,
+        driver_id: null,
+        items: null,
+        stop_number: stopNumber
+      });
+      
+      setIsAddingNewStop(true);
+      
+      console.log("Opening customer dialog for new stop");
+      setCustomerDialogOpen(true);
+    } catch (error) {
+      console.error("Error adding new stop:", error);
+      resetEditState();
+    }
   };
 
   const handleEditStart = (index: number) => {
@@ -152,6 +157,11 @@ export const useStopsDialogs = (
   };
 
   const handleCustomerSelect = (customer: Customer) => {
+    if (!customer || !customer.id) {
+      console.error("Invalid customer selected");
+      return;
+    }
+    
     console.log("Customer selected:", customer.name, customer.id);
     setEditForm(prev => ({
       ...prev,

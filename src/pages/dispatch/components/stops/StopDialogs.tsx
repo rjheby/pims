@@ -31,8 +31,7 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
   initialItems,
   recurrenceData
 }) => {
-  // Fix: This ensures dialogs remain open when they should be open
-  // The previous implementation had an issue where the dialog would close itself
+  // Enhanced dialog state management to prevent unwanted closures
   const handleOpenChange = (open: boolean, dialogType: 'customer' | 'items') => {
     if (!open) {
       // Only call onCancel when dialog is explicitly closed by user
