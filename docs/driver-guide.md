@@ -1,3 +1,4 @@
+
 # Firewood Delivery Management System - Driver Guide
 
 This guide provides instructions for delivery drivers using the Firewood Delivery Management System. It covers accessing delivery schedules, navigating to customers, updating delivery statuses, and handling special situations.
@@ -107,3 +108,66 @@ The system will automatically record the completion time and update your remaini
 
 If the customer isn't present for delivery:
 1. Call the customer using the phone number in the app
+2. If no answer, send a text message
+3. Wait for 5 minutes
+4. If still no response:
+   - Update the delivery status to "Issue"
+   - Select "Customer Not Home" as the reason
+   - Add any relevant notes
+   - Take a photo of the delivery location if possible
+   - Proceed to the next delivery
+
+### Access Problems
+
+If you cannot access the delivery location:
+1. Call the customer for assistance
+2. If the issue cannot be resolved:
+   - Update the delivery status to "Issue"
+   - Select "Access Problem" as the reason
+   - Add detailed notes about the specific access issue
+   - Dispatch will contact the customer to reschedule
+
+### Product Quantity Issues
+
+If the customer requests a different quantity than scheduled:
+1. Check your available inventory
+2. If you can accommodate the change:
+   - Update the item quantity in the delivery details
+   - Complete the delivery as normal
+3. If you cannot accommodate:
+   - Deliver the scheduled amount
+   - Note the customer's request in the delivery notes
+   - Dispatch will contact the customer about additional delivery
+
+## End of Day Procedures
+
+When you've completed all deliveries:
+1. Tap "End Day" on your dashboard
+2. Confirm any undelivered items are returned to inventory
+3. Submit your final report
+4. The system will generate a summary of your completed deliveries
+
+## Troubleshooting
+
+### App Not Loading
+
+If the mobile app isn't loading properly:
+1. Check your internet connection
+2. Close and restart the app
+3. If problems persist, use the web browser version instead
+
+### GPS Issues
+
+If the GPS navigation isn't working correctly:
+1. Ensure location services are enabled on your device
+2. Try using the address in another map application
+3. Call dispatch for directions if needed
+
+### Lost or Missing Items
+
+If items on your truck don't match your delivery schedule:
+1. Check if items were delivered to a previous customer by mistake
+2. Contact dispatch immediately to resolve the discrepancy
+3. Document the issue in your delivery notes
+
+For additional support, contact the dispatch team at the main office.
