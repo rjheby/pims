@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/integrations/supabase/client";
 import {
   Select,
   SelectContent,
@@ -11,15 +10,8 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { RecurrenceData } from "./RecurringOrderForm"; // Make sure this import exists
-
-interface RetailInventoryItem {
-  id: string;
-  name: string;
-  sku: string;
-  price: number;
-  // Add other fields as needed
-}
+import { RecurrenceData } from "./RecurringOrderForm";
+import { useRetailInventory } from "../../hooks/useRetailInventory"; // Import the hook
 
 interface ItemsSelectorProps {
   open: boolean;
@@ -40,46 +32,34 @@ export const ItemsSelector: React.FC<ItemsSelectorProps> = ({
 }) => {
   const [items, setItems] = useState<string>(initialItems || '');
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
-  const [inventoryItems, setInventoryItems] = useState<RetailInventoryItem[]>([]);
-  const [loading, setLoading] = useState(true);
   
-  // Fetch inventory items when component mounts
-  useEffect(() => {
-    async function fetchInventory() {
-      setLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('retailinventory')
-          .select('*')
-          .order('name');
-          
-        if (error) {
-          console.error('Error fetching inventory:', error);
-          return;
-        }
-        
-        setInventoryItems(data || []);
-      } catch (err) {
-        console.error('Error in fetch operation:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    
-    fetchInventory();
-  }, []);
+  // Use the retail inventory hook
+  const { 
+    retailInventory, 
+    firewoodProducts, 
+    loading,
+    getInventoryWithProductDetails 
+  } = useRetailInventory();
+  
+  // Get inventory with product details
+  const inventoryWithProducts = getInventoryWithProductDetails();
   
   // Initialize selected items from initialItems string
   useEffect(() => {
-    if (initialItems) {
+    if (initialItems && inventoryWithProducts.length > 0) {
       const itemsList = initialItems.split(',').map(item => item.trim());
-      setSelectedItemIds(
-        inventoryItems
-          .filter(invItem => itemsList.includes(invItem.name))
-          .map(item => item.id)
-      );
+      
+      // Try to match by product name
+      const matchedIds = inventoryWithProducts
+        .filter(invItem => 
+          itemsList.includes(invItem.product?.name || '') || 
+          itemsList.includes(invItem.product?.description || '')
+        )
+        .map(item => item.id?.toString() || "");
+      
+      setSelectedItemIds(matchedIds);
     }
-  }, [initialItems, inventoryItems]);
+  }, [initialItems, inventoryWithProducts]);
   
   const handleAddItem = (itemId: string) => {
     if (!itemId || itemId === '') return;
@@ -88,9 +68,10 @@ export const ItemsSelector: React.FC<ItemsSelectorProps> = ({
       setSelectedItemIds([...selectedItemIds, itemId]);
       
       // Update items string
-      const selectedItem = inventoryItems.find(item => item.id === itemId);
-      if (selectedItem) {
-        const newItems = items ? `${items},${selectedItem.name}` : selectedItem.name;
+      const selectedItem = inventoryWithProducts.find(item => item.id?.toString() === itemId);
+      if (selectedItem && selectedItem.product) {
+        const itemName = selectedItem.product.name || selectedItem.product.description || 'Unknown Item';
+        const newItems = items ? `${items}, ${itemName}` : itemName;
         setItems(newItems);
       }
     }
@@ -100,10 +81,11 @@ export const ItemsSelector: React.FC<ItemsSelectorProps> = ({
     setSelectedItemIds(selectedItemIds.filter(id => id !== itemId));
     
     // Update items string
-    const selectedItem = inventoryItems.find(item => item.id === itemId);
-    if (selectedItem) {
+    const selectedItem = inventoryWithProducts.find(item => item.id?.toString() === itemId);
+    if (selectedItem && selectedItem.product) {
+      const itemName = selectedItem.product.name || selectedItem.product.description || '';
       const itemsList = items.split(',').map(item => item.trim());
-      const filteredItems = itemsList.filter(item => item !== selectedItem.name);
+      const filteredItems = itemsList.filter(item => item !== itemName);
       setItems(filteredItems.join(', '));
     }
   };
@@ -126,19 +108,31 @@ export const ItemsSelector: React.FC<ItemsSelectorProps> = ({
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label>Add Items</Label>
-            <Select onValueChange={handleAddItem}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select an item to add" />
-              </SelectTrigger>
-              <SelectContent>
-                {inventoryItems.map((item) => (
-                  // Using a non-empty string for value
-                  <SelectItem key={item.id} value={item.id || "placeholder-value"}>
-                    {item.name} {item.sku ? `(${item.sku})` : ''}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {loading ? (
+              <div className="text-sm text-gray-500">Loading inventory...</div>
+            ) : (
+              <Select onValueChange={handleAddItem}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select an item to add" />
+                </SelectTrigger>
+                <SelectContent>
+                  {inventoryWithProducts.map((item) => {
+                    if (!item.id || !item.product) return null;
+                    
+                    // Use a default value if id is empty
+                    const itemId = item.id.toString() || "placeholder-value";
+                    const itemName = item.product.name || item.product.description || "Unknown Item";
+                    const available = item.packages_available || 0;
+                    
+                    return (
+                      <SelectItem key={itemId} value={itemId}>
+                        {itemName} ({available} available)
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            )}
           </div>
           
           <div className="space-y-2">
@@ -146,10 +140,12 @@ export const ItemsSelector: React.FC<ItemsSelectorProps> = ({
             {selectedItemIds.length > 0 ? (
               <div className="space-y-2">
                 {selectedItemIds.map((itemId) => {
-                  const item = inventoryItems.find(i => i.id === itemId);
+                  const selectedItem = inventoryWithProducts.find(item => item.id?.toString() === itemId);
+                  const itemName = selectedItem?.product?.name || selectedItem?.product?.description || "Unknown Item";
+                  
                   return (
                     <div key={itemId} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                      <span>{item?.name}</span>
+                      <span>{itemName}</span>
                       <Button 
                         variant="ghost" 
                         size="sm" 
@@ -172,8 +168,11 @@ export const ItemsSelector: React.FC<ItemsSelectorProps> = ({
               id="items"
               value={items}
               onChange={(e) => setItems(e.target.value)}
-              placeholder="e.g. Item1, Item2, Item3"
+              placeholder="e.g. Oak Firewood, Kindling, Cedar"
             />
+            <p className="text-xs text-gray-500">
+              These items will be added to the delivery stop.
+            </p>
           </div>
         </div>
         
