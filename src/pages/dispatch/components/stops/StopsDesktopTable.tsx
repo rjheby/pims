@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Draggable } from "@hello-pangea/dnd";
 import { Pencil, Save, X, Trash, Copy, GripVertical } from "lucide-react";
@@ -141,7 +142,22 @@ export const StopsDesktopTable: React.FC<StopsDesktopTableProps> = ({
                       </td>
                     )}
                     <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-center">
-                      {stop.stop_number || index + 1}
+                      {isEditing ? (
+                        <Input
+                          type="number"
+                          value={editForm.stop_number || index + 1}
+                          onChange={(e) => 
+                            onEditFormChange({
+                              ...editForm,
+                              stop_number: parseInt(e.target.value) || index + 1,
+                            })
+                          }
+                          className="h-9 w-20 text-center mx-auto"
+                          min="1"
+                        />
+                      ) : (
+                        stop.stop_number || index + 1
+                      )}
                     </td>
                     <td className="px-4 py-2 whitespace-nowrap text-sm text-center">
                       {isEditing ? (
@@ -167,11 +183,11 @@ export const StopsDesktopTable: React.FC<StopsDesktopTableProps> = ({
                     <td className="px-4 py-2 whitespace-nowrap text-sm text-center">
                       {isEditing ? (
                         <Select
-                          value={editForm.driver_id || undefined}
+                          value={editForm.driver_id || "unassigned-driver"}
                           onValueChange={(value) =>
                             onEditFormChange({
                               ...editForm,
-                              driver_id: value || null,
+                              driver_id: value === "unassigned-driver" ? null : value,
                             })
                           }
                         >
@@ -181,7 +197,7 @@ export const StopsDesktopTable: React.FC<StopsDesktopTableProps> = ({
                           <SelectContent>
                             <SelectItem value="unassigned-driver">Unassigned</SelectItem>
                             {drivers.map((driver) => (
-                              <SelectItem key={driver.id} value={driver.id || `driver-${index}`}>
+                              <SelectItem key={driver.id} value={driver.id}>
                                 {driver.name}
                               </SelectItem>
                             ))}

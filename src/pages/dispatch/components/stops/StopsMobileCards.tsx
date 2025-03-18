@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Draggable } from "@hello-pangea/dnd";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -120,9 +121,24 @@ const StopsMobileCards: React.FC<StopsMobileCardsProps> = ({
                 <Card className={isSelected ? "border-primary" : ""}>
                   <CardHeader className="pb-2 pt-3 px-3 flex flex-row items-center justify-between space-y-0">
                     <div className="flex items-center">
-                      <span className="text-sm font-medium mr-2 bg-slate-100 px-2 py-1 rounded-md">
-                        Stop #{stop.stop_number || index + 1}
-                      </span>
+                      {isEditing ? (
+                        <Input
+                          type="number"
+                          value={editForm.stop_number || index + 1}
+                          onChange={(e) => 
+                            onEditFormChange({
+                              ...editForm,
+                              stop_number: parseInt(e.target.value) || index + 1,
+                            })
+                          }
+                          className="h-8 w-16 text-center"
+                          min="1"
+                        />
+                      ) : (
+                        <span className="text-sm font-medium mr-2 bg-slate-100 px-2 py-1 rounded-md">
+                          Stop #{stop.stop_number || index + 1}
+                        </span>
+                      )}
                       <div {...provided.dragHandleProps} className="cursor-grab">
                         <ChevronsUpDown className="h-4 w-4 text-muted-foreground" />
                       </div>
@@ -149,16 +165,16 @@ const StopsMobileCards: React.FC<StopsMobileCardsProps> = ({
                         <div>
                           <label className="text-sm font-medium mb-1 block">Driver</label>
                           <Select
-                            value={editForm.driver_id || "unassigned"}
+                            value={editForm.driver_id || "unassigned-driver"}
                             onValueChange={(value) => 
-                              onEditFormChange({ ...editForm, driver_id: value === "unassigned" ? null : value })
+                              onEditFormChange({ ...editForm, driver_id: value === "unassigned-driver" ? null : value })
                             }
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Select driver" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="unassigned">Unassigned</SelectItem>
+                              <SelectItem value="unassigned-driver">Unassigned</SelectItem>
                               {drivers.map((driver) => (
                                 <SelectItem key={driver.id} value={driver.id}>
                                   {driver.name}

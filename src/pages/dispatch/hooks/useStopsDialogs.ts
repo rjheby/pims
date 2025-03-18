@@ -19,6 +19,7 @@ export const useStopsDialogs = (
     notes: null,
     driver_id: null,
     items: null,
+    stop_number: null
   });
   const [recurrenceData, setRecurrenceData] = useState<RecurrenceData>({ 
     isRecurring: false, 
