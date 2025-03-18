@@ -1,9 +1,12 @@
 
+import React from 'react';
+
 interface BaseOrderSummaryProps {
   items: {
     totalQuantity: number;
     totalValue: number;
     quantityByPackaging?: Record<string, number>;
+    inventoryTotals?: Record<string, number>;
   };
   renderCustomSummary?: () => React.ReactNode;
 }

@@ -1,265 +1,38 @@
 
-import { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, FileDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
 import { StopsTable } from "./dispatch/components"; 
 import { BaseOrderDetails } from "@/components/templates/BaseOrderDetails";
 import { BaseOrderSummary } from "@/components/templates/BaseOrderSummary";
 import { BaseOrderActions } from "@/components/templates/BaseOrderActions";
 import { downloadSchedulePDF } from "@/utils/GenerateSchedulePDF";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useDispatchForm } from "./dispatch/hooks/useDispatchForm";
+import { calculateTotals, calculateInventoryTotals } from "./dispatch/utils/inventoryUtils";
+import { InventorySummary } from "./dispatch/components/InventorySummary";
 
 export default function DispatchForm() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const { toast } = useToast();
   const isMobile = useIsMobile();
-  const [masterSchedule, setMasterSchedule] = useState<any>(null);
-  const [stops, setStops] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function fetchScheduleDetails() {
-      if (!id) return;
-
-      try {
-        setLoading(true);
-        
-        // Fetch master schedule
-        const { data: scheduleData, error: scheduleError } = await supabase
-          .from("dispatch_schedules")
-          .select("*")
-          .eq("id", id)
-          .single();
-        
-        if (scheduleError) {
-          throw scheduleError;
-        }
-
-        if (!scheduleData) {
-          setError("Schedule not found");
-          return;
-        }
-
-        setMasterSchedule(scheduleData);
-
-        // Fetch all stops for this master schedule
-        const { data: stopsData, error: stopsError } = await supabase
-          .from("delivery_schedules")
-          .select(`
-            id, 
-            customer_id, 
-            driver_id, 
-            notes, 
-            items,
-            status,
-            customers(id, name, address, phone)
-          `)
-          .eq("master_schedule_id", id)
-          .order('id');
-        
-        if (stopsError) {
-          console.error("Error fetching stops:", stopsError);
-        } else {
-          // Process stops to add customer_address, customer_phone, and stop_number
-          const processedStops = (stopsData || []).map((stop, index) => ({
-            ...stop,
-            stop_number: index + 1,
-            customer_address: stop.customers?.address || '',
-            customer_phone: stop.customers?.phone || '',
-            price: calculatePrice(stop.items)
-          }));
-          
-          setStops(processedStops);
-        }
-      } catch (error) {
-        console.error("Error fetching schedule details:", error);
-        setError("Failed to load schedule details");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchScheduleDetails();
-  }, [id]);
-
-  const calculatePrice = (items: string): number => {
-    if (!items) return 0;
-    
-    // Simple logic: $10 per item
-    const itemsList = items?.split(',') || [];
-    return itemsList.length * 10;
-  };
-
-  const formatDateForInput = (dateString: string | null): string => {
-    if (!dateString) return '';
-    
-    try {
-      if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-        return dateString;
-      }
-      
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return '';
-      
-      return date.toISOString().split('T')[0];
-    } catch (error) {
-      console.error('Error formatting date:', error);
-      return '';
-    }
-  };
-
-  const handleScheduleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (masterSchedule) {
-      const newDate = e.target.value;
-      setMasterSchedule({
-        ...masterSchedule,
-        schedule_date: newDate
-      });
-    }
-  };
-
-  // New function to count inventory items across all stops
-  const calculateInventoryTotals = () => {
-    const inventoryTotals: Record<string, number> = {};
-    
-    // Loop through each stop and count items
-    stops.forEach(stop => {
-      if (!stop.items) return;
-      
-      // Parse items from the stop
-      const stopItems = stop.items.split(',').map(item => item.trim());
-      
-      // Add each item to the totals
-      stopItems.forEach(item => {
-        if (!item) return;
-        inventoryTotals[item] = (inventoryTotals[item] || 0) + 1;
-      });
-    });
-    
-    return inventoryTotals;
-  };
-
-  const calculateTotals = () => {
-    const totalStops = stops.length;
-    
-    // Count stops by driver
-    const totalByDriver = stops.reduce((acc: Record<string, number>, stop: any) => {
-      const driverId = stop.driver_id || 'unassigned';
-      acc[driverId] = (acc[driverId] || 0) + 1;
-      return acc;
-    }, {});
-
-    // Calculate total price
-    const totalPrice = stops.reduce((sum: number, stop: any) => {
-      const price = stop.price || 0;
-      return sum + Number(price);
-    }, 0);
-
-    // Get inventory totals
-    const inventoryTotals = calculateInventoryTotals();
-
-    return {
-      totalQuantity: totalStops,
-      quantityByPackaging: totalByDriver,
-      totalValue: totalPrice,
-      inventoryTotals: inventoryTotals
-    };
-  };
-
-  const handleSave = async () => {
-    if (!masterSchedule) return;
-    
-    setIsSaving(true);
-    try {
-      // Update master schedule
-      const { error: updateError } = await supabase
-        .from('dispatch_schedules')
-        .update({
-          schedule_date: masterSchedule.schedule_date,
-          updated_at: new Date().toISOString(),
-          status: 'draft'
-        })
-        .eq('id', id);
-
-      if (updateError) {
-        throw updateError;
-      }
-
-      toast({
-        title: "Success",
-        description: "Schedule saved successfully",
-      });
-    } catch (error) {
-      console.error('Error saving schedule:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save schedule",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!masterSchedule) return;
-    
-    setIsSubmitting(true);
-    try {
-      // Update master schedule to submitted
-      const { error: updateError } = await supabase
-        .from('dispatch_schedules')
-        .update({
-          schedule_date: masterSchedule.schedule_date,
-          updated_at: new Date().toISOString(),
-          status: 'submitted'
-        })
-        .eq('id', id);
-
-      if (updateError) {
-        throw updateError;
-      }
-
-      // Update all stops to submitted
-      for (const stop of stops) {
-        const { error: stopError } = await supabase
-          .from('delivery_schedules')
-          .update({
-            status: 'submitted'
-          })
-          .eq('id', stop.id);
-          
-        if (stopError) {
-          console.error("Error updating stop:", stopError);
-        }
-      }
-
-      toast({
-        title: "Success",
-        description: "Schedule submitted successfully",
-      });
-      
-      navigate('/dispatch-archive');
-    } catch (error) {
-      console.error('Error submitting schedule:', error);
-      toast({
-        title: "Error",
-        description: "Failed to submit schedule",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  
+  const {
+    masterSchedule,
+    stops,
+    setStops,
+    loading,
+    isSaving,
+    isSubmitting,
+    error,
+    formatDateForInput,
+    handleScheduleDateChange,
+    handleSave,
+    handleSubmit
+  } = useDispatchForm(id);
   
   const handleDownloadPdf = () => {
     if (!masterSchedule) return;
@@ -320,24 +93,8 @@ export default function DispatchForm() {
 
   // Custom render function for the inventory totals
   const renderInventorySummary = () => {
-    const inventoryTotals = calculateInventoryTotals();
-    const hasItems = Object.keys(inventoryTotals).length > 0;
-    
-    if (!hasItems) return null;
-    
-    return (
-      <div className="mt-4 pt-4 border-t border-gray-200">
-        <h4 className="font-medium mb-2">Total Inventory Items:</h4>
-        <div className="space-y-1">
-          {Object.entries(inventoryTotals).map(([item, count]) => (
-            <div key={item} className="flex justify-between text-sm">
-              <span>{item}</span>
-              <span className="font-medium">{count}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+    const inventoryTotals = calculateInventoryTotals(stops);
+    return <InventorySummary inventoryTotals={inventoryTotals} />;
   };
 
   return (
@@ -374,7 +131,7 @@ export default function DispatchForm() {
             />
 
             <BaseOrderSummary 
-              items={calculateTotals()}
+              items={calculateTotals(stops)}
               renderCustomSummary={renderInventorySummary}
             />
 
