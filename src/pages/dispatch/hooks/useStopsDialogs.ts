@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Customer, DeliveryStop, StopFormData } from "../components/stops/types";
 import { RecurrenceData } from "../components/stops/RecurringOrderForm";
@@ -25,6 +26,12 @@ export const useStopsDialogs = (
   });
 
   const handleAddStop = () => {
+    console.log("handleAddStop called, current state:", { 
+      isAddingNewStop, 
+      editingIndex,
+      stopsCount: stops.length 
+    });
+    
     if (isAddingNewStop) {
       console.log("Already adding a stop, please complete or cancel first");
       return;
@@ -32,6 +39,8 @@ export const useStopsDialogs = (
     
     try {
       const stopNumber = stops.length + 1;
+      console.log("Creating new stop with stop_number:", stopNumber);
+      
       const newStop: DeliveryStop = {
         customer_id: null,
         notes: null,
@@ -43,6 +52,7 @@ export const useStopsDialogs = (
       };
       
       const newStops = [...stops, newStop];
+      console.log("Adding new stop to stops array, new length:", newStops.length);
       onStopsChange(newStops);
       
       setEditingIndex(newStops.length - 1);
@@ -65,6 +75,8 @@ export const useStopsDialogs = (
   };
 
   const handleEditStart = (index: number) => {
+    console.log("handleEditStart called with index:", index);
+    
     if (isAddingNewStop) {
       console.log("Cannot edit while adding a new stop");
       return;
@@ -72,6 +84,8 @@ export const useStopsDialogs = (
     
     setEditingIndex(index);
     const stopToEdit = stops[index];
+    console.log("Stop to edit:", stopToEdit);
+    
     setEditForm({
       customer_id: stopToEdit.customer_id || null,
       notes: stopToEdit.notes || null,
@@ -81,6 +95,7 @@ export const useStopsDialogs = (
     });
     
     if (stopToEdit.recurring) {
+      console.log("Stop has recurring data:", stopToEdit.recurring);
       setRecurrenceData({
         isRecurring: stopToEdit.recurring.isRecurring,
         frequency: stopToEdit.recurring.frequency,
@@ -89,6 +104,7 @@ export const useStopsDialogs = (
         endDate: stopToEdit.recurring.endDate
       });
     } else {
+      console.log("Stop does not have recurring data, setting defaults");
       setRecurrenceData({
         isRecurring: false,
         frequency: 'none'
@@ -97,6 +113,8 @@ export const useStopsDialogs = (
   };
 
   const handleEditSave = () => {
+    console.log("handleEditSave called, editingIndex:", editingIndex);
+    
     if (editingIndex < 0 || editingIndex >= stops.length) {
       console.error("Invalid editing index:", editingIndex);
       return;
@@ -107,6 +125,9 @@ export const useStopsDialogs = (
     
     const selectedCustomer = customers.find(c => c.id === editForm.customer_id);
     const selectedDriver = drivers.find(d => d.id === editForm.driver_id);
+    
+    console.log("Selected customer:", selectedCustomer);
+    console.log("Selected driver:", selectedDriver);
     
     const updatedStop = {
       ...stops[editingIndex],
@@ -135,6 +156,7 @@ export const useStopsDialogs = (
   };
 
   const resetEditState = () => {
+    console.log("Resetting edit state");
     setEditingIndex(-1);
     setIsAddingNewStop(false);
     setCustomerDialogOpen(false);
@@ -146,10 +168,11 @@ export const useStopsDialogs = (
   };
 
   const handleEditCancel = () => {
-    console.log("Cancelling stop edit/add operation");
+    console.log("Cancelling stop edit/add operation, isAddingNewStop:", isAddingNewStop);
     if (isAddingNewStop) {
       const newStops = [...stops];
       newStops.pop();
+      console.log("Removing last stop, new stops length:", newStops.length);
       onStopsChange(newStops);
     }
     
@@ -157,6 +180,8 @@ export const useStopsDialogs = (
   };
 
   const handleCustomerSelect = (customer: Customer) => {
+    console.log("Customer select handler called with customer:", customer);
+    
     if (!customer || !customer.id) {
       console.error("Invalid customer selected");
       return;
@@ -187,6 +212,7 @@ export const useStopsDialogs = (
     }));
     
     if (recurrenceInfo) {
+      console.log("Received recurrence info:", recurrenceInfo);
       setRecurrenceData(recurrenceInfo);
     }
     

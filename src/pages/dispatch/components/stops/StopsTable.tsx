@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { DragDropContext, Droppable } from "@hello-pangea/dnd";
 import { MapPinPlus, Search } from "lucide-react";
@@ -26,6 +27,13 @@ const StopsTable = ({
   readOnly = false,
   masterScheduleId
 }: StopsTableProps) => {
+  console.log("StopsTable rendering with props:", { 
+    stopsCount: stops.length, 
+    useMobileLayout, 
+    readOnly, 
+    masterScheduleId 
+  });
+  
   const { toast } = useToast();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -54,7 +62,15 @@ const StopsTable = ({
     openItemsDialog
   } = useStopsDialogs(stops, onStopsChange, customers, drivers);
 
+  console.log("Current dialog states:", { 
+    customerDialogOpen, 
+    itemsDialogOpen, 
+    editingIndex,
+    isAddingNewStop
+  });
+
   const fetchData = useCallback(async () => {
+    console.log("Fetching data (customers and drivers)");
     setLoading(true);
     try {
       const { data: customersData, error: customersError } = await supabase
@@ -66,8 +82,11 @@ const StopsTable = ({
         throw new Error(`Error fetching customers: ${customersError.message}`);
       }
 
+      console.log(`Fetched ${customersData?.length || 0} customers`);
+      
       // Make sure all customers have valid IDs
       const validCustomers = customersData.filter(customer => customer.id);
+      console.log(`${validCustomers.length} customers have valid IDs`);
       
       const customersWithType = validCustomers.map((customer) => ({
         ...customer,
@@ -85,10 +104,15 @@ const StopsTable = ({
         throw new Error(`Error fetching drivers: ${driversError.message}`);
       }
 
+      console.log(`Fetched ${driversData?.length || 0} drivers`);
+      
       // Make sure all drivers have valid IDs
       const validDrivers = driversData ? driversData.filter(driver => driver.id) : [];
+      console.log(`${validDrivers.length} drivers have valid IDs`);
+      
       setDrivers(validDrivers);
     } catch (error: any) {
+      console.error("Error in fetchData:", error);
       toast({
         title: "Error",
         description: error.message,
@@ -100,10 +124,12 @@ const StopsTable = ({
   }, [toast]);
 
   useEffect(() => {
+    console.log("Running fetchData effect");
     fetchData();
   }, [fetchData]);
 
   const handleRemoveStop = (index: number) => {
+    console.log("Removing stop at index:", index);
     const newStops = [...stops];
     newStops.splice(index, 1);
     onStopsChange(newStops);
@@ -112,6 +138,7 @@ const StopsTable = ({
   };
 
   const updateStopNumbers = (updatedStops: any[]) => {
+    console.log("Updating stop numbers for", updatedStops.length, "stops");
     const stopsWithNumbers = updatedStops.map((stop, index) => ({
       ...stop,
       stop_number: index + 1,
@@ -140,6 +167,7 @@ const StopsTable = ({
   };
 
   const handleDuplicateStop = (index: number) => {
+    console.log("Duplicating stop at index:", index);
     const stopToDuplicate = { ...stops[index] };
     delete stopToDuplicate.id;
     
@@ -156,6 +184,8 @@ const StopsTable = ({
     const destinationIndex = result.destination.index;
     
     if (sourceIndex === destinationIndex) return;
+    
+    console.log(`Moving stop from index ${sourceIndex} to index ${destinationIndex}`);
     
     const reorderedStops = [...stops];
     const [removed] = reorderedStops.splice(sourceIndex, 1);
@@ -197,6 +227,12 @@ const StopsTable = ({
     setFilterByDriver(value);
   };
 
+  // Log when Add Stop button is clicked
+  const handleAddStopClick = () => {
+    console.log("Add Stop button clicked");
+    handleAddStop();
+  };
+
   return (
     <ErrorBoundary>
       <div className="space-y-6 max-w-6xl mx-auto">
@@ -206,7 +242,7 @@ const StopsTable = ({
             {!readOnly && (
               <Button 
                 variant="customAction" 
-                onClick={handleAddStop}
+                onClick={handleAddStopClick}
                 className="bg-[#2A4131] hover:bg-[#2A4131]/90 text-white"
               >
                 <MapPinPlus className="mr-2 h-4 w-4" />
@@ -244,6 +280,10 @@ const StopsTable = ({
               ))}
             </select>
           </div>
+        </div>
+        
+        <div>
+          <pre className="hidden">{JSON.stringify({ customerDialogOpen, itemsDialogOpen }, null, 2)}</pre>
         </div>
         
         {/* Updated StopDialogs component with improved props */}
@@ -317,7 +357,7 @@ const StopsTable = ({
             {!readOnly && (
               <Button 
                 variant="customAction"
-                onClick={handleAddStop}
+                onClick={handleAddStopClick}
                 className="mt-4 bg-[#2A4131] hover:bg-[#2A4131]/90 text-white"
               >
                 <MapPinPlus className="mr-2 h-4 w-4" />
