@@ -5,5 +5,5 @@ export { InventorySummary } from './InventorySummary';
 export { ScheduleCreator } from './ScheduleCreator';
 export { DispatchFilters } from './DispatchFilters';
 export { DispatchScheduleContent } from './DispatchScheduleContent';
-export { ItemSelector } from './stops/ItemSelector';
+export { ItemsSelector } from './stops/StopDialogs';
 export { RecurringOrderForm } from './stops/RecurringOrderForm';
