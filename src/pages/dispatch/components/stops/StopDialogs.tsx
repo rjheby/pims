@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -11,150 +10,225 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { Customer } from "./types";
-import { RecurrenceData } from "./RecurringOrderForm"; // Make sure this import exists
-import { ItemsSelector } from "./ItemsSelector"; // Import the ItemsSelector we just created
+import { RecurrenceData } from "./RecurringOrderForm";
+import { useRetailInventory } from "../../hooks/useRetailInventory"; // Import the retail inventory hook
 
-interface StopDialogsProps {
-  customerDialogOpen: boolean;
-  setCustomerDialogOpen: (open: boolean) => void;
-  itemsDialogOpen: boolean;
-  setItemsDialogOpen: (open: boolean) => void;
-  onCustomerSelect: (customer: Customer) => void;
-  onItemsSelect: (items: string, recurrenceData?: RecurrenceData) => void;
+interface ItemsSelectorProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSelect: (items: string, recurrenceData?: RecurrenceData) => void;
   onCancel: () => void;
-  initialCustomerId: string | null;
   initialItems: string | null;
   recurrenceData: RecurrenceData;
-  customers: Customer[];
 }
 
-export const StopDialogs: React.FC<StopDialogsProps> = ({
-  customerDialogOpen,
-  setCustomerDialogOpen,
-  itemsDialogOpen,
-  setItemsDialogOpen,
-  onCustomerSelect,
-  onItemsSelect,
+export const ItemsSelector: React.FC<ItemsSelectorProps> = ({
+  open,
+  onOpenChange,
+  onSelect,
   onCancel,
-  initialCustomerId,
   initialItems,
-  recurrenceData,
-  customers
+  recurrenceData
 }) => {
-  console.log("StopDialogs rendering with props:", { 
-    customerDialogOpen, 
-    itemsDialogOpen, 
-    initialCustomerId,
-    customersCount: customers?.length 
+  console.log("ItemsSelector rendering with props:", { 
+    open, 
+    initialItems
   });
   
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(initialCustomerId);
+  const [items, setItems] = useState<string>(initialItems || '');
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
   
-  // Update selectedCustomerId when initialCustomerId changes
+  // Use the retail inventory hook
+  const { 
+    retailInventory, 
+    firewoodProducts, 
+    loading,
+    getInventoryWithProductDetails 
+  } = useRetailInventory();
+  
+  // Get inventory with product details
+  const inventoryWithProducts = getInventoryWithProductDetails();
+  
+  // Log inventory data for debugging
   useEffect(() => {
-    console.log("StopDialogs: initialCustomerId changed to:", initialCustomerId);
-    setSelectedCustomerId(initialCustomerId);
-  }, [initialCustomerId]);
+    console.log("Retail inventory loaded:", { 
+      retailInventoryCount: retailInventory.length,
+      firewoodProductsCount: firewoodProducts.length,
+      inventoryWithProductsCount: inventoryWithProducts.length
+    });
+  }, [retailInventory, firewoodProducts, inventoryWithProducts]);
   
-  const handleCustomerSave = () => {
-    console.log("Customer save button clicked, selectedCustomerId:", selectedCustomerId);
-    if (selectedCustomerId) {
-      const customer = customers.find(c => c.id === selectedCustomerId);
-      if (customer) {
-        console.log("Selected customer found:", customer.name);
-        onCustomerSelect(customer);
+  // Initialize selected items from initialItems string
+  useEffect(() => {
+    if (initialItems && inventoryWithProducts.length > 0) {
+      console.log("Initializing selected items from:", initialItems);
+      const itemsList = initialItems.split(',').map(item => item.trim());
+      
+      // Try to match by product name
+      const matchedIds = inventoryWithProducts
+        .filter(invItem => 
+          itemsList.includes(invItem.product?.name || '') || 
+          itemsList.includes(invItem.product?.description || '')
+        )
+        .map(item => item.id?.toString() || "");
+      
+      console.log("Matched item IDs:", matchedIds);
+      setSelectedItemIds(matchedIds);
+    }
+  }, [initialItems, inventoryWithProducts]);
+  
+  const handleAddItem = (itemId: string) => {
+    console.log("Adding item with ID:", itemId);
+    if (!itemId || itemId === '') {
+      console.warn("Attempted to add item with empty ID");
+      return;
+    }
+    
+    if (!selectedItemIds.includes(itemId)) {
+      const newSelectedIds = [...selectedItemIds, itemId];
+      setSelectedItemIds(newSelectedIds);
+      console.log("Updated selected item IDs:", newSelectedIds);
+      
+      // Update items string
+      const selectedItem = inventoryWithProducts.find(item => item.id?.toString() === itemId);
+      if (selectedItem && selectedItem.product) {
+        const itemName = selectedItem.product.name || selectedItem.product.description || 'Unknown Item';
+        const newItems = items ? `${items}, ${itemName}` : itemName;
+        console.log("Updated items string:", newItems);
+        setItems(newItems);
       } else {
-        console.error("Selected customer not found in customers list");
-        onCancel();
+        console.warn("Selected item or product not found in inventory:", itemId);
       }
     } else {
-      console.log("No customer selected, cancelling");
-      onCancel();
+      console.log("Item already selected, not adding again:", itemId);
     }
   };
   
-  // Add a handler for dialog open/close events
-  const handleOpenChange = (open: boolean, dialogType: 'customer' | 'items') => {
-    console.log(`${dialogType} dialog openChange event:`, open);
+  const handleRemoveItem = (itemId: string) => {
+    console.log("Removing item with ID:", itemId);
+    const newSelectedIds = selectedItemIds.filter(id => id !== itemId);
+    setSelectedItemIds(newSelectedIds);
+    console.log("Updated selected item IDs after removal:", newSelectedIds);
     
-    if (dialogType === 'customer') {
-      if (!open) {
-        console.log("Customer dialog closing via UI interaction");
-      }
-      setCustomerDialogOpen(open);
+    // Update items string
+    const selectedItem = inventoryWithProducts.find(item => item.id?.toString() === itemId);
+    if (selectedItem && selectedItem.product) {
+      const itemName = selectedItem.product.name || selectedItem.product.description || '';
+      const itemsList = items.split(',').map(item => item.trim());
+      const filteredItems = itemsList.filter(item => item !== itemName);
+      const newItemsString = filteredItems.join(', ');
+      console.log("Updated items string after removal:", newItemsString);
+      setItems(newItemsString);
     } else {
-      if (!open) {
-        console.log("Items dialog closing via UI interaction");
-      }
-      setItemsDialogOpen(open);
+      console.warn("Item to remove not found in inventory:", itemId);
     }
+  };
+  
+  const handleSave = () => {
+    console.log("Saving items:", items);
+    onSelect(items, recurrenceData);
+  };
+  
+  const handleCancel = () => {
+    console.log("Cancelling item selection");
+    onCancel();
   };
   
   return (
-    <>
-      <Dialog 
-        open={customerDialogOpen} 
-        onOpenChange={(open) => handleOpenChange(open, 'customer')}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Select Customer</DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="customer">Customer</Label>
-              <Select 
-                value={selectedCustomerId || undefined} 
-                onValueChange={(value) => {
-                  console.log("Customer select value changed to:", value);
-                  setSelectedCustomerId(value);
-                }}
-              >
-                <SelectTrigger id="customer">
-                  <SelectValue placeholder="Select a customer" />
+    <Dialog 
+      open={open} 
+      onOpenChange={(newOpen) => {
+        console.log("ItemsSelector dialog openChange:", newOpen);
+        onOpenChange(newOpen);
+      }}
+    >
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Select Inventory Items</DialogTitle>
+        </DialogHeader>
+        
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>Add Items</Label>
+            {loading ? (
+              <div className="text-sm text-gray-500">Loading inventory...</div>
+            ) : (
+              <Select onValueChange={handleAddItem}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select an item to add" />
                 </SelectTrigger>
                 <SelectContent>
-                  {customers.map((customer) => (
-                    // Make sure every item has a non-empty value
-                    <SelectItem 
-                      key={customer.id} 
-                      value={customer.id || "placeholder-value"}
-                    >
-                      {customer.name}
-                    </SelectItem>
-                  ))}
+                  {inventoryWithProducts.map((item) => {
+                    if (!item.id || !item.product) {
+                      console.warn("Skipping item without ID or product:", item);
+                      return null;
+                    }
+                    
+                    // Use a default value if id is empty
+                    const itemId = item.id.toString() || "placeholder-value";
+                    const itemName = item.product.name || item.product.description || "Unknown Item";
+                    const available = item.packages_available || 0;
+                    
+                    return (
+                      <SelectItem key={itemId} value={itemId}>
+                        {itemName} ({available} available)
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
-            </div>
+            )}
           </div>
           
-          <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              console.log("Cancel button clicked in customer dialog");
-              onCancel();
-            }}>Cancel</Button>
-            <Button onClick={handleCustomerSave}>Continue</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Use our ItemsSelector component with added logging */}
-      <ItemsSelector
-        open={itemsDialogOpen}
-        onOpenChange={(open) => handleOpenChange(open, 'items')}
-        onSelect={(items, recurrenceData) => {
-          console.log("Items selected:", items);
-          onItemsSelect(items, recurrenceData);
-        }}
-        onCancel={() => {
-          console.log("Cancel called from ItemsSelector");
-          onCancel();
-        }}
-        initialItems={initialItems}
-        recurrenceData={recurrenceData}
-      />
-    </>
+          <div className="space-y-2">
+            <Label>Selected Items</Label>
+            {selectedItemIds.length > 0 ? (
+              <div className="space-y-2">
+                {selectedItemIds.map((itemId) => {
+                  const selectedItem = inventoryWithProducts.find(item => item.id?.toString() === itemId);
+                  const itemName = selectedItem?.product?.name || selectedItem?.product?.description || "Unknown Item";
+                  
+                  return (
+                    <div key={itemId} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                      <span>{itemName}</span>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleRemoveItem(itemId)}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-sm text-gray-500 p-2">No items selected</div>
+            )}
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="items">Items (comma separated)</Label>
+            <Input
+              id="items"
+              value={items}
+              onChange={(e) => {
+                console.log("Items input changed:", e.target.value);
+                setItems(e.target.value);
+              }}
+              placeholder="e.g. Oak Firewood, Kindling, Cedar"
+            />
+            <p className="text-xs text-gray-500">
+              These items will be added to the delivery stop.
+            </p>
+          </div>
+        </div>
+        
+        <DialogFooter>
+          <Button variant="outline" onClick={handleCancel}>Cancel</Button>
+          <Button onClick={handleSave}>Save</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
