@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -126,6 +127,27 @@ export default function DispatchForm() {
     }
   };
 
+  // New function to count inventory items across all stops
+  const calculateInventoryTotals = () => {
+    const inventoryTotals: Record<string, number> = {};
+    
+    // Loop through each stop and count items
+    stops.forEach(stop => {
+      if (!stop.items) return;
+      
+      // Parse items from the stop
+      const stopItems = stop.items.split(',').map(item => item.trim());
+      
+      // Add each item to the totals
+      stopItems.forEach(item => {
+        if (!item) return;
+        inventoryTotals[item] = (inventoryTotals[item] || 0) + 1;
+      });
+    });
+    
+    return inventoryTotals;
+  };
+
   const calculateTotals = () => {
     const totalStops = stops.length;
     
@@ -142,10 +164,14 @@ export default function DispatchForm() {
       return sum + Number(price);
     }, 0);
 
+    // Get inventory totals
+    const inventoryTotals = calculateInventoryTotals();
+
     return {
       totalQuantity: totalStops,
       quantityByPackaging: totalByDriver,
-      totalValue: totalPrice
+      totalValue: totalPrice,
+      inventoryTotals: inventoryTotals
     };
   };
 
@@ -292,6 +318,28 @@ export default function DispatchForm() {
   const actionLabel = isSubmitted ? "Update Submitted Schedule" : "Submit Schedule";
   const formattedDate = formatDateForInput(masterSchedule.schedule_date);
 
+  // Custom render function for the inventory totals
+  const renderInventorySummary = () => {
+    const inventoryTotals = calculateInventoryTotals();
+    const hasItems = Object.keys(inventoryTotals).length > 0;
+    
+    if (!hasItems) return null;
+    
+    return (
+      <div className="mt-4 pt-4 border-t border-gray-200">
+        <h4 className="font-medium mb-2">Total Inventory Items:</h4>
+        <div className="space-y-1">
+          {Object.entries(inventoryTotals).map(([item, count]) => (
+            <div key={item} className="flex justify-between text-sm">
+              <span>{item}</span>
+              <span className="font-medium">{count}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex-1">
       <Card className="shadow-sm">
@@ -327,6 +375,7 @@ export default function DispatchForm() {
 
             <BaseOrderSummary 
               items={calculateTotals()}
+              renderCustomSummary={renderInventorySummary}
             />
 
             <div className="flex flex-col md:flex-row gap-4 justify-between">

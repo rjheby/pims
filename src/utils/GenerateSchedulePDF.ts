@@ -126,6 +126,18 @@ export function downloadSchedulePDF(schedule: Schedule) {
       stopsByDriver[driverId] = (stopsByDriver[driverId] || 0) + 1;
     });
     
+    // Calculate inventory item totals
+    const inventoryTotals: Record<string, number> = {};
+    schedule.stops.forEach(stop => {
+      if (!stop.items) return;
+      
+      const stopItems = stop.items.split(',').map(item => item.trim());
+      stopItems.forEach(item => {
+        if (!item) return;
+        inventoryTotals[item] = (inventoryTotals[item] || 0) + 1;
+      });
+    });
+    
     // Add stops per driver
     let yPos = finalY + 16;
     Object.entries(stopsByDriver).forEach(([driverId, count]) => {
@@ -136,6 +148,36 @@ export function downloadSchedulePDF(schedule: Schedule) {
       doc.text(`${driverName}: ${count} stops`, 14, yPos);
       yPos += 6;
     });
+    
+    // Add inventory items summary if we have items
+    if (Object.keys(inventoryTotals).length > 0) {
+      yPos += 6; // Add extra space
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Inventory Items Summary:', 14, yPos);
+      doc.setFont('helvetica', 'normal');
+      yPos += 6;
+      
+      // Table for inventory items
+      const inventoryTableData = Object.entries(inventoryTotals).map(([item, count]) => [
+        item, count.toString()
+      ]);
+      
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Item', 'Quantity']],
+        body: inventoryTableData,
+        headStyles: {
+          fillColor: [66, 66, 66],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold'
+        },
+        styles: {
+          fontSize: 10
+        },
+        theme: 'grid'
+      });
+    }
     
     // Download the PDF
     doc.save(`${schedule.schedule_number.replace(/\s+/g, '_')}.pdf`);
