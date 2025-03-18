@@ -156,4 +156,3 @@ The application implements role-based access control with these primary roles:
 - Background processes handle automated calculations
 
 This architecture provides a scalable, maintainable foundation that can grow with your business needs while maintaining performance and security.
-
