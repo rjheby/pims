@@ -105,6 +105,31 @@ const StopsMobileCards: React.FC<StopsMobileCardsProps> = ({
     window.open(`https://maps.google.com/maps?q=${encodedAddress}`, '_blank');
   };
 
+  // Format items for display
+  const formatItemsList = (stop: DeliveryStop) => {
+    // If we have itemsData array with content, use it
+    if (Array.isArray(stop.itemsData) && stop.itemsData.length > 0) {
+      return (
+        <div className="space-y-1">
+          {stop.itemsData.map((item, idx) => (
+            <div key={idx} className="text-sm">
+              {item.quantity}x {item.name} 
+              {item.price ? ` @$${item.price}` : ''}
+            </div>
+          ))}
+        </div>
+      );
+    }
+    
+    // Fallback to items string
+    if (stop.items) {
+      return <div className="text-sm break-words">{stop.items}</div>;
+    }
+    
+    // If nothing else, show "No items"
+    return <div className="text-sm text-gray-500">No items</div>;
+  };
+
   if (stops.length === 0) {
     return (
       <div className="text-center text-muted-foreground py-8">
@@ -283,12 +308,10 @@ const StopsMobileCards: React.FC<StopsMobileCardsProps> = ({
                           </div>
                         )}
                         
-                        {stop.items && (
-                          <div className="space-y-1">
-                            <div className="text-sm font-medium">Items:</div>
-                            <div className="text-sm break-words">{stop.items}</div>
-                          </div>
-                        )}
+                        <div className="space-y-1">
+                          <div className="text-sm font-medium">Items:</div>
+                          {formatItemsList(stop)}
+                        </div>
                         
                         {stop.notes && (
                           <div className="space-y-1">

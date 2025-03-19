@@ -3,7 +3,7 @@ import React from "react";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash } from "lucide-react";
+import { Pencil, Trash, Copy } from "lucide-react";
 import { formatPrice } from "./utils";
 import { DeliveryStop, Customer, Driver } from "./types";
 
@@ -37,6 +37,7 @@ const StopsDesktopTable: React.FC<StopsDesktopTableProps> = ({
   readOnly,
   onRemoveStop,
   onEditStart,
+  onDuplicateStop,
   customers,
   drivers
 }) => {
@@ -67,6 +68,31 @@ const StopsDesktopTable: React.FC<StopsDesktopTableProps> = ({
     if (!driverId) return "Unassigned";
     const driver = drivers?.find(d => d.id === driverId);
     return driver ? driver.name : "Unknown";
+  };
+
+  // Format item list for display
+  const formatItemsList = (stop: DeliveryStop) => {
+    // If we have itemsData array with content, use it
+    if (Array.isArray(stop.itemsData) && stop.itemsData.length > 0) {
+      return (
+        <div>
+          {stop.itemsData.map((item, idx) => (
+            <div key={idx} className="text-sm mb-1">
+              {item.quantity}x {item.name} 
+              {item.price ? ` @$${item.price}` : ''}
+            </div>
+          ))}
+        </div>
+      );
+    }
+    
+    // Fallback to items string
+    if (stop.items) {
+      return stop.items;
+    }
+    
+    // If nothing else, show "No items"
+    return 'No items';
   };
 
   if (useMobileLayout) {
@@ -155,13 +181,7 @@ const StopsDesktopTable: React.FC<StopsDesktopTableProps> = ({
                 </TableCell>
                 
                 <TableCell className="px-4 py-2 text-sm">
-                  {stop.items || 'No items'}
-                  {/* Add additional content to see the item data */}
-                  {stop.itemsData && stop.itemsData.length > 0 && (
-                    <div className="text-xs text-gray-500 mt-1">
-                      {stop.itemsData.length} items with data
-                    </div>
-                  )}
+                  {formatItemsList(stop)}
                 </TableCell>
                 
                 <TableCell className="px-4 py-2 whitespace-nowrap text-sm font-medium text-center">
@@ -179,6 +199,15 @@ const StopsDesktopTable: React.FC<StopsDesktopTableProps> = ({
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
+                        {onDuplicateStop && (
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => onDuplicateStop(index)}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        )}
                         <Button
                           variant="destructive"
                           size="icon"

@@ -1,8 +1,9 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Customer, DeliveryStop, StopFormData } from "../components/stops/types";
 import { RecurrenceData } from "../components/stops/RecurringOrderForm";
 import { calculatePrice } from "../components/stops/utils";
+import { useToast } from "@/hooks/use-toast";
 
 export const useStopsDialogs = (
   stops: DeliveryStop[],
@@ -10,6 +11,8 @@ export const useStopsDialogs = (
   customers: Customer[],
   drivers: any[]
 ) => {
+  const toast = useToast();
+  
   console.log("useStopsDialogs initialized with:", { 
     stopsCount: stops?.length || 0, 
     customersCount: customers?.length || 0, 
@@ -32,6 +35,13 @@ export const useStopsDialogs = (
     isRecurring: false, 
     frequency: 'none'
   });
+
+  useEffect(() => {
+    // When component mounts, validate that all stops have itemsData as an array
+    if (Array.isArray(stops)) {
+      validateAndFixStops();
+    }
+  }, [stops]);
 
   const handleAddStop = () => {
     console.log("handleAddStop called, current state:", { 
@@ -81,6 +91,11 @@ export const useStopsDialogs = (
       setCustomerDialogOpen(true);
     } catch (error) {
       console.error("Error adding new stop:", error);
+      toast.toast({
+        title: "Error",
+        description: "Failed to add new stop",
+        variant: "destructive"
+      });
       resetEditState();
     }
   };
@@ -134,6 +149,12 @@ export const useStopsDialogs = (
         frequency: 'none'
       });
     }
+    
+    // Show a toast to confirm edit mode
+    toast.toast({
+      title: "Editing Stop",
+      description: `Editing stop #${stopToEdit.stop_number || index + 1}`
+    });
   };
 
   const handleEditSave = () => {
@@ -162,10 +183,10 @@ export const useStopsDialogs = (
       price = itemsArray.reduce((total, item) => {
         // Ensure item.price and item.quantity are converted to numbers properly
         const itemPrice = typeof item.price === 'number' ? item.price : 
-                          typeof item.price === 'string' ? parseFloat(item.price) : 0;
+                         typeof item.price === 'string' ? parseFloat(item.price) : 0;
         
         const quantity = typeof item.quantity === 'number' ? item.quantity : 
-                         typeof item.quantity === 'string' ? parseInt(item.quantity) : 1;
+                        typeof item.quantity === 'string' ? parseInt(item.quantity) : 1;
         
         const itemTotal = itemPrice * quantity;
         console.log(`Item price calculation: ${quantity} x $${itemPrice} = $${itemTotal}`);
@@ -212,6 +233,13 @@ export const useStopsDialogs = (
     
     console.log("Saving stops with new data");
     onStopsChange(newStops);
+
+    // Show a confirmation toast
+    toast.toast({
+      title: "Stop Saved",
+      description: `Stop #${updatedStop.stop_number} has been updated`
+    });
+    
     resetEditState();
   };
 
@@ -334,11 +362,6 @@ export const useStopsDialogs = (
       }
     }
   };
-
-  // Run validation when hook is initialized
-  useState(() => {
-    validateAndFixStops();
-  });
 
   return {
     editingIndex,

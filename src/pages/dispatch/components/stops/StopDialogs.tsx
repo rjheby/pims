@@ -5,6 +5,7 @@ import { RecurrenceData } from "./RecurringOrderForm";
 import { Customer } from "./types";
 import { ItemSelector } from "./ItemSelector";
 import { CustomerSelector } from "./CustomerSelector";
+import { useToast } from "@/hooks/use-toast";
 
 interface StopDialogsProps {
   customerDialogOpen: boolean;
@@ -33,6 +34,7 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
   recurrenceData,
   customers
 }) => {
+  const { toast } = useToast();
   console.log("StopDialogs rendering with props:", { 
     customerDialogOpen, 
     itemsDialogOpen, 
@@ -42,6 +44,7 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
   });
   
   const [selectedCustomerId, setSelectedCustomerId] = useState(initialCustomerId);
+  const [selectedItemsData, setSelectedItemsData] = useState<any[]>([]);
 
   // Update selectedCustomerId when initialCustomerId changes
   useEffect(() => {
@@ -65,6 +68,20 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
     }
   };
 
+  const handleCustomerSelection = (customer: Customer) => {
+    console.log("StopDialogs: Customer selected:", customer);
+    if (!customer || !customer.id) {
+      toast({
+        title: "Error",
+        description: "Invalid customer selection",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    onCustomerSelect(customer);
+  };
+
   const handleItemsSelect = (items: string, itemsData?: any[], recurrenceData?: RecurrenceData) => {
     console.log("StopDialogs: Items selected:", items);
     console.log("StopDialogs: itemsData:", itemsData);
@@ -72,7 +89,16 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
     
     // Ensure itemsData is an array before passing it up
     const safeItemsData = Array.isArray(itemsData) ? itemsData : [];
+    setSelectedItemsData(safeItemsData);
     console.log("Passing safe itemsData up:", safeItemsData);
+    
+    // Show a toast confirmation to provide user feedback
+    if (safeItemsData.length > 0) {
+      toast({
+        title: "Items Selected",
+        description: `${safeItemsData.length} items added to stop`,
+      });
+    }
     
     onItemsSelect(items, safeItemsData, recurrenceData);
   };
@@ -89,7 +115,7 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
           </DialogHeader>
           
           <CustomerSelector
-            onSelect={onCustomerSelect}
+            onSelect={handleCustomerSelection}
             onCancel={onCancel}
             initialCustomerId={initialCustomerId}
           />
