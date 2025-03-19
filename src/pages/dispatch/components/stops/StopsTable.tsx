@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { DragDropContext, Droppable } from "@hello-pangea/dnd";
 import { MapPinPlus, Search } from "lucide-react";
@@ -326,6 +325,8 @@ const StopsTable = ({
                   ) : (
                     <StopsDesktopTable
                       stops={sortedAndFilteredStops}
+                      onStopsChange={onStopsChange}
+                      useMobileLayout={useMobileLayout}
                       customers={customers}
                       drivers={drivers}
                       editingIndex={editingIndex}

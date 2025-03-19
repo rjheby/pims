@@ -36,14 +36,15 @@ const StopsDesktopTable: React.FC<StopsDesktopTableProps> = ({
   useMobileLayout, 
   readOnly,
   onRemoveStop,
-  onEditStart
+  onEditStart,
+  customers
 }) => {
   const [searchTerm, setSearchTerm] = React.useState("");
 
   const filteredStops = React.useMemo(() => {
     const lowerSearchTerm = searchTerm.toLowerCase();
     return stops.filter((stop) => {
-      const customerName = stop.customers?.customer_name?.toLowerCase() || "";
+      const customerName = stop.customer_name?.toLowerCase() || "";
       const items = stop.items?.toLowerCase() || "";
       return customerName.includes(lowerSearchTerm) || items.includes(lowerSearchTerm);
     });
@@ -81,16 +82,17 @@ const StopsDesktopTable: React.FC<StopsDesktopTableProps> = ({
           ) : null}
           
           {filteredStops.map((stop, index) => {
-            const address = stop.customers?.address || 'N/A';
-            const city = stop.customers?.city || 'N/A';
-            const state = stop.customers?.state || 'N/A';
-            const zipCode = stop.customers?.zip_code || 'N/A';
+            const customer = customers?.find(c => c.id === stop.customer_id);
+            const address = customer?.address || 'N/A';
+            const city = customer?.city || 'N/A';
+            const state = customer?.state || 'N/A';
+            const zipCode = customer?.zip_code || 'N/A';
             const fullAddress = `${address}, ${city}, ${state} ${zipCode}`;
             
             return (
               <TableRow key={stop.id || index}>
                 <TableCell className="px-4 py-2 whitespace-nowrap text-sm font-medium">
-                  {stop.customers?.customer_name || 'N/A'}
+                  {stop.customer_name || customer?.name || 'N/A'}
                 </TableCell>
                 
                 <TableCell className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">

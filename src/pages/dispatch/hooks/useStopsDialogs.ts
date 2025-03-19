@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Customer, DeliveryStop, StopFormData } from "../components/stops/types";
 import { RecurrenceData } from "../components/stops/RecurringOrderForm";
@@ -122,7 +121,12 @@ export const useStopsDialogs = (
     }
     
     console.log("Saving stop with form data:", editForm);
-    const price = calculatePrice(editForm.items);
+    
+    const itemsArray = editForm.itemsData || [];
+    const quantities = itemsArray.map((item: any) => item.quantity || 1);
+    const prices = itemsArray.map((item: any) => item.price || 0);
+    
+    const price = calculatePrice(editForm.items, quantities, prices);
     
     const selectedCustomer = customers.find(c => c.id === editForm.customer_id);
     const selectedDriver = drivers.find(d => d.id === editForm.driver_id);
@@ -205,11 +209,14 @@ export const useStopsDialogs = (
     }
   };
   
-  const handleItemsSelect = (items: string, recurrenceInfo?: RecurrenceData) => {
+  const handleItemsSelect = (items: string, itemsData?: any[], recurrenceInfo?: RecurrenceData) => {
     console.log("Selected items:", items);
+    console.log("Items data:", itemsData);
+    
     setEditForm(prev => ({
       ...prev,
-      items
+      items,
+      itemsData: itemsData || []
     }));
     
     if (recurrenceInfo) {

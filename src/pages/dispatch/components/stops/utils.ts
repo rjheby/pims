@@ -2,10 +2,20 @@
 // This file contains utility functions and constants for stops management
 
 // Calculate price based on items and their quantities
-export const calculatePrice = (items: string | null): number => {
+export const calculatePrice = (items: string | null, quantities?: number[], prices?: number[]): number => {
   if (!items) return 0;
   
   let totalPrice = 0;
+  
+  // If quantities and prices arrays are provided, use them directly
+  if (quantities && prices && quantities.length === prices.length) {
+    for (let i = 0; i < quantities.length; i++) {
+      totalPrice += quantities[i] * prices[i];
+    }
+    return totalPrice;
+  }
+  
+  // Fallback to string parsing if arrays aren't provided
   const itemsList = items.split(',').map(item => item.trim()).filter(Boolean);
   
   // Parse items for quantities and prices
