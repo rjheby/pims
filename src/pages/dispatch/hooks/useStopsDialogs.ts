@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Customer, DeliveryStop, StopFormData } from "../components/stops/types";
 import { RecurrenceData } from "../components/stops/RecurringOrderForm";
@@ -25,7 +24,7 @@ export const useStopsDialogs = (
     notes: null,
     driver_id: null,
     items: null,
-    stop_number: null,
+    stop_number: undefined,
     itemsData: [] // Initialize with empty array
   });
   const [recurrenceData, setRecurrenceData] = useState<RecurrenceData>({ 
@@ -140,8 +139,8 @@ export const useStopsDialogs = (
     let price = 0;
     if (itemsArray.length > 0) {
       price = itemsArray.reduce((total, item) => {
-        const itemPrice = parseFloat(item.price) || 0;
-        const quantity = parseInt(item.quantity) || 1;
+        const itemPrice = parseFloat(String(item.price)) || 0; // Convert to string first
+        const quantity = parseInt(String(item.quantity)) || 1; // Convert to string first
         const itemTotal = itemPrice * quantity;
         console.log(`Item price calculation: ${quantity} x $${itemPrice} = $${itemTotal}`);
         return total + itemTotal;
