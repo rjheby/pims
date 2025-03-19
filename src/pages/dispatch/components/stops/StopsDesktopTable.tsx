@@ -53,7 +53,6 @@ const StopsDesktopTable: React.FC<StopsDesktopTableProps> = ({
 
   const getDriverName = (driverId: string | null | undefined) => {
     if (!driverId) return "Unassigned";
-    if (stop.driver_name) return stop.driver_name;
     const driver = drivers?.find(d => d.id === driverId);
     return driver ? driver.name : "Unknown";
   };

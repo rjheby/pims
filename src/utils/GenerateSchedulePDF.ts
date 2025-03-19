@@ -74,7 +74,11 @@ export function downloadSchedulePDF(schedule: Schedule) {
       const customer = stop.customer || stop.customers || { name: "Unknown", address: "No address" };
       const driverName = stop.driver_id ? driverNames[stop.driver_id] || "Unknown" : "Not Assigned";
       const stopNumber = stop.stop_number || index + 1;
-      const phone = stop.customer_phone || customer.phone || "—";
+      
+      // Safely access the phone, handling the case where it might not exist on customer
+      const customerPhone = customer.phone !== undefined ? customer.phone : "—";
+      const phone = stop.customer_phone || customerPhone || "—";
+      
       const price = stop.price ? `$${stop.price.toFixed(2)}` : "—";
       
       return [

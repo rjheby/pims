@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { DragDropContext, Droppable } from "@hello-pangea/dnd";
 import { MapPinPlus, Search } from "lucide-react";
@@ -17,6 +18,8 @@ interface StopsTableProps {
   useMobileLayout?: boolean;
   readOnly?: boolean;
   masterScheduleId?: string;
+  customers?: Customer[];
+  drivers?: Driver[];
 }
 
 const StopsTable = ({ 
@@ -24,7 +27,9 @@ const StopsTable = ({
   onStopsChange, 
   useMobileLayout = false,
   readOnly = false,
-  masterScheduleId
+  masterScheduleId,
+  customers = [],
+  drivers = []
 }: StopsTableProps) => {
   console.log("StopsTable rendering with props:", { 
     stopsCount: stops.length, 
