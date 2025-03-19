@@ -251,7 +251,7 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
                     {sortedInventoryItems
                       .filter(item => item.product?.is_popular)
                       .map((item) => (
-                        <SelectItem key={item.product?.id} value={String(item.product?.id)}>
+                        <SelectItem key={item.product?.id} value={String(item.product?.id) || "item-id-missing"}>
                           {item.product?.name} ({item.packages_available} available)
                         </SelectItem>
                       ))}
@@ -286,9 +286,9 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Any</SelectItem>
+                    <SelectItem value="any-type">Any</SelectItem>
                     {productTypes.map((type) => (
-                      <SelectItem key={type} value={type || ""}>{type}</SelectItem>
+                      <SelectItem key={type} value={type || "unknown-type"}>{type || "Unknown"}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -301,9 +301,9 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
                     <SelectValue placeholder="Select size" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Any</SelectItem>
+                    <SelectItem value="any-size">Any</SelectItem>
                     {productSizes.map((size) => (
-                      <SelectItem key={size} value={size || ""}>{size}</SelectItem>
+                      <SelectItem key={size} value={size || "unknown-size"}>{size || "Unknown"}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
