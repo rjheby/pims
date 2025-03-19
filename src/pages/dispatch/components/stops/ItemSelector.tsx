@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter 
@@ -5,7 +6,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { RecurrenceData } from "./RecurringOrderForm";
 import { useRetailInventory } from "@/pages/dispatch/hooks/useRetailInventory";
-import { Plus, Minus } from "lucide-react";
+import { Plus, Minus, Search, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface ItemSelectorProps {
   open: boolean;
@@ -26,6 +29,13 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
 }) => {
   const { loading, getInventoryWithProductDetails } = useRetailInventory();
   const [selectedItems, setSelectedItems] = useState<{id: string; name: string; quantity: number; price?: number}[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectionMode, setSelectionMode] = useState<'search' | 'attributes'>('search');
+  const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
+  
+  // For attribute selection mode
+  const [selectedProductType, setSelectedProductType] = useState('');
+  const [selectedSize, setSelectedSize] = useState('');
   
   useEffect(() => {
     if (open && initialItems) {
@@ -61,6 +71,36 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
     const rankB = b.product?.is_popular ? (b.product?.popularity_rank || 0) : 999;
     return rankA - rankB;
   });
+  
+  // Extract unique product types and sizes for attribute filtering
+  const productTypes = [...new Set(inventoryItems.map(item => item.product?.product_type).filter(Boolean))];
+  const productSizes = [...new Set(inventoryItems.map(item => item.product?.package_size).filter(Boolean))];
+  
+  useEffect(() => {
+    if (searchTerm.length > 0) {
+      const filtered = inventoryItems.filter(item => 
+        item.product?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.product?.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredProducts(filtered);
+    } else {
+      setFilteredProducts([]);
+    }
+  }, [searchTerm, inventoryItems]);
+  
+  // Filter products based on selected attributes
+  useEffect(() => {
+    if (selectionMode === 'attributes' && (selectedProductType || selectedSize)) {
+      const filtered = inventoryItems.filter(item => {
+        const matchesType = !selectedProductType || item.product?.product_type === selectedProductType;
+        const matchesSize = !selectedSize || item.product?.package_size === selectedSize;
+        
+        return matchesType && matchesSize;
+      });
+      
+      setFilteredProducts(filtered);
+    }
+  }, [selectedProductType, selectedSize, selectionMode, inventoryItems]);
   
   const addItem = (item: any) => {
     const existingItem = selectedItems.find(i => 
@@ -155,66 +195,122 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
             </div>
           )}
           
-          <div>
-            <h3 className="font-medium mb-2">Available Products</h3>
-            {loading ? (
-              <p>Loading inventory...</p>
-            ) : (
-              <div className="grid grid-cols-1 gap-3">
-                {sortedInventoryItems.filter(item => item.product?.is_popular).length > 0 && (
-                  <div className="mb-4">
-                    <h4 className="text-sm font-medium text-slate-500 mb-2">Popular Items</h4>
-                    <div className="grid grid-cols-1 gap-2">
-                      {sortedInventoryItems
-                        .filter(item => item.product?.is_popular)
-                        .map((item, index) => (
-                          <div key={`popular-${index}`} className="border rounded p-3 flex justify-between items-center">
-                            <div>
-                              <p className="font-medium">{item.product?.name}</p>
-                              <p className="text-sm text-slate-500">
-                                Available: {item.packages_available || 0}
-                              </p>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => removeItem(item)}
-                                disabled={!selectedItems.some(i => 
-                                  i.id === String(item.product?.id) || i.name === item.product?.name)}
-                              >
-                                <Minus className="h-4 w-4" />
-                              </Button>
-                              <span>
-                                {selectedItems.find(i => 
-                                  i.id === String(item.product?.id) || i.name === item.product?.name)?.quantity || 0}
-                              </span>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => addItem(item)}
-                                disabled={item.packages_available === 0}
-                              >
-                                <Plus className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-                )}
-                
-                <h4 className="text-sm font-medium text-slate-500 mb-2">All Items</h4>
-                <div className="grid grid-cols-1 gap-2">
-                  {sortedInventoryItems
-                    .filter(item => !item.product?.is_popular && item.product)
-                    .map((item, index) => (
-                      <div key={`item-${index}`} className="border rounded p-3 flex justify-between items-center">
+          {/* Mode switcher */}
+          <div className="flex space-x-2 mb-4">
+            <Button 
+              variant={selectionMode === 'search' ? "default" : "outline"} 
+              size="sm"
+              onClick={() => setSelectionMode('search')}
+              className="flex-1"
+            >
+              Search
+            </Button>
+            <Button 
+              variant={selectionMode === 'attributes' ? "default" : "outline"} 
+              size="sm"
+              onClick={() => setSelectionMode('attributes')}
+              className="flex-1"
+            >
+              Filter by Attributes
+            </Button>
+          </div>
+          
+          {/* Search mode */}
+          {selectionMode === 'search' && (
+            <div className="space-y-4">
+              {/* Popular products */}
+              <div>
+                <label className="block text-sm font-medium mb-1">Popular Products</label>
+                <Select 
+                  onValueChange={(value) => {
+                    const item = inventoryItems.find(item => String(item.product?.id) === value);
+                    if (item) addItem(item);
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Choose a popular product" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sortedInventoryItems
+                      .filter(item => item.product?.is_popular)
+                      .map((item) => (
+                        <SelectItem key={item.product?.id} value={String(item.product?.id)}>
+                          {item.product?.name} ({item.packages_available} available)
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Search input */}
+              <div>
+                <label className="block text-sm font-medium mb-1">Search All Products</label>
+                <div className="relative">
+                  <Input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Type to search products..."
+                    className="pl-8"
+                  />
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Attribute selection mode */}
+          {selectionMode === 'attributes' && (
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Product Type</label>
+                <Select value={selectedProductType} onValueChange={setSelectedProductType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Any</SelectItem>
+                    {productTypes.map((type) => (
+                      <SelectItem key={type} value={type || ""}>{type}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Size</label>
+                <Select value={selectedSize} onValueChange={setSelectedSize}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select size" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Any</SelectItem>
+                    {productSizes.map((size) => (
+                      <SelectItem key={size} value={size || ""}>{size}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          
+          {/* Search results */}
+          {filteredProducts.length > 0 && (
+            <div className="mt-4">
+              <label className="block text-sm font-medium mb-1">
+                {filteredProducts.length} {filteredProducts.length === 1 ? 'Result' : 'Results'}
+              </label>
+              <div className="max-h-60 overflow-y-auto border rounded-md">
+                <ul className="divide-y">
+                  {filteredProducts.map((item) => (
+                    <li 
+                      key={item.product?.id} 
+                      className="p-3 hover:bg-gray-50 cursor-pointer"
+                    >
+                      <div className="flex justify-between items-center">
                         <div>
-                          <p className="font-medium">{item.product?.name}</p>
-                          <p className="text-sm text-slate-500">
-                            Available: {item.packages_available || 0}
-                          </p>
+                          <div className="font-medium">{item.product?.name}</div>
+                          <div className="text-sm text-gray-500">Available: {item.packages_available || 0}</div>
                         </div>
                         <div className="flex items-center space-x-2">
                           <Button 
@@ -226,7 +322,7 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
                           >
                             <Minus className="h-4 w-4" />
                           </Button>
-                          <span>
+                          <span className="w-6 text-center">
                             {selectedItems.find(i => 
                               i.id === String(item.product?.id) || i.name === item.product?.name)?.quantity || 0}
                           </span>
@@ -240,11 +336,12 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
                           </Button>
                         </div>
                       </div>
-                    ))}
-                </div>
+                    </li>
+                  ))}
+                </ul>
               </div>
-            )}
-          </div>
+            </div>
+          )}
           
           <div className="mt-4">
             <h3 className="font-medium mb-2">Manual Entry</h3>
