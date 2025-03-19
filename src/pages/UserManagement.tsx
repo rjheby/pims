@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -32,21 +31,21 @@ type ExtendedUser = User & {
 };
 
 // Type definition for database role values - matches what the database expects
-type DbRole = "SUPER_ADMIN" | "ADMIN" | "MANAGER" | "WAREHOUSE" | "DRIVER" | "CLIENT";
+type DbRole = "SUPER_ADMIN" | "ADMIN" | "MANAGER" | "DRIVER" | "CLIENT";
 
 // Map application roles to database roles
 const mapToDbRole = (role: UserRole): DbRole => {
-  const roleMap: Record<UserRole, DbRole> = {
+  const roleMap: Record<UserRole, DbRole | string> = {
     'superadmin': 'SUPER_ADMIN',
     'admin': 'ADMIN',
     'manager': 'MANAGER',
-    'warehouse': 'WAREHOUSE',
+    'warehouse': 'MANAGER', // Map warehouse to MANAGER as WAREHOUSE is not in DbRole
     'driver': 'DRIVER',
     'client': 'CLIENT',
     'customer': 'CLIENT', // Default to CLIENT for customer
   };
   
-  return roleMap[role];
+  return roleMap[role] as DbRole;
 };
 
 // Map database roles to application roles
@@ -55,7 +54,6 @@ const mapFromDbRole = (dbRole: string): UserRole => {
     'SUPER_ADMIN': 'superadmin',
     'ADMIN': 'admin',
     'MANAGER': 'manager',
-    'WAREHOUSE': 'warehouse',
     'DRIVER': 'driver',
     'CLIENT': 'client',
   };
@@ -335,7 +333,6 @@ export default function UserManagement() {
                     <SelectItem value="superadmin">Super Admin</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
                     <SelectItem value="manager">Manager</SelectItem>
-                    <SelectItem value="warehouse">Warehouse</SelectItem>
                     <SelectItem value="driver">Driver</SelectItem>
                     <SelectItem value="client">Client</SelectItem>
                     <SelectItem value="customer">Customer</SelectItem>
