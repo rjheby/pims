@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -30,7 +31,7 @@ type ExtendedUser = User & {
   status: "active" | "inactive";
 };
 
-// Type definition for database role values
+// Type definition for database role values - matches what the database expects
 type DbRole = "SUPER_ADMIN" | "ADMIN" | "MANAGER" | "WAREHOUSE" | "DRIVER" | "CLIENT";
 
 // Map application roles to database roles
@@ -45,7 +46,7 @@ const mapToDbRole = (role: UserRole): DbRole => {
     'customer': 'CLIENT', // Default to CLIENT for customer
   };
   
-  return roleMap[role] || 'CLIENT';
+  return roleMap[role];
 };
 
 // Map database roles to application roles
