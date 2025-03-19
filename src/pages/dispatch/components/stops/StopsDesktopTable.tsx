@@ -1,41 +1,43 @@
+
 import React from "react";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, Pencil, Trash } from "lucide-react";
-import { calculatePrice, formatPrice } from "./utils";
-import { useStopsDialogs } from "../../hooks/useStopsDialogs";
+import { Pencil, Trash } from "lucide-react";
+import { formatPrice } from "./utils";
+import { DeliveryStop, Customer, Driver } from "./types";
 
 interface StopsDesktopTableProps {
-  stops: any[];
-  onStopsChange: (stops: any[]) => void;
+  stops: DeliveryStop[];
+  onStopsChange: (stops: DeliveryStop[]) => void;
   useMobileLayout: boolean;
   readOnly?: boolean;
-  masterScheduleId: string;
+  masterScheduleId?: string;
+  customers?: Customer[];
+  drivers?: Driver[];
+  editingIndex: number;
+  editForm: any;
+  onEditFormChange: (form: any) => void;
+  onEditStart: (index: number) => void;
+  onEditSave: () => void;
+  onEditCancel: () => void;
+  onRemoveStop: (index: number) => void;
+  selectedStops?: string[];
+  onSelectStop?: (stopId: string, index: number, event?: React.MouseEvent) => void;
+  onDuplicateStop?: (index: number) => void;
+  draggable?: boolean;
+  onOpenCustomerDialog: () => void;
+  onOpenItemsDialog: () => void;
 }
 
-const StopsDesktopTable = ({ 
+const StopsDesktopTable: React.FC<StopsDesktopTableProps> = ({ 
   stops, 
   onStopsChange, 
   useMobileLayout, 
   readOnly,
-  masterScheduleId
+  onRemoveStop,
+  onEditStart
 }) => {
-  const {
-    customerDialogOpen,
-    setCustomerDialogOpen,
-    itemsDialogOpen,
-    setItemsDialogOpen,
-    selectedStop,
-    setSelectedStop,
-    handleOpenCustomerDialog,
-    handleOpenItemsDialog,
-    handleCloseDialog,
-    handleCustomerSelect,
-    handleItemsSelect,
-    handleDeleteStop
-  } = useStopsDialogs(stops, onStopsChange, masterScheduleId);
-
   const [searchTerm, setSearchTerm] = React.useState("");
 
   const filteredStops = React.useMemo(() => {
@@ -110,14 +112,14 @@ const StopsDesktopTable = ({
                         <Button
                           variant="outline"
                           size="icon"
-                          onClick={() => handleOpenCustomerDialog(stop)}
+                          onClick={() => onEditStart(index)}
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="destructive"
                           size="icon"
-                          onClick={() => handleDeleteStop(stop.id)}
+                          onClick={() => onRemoveStop(index)}
                         >
                           <Trash className="h-4 w-4" />
                         </Button>

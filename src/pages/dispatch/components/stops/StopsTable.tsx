@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { DragDropContext, Droppable } from "@hello-pangea/dnd";
 import { MapPinPlus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { StopsDesktopTable } from "./StopsDesktopTable";
+import StopsDesktopTable from "./StopsDesktopTable";
 import { StopsMobileCards } from "./StopsMobileCards";
 import { StopDialogs } from "./StopDialogs";
 import { Driver, DeliveryStop, StopFormData, Customer } from "./types";
