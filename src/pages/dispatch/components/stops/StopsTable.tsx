@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { DragDropContext, Droppable } from "@hello-pangea/dnd";
 import { MapPinPlus, Search } from "lucide-react";
@@ -28,8 +27,8 @@ const StopsTable = ({
   useMobileLayout = false,
   readOnly = false,
   masterScheduleId,
-  customers = [],
-  drivers = []
+  customers: providedCustomers = [],
+  drivers: providedDrivers = []
 }: StopsTableProps) => {
   console.log("StopsTable rendering with props:", { 
     stopsCount: stops.length, 
@@ -39,8 +38,8 @@ const StopsTable = ({
   });
   
   const { toast } = useToast();
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>(providedCustomers);
+  const [drivers, setDrivers] = useState<Driver[]>(providedDrivers);
   const [loading, setLoading] = useState(true);
   const [selectedStops, setSelectedStops] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<string>("stop_number");
@@ -75,6 +74,15 @@ const StopsTable = ({
 
   const fetchData = useCallback(async () => {
     console.log("Fetching data (customers and drivers)");
+    // Only fetch data if we don't already have it from props
+    if (providedCustomers.length > 0 && providedDrivers.length > 0) {
+      console.log("Using provided customers and drivers from props");
+      setCustomers(providedCustomers);
+      setDrivers(providedDrivers);
+      setLoading(false);
+      return;
+    }
+    
     setLoading(true);
     try {
       const { data: customersData, error: customersError } = await supabase
@@ -125,7 +133,7 @@ const StopsTable = ({
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, providedCustomers, providedDrivers]);
 
   useEffect(() => {
     console.log("Running fetchData effect");

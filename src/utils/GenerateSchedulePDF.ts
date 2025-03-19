@@ -71,13 +71,15 @@ export function downloadSchedulePDF(schedule: Schedule) {
     
     // Create the stops table
     const tableData = schedule.stops.map((stop, index) => {
+      // Handle potential undefined customer object
       const customer = stop.customer || stop.customers || { name: "Unknown", address: "No address" };
+      
       const driverName = stop.driver_id ? driverNames[stop.driver_id] || "Unknown" : "Not Assigned";
       const stopNumber = stop.stop_number || index + 1;
       
-      // Safely access the phone, handling the case where it might not exist on customer
-      const customerPhone = customer.phone !== undefined ? customer.phone : "—";
-      const phone = stop.customer_phone || customerPhone || "—";
+      // Safely handle phone property which might not exist
+      const phone = stop.customer_phone || 
+                    (typeof customer === 'object' && 'phone' in customer ? customer.phone : "—");
       
       const price = stop.price ? `$${stop.price.toFixed(2)}` : "—";
       
