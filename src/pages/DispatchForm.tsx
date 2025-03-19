@@ -1,7 +1,8 @@
+
 import { useParams, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, FileDown } from "lucide-react";
+import { Loader2, FileDown, Bug } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { StopsTable } from "./dispatch/components"; 
@@ -15,6 +16,7 @@ import { calculateTotals, calculateInventoryTotals } from "./dispatch/utils/inve
 import { InventorySummary } from "./dispatch/components/InventorySummary";
 import { useEffect, useState } from "react";
 import { Customer, Driver } from "./dispatch/components/stops/types";
+import { useAdmin } from "@/context/AdminContext";
 
 export default function DispatchForm() {
   const { id } = useParams<{ id: string }>();
@@ -22,6 +24,10 @@ export default function DispatchForm() {
   const isMobile = useIsMobile();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [debugMode, setDebugMode] = useState(false);
+  const { isAdmin } = useAdmin();
+  
+  console.log(`DispatchForm rendering with ID: ${id}, isMobile: ${isMobile}, isAdmin: ${isAdmin}`);
   
   const {
     masterSchedule,
@@ -37,15 +43,35 @@ export default function DispatchForm() {
     handleSubmit
   } = useDispatchForm(id);
 
+  // Log whenever stops or masterSchedule changes
+  useEffect(() => {
+    if (debugMode) {
+      console.log("DispatchForm: masterSchedule updated:", masterSchedule);
+    }
+  }, [masterSchedule, debugMode]);
+
+  useEffect(() => {
+    if (debugMode) {
+      console.log("DispatchForm: stops updated:", stops);
+      console.log(`Total stops: ${stops?.length || 0}, with itemsData: ${stops?.filter(s => Array.isArray(s.itemsData))?.length || 0}`);
+    }
+  }, [stops, debugMode]);
+
   useEffect(() => {
     async function fetchCustomersAndDrivers() {
+      console.log("DispatchForm: Fetching customers and drivers...");
       try {
         const { data: customersData, error: customersError } = await supabase
           .from('customers')
           .select('id, name, address, phone, email, notes, type, street_address, city, state, zip_code')
           .order('name');
           
-        if (customersError) throw customersError;
+        if (customersError) {
+          console.error("Error fetching customers:", customersError);
+          throw customersError;
+        }
+        
+        console.log(`DispatchForm: Loaded ${customersData?.length || 0} customers`);
         setCustomers(customersData || []);
         
         const { data: driversData, error: driversError } = await supabase
@@ -53,11 +79,15 @@ export default function DispatchForm() {
           .select('id, name, phone, email, status')
           .order('name');
           
-        if (driversError) throw driversError;
-        console.log("Loaded drivers:", driversData?.length || 0);
+        if (driversError) {
+          console.error("Error fetching drivers:", driversError);
+          throw driversError;
+        }
+        
+        console.log(`DispatchForm: Loaded ${driversData?.length || 0} drivers`);
         setDrivers(driversData || []);
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("DispatchForm: Error in fetchCustomersAndDrivers:", error);
       }
     }
     
@@ -65,7 +95,11 @@ export default function DispatchForm() {
   }, []);
 
   const handleDownloadPdf = () => {
-    if (!masterSchedule) return;
+    console.log("DispatchForm: Generating PDF...");
+    if (!masterSchedule) {
+      console.error("DispatchForm: Cannot generate PDF - masterSchedule is null");
+      return;
+    }
     
     try {
       const scheduleForPdf = {
@@ -76,6 +110,7 @@ export default function DispatchForm() {
         }))
       };
       
+      console.log("DispatchForm: PDF data prepared:", scheduleForPdf);
       downloadSchedulePDF(scheduleForPdf);
       
       toast({
@@ -83,7 +118,7 @@ export default function DispatchForm() {
         description: "PDF generated successfully",
       });
     } catch (error) {
-      console.error('Error generating PDF:', error);
+      console.error('DispatchForm: Error generating PDF:', error);
       toast({
         title: "Error",
         description: "Failed to generate PDF",
@@ -92,7 +127,18 @@ export default function DispatchForm() {
     }
   };
 
+  const toggleDebugMode = () => {
+    const newMode = !debugMode;
+    console.log(`DispatchForm: ${newMode ? 'Enabling' : 'Disabling'} debug mode`);
+    setDebugMode(newMode);
+    toast({
+      title: newMode ? "Debug Mode Enabled" : "Debug Mode Disabled",
+      description: newMode ? "Detailed logging is now active" : "Detailed logging is now inactive",
+    });
+  };
+
   if (loading) {
+    console.log("DispatchForm: Still loading...");
     return (
       <div className="flex justify-center items-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -101,6 +147,7 @@ export default function DispatchForm() {
   }
 
   if (error || !masterSchedule) {
+    console.error("DispatchForm: Error or no masterSchedule:", error);
     return (
       <div className="flex justify-center items-center min-h-screen">
         <Card className="w-full max-w-md">
@@ -121,7 +168,10 @@ export default function DispatchForm() {
   const actionLabel = isSubmitted ? "Update Submitted Schedule" : "Submit Schedule";
   const formattedDate = formatDateForInput(masterSchedule.schedule_date);
 
+  console.log(`DispatchForm: Ready to render. Status: ${masterSchedule.status}, Date: ${formattedDate}`);
+
   const renderInventorySummary = () => {
+    if (debugMode) console.log("DispatchForm: Calculating inventory totals");
     const inventoryTotals = calculateInventoryTotals(stops);
     return <InventorySummary inventoryTotals={inventoryTotals} />;
   };
@@ -132,15 +182,43 @@ export default function DispatchForm() {
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle>Dispatch Schedule #{masterSchedule.schedule_number}</CardTitle>
-            {isSubmitted && (
-              <div className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-                Submitted
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              {isAdmin && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={toggleDebugMode}
+                  className={debugMode ? "bg-yellow-100 border-yellow-400" : ""}
+                >
+                  <Bug className="h-4 w-4 mr-2" />
+                  {debugMode ? "Disable Debug" : "Debug Mode"}
+                </Button>
+              )}
+              {isSubmitted && (
+                <div className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                  Submitted
+                </div>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
+            {debugMode && (
+              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm">
+                <h3 className="font-semibold mb-1">Debug Information:</h3>
+                <ul className="list-disc pl-5 space-y-1 text-xs">
+                  <li>Schedule ID: {id}</li>
+                  <li>Schedule Number: {masterSchedule.schedule_number}</li>
+                  <li>Status: {masterSchedule.status}</li>
+                  <li>Total Stops: {stops?.length || 0}</li>
+                  <li>Customers Loaded: {customers?.length || 0}</li>
+                  <li>Drivers Loaded: {drivers?.length || 0}</li>
+                  <li>View: {isMobile ? 'Mobile' : 'Desktop'}</li>
+                </ul>
+              </div>
+            )}
+            
             <BaseOrderDetails
               orderNumber={masterSchedule.schedule_number}
               orderDate={formattedDate}
@@ -158,6 +236,7 @@ export default function DispatchForm() {
               masterScheduleId={id || ''} 
               customers={customers}
               drivers={drivers}
+              debugMode={debugMode}
             />
 
             <BaseOrderSummary 

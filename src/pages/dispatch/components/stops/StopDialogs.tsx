@@ -24,6 +24,7 @@ interface StopDialogsProps {
   initialNotes?: string | null; // Add initialNotes prop
   onDriverSelect?: (driverId: string | null) => void; // Add driver selection handler
   onNotesChange?: (notes: string | null) => void; // Add notes change handler
+  debugMode?: boolean; // Add debug mode prop
 }
 
 export const StopDialogs: React.FC<StopDialogsProps> = ({
@@ -42,19 +43,23 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
   initialDriverId = null,
   initialNotes = null,
   onDriverSelect,
-  onNotesChange
+  onNotesChange,
+  debugMode = false
 }) => {
   const { toast } = useToast();
-  console.log("StopDialogs rendering with props:", { 
-    customerDialogOpen, 
-    itemsDialogOpen, 
-    initialCustomerId,
-    initialItems,
-    initialDriverId,
-    initialNotes,
-    customersCount: customers?.length,
-    driversCount: drivers?.length
-  });
+  
+  if (debugMode) {
+    console.log("StopDialogs rendering with props:", { 
+      customerDialogOpen, 
+      itemsDialogOpen, 
+      initialCustomerId,
+      initialItems,
+      initialDriverId,
+      initialNotes,
+      customersCount: customers?.length,
+      driversCount: drivers?.length
+    });
+  }
   
   const [selectedCustomerId, setSelectedCustomerId] = useState(initialCustomerId);
   const [selectedItemsData, setSelectedItemsData] = useState<any[]>([]);
@@ -64,26 +69,34 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
 
   // Update selectedCustomerId when initialCustomerId changes
   useEffect(() => {
-    console.log("StopDialogs: initialCustomerId changed to:", initialCustomerId);
+    if (debugMode) {
+      console.log("StopDialogs: initialCustomerId changed to:", initialCustomerId);
+    }
     setSelectedCustomerId(initialCustomerId);
-  }, [initialCustomerId]);
+  }, [initialCustomerId, debugMode]);
 
   // Update selectedDriverId when initialDriverId changes
   useEffect(() => {
-    console.log("StopDialogs: initialDriverId changed to:", initialDriverId);
+    if (debugMode) {
+      console.log("StopDialogs: initialDriverId changed to:", initialDriverId);
+    }
     setSelectedDriverId(initialDriverId);
-  }, [initialDriverId]);
+  }, [initialDriverId, debugMode]);
 
   // Update notes when initialNotes changes
   useEffect(() => {
-    console.log("StopDialogs: initialNotes changed to:", initialNotes);
+    if (debugMode) {
+      console.log("StopDialogs: initialNotes changed to:", initialNotes);
+    }
     setNotes(initialNotes);
-  }, [initialNotes]);
+  }, [initialNotes, debugMode]);
 
   // If we have cached items data when items dialog closes, ensure they're saved
   useEffect(() => {
     if (!itemsDialogOpen && cachedItemsData.length > 0) {
-      console.log("Items dialog closed with cached items, ensuring they're saved:", cachedItemsData);
+      if (debugMode) {
+        console.log("Items dialog closed with cached items, ensuring they're saved:", cachedItemsData);
+      }
       // Format items string from cached data
       const formattedItems = cachedItemsData.map(item => 
         `${item.quantity}x ${item.name}${item.price ? ` @$${item.price}` : ''}`
@@ -93,18 +106,20 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
       onItemsSelect(formattedItems, cachedItemsData, recurrenceData);
       setCachedItemsData([]);
     }
-  }, [itemsDialogOpen, cachedItemsData, onItemsSelect, recurrenceData]);
+  }, [itemsDialogOpen, cachedItemsData, onItemsSelect, recurrenceData, debugMode]);
 
   // Add a handler for dialog open/close events
   const handleOpenChange = (open: boolean, dialogType: 'customer' | 'items') => {
-    console.log(`${dialogType} dialog openChange event:`, open);
+    if (debugMode) {
+      console.log(`${dialogType} dialog openChange event:`, open);
+    }
     if (dialogType === 'customer') {
-      if (!open) {
+      if (!open && debugMode) {
         console.log("Customer dialog closing via UI interaction");
       }
       setCustomerDialogOpen(open);
     } else {
-      if (!open) {
+      if (!open && debugMode) {
         console.log("Items dialog closing via UI interaction");
       }
       setItemsDialogOpen(open);
@@ -112,7 +127,9 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
   };
 
   const handleCustomerSelection = (customer: Customer) => {
-    console.log("StopDialogs: Customer selected:", customer);
+    if (debugMode) {
+      console.log("StopDialogs: Customer selected:", customer);
+    }
     if (!customer || !customer.id) {
       toast({
         title: "Error",
@@ -126,9 +143,11 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
   };
 
   const handleItemsSelect = (items: string, itemsData?: any[], recurrenceData?: RecurrenceData) => {
-    console.log("StopDialogs: Items selected:", items);
-    console.log("StopDialogs: itemsData:", itemsData);
-    console.log("StopDialogs: recurrenceData:", recurrenceData);
+    if (debugMode) {
+      console.log("StopDialogs: Items selected:", items);
+      console.log("StopDialogs: itemsData:", itemsData);
+      console.log("StopDialogs: recurrenceData:", recurrenceData);
+    }
     
     // Ensure itemsData is an array before processing
     const safeItemsData = Array.isArray(itemsData) ? itemsData : [];
@@ -162,6 +181,7 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
             onSelect={handleCustomerSelection}
             onCancel={onCancel}
             initialCustomerId={initialCustomerId}
+            debugMode={debugMode}
           />
         </DialogContent>
       </Dialog>
@@ -171,11 +191,12 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
         onOpenChange={(open) => handleOpenChange(open, 'items')}
         onSelect={handleItemsSelect}
         onCancel={() => {
-          console.log("Cancel called from ItemSelector");
+          if (debugMode) console.log("Cancel called from ItemSelector");
           onCancel();
         }}
         initialItems={initialItems}
         recurrenceData={recurrenceData}
+        debugMode={debugMode}
       />
     </>
   );
