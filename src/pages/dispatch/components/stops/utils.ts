@@ -1,3 +1,4 @@
+
 // This file contains utility functions and constants for stops management
 
 // Calculate price based on items and their quantities

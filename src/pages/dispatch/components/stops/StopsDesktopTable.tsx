@@ -125,6 +125,13 @@ const StopsDesktopTable: React.FC<StopsDesktopTableProps> = ({
               }
             }
             
+            // Log the price calculation for debugging
+            console.log(`Stop #${stopNumber} price calculation:`, {
+              price: stop.price,
+              items: stop.items,
+              itemsData: stop.itemsData
+            });
+            
             return (
               <TableRow key={stop.id || index}>
                 <TableCell className="px-4 py-2 whitespace-nowrap text-sm font-medium text-center">

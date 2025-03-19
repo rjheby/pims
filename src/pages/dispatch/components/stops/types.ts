@@ -27,6 +27,7 @@ export interface DeliveryStop {
   customer_address?: string;
   customer_phone?: string;
   items?: string;
+  itemsData?: any[]; // Added itemsData property to store structured item data
   price?: number;
   status?: string;
   recurring?: RecurringOrderSettings;
