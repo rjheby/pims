@@ -156,6 +156,12 @@ const StopsDesktopTable: React.FC<StopsDesktopTableProps> = ({
                 
                 <TableCell className="px-4 py-2 text-sm">
                   {stop.items || 'No items'}
+                  {/* Add additional content to see the item data */}
+                  {stop.itemsData && stop.itemsData.length > 0 && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      {stop.itemsData.length} items with data
+                    </div>
+                  )}
                 </TableCell>
                 
                 <TableCell className="px-4 py-2 whitespace-nowrap text-sm font-medium text-center">

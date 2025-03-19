@@ -127,19 +127,19 @@ export const useStopsDialogs = (
       return;
     }
     
-    console.log("Saving stop with form data:", JSON.stringify(editForm));
+    // Log the current form data
+    console.log("Saving stop with form data:", editForm);
+    console.log("Items data:", editForm.itemsData); // This should NOT be undefined
     
     const itemsArray = editForm.itemsData || [];
-    console.log("Items data array:", JSON.stringify(itemsArray));
     
     let price = 0;
     if (itemsArray.length > 0) {
-      price = itemsArray.reduce((total, item: any) => {
-        console.log("Calculating price for item:", item);
-        const itemPrice = item.price || 0;
-        const quantity = item.quantity || 1;
-        const itemTotal = itemPrice * quantity;
+      price = itemsArray.reduce((total, item) => {
+        const itemPrice = parseFloat(item.price) || 0;
+        const quantity = parseInt(item.quantity) || 1;
         console.log(`Item price calculation: ${quantity} x $${itemPrice} = $${itemTotal}`);
+        const itemTotal = itemPrice * quantity;
         return total + itemTotal;
       }, 0);
     } else if (editForm.items) {
@@ -147,7 +147,7 @@ export const useStopsDialogs = (
       price = calculatePrice(editForm.items);
     }
     
-    console.log("Final calculated price:", price);
+    console.log("Calculated price:", price);
     
     const selectedCustomer = customers.find(c => c.id === editForm.customer_id);
     const selectedDriver = drivers.find(d => d.id === editForm.driver_id);
@@ -155,10 +155,13 @@ export const useStopsDialogs = (
     console.log("Selected customer:", selectedCustomer?.name, "id:", editForm.customer_id);
     console.log("Selected driver:", selectedDriver?.name, "id:", editForm.driver_id);
     
+    // THIS IS CRITICAL - we must include both items and itemsData in the updatedStop
     const updatedStop = {
       ...stops[editingIndex],
       ...editForm,
       price,
+      items: editForm.items, // Ensure items string is included
+      itemsData: editForm.itemsData, // ENSURE itemsData array is included
       customer_name: selectedCustomer?.name,
       customer_address: selectedCustomer?.address,
       customer_phone: selectedCustomer?.phone,
@@ -173,6 +176,7 @@ export const useStopsDialogs = (
     };
     
     console.log("Updated stop data:", JSON.stringify(updatedStop));
+    console.log("Does updatedStop have itemsData?", !!updatedStop.itemsData);
     
     const newStops = [...stops];
     newStops[editingIndex] = updatedStop;
@@ -233,15 +237,16 @@ export const useStopsDialogs = (
   
   const handleItemsSelect = (items: string, itemsData?: any[], recurrenceInfo?: RecurrenceData) => {
     console.log("Selected items:", items);
-    console.log("Items data:", JSON.stringify(itemsData));
+    console.log("Items data received:", itemsData); // Should be an array
     
+    // CRITICAL: Make sure we're setting itemsData in the form
     setEditForm(prev => {
       const newForm = {
         ...prev,
         items,
         itemsData: itemsData || []
       };
-      console.log("Updated edit form with items:", JSON.stringify(newForm));
+      console.log("Updated form with itemsData:", JSON.stringify(newForm));
       return newForm;
     });
     
@@ -255,7 +260,8 @@ export const useStopsDialogs = (
     if (isAddingNewStop) {
       console.log("Will save stop after items selection");
       setTimeout(() => {
-        console.log("Saving stop now");
+        console.log("Saving stop now - itemsData should be present");
+        console.log("Current editForm before save:", editForm);
         handleEditSave();
       }, 300);
     }
