@@ -1,3 +1,4 @@
+
 import { useParams, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import { calculateTotals, calculateInventoryTotals } from "./dispatch/utils/inve
 import { InventorySummary } from "./dispatch/components/InventorySummary";
 import { useEffect, useState } from "react";
 import { Customer, Driver } from "./dispatch/components/stops/types";
+import { AuthGuard } from "@/components/AuthGuard";
 
 export default function DispatchForm() {
   const { id } = useParams<{ id: string }>();
@@ -92,104 +94,93 @@ export default function DispatchForm() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (error || !masterSchedule) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-6">
-            <div className="text-center">
-              <p className="text-red-500 mb-4">{error || "Schedule not found"}</p>
-              <Button asChild>
-                <Link to="/dispatch-archive">View All Schedules</Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  const isSubmitted = masterSchedule.status === 'submitted';
-  const actionLabel = isSubmitted ? "Update Submitted Schedule" : "Submit Schedule";
-  const formattedDate = formatDateForInput(masterSchedule.schedule_date);
-
-  const renderInventorySummary = () => {
-    const inventoryTotals = calculateInventoryTotals(stops);
-    return <InventorySummary inventoryTotals={inventoryTotals} />;
-  };
-
   return (
-    <div className="flex-1">
-      <Card className="shadow-sm">
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>Dispatch Schedule #{masterSchedule.schedule_number}</CardTitle>
-            {isSubmitted && (
-              <div className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-                Submitted
-              </div>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
-            <BaseOrderDetails
-              orderNumber={masterSchedule.schedule_number}
-              orderDate={formattedDate}
-              deliveryDate={formattedDate}
-              onOrderDateChange={handleScheduleDateChange}
-              onDeliveryDateChange={handleScheduleDateChange}
-              disabled={isSubmitted}
-            />
-            
-            <StopsTable 
-              stops={stops} 
-              onStopsChange={setStops}
-              useMobileLayout={isMobile}
-              readOnly={isSubmitted}
-              masterScheduleId={id || ''} 
-              customers={customers}
-              drivers={drivers}
-            />
-
-            <BaseOrderSummary 
-              items={calculateTotals(stops)}
-              renderCustomSummary={renderInventorySummary}
-            />
-
-            <div className="flex flex-col md:flex-row gap-4 justify-between">
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleDownloadPdf}
-                >
-                  <FileDown className="h-4 w-4 mr-2" />
-                  Download PDF
+    <AuthGuard requiredRole="driver">
+      {loading ? (
+        <div className="flex justify-center items-center min-h-screen">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : error || !masterSchedule ? (
+        <div className="flex justify-center items-center min-h-screen">
+          <Card className="w-full max-w-md">
+            <CardContent className="p-6">
+              <div className="text-center">
+                <p className="text-red-500 mb-4">{error || "Schedule not found"}</p>
+                <Button asChild>
+                  <Link to="/dispatch-archive">View All Schedules</Link>
                 </Button>
               </div>
-              
-              <BaseOrderActions
-                onSave={handleSave}
-                onSubmit={handleSubmit}
-                submitLabel={actionLabel}
-                archiveLink="/dispatch-archive"
-                isSaving={isSaving}
-                isSubmitting={isSubmitting}
-                mobileLayout={isMobile}
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <div className="flex-1">
+          <Card className="shadow-sm">
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle>Dispatch Schedule #{masterSchedule.schedule_number}</CardTitle>
+                {masterSchedule.status === 'submitted' && (
+                  <div className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                    Submitted
+                  </div>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <BaseOrderDetails
+                  orderNumber={masterSchedule.schedule_number}
+                  orderDate={formatDateForInput(masterSchedule.schedule_date)}
+                  deliveryDate={formatDateForInput(masterSchedule.schedule_date)}
+                  onOrderDateChange={handleScheduleDateChange}
+                  onDeliveryDateChange={handleScheduleDateChange}
+                  disabled={masterSchedule.status === 'submitted'}
+                />
+                
+                <StopsTable 
+                  stops={stops} 
+                  onStopsChange={setStops}
+                  useMobileLayout={isMobile}
+                  readOnly={masterSchedule.status === 'submitted'}
+                  masterScheduleId={id || ''} 
+                  customers={customers}
+                  drivers={drivers}
+                />
+
+                <BaseOrderSummary 
+                  items={calculateTotals(stops)}
+                  renderCustomSummary={() => (
+                    <InventorySummary inventoryTotals={calculateInventoryTotals(stops)} />
+                  )}
+                />
+
+                <div className="flex flex-col md:flex-row gap-4 justify-between">
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleDownloadPdf}
+                    >
+                      <FileDown className="h-4 w-4 mr-2" />
+                      Download PDF
+                    </Button>
+                  </div>
+                  
+                  <BaseOrderActions
+                    onSave={handleSave}
+                    onSubmit={handleSubmit}
+                    submitLabel={masterSchedule.status === 'submitted' ? "Update Submitted Schedule" : "Submit Schedule"}
+                    archiveLink="/dispatch-archive"
+                    isSaving={isSaving}
+                    isSubmitting={isSubmitting}
+                    mobileLayout={isMobile}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </AuthGuard>
   );
 }

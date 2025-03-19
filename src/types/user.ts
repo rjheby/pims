@@ -1,9 +1,12 @@
 
-export type UserRole = "superadmin" | "admin" | "staff" | "client" | "customer";
+export type UserRole = "superadmin" | "admin" | "manager" | "warehouse" | "driver" | "client" | "customer";
 
 export interface User {
   id: string;
   name: string;
   email: string;
   role: UserRole;
+  avatar?: string;
+  created_at?: string;
+  last_sign_in?: string;
 }

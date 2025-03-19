@@ -1,95 +1,37 @@
-import { useState, useEffect } from "react";
-import { AppSidebar } from "@/components/AppSidebar";
-import { cn } from "@/lib/utils";
-import { GlobalAdminControls } from "@/components/GlobalAdminControls";
-import { useLocation, Link } from "react-router-dom";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { GlobalControls } from "@/components/GlobalControls";
-import { useHistory } from "@/context/HistoryContext";
-import { useIsMobile } from "@/hooks/use-mobile";
 
-function KeyboardShortcuts() {
-  const { undo, redo, canUndo, canRedo } = useHistory();
+import React, { ReactNode } from "react";
+import { AppSidebar } from "../AppSidebar";
+import { AdminOverlay } from "../AdminOverlay";
+import { SidebarProvider } from "../ui/sidebar/sidebar-provider";
+import { GlobalAdminControls } from "../GlobalAdminControls";
+import { UserMenu } from "../UserMenu";
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey && canUndo) {
-        e.preventDefault();
-        undo();
-      }
-      
-      if (((e.ctrlKey || e.metaKey) && e.key === 'y') || 
-          ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z')) {
-        if (canRedo) {
-          e.preventDefault();
-          redo();
-        }
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [undo, redo, canUndo, canRedo]);
-
-  return null;
+interface AppLayoutProps {
+  children: ReactNode;
 }
 
-export default function AppLayout({ 
-  children,
-  isAdminMode = false,
-}: { 
-  children: React.ReactNode;
-  isAdminMode?: boolean;
-}) {
-  const location = useLocation();
-  const isWholesaleOrder = location.pathname === "/wholesale-order";
-  const isMobile = useIsMobile();
-
-  useEffect(() => {
-    if (isMobile) {
-      document.body.style.paddingBottom = '140px';
-    } else {
-      document.body.style.paddingBottom = '0';
-    }
-    
-    return () => {
-      document.body.style.paddingBottom = '0';
-    };
-  }, [isMobile]);
-
+const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   return (
     <SidebarProvider>
-      <KeyboardShortcuts />
-      <div className="relative min-h-screen overflow-x-hidden w-full">
-        <div
-          className={cn(
-            "fixed inset-0 bg-red-500 bg-opacity-10 transition-opacity duration-500 pointer-events-none",
-            isAdminMode ? "opacity-100" : "opacity-0"
-          )}
-        />
-
-        <div className="relative flex flex-col w-full">
-          <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b">
-            <div className="flex items-center justify-between h-[72px] px-2 sm:px-4 max-w-full">
-              <div className="flex items-center gap-2 sm:gap-4">
-                <AppSidebar />
-                <Link to="/" className="block md:hidden">
-                  <img 
-                    src="/lovable-uploads/2500bc58-0a71-4486-9a75-6d6eb06e9889.png"
-                    alt="Mountain Logo"
-                    className="h-8 w-8"
-                  />
-                </Link>
-                <div className="hidden md:block">
-                  <GlobalControls />
-                </div>
-              </div>
+      {/* Admin overlay for edit mode */}
+      <AdminOverlay />
+      
+      <div className="flex min-h-screen bg-white">
+        <div className="flex flex-col w-full bg-white">
+          {/* Fixed header with admin controls */}
+          <header className="fixed top-0 right-0 z-40 p-2">
+            <div className="flex items-center justify-end gap-2 mr-2">
+              <UserMenu />
               <GlobalAdminControls />
             </div>
-          </div>
+          </header>
           
-          <main className="w-full min-h-screen pt-[72px] pb-36 overflow-x-hidden">
-            <div className="w-full px-2 sm:px-3 mx-auto md:w-[95%] lg:max-w-[1440px]">
+          {/* Sidebar navigation */}
+          <AppSidebar />
+          
+          {/* Main content */}
+          <main className="flex-1 pt-20 pb-16 md:pb-10 px-4">
+            <div className="max-w-screen-2xl mx-auto">
               {children}
             </div>
           </main>
@@ -97,4 +39,6 @@ export default function AppLayout({
       </div>
     </SidebarProvider>
   );
-}
+};
+
+export default AppLayout;

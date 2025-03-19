@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './components/theme-provider';
@@ -36,6 +37,10 @@ import DriverSchedule from './pages/DriverSchedule';
 // Import new DispatchScheduleView component
 import DispatchScheduleView from './pages/DispatchScheduleView';
 
+// New authentication pages
+import Auth from './pages/Auth';
+import UserManagement from './pages/UserManagement';
+
 function App() {
   return (
     <Router>
@@ -44,6 +49,9 @@ function App() {
           <AdminProvider>
             <HistoryProvider>
               <Routes>
+                {/* Authentication */}
+                <Route path="/auth" element={<Auth />} />
+                
                 {/* Dashboard */}
                 <Route path="/" element={<AppLayout><Dashboard /></AppLayout>} />
                 
@@ -59,7 +67,6 @@ function App() {
                 <Route path="/wholesale-orders" element={<AppLayout><WholesaleOrderArchive /></AppLayout>} />
                 <Route path="/wholesale-orders/:id" element={<AppLayout><WholesaleOrderForm /></AppLayout>} />
                 <Route path="/schedule-creator" element={<AppLayout><DateBasedScheduleCreator /></AppLayout>} />
-
                 
                 {/* New dispatch system routes */}
                 <Route path="/drivers" element={<AppLayout><DriversView /></AppLayout>} />
@@ -76,6 +83,7 @@ function App() {
                 
                 {/* Settings */}
                 <Route path="/team-settings" element={<AppLayout><TeamSettings /></AppLayout>} />
+                <Route path="/user-management" element={<AppLayout><UserManagement /></AppLayout>} />
                 
                 {/* 404 Route */}
                 <Route path="*" element={<NotFound />} />
