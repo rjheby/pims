@@ -45,12 +45,28 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
   
   const [selectedCustomerId, setSelectedCustomerId] = useState(initialCustomerId);
   const [selectedItemsData, setSelectedItemsData] = useState<any[]>([]);
+  const [cachedItemsData, setCachedItemsData] = useState<any[]>([]);
 
   // Update selectedCustomerId when initialCustomerId changes
   useEffect(() => {
     console.log("StopDialogs: initialCustomerId changed to:", initialCustomerId);
     setSelectedCustomerId(initialCustomerId);
   }, [initialCustomerId]);
+
+  // If we have cached items data when items dialog closes, ensure they're saved
+  useEffect(() => {
+    if (!itemsDialogOpen && cachedItemsData.length > 0) {
+      console.log("Items dialog closed with cached items, ensuring they're saved:", cachedItemsData);
+      // Format items string from cached data
+      const formattedItems = cachedItemsData.map(item => 
+        `${item.quantity}x ${item.name}${item.price ? ` @$${item.price}` : ''}`
+      ).join(', ');
+      
+      // Pass both the formatted string and raw data to parent
+      onItemsSelect(formattedItems, cachedItemsData, recurrenceData);
+      setCachedItemsData([]);
+    }
+  }, [itemsDialogOpen, cachedItemsData, onItemsSelect, recurrenceData]);
 
   // Add a handler for dialog open/close events
   const handleOpenChange = (open: boolean, dialogType: 'customer' | 'items') => {
@@ -87,10 +103,10 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
     console.log("StopDialogs: itemsData:", itemsData);
     console.log("StopDialogs: recurrenceData:", recurrenceData);
     
-    // Ensure itemsData is an array before passing it up
+    // Ensure itemsData is an array before processing
     const safeItemsData = Array.isArray(itemsData) ? itemsData : [];
     setSelectedItemsData(safeItemsData);
-    console.log("Passing safe itemsData up:", safeItemsData);
+    setCachedItemsData(safeItemsData);
     
     // Show a toast confirmation to provide user feedback
     if (safeItemsData.length > 0) {
@@ -100,6 +116,7 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
       });
     }
     
+    // Always call the parent handler to make sure items are saved
     onItemsSelect(items, safeItemsData, recurrenceData);
   };
 

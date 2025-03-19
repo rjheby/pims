@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Customer, DeliveryStop, StopFormData } from "../components/stops/types";
 import { RecurrenceData } from "../components/stops/RecurringOrderForm";
@@ -227,6 +226,7 @@ export const useStopsDialogs = (
     
     console.log("Updated stop data:", JSON.stringify(updatedStop));
     console.log("Does updatedStop have itemsData?", !!updatedStop.itemsData);
+    console.log("itemsData length:", updatedStop.itemsData?.length || 0);
     
     const newStops = [...stops];
     newStops[editingIndex] = updatedStop;
@@ -320,11 +320,14 @@ export const useStopsDialogs = (
     
     if (isAddingNewStop) {
       console.log("Will save stop after items selection");
-      // Use a slight delay to ensure form state is updated
+      // Use a slight delay to ensure form state is updated before saving
       setTimeout(() => {
         console.log("Saving stop now - itemsData should be present");
+        console.log("Current form state before saving:", editForm);
+        
+        // Make sure we have the latest form data for saving
         handleEditSave();
-      }, 300);
+      }, 500); // Increased timeout to ensure state is updated
     }
   };
 
