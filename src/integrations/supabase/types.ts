@@ -750,6 +750,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_customer: {
+        Args: {
+          customer_name: string
+          customer_phone?: string
+          customer_email?: string
+          customer_address?: string
+          customer_type?: string
+        }
+        Returns: string
+      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
