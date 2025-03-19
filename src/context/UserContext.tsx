@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { User, UserRole } from "@/types/user";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +16,20 @@ interface UserContextType {
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
+// Map database roles to application roles if needed
+const mapDatabaseRole = (dbRole: string): UserRole => {
+  const roleMap: Record<string, UserRole> = {
+    'SUPER_ADMIN': 'superadmin',
+    'ADMIN': 'admin',
+    'MANAGER': 'manager',
+    'WAREHOUSE': 'warehouse',
+    'DRIVER': 'driver',
+    'CLIENT': 'client',
+  };
+  
+  return (roleMap[dbRole] as UserRole) || dbRole as UserRole;
+};
+
 // Order matters! Higher number = more permissions
 const roleHierarchy: Record<UserRole, number> = {
   superadmin: 7,
@@ -26,6 +39,13 @@ const roleHierarchy: Record<UserRole, number> = {
   driver: 3,
   client: 2,
   customer: 1,
+  // Add database format roles with the same hierarchy values
+  SUPER_ADMIN: 7,
+  ADMIN: 6,
+  MANAGER: 5,
+  WAREHOUSE: 4,
+  DRIVER: 3,
+  CLIENT: 2,
 };
 
 // Define routes that require authentication
@@ -78,9 +98,9 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
           setUser({
             id: session.user.id,
             email: session.user.email || '',
-            name: userData?.name || session.user.user_metadata?.name || 'User',
-            role: userData?.role || 'customer',
-            avatar: userData?.avatar_url,
+            name: userData ? `${userData.first_name} ${userData.last_name}`.trim() : (session.user.user_metadata?.name || 'User'),
+            role: userData ? mapDatabaseRole(userData.role) : 'customer',
+            avatar: userData ? userData.avatar || null : null,
             created_at: session.user.created_at,
             last_sign_in: session.user.last_sign_in_at,
           });
@@ -122,9 +142,9 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
           setUser({
             id: session.user.id,
             email: session.user.email || '',
-            name: userData?.name || session.user.user_metadata?.name || 'User',
-            role: userData?.role || 'customer',
-            avatar: userData?.avatar_url,
+            name: userData ? `${userData.first_name} ${userData.last_name}`.trim() : (session.user.user_metadata?.name || 'User'),
+            role: userData ? mapDatabaseRole(userData.role) : 'customer',
+            avatar: userData ? userData.avatar || null : null,
             created_at: session.user.created_at,
             last_sign_in: session.user.last_sign_in_at,
           });
@@ -232,9 +252,9 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         setUser({
           id: session.user.id,
           email: session.user.email || '',
-          name: userData?.name || session.user.user_metadata?.name || 'User',
-          role: userData?.role || 'customer',
-          avatar: userData?.avatar_url,
+          name: userData ? `${userData.first_name} ${userData.last_name}`.trim() : (session.user.user_metadata?.name || 'User'),
+          role: userData ? mapDatabaseRole(userData.role) : 'customer',
+          avatar: userData ? userData.avatar || null : null,
           created_at: session.user.created_at,
           last_sign_in: session.user.last_sign_in_at,
         });

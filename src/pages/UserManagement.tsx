@@ -31,6 +31,35 @@ type ExtendedUser = User & {
   status: "active" | "inactive";
 };
 
+// Map application roles to database roles
+const mapToDbRole = (role: UserRole): string => {
+  const roleMap: Record<string, string> = {
+    'superadmin': 'SUPER_ADMIN',
+    'admin': 'ADMIN',
+    'manager': 'MANAGER',
+    'warehouse': 'WAREHOUSE',
+    'driver': 'DRIVER',
+    'client': 'CLIENT',
+    'customer': 'CLIENT', // Default to CLIENT for customer
+  };
+  
+  return roleMap[role] || role;
+};
+
+// Map database roles to application roles
+const mapFromDbRole = (dbRole: string): UserRole => {
+  const roleMap: Record<string, UserRole> = {
+    'SUPER_ADMIN': 'superadmin',
+    'ADMIN': 'admin',
+    'MANAGER': 'manager',
+    'WAREHOUSE': 'warehouse',
+    'DRIVER': 'driver',
+    'CLIENT': 'client',
+  };
+  
+  return (roleMap[dbRole] as UserRole) || dbRole as UserRole;
+};
+
 export default function UserManagement() {
   const [users, setUsers] = useState<ExtendedUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,15 +100,15 @@ export default function UserManagement() {
         }
         
         // Combine the data
-        const combinedUsers = authUsers.users.map((authUser) => {
+        const combinedUsers: ExtendedUser[] = authUsers.users.map((authUser) => {
           const profile = profilesData?.find(p => p.id === authUser.id);
           
           return {
             id: authUser.id,
-            name: profile?.name || authUser.user_metadata?.name || 'Unnamed User',
+            name: profile ? `${profile.first_name} ${profile.last_name}`.trim() : (authUser.user_metadata?.name || 'Unnamed User'),
             email: authUser.email || '',
-            role: profile?.role || 'customer',
-            avatar: profile?.avatar_url,
+            role: profile ? mapFromDbRole(profile.role) : 'customer',
+            avatar: profile?.avatar || null,
             created_at: authUser.created_at || '',
             status: authUser.banned ? 'inactive' : 'active',
           };
@@ -123,12 +152,18 @@ export default function UserManagement() {
     
     try {
       if (editUser) {
+        // Split the name into first_name and last_name
+        const nameParts = userName.trim().split(' ');
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+        
         // Update existing user
         const { error } = await supabase
           .from('profiles')
           .update({ 
-            name: userName,
-            role: userRole,
+            first_name: firstName,
+            last_name: lastName,
+            role: mapToDbRole(userRole),
           })
           .eq('id', editUser.id);
           
