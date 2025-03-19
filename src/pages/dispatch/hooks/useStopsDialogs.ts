@@ -138,8 +138,8 @@ export const useStopsDialogs = (
       price = itemsArray.reduce((total, item) => {
         const itemPrice = parseFloat(item.price) || 0;
         const quantity = parseInt(item.quantity) || 1;
-        console.log(`Item price calculation: ${quantity} x $${itemPrice} = $${itemTotal}`);
         const itemTotal = itemPrice * quantity;
+        console.log(`Item price calculation: ${quantity} x $${itemPrice} = $${itemTotal}`);
         return total + itemTotal;
       }, 0);
     } else if (editForm.items) {

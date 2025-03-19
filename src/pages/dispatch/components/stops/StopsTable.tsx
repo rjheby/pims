@@ -72,18 +72,6 @@ const StopsTable = ({
     isAddingNewStop
   });
 
-  useEffect(() => {
-    console.log("Running fetchData effect");
-    fetchData();
-  }, [fetchData]);
-
-  useEffect(() => {
-    stops.forEach((stop, index) => {
-      console.log(`Stop #${index} items:`, stop.items);
-      console.log(`Stop #${index} itemsData:`, stop.itemsData);
-    });
-  }, [stops]);
-
   const fetchData = useCallback(async () => {
     console.log("Fetching data (customers and drivers)");
     // Only fetch data if we don't already have it from props
@@ -146,6 +134,18 @@ const StopsTable = ({
       setLoading(false);
     }
   }, [toast, providedCustomers, providedDrivers]);
+
+  useEffect(() => {
+    console.log("Running fetchData effect");
+    fetchData();
+  }, [fetchData]);
+
+  useEffect(() => {
+    stops.forEach((stop, index) => {
+      console.log(`Stop #${index} items:`, stop.items);
+      console.log(`Stop #${index} itemsData:`, stop.itemsData);
+    });
+  }, [stops]);
 
   const handleRemoveStop = (index: number) => {
     console.log("Removing stop at index:", index);
