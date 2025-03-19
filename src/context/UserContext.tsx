@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { User, UserRole } from "@/types/user";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +29,28 @@ const mapDatabaseRole = (dbRole: string): UserRole => {
   };
   
   return (roleMap[dbRole] as UserRole) || dbRole as UserRole;
+};
+
+// Map application roles to database roles
+const mapToDBRole = (appRole: UserRole): string => {
+  const roleMap: Record<UserRole, string> = {
+    superadmin: 'SUPER_ADMIN',
+    admin: 'ADMIN',
+    manager: 'MANAGER',
+    warehouse: 'WAREHOUSE',
+    driver: 'DRIVER',
+    client: 'CLIENT',
+    customer: 'CLIENT', // Map customer to CLIENT in DB
+    // Add uppercase variants since they're part of UserRole type
+    SUPER_ADMIN: 'SUPER_ADMIN',
+    ADMIN: 'ADMIN',
+    MANAGER: 'MANAGER',
+    WAREHOUSE: 'WAREHOUSE',
+    DRIVER: 'DRIVER',
+    CLIENT: 'CLIENT',
+  };
+  
+  return roleMap[appRole] || appRole;
 };
 
 // Order matters! Higher number = more permissions
@@ -100,7 +123,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
             email: session.user.email || '',
             name: userData ? `${userData.first_name} ${userData.last_name}`.trim() : (session.user.user_metadata?.name || 'User'),
             role: userData ? mapDatabaseRole(userData.role) : 'customer',
-            avatar: userData ? userData.avatar || null : null,
+            avatar: null, // profiles don't have avatar field, default to null
             created_at: session.user.created_at,
             last_sign_in: session.user.last_sign_in_at,
           });
@@ -144,7 +167,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
             email: session.user.email || '',
             name: userData ? `${userData.first_name} ${userData.last_name}`.trim() : (session.user.user_metadata?.name || 'User'),
             role: userData ? mapDatabaseRole(userData.role) : 'customer',
-            avatar: userData ? userData.avatar || null : null,
+            avatar: null, // profiles don't have avatar field, default to null
             created_at: session.user.created_at,
             last_sign_in: session.user.last_sign_in_at,
           });
@@ -254,7 +277,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
           email: session.user.email || '',
           name: userData ? `${userData.first_name} ${userData.last_name}`.trim() : (session.user.user_metadata?.name || 'User'),
           role: userData ? mapDatabaseRole(userData.role) : 'customer',
-          avatar: userData ? userData.avatar || null : null,
+          avatar: null, // profiles don't have avatar field, default to null
           created_at: session.user.created_at,
           last_sign_in: session.user.last_sign_in_at,
         });

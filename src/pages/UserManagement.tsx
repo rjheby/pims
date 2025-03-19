@@ -100,18 +100,20 @@ export default function UserManagement() {
         }
         
         // Combine the data
-        const combinedUsers: ExtendedUser[] = authUsers.users.map((authUser) => {
+        const combinedUsers = authUsers.users.map((authUser) => {
           const profile = profilesData?.find(p => p.id === authUser.id);
+          
+          const userStatus: "active" | "inactive" = authUser.banned ? 'inactive' : 'active';
           
           return {
             id: authUser.id,
             name: profile ? `${profile.first_name} ${profile.last_name}`.trim() : (authUser.user_metadata?.name || 'Unnamed User'),
             email: authUser.email || '',
             role: profile ? mapFromDbRole(profile.role) : 'customer',
-            avatar: profile?.avatar || null,
+            avatar: null, // No avatar in profile, default to null
             created_at: authUser.created_at || '',
-            status: authUser.banned ? 'inactive' : 'active',
-          };
+            status: userStatus,
+          } as ExtendedUser;
         });
         
         setUsers(combinedUsers);
@@ -157,13 +159,16 @@ export default function UserManagement() {
         const firstName = nameParts[0] || '';
         const lastName = nameParts.slice(1).join(' ') || '';
         
+        // Map application role to database role
+        const dbRole = mapToDbRole(userRole);
+        
         // Update existing user
         const { error } = await supabase
           .from('profiles')
           .update({ 
             first_name: firstName,
             last_name: lastName,
-            role: mapToDbRole(userRole),
+            role: dbRole,
           })
           .eq('id', editUser.id);
           

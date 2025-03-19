@@ -6,7 +6,7 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
-  avatar?: string;
+  avatar?: string | null;
   created_at?: string;
   last_sign_in?: string;
 }
