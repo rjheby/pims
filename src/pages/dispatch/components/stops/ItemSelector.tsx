@@ -73,8 +73,20 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
   });
   
   // Extract unique product types and sizes for attribute filtering
-  const productTypes = [...new Set(inventoryItems.map(item => item.product?.product_type).filter(Boolean))];
-  const productSizes = [...new Set(inventoryItems.map(item => item.product?.package_size).filter(Boolean))];
+  const productTypes = [...new Set(inventoryItems
+    .map(item => item.product?.sku || undefined)
+    .filter(Boolean))];
+    
+  const productSizes = [...new Set(inventoryItems
+    .map(item => {
+      // Extract package size from description if it exists
+      if (item.product?.description) {
+        const sizeMatch = item.product.description.match(/(\d+"\s*x\s*\d+"\s*x\s*\d+"|\d+\s*bundle|\d+\s*box|\d+\s*pack)/i);
+        return sizeMatch ? sizeMatch[0] : undefined;
+      }
+      return undefined;
+    })
+    .filter(Boolean))];
   
   useEffect(() => {
     if (searchTerm.length > 0) {
@@ -92,8 +104,13 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
   useEffect(() => {
     if (selectionMode === 'attributes' && (selectedProductType || selectedSize)) {
       const filtered = inventoryItems.filter(item => {
-        const matchesType = !selectedProductType || item.product?.product_type === selectedProductType;
-        const matchesSize = !selectedSize || item.product?.package_size === selectedSize;
+        const matchesType = !selectedProductType || item.product?.sku === selectedProductType;
+        
+        let matchesSize = true;
+        if (selectedSize && item.product?.description) {
+          // Check if description contains the selected size
+          matchesSize = item.product.description.toLowerCase().includes(selectedSize.toLowerCase());
+        }
         
         return matchesType && matchesSize;
       });
@@ -385,4 +402,52 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
       </DialogContent>
     </Dialog>
   );
+};
+
+// Functions defined earlier in the file
+const addItem = (item: any) => {
+  const existingItem = selectedItems.find(i => 
+    i.id === String(item.product?.id) || i.name === item.product?.name);
+  
+  if (existingItem) {
+    setSelectedItems(selectedItems.map(i => 
+      (i.id === String(item.product?.id) || i.name === item.product?.name) 
+        ? { ...i, quantity: i.quantity + 1 }
+        : i
+    ));
+  } else {
+    setSelectedItems([...selectedItems, {
+      id: String(item.product?.id),
+      name: item.product?.name || 'Unknown Product',
+      quantity: 1,
+      price: item.product?.price
+    }]);
+  }
+};
+
+const removeItem = (item: any) => {
+  const existingItem = selectedItems.find(i => 
+    i.id === String(item.product?.id) || i.name === item.product?.name);
+  
+  if (existingItem && existingItem.quantity > 1) {
+    setSelectedItems(selectedItems.map(i => 
+      (i.id === String(item.product?.id) || i.name === item.product?.name) 
+        ? { ...i, quantity: i.quantity - 1 }
+        : i
+    ));
+  } else {
+    setSelectedItems(selectedItems.filter(i => 
+      i.id !== String(item.product?.id) && i.name !== item.product?.name));
+  }
+};
+
+const formatSelectedItemsForOutput = () => {
+  return selectedItems.map(item => 
+    `${item.quantity}x ${item.name}${item.price ? ` @$${item.price}` : ''}`
+  ).join(', ');
+};
+
+const handleSave = () => {
+  const formattedItems = formatSelectedItemsForOutput();
+  onSelect(formattedItems, selectedItems, recurrenceData);
 };
