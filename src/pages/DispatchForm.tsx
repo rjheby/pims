@@ -14,11 +14,15 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useDispatchForm } from "./dispatch/hooks/useDispatchForm";
 import { calculateTotals, calculateInventoryTotals } from "./dispatch/utils/inventoryUtils";
 import { InventorySummary } from "./dispatch/components/InventorySummary";
+import { useEffect, useState } from "react";
+import { Customer, Driver } from "./dispatch/components/stops/types";
 
 export default function DispatchForm() {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
   
   const {
     masterSchedule,
@@ -33,6 +37,35 @@ export default function DispatchForm() {
     handleSave,
     handleSubmit
   } = useDispatchForm(id);
+
+  // Fetch customers and drivers
+  useEffect(() => {
+    async function fetchCustomersAndDrivers() {
+      try {
+        // Fetch customers
+        const { data: customersData, error: customersError } = await supabase
+          .from('customers')
+          .select('id, name, address, phone, email, notes, type, street_address, city, state, zip_code')
+          .order('name');
+          
+        if (customersError) throw customersError;
+        setCustomers(customersData || []);
+        
+        // Fetch drivers
+        const { data: driversData, error: driversError } = await supabase
+          .from('drivers')
+          .select('id, name, phone, email, status')
+          .order('name');
+          
+        if (driversError) throw driversError;
+        setDrivers(driversData || []);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    }
+    
+    fetchCustomersAndDrivers();
+  }, []);
   
   const handleDownloadPdf = () => {
     if (!masterSchedule) return;
@@ -128,6 +161,8 @@ export default function DispatchForm() {
               useMobileLayout={isMobile}
               readOnly={isSubmitted}
               masterScheduleId={id || ''} 
+              customers={customers}
+              drivers={drivers}
             />
 
             <BaseOrderSummary 

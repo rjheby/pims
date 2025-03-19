@@ -42,7 +42,7 @@ export function useDispatchForm(id: string | undefined) {
 
       setMasterSchedule(scheduleData);
 
-      // Fetch all stops for this master schedule
+      // Fetch all stops for this master schedule with customer and driver details
       const { data: stopsData, error: stopsError } = await supabase
         .from("delivery_schedules")
         .select(`
@@ -52,7 +52,7 @@ export function useDispatchForm(id: string | undefined) {
           notes, 
           items,
           status,
-          customers(id, name, address, phone)
+          customers(id, name, address, phone, email, street_address, city, state, zip_code)
         `)
         .eq("master_schedule_id", id)
         .order('id');
@@ -60,14 +60,32 @@ export function useDispatchForm(id: string | undefined) {
       if (stopsError) {
         console.error("Error fetching stops:", stopsError);
       } else {
-        // Process stops to add customer_address, customer_phone, and stop_number
-        const processedStops = (stopsData || []).map((stop, index) => ({
-          ...stop,
-          stop_number: index + 1,
-          customer_address: stop.customers?.address || '',
-          customer_phone: stop.customers?.phone || '',
-          price: calculatePrice(stop.items)
-        }));
+        // Process stops to ensure all required fields
+        const processedStops = (stopsData || []).map((stop, index) => {
+          // Construct full address if needed
+          let address = stop.customers?.address;
+          if (!address && stop.customers) {
+            const addressParts = [
+              stop.customers.street_address,
+              stop.customers.city,
+              stop.customers.state,
+              stop.customers.zip_code
+            ].filter(Boolean);
+            
+            if (addressParts.length > 0) {
+              address = addressParts.join(', ');
+            }
+          }
+          
+          return {
+            ...stop,
+            stop_number: index + 1,
+            customer_name: stop.customers?.name || 'Unknown Customer',
+            customer_address: address || '',
+            customer_phone: stop.customers?.phone || '',
+            price: calculatePrice(stop.items)
+          };
+        });
         
         setStops(processedStops);
       }

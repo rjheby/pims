@@ -21,6 +21,9 @@ interface ScheduleStop {
   customer?: CustomerInfo;
   customers?: CustomerInfo;
   sequence?: number;
+  stop_number?: number;
+  price?: number;
+  customer_phone?: string;
 }
 
 interface CustomerInfo {
@@ -70,20 +73,25 @@ export function downloadSchedulePDF(schedule: Schedule) {
     const tableData = schedule.stops.map((stop, index) => {
       const customer = stop.customer || stop.customers || { name: "Unknown", address: "No address" };
       const driverName = stop.driver_id ? driverNames[stop.driver_id] || "Unknown" : "Not Assigned";
+      const stopNumber = stop.stop_number || index + 1;
+      const phone = stop.customer_phone || customer.phone || "—";
+      const price = stop.price ? `$${stop.price.toFixed(2)}` : "—";
       
       return [
-        (index + 1).toString(),
-        customer.name,
+        stopNumber.toString(),
+        customer.name || "Unnamed Customer",
         customer.address || "No address",
+        phone,
         driverName,
         stop.items || "—",
+        price,
         stop.notes || "—"
       ];
     });
     
     autoTable(doc, {
       startY: 50,
-      head: [['#', 'Customer', 'Address', 'Driver', 'Items', 'Notes']],
+      head: [['#', 'Customer', 'Address', 'Phone', 'Driver', 'Items', 'Price', 'Notes']],
       body: tableData,
       headStyles: {
         fillColor: [66, 66, 66],
@@ -93,10 +101,12 @@ export function downloadSchedulePDF(schedule: Schedule) {
       columnStyles: {
         0: { cellWidth: 10 },
         1: { cellWidth: 30 },
-        2: { cellWidth: 50 },
-        3: { cellWidth: 30 },
-        4: { cellWidth: 30 },
-        5: { cellWidth: 40 }
+        2: { cellWidth: 40 },
+        3: { cellWidth: 25 },
+        4: { cellWidth: 25 },
+        5: { cellWidth: 25 },
+        6: { cellWidth: 20 },
+        7: { cellWidth: 30 }
       },
       styles: {
         overflow: 'linebreak',
@@ -177,6 +187,19 @@ export function downloadSchedulePDF(schedule: Schedule) {
         },
         theme: 'grid'
       });
+    }
+    
+    // Calculate total price
+    const totalPrice = schedule.stops.reduce((sum, stop) => {
+      return sum + (stop.price || 0);
+    }, 0);
+    
+    // Add total price if we have any prices
+    if (totalPrice > 0) {
+      yPos = (doc as any).lastAutoTable.finalY + 10;
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Total Price: $${totalPrice.toFixed(2)}`, 14, yPos);
+      doc.setFont('helvetica', 'normal');
     }
     
     // Download the PDF

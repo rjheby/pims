@@ -37,7 +37,8 @@ const StopsDesktopTable: React.FC<StopsDesktopTableProps> = ({
   readOnly,
   onRemoveStop,
   onEditStart,
-  customers
+  customers,
+  drivers
 }) => {
   const [searchTerm, setSearchTerm] = React.useState("");
 
@@ -49,6 +50,13 @@ const StopsDesktopTable: React.FC<StopsDesktopTableProps> = ({
       return customerName.includes(lowerSearchTerm) || items.includes(lowerSearchTerm);
     });
   }, [stops, searchTerm]);
+
+  const getDriverName = (driverId: string | null | undefined) => {
+    if (!driverId) return "Unassigned";
+    if (stop.driver_name) return stop.driver_name;
+    const driver = drivers?.find(d => d.id === driverId);
+    return driver ? driver.name : "Unknown";
+  };
 
   if (useMobileLayout) {
     return (
@@ -65,8 +73,11 @@ const StopsDesktopTable: React.FC<StopsDesktopTableProps> = ({
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="px-4 py-2">Stop #</TableHead>
             <TableHead className="px-4 py-2">Customer</TableHead>
             <TableHead className="px-4 py-2">Address</TableHead>
+            <TableHead className="px-4 py-2">Phone</TableHead>
+            <TableHead className="px-4 py-2">Driver</TableHead>
             <TableHead className="px-4 py-2">Items</TableHead>
             <TableHead className="px-4 py-2 text-center">Price</TableHead>
             <TableHead className="px-4 py-2 text-center">Actions</TableHead>
@@ -75,7 +86,7 @@ const StopsDesktopTable: React.FC<StopsDesktopTableProps> = ({
         <TableBody>
           {stops.length === 0 && !searchTerm ? (
             <TableRow>
-              <TableCell colSpan={5} className="text-center py-4">
+              <TableCell colSpan={8} className="text-center py-4">
                 {stops.length === 0 ? "No stops added yet." : "No stops found."}
               </TableCell>
             </TableRow>
@@ -83,15 +94,32 @@ const StopsDesktopTable: React.FC<StopsDesktopTableProps> = ({
           
           {filteredStops.map((stop, index) => {
             const customer = customers?.find(c => c.id === stop.customer_id);
-            const address = customer?.address || 'N/A';
-            // Using optional chaining to safely access potentially missing properties
-            const city = customer?.city || 'N/A';
-            const state = customer?.state || 'N/A';
-            const zipCode = customer?.zip_code || 'N/A';
-            const fullAddress = `${address}, ${city}, ${state} ${zipCode}`;
+            const address = stop.customer_address || customer?.address || 'N/A';
+            const phone = stop.customer_phone || customer?.phone || 'N/A';
+            const stopNumber = stop.stop_number || index + 1;
+            const driverName = stop.driver_name || getDriverName(stop.driver_id);
+            
+            // Construct full address if components are available
+            let fullAddress = address;
+            if (customer) {
+              const addressParts = [
+                customer.street_address,
+                customer.city,
+                customer.state,
+                customer.zip_code
+              ].filter(Boolean);
+              
+              if (addressParts.length > 0) {
+                fullAddress = addressParts.join(', ');
+              }
+            }
             
             return (
               <TableRow key={stop.id || index}>
+                <TableCell className="px-4 py-2 whitespace-nowrap text-sm font-medium text-center">
+                  {stopNumber}
+                </TableCell>
+                
                 <TableCell className="px-4 py-2 whitespace-nowrap text-sm font-medium">
                   {stop.customer_name || customer?.name || 'N/A'}
                 </TableCell>
@@ -100,12 +128,20 @@ const StopsDesktopTable: React.FC<StopsDesktopTableProps> = ({
                   {fullAddress}
                 </TableCell>
                 
+                <TableCell className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                  {phone}
+                </TableCell>
+                
+                <TableCell className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                  {driverName}
+                </TableCell>
+                
                 <TableCell className="px-4 py-2 text-sm">
-                  {stop.items || 'N/A'}
+                  {stop.items || 'No items'}
                 </TableCell>
                 
                 <TableCell className="px-4 py-2 whitespace-nowrap text-sm font-medium text-center">
-                  {stop.price !== undefined && stop.price !== null ? formatPrice(stop.price) : 'N/A'}
+                  {stop.price !== undefined && stop.price !== null ? formatPrice(stop.price) : '$0.00'}
                 </TableCell>
                 
                 <TableCell className="px-4 py-2 whitespace-nowrap text-center">
