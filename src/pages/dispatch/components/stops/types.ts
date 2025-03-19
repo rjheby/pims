@@ -27,7 +27,12 @@ export interface DeliveryStop {
   customer_address?: string;
   customer_phone?: string;
   items?: string;
-  itemsData?: any[]; // Added itemsData property to store structured item data
+  itemsData?: {
+    id: string;
+    name: string;
+    quantity: number;
+    price?: number;
+  }[]; // Properly typed itemsData array
   price?: number;
   status?: string;
   recurring?: RecurringOrderSettings;
@@ -69,7 +74,12 @@ export interface StopFormData {
   driver_id: string | null;
   items: string | null;
   stop_number?: number;
-  itemsData?: any[];
+  itemsData?: {
+    id: string;
+    name: string;
+    quantity: number;
+    price?: number;
+  }[];
 }
 
 export const DELIVERY_STATUS_OPTIONS = [

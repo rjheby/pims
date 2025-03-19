@@ -25,7 +25,8 @@ export const useStopsDialogs = (
     notes: null,
     driver_id: null,
     items: null,
-    stop_number: null
+    stop_number: null,
+    itemsData: [] // Initialize with empty array
   });
   const [recurrenceData, setRecurrenceData] = useState<RecurrenceData>({ 
     isRecurring: false, 
@@ -53,6 +54,7 @@ export const useStopsDialogs = (
         notes: null,
         driver_id: null,
         items: null,
+        itemsData: [], // Initialize with empty array
         price: 0,
         stop_number: stopNumber,
         sequence: stopNumber
@@ -68,6 +70,7 @@ export const useStopsDialogs = (
         notes: null,
         driver_id: null,
         items: null,
+        itemsData: [], // Initialize with empty array
         stop_number: stopNumber
       });
       
@@ -99,6 +102,7 @@ export const useStopsDialogs = (
       driver_id: stopToEdit.driver_id || null,
       items: stopToEdit.items || null,
       stop_number: stopToEdit.stop_number || index + 1,
+      itemsData: stopToEdit.itemsData || [] // Set existing itemsData or empty array
     });
     
     if (stopToEdit.recurring) {
@@ -161,7 +165,7 @@ export const useStopsDialogs = (
       ...editForm,
       price,
       items: editForm.items, // Ensure items string is included
-      itemsData: editForm.itemsData, // ENSURE itemsData array is included
+      itemsData: editForm.itemsData || [], // ENSURE itemsData array is included
       customer_name: selectedCustomer?.name,
       customer_address: selectedCustomer?.address,
       customer_phone: selectedCustomer?.phone,
@@ -261,7 +265,6 @@ export const useStopsDialogs = (
       console.log("Will save stop after items selection");
       setTimeout(() => {
         console.log("Saving stop now - itemsData should be present");
-        console.log("Current editForm before save:", editForm);
         handleEditSave();
       }, 300);
     }

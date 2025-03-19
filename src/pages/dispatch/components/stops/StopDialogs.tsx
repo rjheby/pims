@@ -65,6 +65,17 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
     }
   };
 
+  const handleItemsSelect = (items: string, itemsData?: any[], recurrenceData?: RecurrenceData) => {
+    console.log("StopDialogs: Items selected:", items);
+    console.log("StopDialogs: itemsData:", itemsData);
+    console.log("StopDialogs: recurrenceData:", recurrenceData);
+    
+    // Ensure itemsData is an array before passing it up
+    const safeItemsData = Array.isArray(itemsData) ? itemsData : [];
+    
+    onItemsSelect(items, safeItemsData, recurrenceData);
+  };
+
   return (
     <>
       <Dialog 
@@ -87,10 +98,7 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
       <ItemSelector
         open={itemsDialogOpen}
         onOpenChange={(open) => handleOpenChange(open, 'items')}
-        onSelect={(items, itemsData, recurrenceData) => {
-          console.log("Items selected:", items);
-          onItemsSelect(items, itemsData, recurrenceData);
-        }}
+        onSelect={handleItemsSelect}
         onCancel={() => {
           console.log("Cancel called from ItemSelector");
           onCancel();
