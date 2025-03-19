@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RecurrenceData } from "./RecurringOrderForm";
-import { Customer } from "./types";
+import { Customer, Driver } from "./types";
 import { ItemSelector } from "./ItemSelector";
 import { CustomerSelector } from "./CustomerSelector";
 import { useToast } from "@/hooks/use-toast";
@@ -19,6 +19,11 @@ interface StopDialogsProps {
   initialItems: string | null;
   recurrenceData: RecurrenceData;
   customers: Customer[];
+  drivers?: Driver[]; // Add drivers prop
+  initialDriverId?: string | null; // Add initialDriverId prop
+  initialNotes?: string | null; // Add initialNotes prop
+  onDriverSelect?: (driverId: string | null) => void; // Add driver selection handler
+  onNotesChange?: (notes: string | null) => void; // Add notes change handler
 }
 
 export const StopDialogs: React.FC<StopDialogsProps> = ({
@@ -32,7 +37,12 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
   initialCustomerId,
   initialItems,
   recurrenceData,
-  customers
+  customers,
+  drivers = [], // Default to empty array
+  initialDriverId = null,
+  initialNotes = null,
+  onDriverSelect,
+  onNotesChange
 }) => {
   const { toast } = useToast();
   console.log("StopDialogs rendering with props:", { 
@@ -40,18 +50,35 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
     itemsDialogOpen, 
     initialCustomerId,
     initialItems,
-    customersCount: customers?.length 
+    initialDriverId,
+    initialNotes,
+    customersCount: customers?.length,
+    driversCount: drivers?.length
   });
   
   const [selectedCustomerId, setSelectedCustomerId] = useState(initialCustomerId);
   const [selectedItemsData, setSelectedItemsData] = useState<any[]>([]);
   const [cachedItemsData, setCachedItemsData] = useState<any[]>([]);
+  const [selectedDriverId, setSelectedDriverId] = useState(initialDriverId);
+  const [notes, setNotes] = useState(initialNotes);
 
   // Update selectedCustomerId when initialCustomerId changes
   useEffect(() => {
     console.log("StopDialogs: initialCustomerId changed to:", initialCustomerId);
     setSelectedCustomerId(initialCustomerId);
   }, [initialCustomerId]);
+
+  // Update selectedDriverId when initialDriverId changes
+  useEffect(() => {
+    console.log("StopDialogs: initialDriverId changed to:", initialDriverId);
+    setSelectedDriverId(initialDriverId);
+  }, [initialDriverId]);
+
+  // Update notes when initialNotes changes
+  useEffect(() => {
+    console.log("StopDialogs: initialNotes changed to:", initialNotes);
+    setNotes(initialNotes);
+  }, [initialNotes]);
 
   // If we have cached items data when items dialog closes, ensure they're saved
   useEffect(() => {

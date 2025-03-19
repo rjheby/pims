@@ -1,4 +1,3 @@
-
 import { useParams, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,11 +37,9 @@ export default function DispatchForm() {
     handleSubmit
   } = useDispatchForm(id);
 
-  // Fetch customers and drivers
   useEffect(() => {
     async function fetchCustomersAndDrivers() {
       try {
-        // Fetch customers
         const { data: customersData, error: customersError } = await supabase
           .from('customers')
           .select('id, name, address, phone, email, notes, type, street_address, city, state, zip_code')
@@ -51,13 +48,13 @@ export default function DispatchForm() {
         if (customersError) throw customersError;
         setCustomers(customersData || []);
         
-        // Fetch drivers
         const { data: driversData, error: driversError } = await supabase
           .from('drivers')
           .select('id, name, phone, email, status')
           .order('name');
           
         if (driversError) throw driversError;
+        console.log("Loaded drivers:", driversData?.length || 0);
         setDrivers(driversData || []);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -66,7 +63,7 @@ export default function DispatchForm() {
     
     fetchCustomersAndDrivers();
   }, []);
-  
+
   const handleDownloadPdf = () => {
     if (!masterSchedule) return;
     
@@ -94,7 +91,7 @@ export default function DispatchForm() {
       });
     }
   };
-  
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -124,7 +121,6 @@ export default function DispatchForm() {
   const actionLabel = isSubmitted ? "Update Submitted Schedule" : "Submit Schedule";
   const formattedDate = formatDateForInput(masterSchedule.schedule_date);
 
-  // Custom render function for the inventory totals
   const renderInventorySummary = () => {
     const inventoryTotals = calculateInventoryTotals(stops);
     return <InventorySummary inventoryTotals={inventoryTotals} />;
@@ -154,7 +150,6 @@ export default function DispatchForm() {
               disabled={isSubmitted}
             />
             
-            {/* Display stops using the StopsTable component */}
             <StopsTable 
               stops={stops} 
               onStopsChange={setStops}

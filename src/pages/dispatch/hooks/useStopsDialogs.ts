@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Customer, DeliveryStop, StopFormData } from "../components/stops/types";
 import { RecurrenceData } from "../components/stops/RecurringOrderForm";
@@ -292,6 +293,29 @@ export const useStopsDialogs = (
     }
   };
   
+  const handleDriverSelect = (driverId: string | null) => {
+    console.log("Driver selected:", driverId);
+    setEditForm(prev => ({
+      ...prev,
+      driver_id: driverId
+    }));
+    
+    // Show a toast to confirm driver selection
+    const driverName = driverId ? drivers.find(d => d.id === driverId)?.name || "Unknown" : "None";
+    toast.toast({
+      title: "Driver Assigned",
+      description: `Assigned driver: ${driverName}`
+    });
+  };
+  
+  const handleNotesChange = (notes: string | null) => {
+    console.log("Notes changed:", notes);
+    setEditForm(prev => ({
+      ...prev,
+      notes
+    }));
+  };
+  
   const handleItemsSelect = (items: string, itemsData?: any[], recurrenceInfo?: RecurrenceData) => {
     console.log("Selected items:", items);
     console.log("Items data received:", itemsData); // Should be an array
@@ -382,6 +406,8 @@ export const useStopsDialogs = (
     handleEditSave,
     handleEditCancel,
     handleCustomerSelect,
+    handleDriverSelect,
+    handleNotesChange,
     handleItemsSelect,
     openCustomerDialog,
     openItemsDialog,
