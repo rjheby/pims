@@ -1,13 +1,28 @@
 
 // This file contains utility functions and constants for stops management
 
-// Calculate price based on items
+// Calculate price based on items and their quantities
 export const calculatePrice = (items: string | null): number => {
   if (!items) return 0;
   
-  // Simple logic: $10 per item
-  const itemsList = items.split(',') || [];
-  return itemsList.length * 10;
+  let totalPrice = 0;
+  const itemsList = items.split(',').map(item => item.trim()).filter(Boolean);
+  
+  // Parse items for quantities and prices
+  itemsList.forEach(item => {
+    // Check for quantity format like "30x Pizza Split Bundles @$7.50"
+    const quantityMatch = item.match(/^(\d+)x\s+(.+?)(?:\s+@\$(\d+(?:\.\d+)?))?$/);
+    if (quantityMatch) {
+      const quantity = parseInt(quantityMatch[1], 10);
+      const price = quantityMatch[3] ? parseFloat(quantityMatch[3]) : 10; // Default price if not specified
+      totalPrice += quantity * price;
+    } else {
+      // If no quantity specified, assume quantity of 1
+      totalPrice += 10; // Default price
+    }
+  });
+  
+  return totalPrice;
 };
 
 // Format price to display as currency
