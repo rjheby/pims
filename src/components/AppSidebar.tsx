@@ -24,6 +24,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useEffect, useState } from "react";
+import { UserMenu } from "./UserMenu";
+import { GlobalAdminControls } from "./GlobalAdminControls";
 
 const menuGroups = {
   reports: {
@@ -152,6 +154,12 @@ export function AppSidebar() {
             <X className="h-5 w-5 text-[#2A4131]" />
           </Button>
           <Logo variant="full" />
+        </div>
+        
+        {/* User menu added to mobile sidebar */}
+        <div className="flex items-center gap-2">
+          <UserMenu />
+          <GlobalAdminControls />
         </div>
       </div>
       
@@ -288,6 +296,12 @@ export function AppSidebar() {
                 </DropdownMenu>
               ))}
             </nav>
+          </div>
+          
+          {/* User menu and admin controls in desktop header */}
+          <div className="flex items-center gap-2">
+            <UserMenu />
+            <GlobalAdminControls />
           </div>
         </div>
       </div>

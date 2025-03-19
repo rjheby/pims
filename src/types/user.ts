@@ -1,5 +1,5 @@
 
-export type UserRole = "superadmin" | "admin" | "manager" | "warehouse" | "driver" | "client" | "customer" | "SUPER_ADMIN" | "ADMIN" | "MANAGER" | "WAREHOUSE" | "DRIVER" | "CLIENT";
+export type UserRole = "superadmin" | "admin" | "manager" | "warehouse" | "driver" | "client" | "customer";
 
 export interface User {
   id: string;
