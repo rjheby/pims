@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { User, UserRole } from "@/types/user";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,7 +16,7 @@ interface UserContextType {
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
-// Map database roles to application roles if needed
+// Map database roles to application roles
 const mapDatabaseRole = (dbRole: string): UserRole => {
   const roleMap: Record<string, UserRole> = {
     'SUPER_ADMIN': 'superadmin',
@@ -41,13 +40,6 @@ const mapToDBRole = (appRole: UserRole): string => {
     driver: 'DRIVER',
     client: 'CLIENT',
     customer: 'CLIENT', // Map customer to CLIENT in DB
-    // Add uppercase variants since they're part of UserRole type
-    SUPER_ADMIN: 'SUPER_ADMIN',
-    ADMIN: 'ADMIN',
-    MANAGER: 'MANAGER',
-    WAREHOUSE: 'WAREHOUSE',
-    DRIVER: 'DRIVER',
-    CLIENT: 'CLIENT',
   };
   
   return roleMap[appRole] || appRole;
@@ -62,13 +54,6 @@ const roleHierarchy: Record<UserRole, number> = {
   driver: 3,
   client: 2,
   customer: 1,
-  // Add database format roles with the same hierarchy values
-  SUPER_ADMIN: 7,
-  ADMIN: 6,
-  MANAGER: 5,
-  WAREHOUSE: 4,
-  DRIVER: 3,
-  CLIENT: 2,
 };
 
 // Define routes that require authentication

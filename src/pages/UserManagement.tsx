@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -36,7 +35,7 @@ type DbRole = "SUPER_ADMIN" | "ADMIN" | "MANAGER" | "WAREHOUSE" | "DRIVER" | "CL
 
 // Map application roles to database roles
 const mapToDbRole = (role: UserRole): DbRole => {
-  const roleMap: Record<string, DbRole> = {
+  const roleMap: Record<UserRole, DbRole> = {
     'superadmin': 'SUPER_ADMIN',
     'admin': 'ADMIN',
     'manager': 'MANAGER',
@@ -162,7 +161,7 @@ export default function UserManagement() {
         const firstName = nameParts[0] || '';
         const lastName = nameParts.slice(1).join(' ') || '';
         
-        // Map application role to database role - now properly typed
+        // Map application role to database role
         const dbRole = mapToDbRole(userRole);
         
         // Update existing user
@@ -189,7 +188,6 @@ export default function UserManagement() {
             : user
         ));
       } else {
-        // Create new user (in a real app, you'd typically send an invitation)
         toast({
           title: "User creation disabled",
           description: "In a production system, this would create a new user and send an invitation.",
