@@ -44,26 +44,41 @@ export const CustomerSelector = ({
       
       const { data, error } = await supabase
         .from('customers')
-        .select('id, name, address, phone, email, notes')
+        .select('id, name, address, phone, email, notes, type, street_address, city, state, zip_code')
         .order('name');
         
       if (error) {
         throw error;
       }
 
-      // Add type property to be compatible with customers/types.ts Customer interface
-      const customersWithType = data.map((customer) => ({
+      // Ensure all customers have the expected fields according to the schema
+      const processedCustomers = data.map((customer) => ({
         ...customer,
-        type: 'RETAIL' // Add a default type
+        // Ensure type is set (defaults to RETAIL if missing)
+        type: customer.type || 'RETAIL',
+        // Make sure address is available even if it's constructed from components
+        address: customer.address || constructAddress(customer),
       }));
       
-      setCustomers(customersWithType);
+      setCustomers(processedCustomers);
     } catch (error) {
       console.error("Error fetching customers:", error);
     } finally {
       setLoading(false);
     }
   }
+
+  // Helper function to construct address from components if needed
+  const constructAddress = (customer: any) => {
+    const parts = [
+      customer.street_address,
+      customer.city,
+      customer.state,
+      customer.zip_code
+    ].filter(Boolean);
+    
+    return parts.length > 0 ? parts.join(', ') : '';
+  };
 
   const filteredCustomers = customers.filter(customer => 
     (customer.name || "").toLowerCase().includes(search.toLowerCase()) ||
@@ -91,7 +106,7 @@ export const CustomerSelector = ({
     }
 
     try {
-      // Use the new add_customer function
+      // Use the add_customer function
       const { data, error } = await supabase
         .rpc('add_customer', {
           customer_name: newCustomer.name,
@@ -112,10 +127,10 @@ export const CustomerSelector = ({
 
       const newCustomerId = data;
       
-      // Fetch the newly created customer
+      // Fetch the newly created customer to get all fields
       const { data: customerData, error: customerError } = await supabase
         .from('customers')
-        .select('*')
+        .select('id, name, address, phone, email, notes, type, street_address, city, state, zip_code')
         .eq('id', newCustomerId)
         .single();
         
@@ -128,13 +143,14 @@ export const CustomerSelector = ({
         return;
       }
 
-      // Add the new customer to the list
-      const newCustomerWithType = {
+      // Process the customer data to ensure it has all expected fields
+      const newCustomerWithAllFields = {
         ...customerData,
-        type: newCustomer.type
+        type: customerData.type || 'RETAIL',
+        address: customerData.address || constructAddress(customerData),
       };
       
-      setCustomers(prev => [...prev, newCustomerWithType]);
+      setCustomers(prev => [...prev, newCustomerWithAllFields]);
       setSelectedId(newCustomerId);
       setShowNewCustomerDialog(false);
       
@@ -143,8 +159,8 @@ export const CustomerSelector = ({
         description: "Customer created successfully"
       });
       
-      // Select the new customer immediately
-      onSelect(newCustomerWithType);
+      // Select the new customer immediately with all fields
+      onSelect(newCustomerWithAllFields);
     } catch (err) {
       console.error("Error creating customer:", err);
       toast({
