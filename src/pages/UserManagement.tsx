@@ -31,9 +31,12 @@ type ExtendedUser = User & {
   status: "active" | "inactive";
 };
 
+// Type definition for database role values
+type DbRole = "SUPER_ADMIN" | "ADMIN" | "MANAGER" | "WAREHOUSE" | "DRIVER" | "CLIENT";
+
 // Map application roles to database roles
-const mapToDbRole = (role: UserRole): string => {
-  const roleMap: Record<string, string> = {
+const mapToDbRole = (role: UserRole): DbRole => {
+  const roleMap: Record<string, DbRole> = {
     'superadmin': 'SUPER_ADMIN',
     'admin': 'ADMIN',
     'manager': 'MANAGER',
@@ -43,7 +46,7 @@ const mapToDbRole = (role: UserRole): string => {
     'customer': 'CLIENT', // Default to CLIENT for customer
   };
   
-  return roleMap[role] || role;
+  return roleMap[role] || 'CLIENT';
 };
 
 // Map database roles to application roles
@@ -159,7 +162,7 @@ export default function UserManagement() {
         const firstName = nameParts[0] || '';
         const lastName = nameParts.slice(1).join(' ') || '';
         
-        // Map application role to database role
+        // Map application role to database role - now properly typed
         const dbRole = mapToDbRole(userRole);
         
         // Update existing user
