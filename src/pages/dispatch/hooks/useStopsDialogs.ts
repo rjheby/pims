@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Customer, DeliveryStop, StopFormData } from "../components/stops/types";
 import { RecurrenceData } from "../components/stops/RecurringOrderForm";
@@ -9,6 +10,12 @@ export const useStopsDialogs = (
   customers: Customer[],
   drivers: any[]
 ) => {
+  console.log("useStopsDialogs initialized with:", { 
+    stopsCount: stops.length, 
+    customersCount: customers.length, 
+    driversCount: drivers.length 
+  });
+  
   const [editingIndex, setEditingIndex] = useState(-1);
   const [isAddingNewStop, setIsAddingNewStop] = useState(false);
   const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
@@ -120,28 +127,33 @@ export const useStopsDialogs = (
       return;
     }
     
-    console.log("Saving stop with form data:", editForm);
+    console.log("Saving stop with form data:", JSON.stringify(editForm));
     
     const itemsArray = editForm.itemsData || [];
+    console.log("Items data array:", JSON.stringify(itemsArray));
     
     let price = 0;
     if (itemsArray.length > 0) {
       price = itemsArray.reduce((total, item: any) => {
+        console.log("Calculating price for item:", item);
         const itemPrice = item.price || 0;
         const quantity = item.quantity || 1;
-        return total + (itemPrice * quantity);
+        const itemTotal = itemPrice * quantity;
+        console.log(`Item price calculation: ${quantity} x $${itemPrice} = $${itemTotal}`);
+        return total + itemTotal;
       }, 0);
     } else if (editForm.items) {
+      console.log("No itemsData, falling back to calculating price from items string");
       price = calculatePrice(editForm.items);
     }
     
-    console.log("Calculated price:", price);
+    console.log("Final calculated price:", price);
     
     const selectedCustomer = customers.find(c => c.id === editForm.customer_id);
     const selectedDriver = drivers.find(d => d.id === editForm.driver_id);
     
-    console.log("Selected customer:", selectedCustomer);
-    console.log("Selected driver:", selectedDriver);
+    console.log("Selected customer:", selectedCustomer?.name, "id:", editForm.customer_id);
+    console.log("Selected driver:", selectedDriver?.name, "id:", editForm.driver_id);
     
     const updatedStop = {
       ...stops[editingIndex],
@@ -160,11 +172,12 @@ export const useStopsDialogs = (
       } : undefined
     };
     
-    console.log("Updated stop data:", updatedStop);
+    console.log("Updated stop data:", JSON.stringify(updatedStop));
     
     const newStops = [...stops];
     newStops[editingIndex] = updatedStop;
     
+    console.log("Saving stops with new data");
     onStopsChange(newStops);
     resetEditState();
   };
@@ -194,7 +207,7 @@ export const useStopsDialogs = (
   };
 
   const handleCustomerSelect = (customer: Customer) => {
-    console.log("Customer select handler called with customer:", customer);
+    console.log("Customer select handler called with customer:", customer?.name, customer?.id);
     
     if (!customer || !customer.id) {
       console.error("Invalid customer selected");
@@ -220,13 +233,17 @@ export const useStopsDialogs = (
   
   const handleItemsSelect = (items: string, itemsData?: any[], recurrenceInfo?: RecurrenceData) => {
     console.log("Selected items:", items);
-    console.log("Items data:", itemsData);
+    console.log("Items data:", JSON.stringify(itemsData));
     
-    setEditForm(prev => ({
-      ...prev,
-      items,
-      itemsData: itemsData || []
-    }));
+    setEditForm(prev => {
+      const newForm = {
+        ...prev,
+        items,
+        itemsData: itemsData || []
+      };
+      console.log("Updated edit form with items:", JSON.stringify(newForm));
+      return newForm;
+    });
     
     if (recurrenceInfo) {
       console.log("Received recurrence info:", recurrenceInfo);

@@ -40,6 +40,18 @@ const StopsDesktopTable: React.FC<StopsDesktopTableProps> = ({
   customers,
   drivers
 }) => {
+  console.log("StopsDesktopTable rendering with stops:", 
+    stops.map(stop => ({
+      id: stop.id,
+      stop_number: stop.stop_number,
+      customer: stop.customer_name,
+      driver: stop.driver_name,
+      items: stop.items,
+      price: stop.price,
+      itemsData: stop.itemsData
+    }))
+  );
+  
   const [searchTerm, setSearchTerm] = React.useState("");
 
   const filteredStops = React.useMemo(() => {

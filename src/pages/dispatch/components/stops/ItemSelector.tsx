@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter 
@@ -26,6 +27,8 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
   initialItems,
   recurrenceData
 }) => {
+  console.log("ItemSelector rendering with props:", { initialItems, recurrenceData });
+  
   const { loading, getInventoryWithProductDetails } = useRetailInventory();
   const [selectedItems, setSelectedItems] = useState<{id: string; name: string; quantity: number; price?: number}[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,22 +40,29 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
   const [selectedSize, setSelectedSize] = useState('');
   
   useEffect(() => {
+    console.log("ItemSelector open/initialItems changed:", { open, initialItems });
     if (open && initialItems) {
       try {
         const itemsArray = initialItems.split(',').map(item => item.trim());
+        console.log("Parsing initial items:", itemsArray);
+        
         const parsedItems = itemsArray.map(item => {
           const quantityMatch = item.match(/(\d+)x\s+(.+?)(?:\s+@\$(\d+\.\d+))?$/);
           if (quantityMatch) {
-            return {
+            const parsedItem = {
               id: `manual-${Date.now()}-${Math.random()}`,
               name: quantityMatch[2].trim(),
               quantity: parseInt(quantityMatch[1]),
               price: quantityMatch[3] ? parseFloat(quantityMatch[3]) : undefined
             };
+            console.log("Parsed item:", parsedItem);
+            return parsedItem;
           }
+          console.log("Failed to parse item:", item);
           return null;
         }).filter(Boolean) as {id: string; name: string; quantity: number; price?: number}[];
         
+        console.log("Setting selected items:", parsedItems);
         setSelectedItems(parsedItems);
       } catch (error) {
         console.error("Failed to parse initial items:", error);
@@ -64,6 +74,7 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
   }, [open, initialItems]);
   
   const inventoryItems = getInventoryWithProductDetails();
+  console.log("Available inventory items:", inventoryItems.length);
   
   const sortedInventoryItems = [...inventoryItems].sort((a, b) => {
     const rankA = a.product?.is_popular ? (a.product?.popularity_rank || 0) : 999;
@@ -115,50 +126,64 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
   }, [selectedProductType, selectedSize, selectionMode, inventoryItems]);
   
   const addItem = (item: any) => {
+    console.log("Adding item:", item);
     const existingItem = selectedItems.find(i => 
       i.id === String(item.product?.id) || i.name === item.product?.name);
     
     if (existingItem) {
+      console.log("Item already exists, increasing quantity:", existingItem);
       setSelectedItems(selectedItems.map(i => 
         (i.id === String(item.product?.id) || i.name === item.product?.name) 
           ? { ...i, quantity: i.quantity + 1 }
           : i
       ));
     } else {
-      setSelectedItems([...selectedItems, {
+      const newItem = {
         id: String(item.product?.id),
         name: item.product?.name || 'Unknown Product',
         quantity: 1,
         price: item.product?.price
-      }]);
+      };
+      console.log("Adding new item:", newItem);
+      setSelectedItems([...selectedItems, newItem]);
     }
   };
   
   const removeItem = (item: any) => {
+    console.log("Removing item:", item);
     const existingItem = selectedItems.find(i => 
       i.id === String(item.product?.id) || i.name === item.product?.name);
     
     if (existingItem && existingItem.quantity > 1) {
+      console.log("Item exists with multiple quantity, decreasing:", existingItem);
       setSelectedItems(selectedItems.map(i => 
         (i.id === String(item.product?.id) || i.name === item.product?.name) 
           ? { ...i, quantity: i.quantity - 1 }
           : i
       ));
     } else {
+      console.log("Removing item completely");
       setSelectedItems(selectedItems.filter(i => 
         i.id !== String(item.product?.id) && i.name !== item.product?.name));
     }
   };
   
   const formatSelectedItemsForOutput = () => {
-    return selectedItems.map(item => 
+    const formatted = selectedItems.map(item => 
       `${item.quantity}x ${item.name}${item.price ? ` @$${item.price}` : ''}`
     ).join(', ');
+    console.log("Formatted items for output:", formatted);
+    return formatted;
   };
   
   const handleSave = () => {
     const formattedItems = formatSelectedItemsForOutput();
-    console.log("Saving items with data:", { formattedItems, selectedItems });
+    console.log("Saving items with complete data:", { 
+      formattedItems, 
+      selectedItems: JSON.stringify(selectedItems),
+      itemCount: selectedItems.length,
+      recurrenceData 
+    });
     onSelect(formattedItems, selectedItems, recurrenceData);
   };
   

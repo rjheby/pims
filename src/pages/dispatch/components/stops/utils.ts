@@ -1,38 +1,54 @@
-
 // This file contains utility functions and constants for stops management
 
 // Calculate price based on items and their quantities
-export const calculatePrice = (items: string | null, quantities?: number[], prices?: number[]): number => {
-  if (!items) return 0;
+export const calculatePrice = (items: string, quantities?: number[], prices?: number[]): number => {
+  console.log("calculatePrice called with:", { items, quantities, prices });
   
-  let totalPrice = 0;
-  
-  // If quantities and prices arrays are provided, use them directly
-  if (quantities && prices && quantities.length === prices.length) {
-    for (let i = 0; i < quantities.length; i++) {
-      totalPrice += quantities[i] * prices[i];
-    }
-    return totalPrice;
+  if (!items) {
+    console.log("No items provided, returning 0");
+    return 0;
   }
   
-  // Fallback to string parsing if arrays aren't provided
-  const itemsList = items.split(',').map(item => item.trim()).filter(Boolean);
-  
-  // Parse items for quantities and prices
-  itemsList.forEach(item => {
-    // Check for quantity format like "30x Pizza Split Bundles @$7.50"
-    const quantityMatch = item.match(/^(\d+)x\s+(.+?)(?:\s+@\$(\d+(?:\.\d+)?))?$/);
-    if (quantityMatch) {
-      const quantity = parseInt(quantityMatch[1], 10);
-      const price = quantityMatch[3] ? parseFloat(quantityMatch[3]) : 10; // Default price if not specified
-      totalPrice += quantity * price;
-    } else {
-      // If no quantity specified, assume quantity of 1
-      totalPrice += 10; // Default price
+  try {
+    const itemList = items.split(',').map(item => item.trim());
+    console.log("Split items into:", itemList);
+    
+    let totalPrice = 0;
+    
+    // Handle case with provided quantities and prices arrays
+    if (quantities && prices && quantities.length === prices.length) {
+      console.log("Using provided quantities and prices arrays");
+      totalPrice = quantities.reduce((sum, quantity, index) => {
+        const price = prices[index] || 0;
+        const itemTotal = quantity * price;
+        console.log(`Item ${index + 1}: ${quantity} x $${price} = $${itemTotal}`);
+        return sum + itemTotal;
+      }, 0);
     }
-  });
-  
-  return totalPrice;
+    // Parse prices from item strings (format: "3x Widget @$10.00")
+    else {
+      console.log("Parsing prices from item strings");
+      totalPrice = itemList.reduce((sum, item) => {
+        // Format: "3x Widget @$10.00"
+        const matches = item.match(/(\d+)x\s+(.+?)\s+@\$(\d+\.\d+)/);
+        if (matches) {
+          const quantity = parseInt(matches[1]);
+          const price = parseFloat(matches[3]);
+          const itemTotal = quantity * price;
+          console.log(`Parsed item: ${quantity} x $${price} = $${itemTotal}`);
+          return sum + itemTotal;
+        }
+        console.log(`No price info found in item: ${item}`);
+        return sum;
+      }, 0);
+    }
+    
+    console.log("Final calculated price:", totalPrice);
+    return totalPrice;
+  } catch (error) {
+    console.error("Error calculating price:", error);
+    return 0;
+  }
 };
 
 // Format price to display as currency

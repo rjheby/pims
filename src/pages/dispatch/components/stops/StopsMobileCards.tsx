@@ -1,4 +1,5 @@
 
+// First few lines with imports
 import React from "react";
 import { Draggable } from "@hello-pangea/dnd";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -69,6 +70,18 @@ const StopsMobileCards: React.FC<StopsMobileCardsProps> = ({
   onOpenCustomerDialog,
   onOpenItemsDialog
 }) => {
+  console.log("StopsMobileCards rendering with stops:", 
+    stops.map(stop => ({
+      id: stop.id,
+      stop_number: stop.stop_number,
+      customer: stop.customer_name,
+      driver: stop.driver_name,
+      items: stop.items,
+      price: stop.price,
+      itemsData: stop.itemsData
+    }))
+  );
+  
   const getCustomerName = (customerId: string | null) => {
     if (!customerId) return "Unassigned";
     const customer = customers.find(c => c.id === customerId);
