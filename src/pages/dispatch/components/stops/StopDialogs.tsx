@@ -12,7 +12,7 @@ interface StopDialogsProps {
   itemsDialogOpen: boolean;
   setItemsDialogOpen: (open: boolean) => void;
   onCustomerSelect: (customer: Customer) => void;
-  onItemsSelect: (items: string, recurrenceData?: RecurrenceData) => void;
+  onItemsSelect: (items: string, itemsData?: any[], recurrenceData?: RecurrenceData) => void;
   onCancel: () => void;
   initialCustomerId: string | null;
   initialItems: string | null;
@@ -87,9 +87,9 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
       <ItemSelector
         open={itemsDialogOpen}
         onOpenChange={(open) => handleOpenChange(open, 'items')}
-        onSelect={(items, recurrenceData) => {
+        onSelect={(items, itemsData, recurrenceData) => {
           console.log("Items selected:", items);
-          onItemsSelect(items, recurrenceData);
+          onItemsSelect(items, itemsData, recurrenceData);
         }}
         onCancel={() => {
           console.log("Cancel called from ItemSelector");

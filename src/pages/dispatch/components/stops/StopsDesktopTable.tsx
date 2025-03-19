@@ -84,6 +84,7 @@ const StopsDesktopTable: React.FC<StopsDesktopTableProps> = ({
           {filteredStops.map((stop, index) => {
             const customer = customers?.find(c => c.id === stop.customer_id);
             const address = customer?.address || 'N/A';
+            // Using optional chaining to safely access potentially missing properties
             const city = customer?.city || 'N/A';
             const state = customer?.state || 'N/A';
             const zipCode = customer?.zip_code || 'N/A';

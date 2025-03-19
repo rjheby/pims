@@ -74,7 +74,7 @@ const StopsTable = ({
     try {
       const { data: customersData, error: customersError } = await supabase
         .from('customers')
-        .select('id, name, address, phone, email, notes')
+        .select('id, name, address, phone, email, notes, street_address, city, state, zip_code')
         .order('created_at', { ascending: false });
 
       if (customersError) {

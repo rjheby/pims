@@ -1,3 +1,4 @@
+
 export interface FirewoodProduct {
   id: number;
   item_name: string;
@@ -47,6 +48,10 @@ export interface Customer {
   email?: string;
   notes?: string;
   type?: string;
+  street_address?: string;
+  city?: string;
+  state?: string;
+  zip_code?: string;
 }
 
 export interface Driver {
@@ -63,6 +68,7 @@ export interface StopFormData {
   driver_id: string | null;
   items: string | null;
   stop_number?: number;
+  itemsData?: any[];
 }
 
 export const DELIVERY_STATUS_OPTIONS = [
