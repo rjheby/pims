@@ -102,13 +102,20 @@ export const useStopsDialogs = (
     const stopToEdit = stops[index];
     console.log("Stop to edit:", stopToEdit);
     
+    // Ensure itemsData is always an array
+    const itemsDataArray = Array.isArray(stopToEdit.itemsData) ? 
+      stopToEdit.itemsData : 
+      [];
+
+    console.log("itemsData for this stop:", itemsDataArray);
+    
     setEditForm({
       customer_id: stopToEdit.customer_id || null,
       notes: stopToEdit.notes || null,
       driver_id: stopToEdit.driver_id || null,
       items: stopToEdit.items || null,
       stop_number: stopToEdit.stop_number || index + 1,
-      itemsData: stopToEdit.itemsData || [] // Set existing itemsData or empty array
+      itemsData: itemsDataArray // Ensure we're using the array version
     });
     
     if (stopToEdit.recurring) {
@@ -146,13 +153,20 @@ export const useStopsDialogs = (
     console.log("Saving stop with form data:", editForm);
     console.log("Items data:", editForm.itemsData); // This should NOT be undefined
     
+    // Ensure itemsData is an array before processing
     const itemsArray = Array.isArray(editForm.itemsData) ? editForm.itemsData : [];
+    console.log("Items array after validation:", itemsArray);
     
     let price = 0;
     if (itemsArray.length > 0) {
       price = itemsArray.reduce((total, item) => {
-        const itemPrice = parseFloat(String(item.price || 0)) || 0; // Convert to string first
-        const quantity = parseInt(String(item.quantity || 1)) || 1; // Convert to string first
+        // Ensure item.price and item.quantity are converted to numbers properly
+        const itemPrice = typeof item.price === 'number' ? item.price : 
+                          typeof item.price === 'string' ? parseFloat(item.price) : 0;
+        
+        const quantity = typeof item.quantity === 'number' ? item.quantity : 
+                         typeof item.quantity === 'string' ? parseInt(item.quantity) : 1;
+        
         const itemTotal = itemPrice * quantity;
         console.log(`Item price calculation: ${quantity} x $${itemPrice} = $${itemTotal}`);
         return total + itemTotal;
@@ -176,7 +190,7 @@ export const useStopsDialogs = (
       ...editForm,
       price,
       items: editForm.items, // Ensure items string is included
-      itemsData: Array.isArray(editForm.itemsData) ? editForm.itemsData : [], // ENSURE itemsData array is included
+      itemsData: itemsArray, // ENSURE itemsData array is included
       customer_name: selectedCustomer?.name,
       customer_address: selectedCustomer?.address,
       customer_phone: selectedCustomer?.phone,
@@ -254,12 +268,16 @@ export const useStopsDialogs = (
     console.log("Selected items:", items);
     console.log("Items data received:", itemsData); // Should be an array
     
+    // Ensure itemsData is an array before setting it in the form
+    const validItemsData = Array.isArray(itemsData) ? itemsData : [];
+    console.log("Valid items data array:", validItemsData);
+    
     // CRITICAL: Make sure we're setting itemsData in the form
     setEditForm(prev => {
       const newForm = {
         ...prev,
         items,
-        itemsData: Array.isArray(itemsData) ? itemsData : []
+        itemsData: validItemsData
       };
       console.log("Updated form with itemsData:", JSON.stringify(newForm));
       return newForm;
@@ -274,6 +292,7 @@ export const useStopsDialogs = (
     
     if (isAddingNewStop) {
       console.log("Will save stop after items selection");
+      // Use a slight delay to ensure form state is updated
       setTimeout(() => {
         console.log("Saving stop now - itemsData should be present");
         handleEditSave();
@@ -290,6 +309,36 @@ export const useStopsDialogs = (
     console.log("Explicitly opening items dialog");
     setItemsDialogOpen(true);
   };
+
+  // Add this helper function to make sure stops always have itemsData as an array
+  const ensureStopsHaveItemsData = (stopsArray: DeliveryStop[]): DeliveryStop[] => {
+    return stopsArray.map(stop => {
+      if (!Array.isArray(stop.itemsData)) {
+        console.log(`Fixing stop #${stop.stop_number}: itemsData wasn't an array`);
+        return {
+          ...stop,
+          itemsData: []
+        };
+      }
+      return stop;
+    });
+  };
+
+  // Call this function whenever stops change
+  const validateAndFixStops = () => {
+    if (Array.isArray(stops)) {
+      const fixedStops = ensureStopsHaveItemsData(stops);
+      if (JSON.stringify(fixedStops) !== JSON.stringify(stops)) {
+        console.log("Fixed stops with missing itemsData arrays");
+        onStopsChange(fixedStops);
+      }
+    }
+  };
+
+  // Run validation when hook is initialized
+  useState(() => {
+    validateAndFixStops();
+  });
 
   return {
     editingIndex,

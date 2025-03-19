@@ -72,6 +72,7 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
     
     // Ensure itemsData is an array before passing it up
     const safeItemsData = Array.isArray(itemsData) ? itemsData : [];
+    console.log("Passing safe itemsData up:", safeItemsData);
     
     onItemsSelect(items, safeItemsData, recurrenceData);
   };
