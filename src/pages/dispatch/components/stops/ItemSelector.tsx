@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter 
@@ -72,14 +71,12 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
     return rankA - rankB;
   });
   
-  // Extract unique product types and sizes for attribute filtering
   const productTypes = [...new Set(inventoryItems
     .map(item => item.product?.sku || undefined)
     .filter(Boolean))];
     
   const productSizes = [...new Set(inventoryItems
     .map(item => {
-      // Extract package size from description if it exists
       if (item.product?.description) {
         const sizeMatch = item.product.description.match(/(\d+"\s*x\s*\d+"\s*x\s*\d+"|\d+\s*bundle|\d+\s*box|\d+\s*pack)/i);
         return sizeMatch ? sizeMatch[0] : undefined;
@@ -100,7 +97,6 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
     }
   }, [searchTerm, inventoryItems]);
   
-  // Filter products based on selected attributes
   useEffect(() => {
     if (selectionMode === 'attributes' && (selectedProductType || selectedSize)) {
       const filtered = inventoryItems.filter(item => {
@@ -108,7 +104,6 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
         
         let matchesSize = true;
         if (selectedSize && item.product?.description) {
-          // Check if description contains the selected size
           matchesSize = item.product.description.toLowerCase().includes(selectedSize.toLowerCase());
         }
         
@@ -163,6 +158,7 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
   
   const handleSave = () => {
     const formattedItems = formatSelectedItemsForOutput();
+    console.log("Saving items with data:", { formattedItems, selectedItems });
     onSelect(formattedItems, selectedItems, recurrenceData);
   };
   
@@ -212,7 +208,6 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
             </div>
           )}
           
-          {/* Mode switcher */}
           <div className="flex space-x-2 mb-4">
             <Button 
               variant={selectionMode === 'search' ? "default" : "outline"} 
@@ -232,10 +227,8 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
             </Button>
           </div>
           
-          {/* Search mode */}
           {selectionMode === 'search' && (
             <div className="space-y-4">
-              {/* Popular products */}
               <div>
                 <label className="block text-sm font-medium mb-1">Popular Products</label>
                 <Select 
@@ -259,7 +252,6 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
                 </Select>
               </div>
               
-              {/* Search input */}
               <div>
                 <label className="block text-sm font-medium mb-1">Search All Products</label>
                 <div className="relative">
@@ -276,7 +268,6 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
             </div>
           )}
           
-          {/* Attribute selection mode */}
           {selectionMode === 'attributes' && (
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
@@ -311,7 +302,6 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
             </div>
           )}
           
-          {/* Search results */}
           {filteredProducts.length > 0 && (
             <div className="mt-4">
               <label className="block text-sm font-medium mb-1">

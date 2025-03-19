@@ -123,10 +123,19 @@ export const useStopsDialogs = (
     console.log("Saving stop with form data:", editForm);
     
     const itemsArray = editForm.itemsData || [];
-    const quantities = itemsArray.map((item: any) => item.quantity || 1);
-    const prices = itemsArray.map((item: any) => item.price || 0);
     
-    const price = calculatePrice(editForm.items, quantities, prices);
+    let price = 0;
+    if (itemsArray.length > 0) {
+      price = itemsArray.reduce((total, item: any) => {
+        const itemPrice = item.price || 0;
+        const quantity = item.quantity || 1;
+        return total + (itemPrice * quantity);
+      }, 0);
+    } else if (editForm.items) {
+      price = calculatePrice(editForm.items);
+    }
+    
+    console.log("Calculated price:", price);
     
     const selectedCustomer = customers.find(c => c.id === editForm.customer_id);
     const selectedDriver = drivers.find(d => d.id === editForm.driver_id);
