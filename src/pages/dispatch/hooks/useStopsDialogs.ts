@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Customer, DeliveryStop, StopFormData } from "../components/stops/types";
 import { RecurrenceData } from "../components/stops/RecurringOrderForm";
@@ -10,9 +11,9 @@ export const useStopsDialogs = (
   drivers: any[]
 ) => {
   console.log("useStopsDialogs initialized with:", { 
-    stopsCount: stops.length, 
-    customersCount: customers.length, 
-    driversCount: drivers.length 
+    stopsCount: stops?.length || 0, 
+    customersCount: customers?.length || 0, 
+    driversCount: drivers?.length || 0 
   });
   
   const [editingIndex, setEditingIndex] = useState(-1);
@@ -36,7 +37,7 @@ export const useStopsDialogs = (
     console.log("handleAddStop called, current state:", { 
       isAddingNewStop, 
       editingIndex,
-      stopsCount: stops.length 
+      stopsCount: stops?.length || 0
     });
     
     if (isAddingNewStop) {
@@ -45,7 +46,8 @@ export const useStopsDialogs = (
     }
     
     try {
-      const stopNumber = stops.length + 1;
+      const stopsArray = Array.isArray(stops) ? stops : [];
+      const stopNumber = stopsArray.length + 1;
       console.log("Creating new stop with stop_number:", stopNumber);
       
       const newStop: DeliveryStop = {
@@ -59,7 +61,7 @@ export const useStopsDialogs = (
         sequence: stopNumber
       };
       
-      const newStops = [...stops, newStop];
+      const newStops = [...stopsArray, newStop];
       console.log("Adding new stop to stops array, new length:", newStops.length);
       onStopsChange(newStops);
       
@@ -88,6 +90,11 @@ export const useStopsDialogs = (
     
     if (isAddingNewStop) {
       console.log("Cannot edit while adding a new stop");
+      return;
+    }
+    
+    if (!Array.isArray(stops) || index < 0 || index >= stops.length) {
+      console.error("Invalid stops array or index:", { stops, index });
       return;
     }
     
@@ -125,6 +132,11 @@ export const useStopsDialogs = (
   const handleEditSave = () => {
     console.log("handleEditSave called, editingIndex:", editingIndex);
     
+    if (!Array.isArray(stops)) {
+      console.error("Stops is not an array", stops);
+      return;
+    }
+    
     if (editingIndex < 0 || editingIndex >= stops.length) {
       console.error("Invalid editing index:", editingIndex);
       return;
@@ -134,13 +146,13 @@ export const useStopsDialogs = (
     console.log("Saving stop with form data:", editForm);
     console.log("Items data:", editForm.itemsData); // This should NOT be undefined
     
-    const itemsArray = editForm.itemsData || [];
+    const itemsArray = Array.isArray(editForm.itemsData) ? editForm.itemsData : [];
     
     let price = 0;
     if (itemsArray.length > 0) {
       price = itemsArray.reduce((total, item) => {
-        const itemPrice = parseFloat(String(item.price)) || 0; // Convert to string first
-        const quantity = parseInt(String(item.quantity)) || 1; // Convert to string first
+        const itemPrice = parseFloat(String(item.price || 0)) || 0; // Convert to string first
+        const quantity = parseInt(String(item.quantity || 1)) || 1; // Convert to string first
         const itemTotal = itemPrice * quantity;
         console.log(`Item price calculation: ${quantity} x $${itemPrice} = $${itemTotal}`);
         return total + itemTotal;
@@ -152,8 +164,8 @@ export const useStopsDialogs = (
     
     console.log("Calculated price:", price);
     
-    const selectedCustomer = customers.find(c => c.id === editForm.customer_id);
-    const selectedDriver = drivers.find(d => d.id === editForm.driver_id);
+    const selectedCustomer = customers?.find(c => c.id === editForm.customer_id);
+    const selectedDriver = drivers?.find(d => d.id === editForm.driver_id);
     
     console.log("Selected customer:", selectedCustomer?.name, "id:", editForm.customer_id);
     console.log("Selected driver:", selectedDriver?.name, "id:", editForm.driver_id);
@@ -164,7 +176,7 @@ export const useStopsDialogs = (
       ...editForm,
       price,
       items: editForm.items, // Ensure items string is included
-      itemsData: editForm.itemsData || [], // ENSURE itemsData array is included
+      itemsData: Array.isArray(editForm.itemsData) ? editForm.itemsData : [], // ENSURE itemsData array is included
       customer_name: selectedCustomer?.name,
       customer_address: selectedCustomer?.address,
       customer_phone: selectedCustomer?.phone,
@@ -203,7 +215,7 @@ export const useStopsDialogs = (
 
   const handleEditCancel = () => {
     console.log("Cancelling stop edit/add operation, isAddingNewStop:", isAddingNewStop);
-    if (isAddingNewStop) {
+    if (isAddingNewStop && Array.isArray(stops)) {
       const newStops = [...stops];
       newStops.pop();
       console.log("Removing last stop, new stops length:", newStops.length);
@@ -247,7 +259,7 @@ export const useStopsDialogs = (
       const newForm = {
         ...prev,
         items,
-        itemsData: itemsData || []
+        itemsData: Array.isArray(itemsData) ? itemsData : []
       };
       console.log("Updated form with itemsData:", JSON.stringify(newForm));
       return newForm;
