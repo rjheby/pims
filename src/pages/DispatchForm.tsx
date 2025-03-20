@@ -158,7 +158,7 @@ export default function DispatchForm() {
         </div>
       ) : (
         <div className="flex-1">
-          <Card className="shadow-sm mb-24 md:mb-6">
+          <Card className="shadow-sm mb-16 md:mb-6">
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle>Dispatch Schedule #{masterSchedule.schedule_number}</CardTitle>
@@ -197,7 +197,7 @@ export default function DispatchForm() {
                   )}
                 />
 
-                <div className="flex flex-col md:flex-row gap-4 justify-between">
+                <div className="flex flex-col md:flex-row gap-4 justify-between pb-6 md:pb-0">
                   <div className="flex gap-2">
                     <Button
                       type="button"

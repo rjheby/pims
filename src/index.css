@@ -104,8 +104,8 @@
     display: none;  /* Chrome, Safari and Opera */
   }
   
-  /* Add safe-area-bottom utility for devices with notches */
+  /* Updated safe-area-bottom utility for devices with notches and fixed navigation */
   .safe-area-bottom {
-    padding-bottom: env(safe-area-inset-bottom, 16px);
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 80px);
   }
 }
