@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
+import { useCustomerData } from "@/hooks/useCustomerData";
 
 interface CustomerSelectorProps {
   onSelect: (customer: Customer) => void;
@@ -21,9 +22,17 @@ export const CustomerSelector = ({
   onCancel,
   initialCustomerId
 }: CustomerSelectorProps) => {
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const { 
+    customers, 
+    loading, 
+    error, 
+    hasMore, 
+    searchTerm, 
+    setSearchTerm, 
+    fetchMoreCustomers,
+    addCustomerToCache
+  } = useCustomerData();
+  
   const [selectedId, setSelectedId] = useState<string | null>(initialCustomerId || null);
   const [showNewCustomerDialog, setShowNewCustomerDialog] = useState(false);
   const [newCustomer, setNewCustomer] = useState<Omit<Customer, 'id'>>({
@@ -33,75 +42,29 @@ export const CustomerSelector = ({
     phone: '',
     email: ''
   });
-
-  // Memoize the constructAddress function to avoid recreation on every render
-  const constructAddress = useCallback((customer: any) => {
-    const parts = [
-      customer.street_address,
-      customer.city,
-      customer.state,
-      customer.zip_code
-    ].filter(Boolean);
+  
+  // Intersection observer for infinite scroll
+  const observer = useRef<IntersectionObserver | null>(null);
+  const lastCustomerElementRef = useCallback((node: HTMLDivElement | null) => {
+    if (loading) return;
     
-    return parts.length > 0 ? parts.join(', ') : '';
-  }, []);
-
-  // Fetch customers only once when component mounts
-  useEffect(() => {
-    fetchCustomers();
-    // Empty dependency array ensures this only runs once when component mounts
-  }, []);
-
-  async function fetchCustomers() {
-    try {
-      setLoading(true);
-      console.log("CustomerSelector: Fetching customers");
-      
-      const { data, error } = await supabase
-        .from('customers')
-        .select('id, name, address, phone, email, notes, type, street_address, city, state, zip_code')
-        .order('name');
-        
-      if (error) {
-        console.error("Error fetching customers:", error);
-        toast({
-          title: "Error",
-          description: `Failed to fetch customers: ${error.message}`,
-          variant: "destructive"
-        });
-        return;
+    if (observer.current) observer.current.disconnect();
+    
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        fetchMoreCustomers();
       }
+    });
+    
+    if (node) observer.current.observe(node);
+  }, [loading, hasMore, fetchMoreCustomers]);
 
-      console.log(`CustomerSelector: Fetched ${data?.length || 0} customers`);
-
-      // Process customers only once after fetching
-      const processedCustomers = data.map((customer) => ({
-        ...customer,
-        type: customer.type || 'RETAIL',
-        address: customer.address || constructAddress(customer),
-      }));
-      
-      setCustomers(processedCustomers);
-    } catch (error: any) {
-      console.error("Error in fetchCustomers:", error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred while fetching customers",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
+  // Select the initial customer if provided
+  useEffect(() => {
+    if (initialCustomerId) {
+      setSelectedId(initialCustomerId);
     }
-  }
-
-  // Memoize filtered customers to avoid recalculation on every render
-  const filteredCustomers = useCallback(() => {
-    return customers.filter(customer => 
-      (customer.name || "").toLowerCase().includes(search.toLowerCase()) ||
-      (customer.address || "").toLowerCase().includes(search.toLowerCase()) ||
-      (customer.phone || "").toLowerCase().includes(search.toLowerCase())
-    );
-  }, [customers, search]);
+  }, [initialCustomerId]);
 
   const handleConfirm = () => {
     if (!selectedId) return;
@@ -158,13 +121,26 @@ export const CustomerSelector = ({
         return;
       }
 
+      // Process the new customer data
+      const constructAddress = (customer: any) => {
+        const parts = [
+          customer.street_address,
+          customer.city,
+          customer.state,
+          customer.zip_code
+        ].filter(Boolean);
+        
+        return parts.length > 0 ? parts.join(', ') : '';
+      };
+
       const newCustomerWithAllFields = {
         ...customerData,
         type: customerData.type || 'RETAIL',
         address: customerData.address || constructAddress(customerData),
       };
       
-      setCustomers(prev => [...prev, newCustomerWithAllFields]);
+      // Add to cache and set as selected
+      addCustomerToCache(newCustomerWithAllFields);
       setSelectedId(newCustomerId);
       setShowNewCustomerDialog(false);
       
@@ -184,8 +160,16 @@ export const CustomerSelector = ({
     }
   };
 
-  // Get the actual filtered customers array
-  const filteredCustomersArray = filteredCustomers();
+  if (error) {
+    return (
+      <div className="p-4 text-center text-red-500">
+        Error loading customers: {error}
+        <div className="mt-4">
+          <Button onClick={onCancel}>Close</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-h-[60vh] flex flex-col">
@@ -194,8 +178,8 @@ export const CustomerSelector = ({
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search customers..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-8"
           />
         </div>
@@ -210,21 +194,21 @@ export const CustomerSelector = ({
         </Button>
       </div>
       
-      {loading ? (
-        <div className="flex justify-center items-center h-40">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-      ) : (
-        <div className="flex-1 overflow-y-auto mb-4 max-h-[40vh]">
-          {filteredCustomersArray.length === 0 ? (
-            <div className="text-center py-6 text-muted-foreground">
-              No customers found.
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {filteredCustomersArray.map((customer) => (
+      <div className="flex-1 overflow-y-auto mb-4 max-h-[40vh]">
+        {customers.length === 0 && !loading ? (
+          <div className="text-center py-6 text-muted-foreground">
+            No customers found.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {customers.map((customer, index) => {
+              // Add a ref to the last element for infinite scrolling
+              const isLastElement = index === customers.length - 1;
+              
+              return (
                 <div
                   key={customer.id}
+                  ref={isLastElement ? lastCustomerElementRef : null}
                   className={`
                     p-3 rounded-md cursor-pointer border
                     ${selectedId === customer.id ? 'bg-primary/10 border-primary' : 'hover:bg-accent'}
@@ -239,11 +223,17 @@ export const CustomerSelector = ({
                     <div className="text-sm text-muted-foreground">{customer.phone}</div>
                   )}
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+              );
+            })}
+            
+            {loading && (
+              <div className="py-4 text-center">
+                <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
       
       <div className="flex justify-end space-x-2 mt-auto pt-4 border-t">
         <Button variant="outline" onClick={onCancel}>

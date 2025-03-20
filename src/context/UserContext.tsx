@@ -16,7 +16,6 @@ interface UserContextType {
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
-// Map database roles to application roles
 const mapDatabaseRole = (dbRole: string): UserRole => {
   const roleMap: Record<string, UserRole> = {
     'SUPER_ADMIN': 'superadmin',
@@ -30,7 +29,6 @@ const mapDatabaseRole = (dbRole: string): UserRole => {
   return (roleMap[dbRole] as UserRole) || dbRole as UserRole;
 };
 
-// Order matters! Higher number = more permissions
 const roleHierarchy: Record<UserRole, number> = {
   superadmin: 7,
   admin: 6,
@@ -41,7 +39,6 @@ const roleHierarchy: Record<UserRole, number> = {
   customer: 1,
 };
 
-// Define routes that require authentication
 const protectedRoutes = [
   '/dispatch',
   '/dispatch-archive',
@@ -53,7 +50,6 @@ const protectedRoutes = [
   '/drivers',
 ];
 
-// Define routes that require specific roles
 const roleRestrictedRoutes: Record<string, UserRole> = {
   '/team-settings': 'admin',
   '/wholesale-order': 'manager',
@@ -66,7 +62,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Helper function to selectively clear auth state - only used in extreme cases
   const clearAuthState = () => {
     try {
       localStorage.removeItem('woodbourne-auth-token');
@@ -76,7 +71,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Check auth status on initial load and route changes
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -192,7 +186,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     checkAuth();
   }, [location.pathname, navigate, toast]);
 
-  // Check role restrictions for current route
   useEffect(() => {
     const checkRoleRestrictions = async () => {
       if (!user || isLoading) return;
@@ -224,12 +217,11 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
   const signIn = async (email: string, password: string, keepSignedIn: boolean = true) => {
     try {
+      const expirySeconds = keepSignedIn ? 30 * 24 * 60 * 60 : 8 * 60 * 60;
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
-        options: {
-          expiresIn: keepSignedIn ? 30 * 24 * 60 * 60 : 8 * 60 * 60
-        }
       });
       
       if (error) {
