@@ -26,11 +26,12 @@ interface ScheduleCreatorProps {
   onSubmitted?: () => void;
 }
 
-// Helper function to format display date - moved to top to avoid reference errors
-const formatDisplayDate = (dateString: string) => {
+// Helper function to format date for display
+const formatDisplayDate = (dateString: string): string => {
   try {
     return format(new Date(dateString), "EEEE, MMMM d, yyyy");
   } catch (error) {
+    console.error("Error formatting date:", error);
     return dateString;
   }
 };
@@ -76,17 +77,18 @@ export const ScheduleCreator = ({
   
   const handleScheduleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newDate = e.target.value;
+    
+    // Get current driver IDs for schedule number generation
+    const driverIds = stops
+      .map(stop => stop.driver_id)
+      .filter((id): id is string => Boolean(id))
+      .filter((id, index, array) => array.indexOf(id) === index)
+      .sort();
+      
     setSchedule(prev => ({
       ...prev,
       schedule_date: newDate,
-      // Update schedule number to reflect the new date
-      schedule_number: generateScheduleNumber(newDate, 
-        stops
-          .map(stop => stop.driver_id)
-          .filter((id): id is string => Boolean(id))
-          .filter((id, index, array) => array.indexOf(id) === index)
-          .sort()
-      )
+      schedule_number: generateScheduleNumber(newDate, driverIds)
     }));
   };
   
