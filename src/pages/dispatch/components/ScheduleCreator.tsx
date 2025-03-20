@@ -26,6 +26,15 @@ interface ScheduleCreatorProps {
   onSubmitted?: () => void;
 }
 
+// Helper function to format display date - moved to top to avoid reference errors
+const formatDisplayDate = (dateString: string) => {
+  try {
+    return format(new Date(dateString), "EEEE, MMMM d, yyyy");
+  } catch (error) {
+    return dateString;
+  }
+};
+
 export const ScheduleCreator = ({ 
   initialStops = [],
   initialScheduleDate,
@@ -66,42 +75,19 @@ export const ScheduleCreator = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const handleScheduleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newDate = e.target.value;
     setSchedule(prev => ({
       ...prev,
-      schedule_date: e.target.value
+      schedule_date: newDate,
+      // Update schedule number to reflect the new date
+      schedule_number: generateScheduleNumber(newDate, 
+        stops
+          .map(stop => stop.driver_id)
+          .filter((id): id is string => Boolean(id))
+          .filter((id, index, array) => array.indexOf(id) === index)
+          .sort()
+      )
     }));
-  };
-  
-  const formatDisplayDate = (dateString: string) => {
-    try {
-      return format(new Date(dateString), "EEEE, MMMM d, yyyy");
-    } catch (error) {
-      return dateString;
-    }
-  };
-  
-  const calculateTotals = () => {
-    const totalStops = stops.length;
-    
-    // Count stops by driver
-    const stopsByDriver: Record<string, number> = {};
-    stops.forEach(stop => {
-      const driverName = stop.driver_name || 'Unassigned';
-      stopsByDriver[driverName] = (stopsByDriver[driverName] || 0) + 1;
-    });
-    
-    // Calculate total price
-    const totalPrice = stops.reduce((sum: number, stop) => {
-      // If price is already calculated, use it; otherwise calculate based on items
-      const price = stop.price || calculatePrice(stop.items || null);
-      return sum + Number(price);
-    }, 0);
-    
-    return {
-      totalQuantity: totalStops,
-      totalValue: totalPrice,
-      quantityByPackaging: stopsByDriver
-    };
   };
   
   const validateSchedule = () => {
@@ -310,6 +296,30 @@ export const ScheduleCreator = ({
         schedule_number: newScheduleNumber
       }));
     }
+  };
+  
+  const calculateTotals = () => {
+    const totalStops = stops.length;
+    
+    // Count stops by driver
+    const stopsByDriver: Record<string, number> = {};
+    stops.forEach(stop => {
+      const driverName = stop.driver_name || 'Unassigned';
+      stopsByDriver[driverName] = (stopsByDriver[driverName] || 0) + 1;
+    });
+    
+    // Calculate total price
+    const totalPrice = stops.reduce((sum: number, stop) => {
+      // If price is already calculated, use it; otherwise calculate based on items
+      const price = stop.price || calculatePrice(stop.items || null);
+      return sum + Number(price);
+    }, 0);
+    
+    return {
+      totalQuantity: totalStops,
+      totalValue: totalPrice,
+      quantityByPackaging: stopsByDriver
+    };
   };
   
   return (
