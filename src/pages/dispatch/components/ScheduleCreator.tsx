@@ -65,10 +65,14 @@ export const ScheduleCreator = ({
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
+  // Format the current schedule date for display
+  const formattedDisplayDate = formatDisplayDate(schedule.schedule_date);
+  
   const handleScheduleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newDate = e.target.value;
     setSchedule(prev => ({
       ...prev,
-      schedule_date: e.target.value
+      schedule_date: newDate
     }));
   };
   
@@ -318,7 +322,7 @@ export const ScheduleCreator = ({
         <CardHeader>
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <CardTitle className="text-xl md:text-2xl">
-              {isMobile ? "Delivery Schedule" : `Delivery Schedule for ${formatDisplayDate(schedule.schedule_date)}`}
+              {isMobile ? "Delivery Schedule" : `Delivery Schedule for ${formattedDisplayDate}`}
             </CardTitle>
           </div>
         </CardHeader>
@@ -347,11 +351,11 @@ export const ScheduleCreator = ({
                   </div>
                   {isMobile ? (
                     <p className="text-sm text-gray-600 font-semibold">
-                      {formatDisplayDate(schedule.schedule_date)}
+                      {formattedDisplayDate}
                     </p>
                   ) : (
                     <p className="text-sm text-gray-600">
-                      All stops will be scheduled for {formatDisplayDate(schedule.schedule_date)}
+                      All stops will be scheduled for {formattedDisplayDate}
                     </p>
                   )}
                 </div>
