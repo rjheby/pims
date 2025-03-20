@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format, parseISO } from "date-fns";
@@ -326,7 +327,7 @@ export const ScheduleCreator = ({
   
   return (
     <div className="flex-1">
-      <Card className="shadow-sm mx-auto max-w-6xl">
+      <Card className="shadow-sm mx-auto max-w-6xl mb-24 md:mb-6">
         <CardHeader>
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <CardTitle className="text-xl md:text-2xl">
@@ -398,7 +399,7 @@ export const ScheduleCreator = ({
             />
             
             {isMobile ? (
-              <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4 z-10">
+              <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4 z-10 safe-area-bottom">
                 <BaseOrderActions
                   onSave={handleSave}
                   onSubmit={handleSubmit}

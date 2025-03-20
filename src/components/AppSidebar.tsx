@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -98,7 +97,6 @@ export function AppSidebar() {
   const [showFullLogo, setShowFullLogo] = useState(false);
   const [screenWidth, setScreenWidth] = useState(window.innerWidth);
 
-  // Check if window width is large enough for full logo and update screenWidth state
   useEffect(() => {
     const checkWindowSize = () => {
       const width = window.innerWidth;
@@ -106,13 +104,10 @@ export function AppSidebar() {
       setShowFullLogo(width >= 1280);
     };
     
-    // Set initial value
     checkWindowSize();
     
-    // Add event listener
     window.addEventListener('resize', checkWindowSize);
     
-    // Cleanup
     return () => {
       window.removeEventListener('resize', checkWindowSize);
     };
@@ -122,7 +117,6 @@ export function AppSidebar() {
     if (isMobile) setOpenMobile(false);
   };
 
-  // Determine if we're in the problematic mid-size range (650px-1235px)
   const isMidSizeRange = screenWidth > 650 && screenWidth < 1235;
 
   const NavLink = ({ to, onClick = () => {}, isActive, className, children }) => (
@@ -156,7 +150,6 @@ export function AppSidebar() {
           <Logo variant="full" />
         </div>
         
-        {/* User menu added to mobile sidebar */}
         <div className="flex items-center gap-2">
           <UserMenu />
           <GlobalAdminControls />
@@ -190,7 +183,7 @@ export function AppSidebar() {
 
   return (
     <>
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#2A4131]/10 md:hidden z-50">
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#2A4131]/10 md:hidden z-40 safe-area-bottom">
         <div className="flex items-center justify-around h-16">
           {mobileNavItems.map((item) => (
             <Link
@@ -229,7 +222,6 @@ export function AppSidebar() {
       <div className="hidden md:block bg-white border-b border-[#2A4131]/10">
         <div className="flex items-center justify-between h-[72px] px-4 max-w-screen-2xl mx-auto">
           <div className="flex items-center gap-8">
-            {/* Always show icon in problematic mid-size range, otherwise use showFullLogo logic */}
             {showFullLogo && !isMidSizeRange ? (
               <Logo variant="full" />
             ) : (
@@ -237,7 +229,7 @@ export function AppSidebar() {
             )}
             <nav className={cn(
               "flex items-center gap-6 overflow-x-auto pb-1 hide-scrollbar",
-              isMidSizeRange && "pr-12" // Add extra padding when in the problematic range
+              isMidSizeRange && "pr-12"
             )}>
               <NavLink 
                 to="/"
@@ -298,7 +290,6 @@ export function AppSidebar() {
             </nav>
           </div>
           
-          {/* User menu and admin controls in desktop header */}
           <div className="flex items-center gap-2">
             <UserMenu />
             <GlobalAdminControls />

@@ -1,3 +1,4 @@
+
 import { useParams, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -157,7 +158,7 @@ export default function DispatchForm() {
         </div>
       ) : (
         <div className="flex-1">
-          <Card className="shadow-sm">
+          <Card className="shadow-sm mb-24 md:mb-6">
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle>Dispatch Schedule #{masterSchedule.schedule_number}</CardTitle>

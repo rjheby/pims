@@ -103,4 +103,9 @@
   .hide-scrollbar::-webkit-scrollbar {
     display: none;  /* Chrome, Safari and Opera */
   }
+  
+  /* Add safe-area-bottom utility for devices with notches */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+  }
 }

@@ -19,9 +19,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           {/* Sidebar navigation with UserMenu integrated */}
           <AppSidebar />
           
-          {/* Main content */}
+          {/* Main content - added pb-20 for mobile to account for fixed navigation */}
           <main className="flex-1 pt-20 pb-16 md:pb-10 px-4">
-            <div className="max-w-screen-2xl mx-auto">
+            <div className="max-w-screen-2xl mx-auto pb-20 md:pb-0">
               {children}
             </div>
           </main>
