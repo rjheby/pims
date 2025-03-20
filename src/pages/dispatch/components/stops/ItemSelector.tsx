@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter 
@@ -5,7 +6,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { RecurrenceData } from "./RecurringOrderForm";
 import { useRetailInventory } from "@/pages/dispatch/hooks/useRetailInventory";
-import { Plus, Minus, Search, X } from "lucide-react";
+import { Plus, Minus, Search, X, DollarSign } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -16,6 +17,7 @@ interface ItemSelectorProps {
   onCancel: () => void;
   initialItems?: string | null;
   recurrenceData?: RecurrenceData;
+  customerId?: string;
 }
 
 export const ItemSelector: React.FC<ItemSelectorProps> = ({
@@ -24,9 +26,10 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
   onSelect,
   onCancel,
   initialItems,
-  recurrenceData
+  recurrenceData,
+  customerId
 }) => {
-  console.log("ItemSelector rendering with props:", { initialItems, recurrenceData });
+  console.log("ItemSelector rendering with props:", { initialItems, recurrenceData, customerId });
   
   const { loading, getInventoryWithProductDetails } = useRetailInventory();
   const [selectedItems, setSelectedItems] = useState<{id: string; name: string; quantity: number; price?: number}[]>([]);
@@ -147,15 +150,26 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
           : i
       ));
     } else {
+      // Get client-specific price if available, otherwise use default price
+      // This would be implemented with a hook or API call in a real app
+      const clientPrice = getClientSpecificPrice(customerId, item.product?.id);
+      
       const newItem = {
         id: String(item.product?.id),
         name: item.product?.name || 'Unknown Product',
         quantity: 1,
-        price: item.product?.price
+        price: clientPrice || item.product?.price
       };
       console.log("Adding new item:", newItem);
       setSelectedItems([...selectedItems, newItem]);
     }
+  };
+  
+  // This is a placeholder function that would be implemented properly in a real app
+  const getClientSpecificPrice = (clientId?: string, productId?: number) => {
+    // In a real implementation, this would lookup custom pricing for the client
+    // or return undefined if no custom pricing exists
+    return undefined;
   };
   
   const removeItem = (item: any) => {
@@ -186,6 +200,13 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
     }
   };
   
+  const handlePriceChange = (index: number, value: string) => {
+    const price = parseFloat(value) || undefined;
+    setSelectedItems(selectedItems.map((item, idx) => 
+      idx === index ? { ...item, price } : item
+    ));
+  };
+  
   const formatSelectedItemsForOutput = () => {
     const formatted = selectedItems.map(item => 
       `${item.quantity}x ${item.name}${item.price ? ` @$${item.price}` : ''}`
@@ -207,20 +228,20 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-5xl w-[95vw] max-h-[90vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle>Select Items</DialogTitle>
         </DialogHeader>
         
-        <div className="flex flex-col space-y-4 max-h-[60vh] overflow-auto">
+        <div className="flex flex-col space-y-4 overflow-y-auto pr-1" style={{ maxHeight: 'calc(90vh - 180px)' }}>
           {selectedItems.length > 0 && (
             <div className="border rounded p-3 bg-slate-50">
               <h3 className="font-medium mb-2">Selected Items</h3>
               <ul className="space-y-2">
                 {selectedItems.map((item, index) => (
                   <li key={index} className="flex justify-between items-center">
-                    <span>{item.quantity}x {item.name}</span>
-                    <div className="flex items-center space-x-2">
+                    <span className="mr-2 truncate">{item.name}</span>
+                    <div className="flex items-center space-x-2 flex-shrink-0">
                       <Button 
                         variant="outline" 
                         size="sm"
@@ -237,7 +258,7 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
                         min="1"
                         value={item.quantity}
                         onChange={(e) => handleQuantityChange(index, e.target.value)}
-                        className="h-8 w-14 text-center"
+                        className="h-8 w-20 text-center"
                       />
                       <Button 
                         variant="outline" 
@@ -250,6 +271,18 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
                       >
                         <Plus className="h-4 w-4" />
                       </Button>
+                      <div className="flex items-center border rounded px-2 h-8 ml-2">
+                        <DollarSign className="h-4 w-4 text-gray-500" />
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={item.price || ''}
+                          onChange={(e) => handlePriceChange(index, e.target.value)}
+                          placeholder="Price"
+                          className="h-7 w-24 border-0 p-0 focus-visible:ring-0"
+                        />
+                      </div>
                     </div>
                   </li>
                 ))}
@@ -289,7 +322,7 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Choose a product" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-[200px] overflow-y-auto">
                     {sortedInventoryItems.map((item) => (
                       <SelectItem key={item.product?.id} value={String(item.product?.id) || "item-id-missing"}>
                         {item.product?.name} ({item.packages_available} available)
@@ -323,7 +356,7 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
                   <SelectTrigger>
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-[200px] overflow-y-auto">
                     <SelectItem value="any-type">Any</SelectItem>
                     {productTypes.map((type) => (
                       <SelectItem key={type} value={type || "unknown-type"}>{type || "Unknown"}</SelectItem>
@@ -338,7 +371,7 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
                   <SelectTrigger>
                     <SelectValue placeholder="Select size" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-[200px] overflow-y-auto">
                     <SelectItem value="any-size">Any</SelectItem>
                     {productSizes.map((size) => (
                       <SelectItem key={size} value={size || "unknown-size"}>{size || "Unknown"}</SelectItem>
@@ -379,7 +412,7 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
                           <Input
                             type="number"
                             min="0"
-                            className="h-8 w-14 text-center"
+                            className="h-8 w-20 text-center"
                             value={selectedItems.find(i => 
                               i.id === String(item.product?.id) || i.name === item.product?.name)?.quantity || 0}
                             onChange={(e) => {
