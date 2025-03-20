@@ -1,11 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/context/UserContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,13 +23,24 @@ export default function Auth() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // If user is logged in, redirect to home or intended destination
   useEffect(() => {
     if (user) {
       const from = location.state?.from || "/";
       navigate(from, { replace: true });
     }
   }, [user, navigate, location]);
+
+  const clearLocalAuthData = () => {
+    localStorage.removeItem('supabase.auth.token');
+    sessionStorage.removeItem('supabase.auth.token');
+    
+    window.location.reload();
+    
+    toast({
+      title: "Session data cleared",
+      description: "Please try signing in again.",
+    });
+  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,7 +49,6 @@ export default function Auth() {
 
     try {
       if (isSignUp) {
-        // Handle sign up
         if (password !== confirmPassword) {
           setErrorMessage("Passwords do not match");
           toast({
@@ -77,7 +86,6 @@ export default function Auth() {
           setIsSignUp(false);
         }
       } else {
-        // Handle sign in
         const { error } = await signIn(email, password);
         
         if (error) {
@@ -190,6 +198,7 @@ export default function Auth() {
                 "Sign In"
               )}
             </Button>
+            
             <div className="text-center text-sm">
               {isSignUp ? (
                 <div>
@@ -215,6 +224,16 @@ export default function Auth() {
                 </div>
               )}
             </div>
+            
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-4 text-xs flex items-center gap-1"
+              onClick={clearLocalAuthData}
+            >
+              <RefreshCw className="h-3 w-3" /> Clear Session Data
+            </Button>
           </CardFooter>
         </form>
       </Card>

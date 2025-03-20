@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { User, UserRole } from "@/types/user";
 import { supabase } from "@/integrations/supabase/client";
@@ -213,10 +212,16 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       if (error) {
         console.error("Sign in error:", error);
         
-        // Provide a more specific message for the database error
+        // Handle specific database schema errors
         let errorMessage = error.message;
-        if (error.message.includes("Database error querying schema")) {
+        if (error.message.includes("Database error querying schema") || 
+            error.message.includes("Scan error") || 
+            error.message.includes("converting NULL to string")) {
           errorMessage = "Authentication system error. Please try again or contact support if the issue persists.";
+          
+          // Let's attempt to clear any problematic cached auth state
+          localStorage.removeItem('supabase.auth.token');
+          sessionStorage.removeItem('supabase.auth.token');
         }
         
         toast({
