@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter 
@@ -76,10 +75,20 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
   const inventoryItems = getInventoryWithProductDetails();
   console.log("Available inventory items:", inventoryItems.length);
   
+  // Sort all inventory items by popularity and then alphabetically
   const sortedInventoryItems = [...inventoryItems].sort((a, b) => {
-    const rankA = a.product?.is_popular ? (a.product?.popularity_rank || 0) : 999;
-    const rankB = b.product?.is_popular ? (b.product?.popularity_rank || 0) : 999;
-    return rankA - rankB;
+    // First sort by popularity (is_popular products with lower rank first)
+    const popularityA = a.product?.is_popular ? (a.product?.popularity_rank || 999) : 999;
+    const popularityB = b.product?.is_popular ? (b.product?.popularity_rank || 999) : 999;
+    
+    if (popularityA !== popularityB) {
+      return popularityA - popularityB;
+    }
+    
+    // Then by product name alphabetically when popularity is the same
+    const nameA = a.product?.name?.toLowerCase() || '';
+    const nameB = b.product?.name?.toLowerCase() || '';
+    return nameA.localeCompare(nameB);
   });
   
   const productTypes = [...new Set(inventoryItems
@@ -270,7 +279,7 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
           {selectionMode === 'search' && (
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Popular Products</label>
+                <label className="block text-sm font-medium mb-1">Products</label>
                 <Select 
                   onValueChange={(value) => {
                     const item = inventoryItems.find(item => String(item.product?.id) === value);
@@ -278,16 +287,14 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
                   }}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Choose a popular product" />
+                    <SelectValue placeholder="Choose a product" />
                   </SelectTrigger>
                   <SelectContent>
-                    {sortedInventoryItems
-                      .filter(item => item.product?.is_popular)
-                      .map((item) => (
-                        <SelectItem key={item.product?.id} value={String(item.product?.id) || "item-id-missing"}>
-                          {item.product?.name} ({item.packages_available} available)
-                        </SelectItem>
-                      ))}
+                    {sortedInventoryItems.map((item) => (
+                      <SelectItem key={item.product?.id} value={String(item.product?.id) || "item-id-missing"}>
+                        {item.product?.name} ({item.packages_available} available)
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
