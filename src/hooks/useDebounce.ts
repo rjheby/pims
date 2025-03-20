@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 /**
  * A hook that delays updating a value until a specified delay has passed
@@ -11,16 +11,24 @@ import { useState, useEffect } from 'react';
  */
 export function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    // Clear previous timer if value changes before delay completes
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+    
     // Set a timeout to update the debounced value after the specified delay
-    const timer = setTimeout(() => {
+    timerRef.current = setTimeout(() => {
       setDebouncedValue(value);
     }, delay);
 
-    // Clean up the timeout if the value changes before the delay has passed
+    // Clean up the timeout when component unmounts or value changes
     return () => {
-      clearTimeout(timer);
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
     };
   }, [value, delay]);
 

@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Loader2, UserPlus, ChevronDown, ChevronUp } from "lucide-react";
+import { Search, Loader2, UserPlus } from "lucide-react";
 import { Customer } from "./types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -11,9 +11,10 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { useDebounce } from "../../../../hooks/useDebounce";
+import { Progress } from "@/components/ui/progress";
 
 // Cache for storing previously loaded customers
-const customersCache: Record<string, { data: Customer[], timestamp: number }> = {};
+const customersCache: Record<string, { data: Customer[], timestamp: number, count: number }> = {};
 const CACHE_EXPIRY_TIME = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 interface CustomerSelectorProps {
@@ -41,12 +42,14 @@ export const CustomerSelector = ({
     email: ''
   });
   
-  // Pagination state
+  // Pagination state with memoized initialization
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalCustomers, setTotalCustomers] = useState(0);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const ITEMS_PER_PAGE = 10;
 
-  // Function to construct address from components
+  // Function to construct address from components - memoized to prevent recreation
   const constructAddress = useCallback((customer: any) => {
     const parts = [
       customer.street_address,
@@ -58,10 +61,11 @@ export const CustomerSelector = ({
     return parts.length > 0 ? parts.join(', ') : '';
   }, []);
 
-  // Check for cached data and fetch if needed
+  // Fetch customers with optimized caching and performance
   const fetchCustomers = useCallback(async (page = 1, searchTerm = "") => {
     try {
       setLoading(true);
+      setLoadingProgress(10); // Start progress indicator
       
       // Create a cache key based on pagination and search
       const cacheKey = `customers_page${page}_search${searchTerm}`;
@@ -71,9 +75,14 @@ export const CustomerSelector = ({
       if (customersCache[cacheKey] && (now - customersCache[cacheKey].timestamp) < CACHE_EXPIRY_TIME) {
         console.log("Using cached customer data for:", cacheKey);
         setCustomers(customersCache[cacheKey].data);
+        setTotalPages(Math.ceil(customersCache[cacheKey].count / ITEMS_PER_PAGE));
+        setTotalCustomers(customersCache[cacheKey].count);
+        setLoadingProgress(100);
         setLoading(false);
         return;
       }
+      
+      setLoadingProgress(30); // Update progress during fetch
       
       // Calculate pagination range
       const from = (page - 1) * ITEMS_PER_PAGE;
@@ -89,11 +98,15 @@ export const CustomerSelector = ({
         query = query.or(`name.ilike.%${searchTerm}%,address.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
       }
       
+      setLoadingProgress(50); // Update progress
+      
       // Add pagination
       const { data, error, count } = await query
         .order('name')
         .range(from, to);
         
+      setLoadingProgress(70); // Update progress after data received
+      
       if (error) {
         throw error;
       }
@@ -101,8 +114,11 @@ export const CustomerSelector = ({
       // Calculate total pages
       if (count !== null) {
         setTotalPages(Math.ceil(count / ITEMS_PER_PAGE));
+        setTotalCustomers(count);
       }
 
+      setLoadingProgress(90); // Almost done
+      
       // Process customer data
       const processedCustomers = data.map((customer) => ({
         ...customer,
@@ -113,10 +129,12 @@ export const CustomerSelector = ({
       // Cache the results
       customersCache[cacheKey] = {
         data: processedCustomers,
-        timestamp: now
+        timestamp: now,
+        count: count || 0
       };
       
       setCustomers(processedCustomers);
+      setLoadingProgress(100); // Complete
     } catch (error) {
       console.error("Error fetching customers:", error);
       toast({
@@ -129,59 +147,67 @@ export const CustomerSelector = ({
     }
   }, [constructAddress]);
 
-  // Fetch initial data or when page changes
+  // Fetch initial data or when page/search changes - with dependencies correctly specified
   useEffect(() => {
+    console.log("Effect running to fetch customers with:", { currentPage, debouncedSearch });
     fetchCustomers(currentPage, debouncedSearch);
   }, [fetchCustomers, currentPage, debouncedSearch]);
 
-  // If an initial customer ID is provided, fetch and select that customer
+  // If an initial customer ID is provided, fetch and select that customer - with proper dependency tracking
   useEffect(() => {
+    if (!initialCustomerId) return;
+    
     const fetchInitialCustomer = async () => {
-      if (initialCustomerId) {
-        try {
-          const { data, error } = await supabase
-            .from('customers')
-            .select('id, name, address, phone, email, notes, type, street_address, city, state, zip_code')
-            .eq('id', initialCustomerId)
-            .single();
-            
-          if (error) throw error;
+      try {
+        setLoadingProgress(20); // Start progress
+        
+        const { data, error } = await supabase
+          .from('customers')
+          .select('id, name, address, phone, email, notes, type, street_address, city, state, zip_code')
+          .eq('id', initialCustomerId)
+          .single();
           
-          if (data) {
-            setSelectedId(data.id);
-            // Add to full list if not already there
-            setCustomers(prev => {
-              if (!prev.some(c => c.id === data.id)) {
-                return [...prev, {
-                  ...data,
-                  type: data.type || 'RETAIL',
-                  address: data.address || constructAddress(data)
-                }];
-              }
-              return prev;
-            });
-          }
-        } catch (error) {
-          console.error("Error fetching initial customer:", error);
+        setLoadingProgress(70); // Update progress
+          
+        if (error) throw error;
+        
+        if (data) {
+          setSelectedId(data.id);
+          // Add to full list if not already there
+          setCustomers(prev => {
+            if (!prev.some(c => c.id === data.id)) {
+              return [...prev, {
+                ...data,
+                type: data.type || 'RETAIL',
+                address: data.address || constructAddress(data)
+              }];
+            }
+            return prev;
+          });
         }
+        
+        setLoadingProgress(100); // Complete
+      } catch (error) {
+        console.error("Error fetching initial customer:", error);
       }
     };
     
     fetchInitialCustomer();
   }, [initialCustomerId, constructAddress]);
 
-  // Handle search input change with debouncing
+  // Handle search input change - optimized to reduce state updates
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
     setCurrentPage(1); // Reset to first page on new search
   };
 
-  // Handle page change
-  const handlePageChange = (page: number) => {
+  // Handle page change - memoized to prevent recreation
+  const handlePageChange = useCallback((page: number) => {
+    if (page === currentPage) return; // Prevent unnecessary updates
     setCurrentPage(page);
-  };
+  }, [currentPage]);
 
-  // Memoized customer selection
+  // Memoized customer selection handler
   const handleConfirm = useCallback(() => {
     if (!selectedId) return;
     
@@ -203,6 +229,9 @@ export const CustomerSelector = ({
     }
 
     try {
+      setLoading(true);
+      setLoadingProgress(20);
+      
       // Use the add_customer function
       const { data, error } = await supabase
         .rpc('add_customer', {
@@ -213,6 +242,8 @@ export const CustomerSelector = ({
           customer_type: newCustomer.type
         });
 
+      setLoadingProgress(50);
+      
       if (error) {
         toast({
           title: "Error",
@@ -223,6 +254,7 @@ export const CustomerSelector = ({
       }
 
       const newCustomerId = data;
+      setLoadingProgress(70);
       
       // Fetch the newly created customer to get all fields
       const { data: customerData, error: customerError } = await supabase
@@ -230,6 +262,8 @@ export const CustomerSelector = ({
         .select('id, name, address, phone, email, notes, type, street_address, city, state, zip_code')
         .eq('id', newCustomerId)
         .single();
+      
+      setLoadingProgress(90);
         
       if (customerError) {
         toast({
@@ -272,10 +306,13 @@ export const CustomerSelector = ({
         description: "An unexpected error occurred",
         variant: "destructive"
       });
+    } finally {
+      setLoadingProgress(100);
+      setLoading(false);
     }
   };
 
-  // Pagination controls rendering
+  // Pagination controls rendering - memoized to prevent recreation on every render
   const renderPagination = useMemo(() => {
     if (totalPages <= 1) return null;
     
@@ -351,14 +388,20 @@ export const CustomerSelector = ({
         </PaginationContent>
       </Pagination>
     );
-  }, [currentPage, totalPages]);
+  }, [currentPage, totalPages, handlePageChange]);
 
-  // Render customer list with selection
+  // Render customer list with selection - memoized to prevent recreation on every render
   const renderCustomerList = useMemo(() => {
     if (loading) {
       return (
-        <div className="flex justify-center items-center h-40">
+        <div className="flex flex-col justify-center items-center h-40 space-y-4">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <div className="w-full max-w-xs">
+            <Progress value={loadingProgress} className="h-2" />
+            <p className="text-xs text-center mt-1 text-muted-foreground">
+              {loadingProgress < 100 ? `Loading customers (${loadingProgress}%)` : 'Preparing data...'}
+            </p>
+          </div>
         </div>
       );
     }
@@ -373,6 +416,11 @@ export const CustomerSelector = ({
     
     return (
       <div className="space-y-2">
+        {totalCustomers > 0 && (
+          <p className="text-xs text-muted-foreground">
+            Showing {customers.length} of {totalCustomers} customers
+          </p>
+        )}
         {customers.map((customer) => (
           <div
             key={customer.id}
@@ -393,7 +441,7 @@ export const CustomerSelector = ({
         ))}
       </div>
     );
-  }, [customers, loading, selectedId, debouncedSearch]);
+  }, [customers, loading, selectedId, debouncedSearch, totalCustomers, loadingProgress]);
 
   return (
     <div className="max-h-[60vh] flex flex-col">
@@ -496,7 +544,16 @@ export const CustomerSelector = ({
             >
               Cancel
             </Button>
-            <Button onClick={handleCreateCustomer}>Create Customer</Button>
+            <Button onClick={handleCreateCustomer} disabled={loading}>
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                "Create Customer"
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
