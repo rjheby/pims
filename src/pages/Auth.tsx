@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, AlertCircle, RefreshCw, Info } from "lucide-react";
+import { Loader2, AlertCircle, RefreshCw, Info, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/context/UserContext";
 import { supabase, checkSupabaseHealth } from "@/integrations/supabase/client";
@@ -21,6 +21,7 @@ export default function Auth() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [supabaseStatus, setSupabaseStatus] = useState<{isHealthy: boolean, error: string | null} | null>(null);
   const [isCheckingHealth, setIsCheckingHealth] = useState(false);
+  const [connectionAttempts, setConnectionAttempts] = useState(0);
   const { toast } = useToast();
   const { user, signIn } = useUser();
   const navigate = useNavigate();
@@ -33,7 +34,7 @@ export default function Auth() {
     }
   }, [user, navigate, location]);
 
-  // Check Supabase health on component mount
+  // Check Supabase health on component mount and when connectionAttempts changes
   useEffect(() => {
     const checkHealth = async () => {
       setIsCheckingHealth(true);
@@ -51,7 +52,7 @@ export default function Auth() {
     };
     
     checkHealth();
-  }, [toast]);
+  }, [toast, connectionAttempts]);
 
   const clearLocalAuthData = () => {
     // Clear all auth-related data
@@ -67,8 +68,12 @@ export default function Auth() {
       }
     }
     
-    // Reload the page to reset all application state
-    window.location.reload();
+    // Increment connection attempts to trigger a health check
+    setConnectionAttempts(prev => prev + 1);
+    
+    // Reset form state
+    setIsSubmitting(false);
+    setErrorMessage(null);
     
     toast({
       title: "Session data cleared",
@@ -121,30 +126,44 @@ export default function Auth() {
         }
       } else {
         // Add a small delay to ensure any prior auth state is cleared
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 500));
         
-        const { error } = await signIn(email, password);
-        
-        if (error) {
-          console.error("Sign in error:", error);
-          if (typeof error === 'object' && error !== null && 'message' in error) {
-            setErrorMessage((error as any).message);
-          } else {
-            setErrorMessage("Failed to sign in. Please try again.");
-          }
+        try {
+          const { error } = await signIn(email, password);
           
-          // If we got a database error, suggest clearing session data
-          if (typeof error === 'object' && error !== null && 'message' in error) {
-            const errorMsg = (error as any).message;
-            if (errorMsg.includes("Database error") || errorMsg.includes("Scan error") || 
+          if (error) {
+            console.error("Sign in error:", error);
+            
+            let errorMsg = "Failed to sign in";
+            if (typeof error === 'object' && error !== null && 'message' in error) {
+              errorMsg = (error as any).message;
+            }
+            
+            setErrorMessage(errorMsg);
+            
+            // Special handling for Supabase database errors
+            if (errorMsg.includes("Database error") || errorMsg.includes("schema") || 
                 errorMsg.includes("converting NULL")) {
               toast({
                 title: "Authentication system error",
-                description: "Try clicking the 'Clear Session Data' button below and then sign in again.",
+                description: "Please click 'Clear Session Data' below and try again.",
                 variant: "destructive",
               });
+              
+              // Auto-clear session data after 2 seconds to help the user
+              setTimeout(clearLocalAuthData, 2000);
             }
           }
+        } catch (signInError) {
+          console.error("Unexpected sign in error:", signInError);
+          setErrorMessage("An unexpected error occurred during sign in");
+          
+          // Suggest clearing session data for any unexpected errors
+          toast({
+            title: "Authentication failed",
+            description: "Please try clearing session data and signing in again.",
+            variant: "destructive",
+          });
         }
       }
     } catch (error) {
@@ -152,7 +171,7 @@ export default function Auth() {
       setErrorMessage("An unexpected error occurred. Please try again.");
       toast({
         title: "Authentication failed",
-        description: "An unexpected error occurred. Please try again.",
+        description: "An unexpected error occurred. Please try clearing session data.",
         variant: "destructive",
       });
     } finally {
@@ -204,9 +223,9 @@ export default function Auth() {
             
             {supabaseStatus && !supabaseStatus.isHealthy && (
               <Alert variant="destructive" className="bg-amber-50 text-amber-900 border-amber-200">
-                <Info className="h-4 w-4" />
+                <AlertTriangle className="h-4 w-4" />
                 <AlertDescription className="text-amber-800">
-                  Connection issue detected. Try clearing session data below.
+                  Connection issue detected. Try clearing session data below or using a different browser.
                 </AlertDescription>
               </Alert>
             )}
@@ -257,6 +276,13 @@ export default function Auth() {
                 />
               </div>
             )}
+            
+            <Alert className="bg-blue-50 border-blue-200">
+              <Info className="h-4 w-4 text-blue-600" />
+              <AlertDescription className="text-blue-700 text-sm">
+                If you're having trouble signing in, try clicking the "Clear Session Data" button below.
+              </AlertDescription>
+            </Alert>
           </CardContent>
           <CardFooter className="flex-col space-y-4">
             <Button
@@ -302,7 +328,7 @@ export default function Auth() {
             <div className="flex gap-2 w-full">
               <Button
                 type="button"
-                variant="outline"
+                variant="destructive"
                 size="sm"
                 className="flex-1 text-xs flex items-center gap-1"
                 onClick={clearLocalAuthData}
