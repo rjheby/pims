@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,8 +34,22 @@ export const CustomerSelector = ({
     email: ''
   });
 
+  // Memoize the constructAddress function to avoid recreation on every render
+  const constructAddress = useCallback((customer: any) => {
+    const parts = [
+      customer.street_address,
+      customer.city,
+      customer.state,
+      customer.zip_code
+    ].filter(Boolean);
+    
+    return parts.length > 0 ? parts.join(', ') : '';
+  }, []);
+
+  // Fetch customers only once when component mounts
   useEffect(() => {
     fetchCustomers();
+    // Empty dependency array ensures this only runs once when component mounts
   }, []);
 
   async function fetchCustomers() {
@@ -59,6 +74,7 @@ export const CustomerSelector = ({
 
       console.log(`CustomerSelector: Fetched ${data?.length || 0} customers`);
 
+      // Process customers only once after fetching
       const processedCustomers = data.map((customer) => ({
         ...customer,
         type: customer.type || 'RETAIL',
@@ -78,22 +94,14 @@ export const CustomerSelector = ({
     }
   }
 
-  const constructAddress = (customer: any) => {
-    const parts = [
-      customer.street_address,
-      customer.city,
-      customer.state,
-      customer.zip_code
-    ].filter(Boolean);
-    
-    return parts.length > 0 ? parts.join(', ') : '';
-  };
-
-  const filteredCustomers = customers.filter(customer => 
-    (customer.name || "").toLowerCase().includes(search.toLowerCase()) ||
-    (customer.address || "").toLowerCase().includes(search.toLowerCase()) ||
-    (customer.phone || "").toLowerCase().includes(search.toLowerCase())
-  );
+  // Memoize filtered customers to avoid recalculation on every render
+  const filteredCustomers = useCallback(() => {
+    return customers.filter(customer => 
+      (customer.name || "").toLowerCase().includes(search.toLowerCase()) ||
+      (customer.address || "").toLowerCase().includes(search.toLowerCase()) ||
+      (customer.phone || "").toLowerCase().includes(search.toLowerCase())
+    );
+  }, [customers, search]);
 
   const handleConfirm = () => {
     if (!selectedId) return;
@@ -176,6 +184,9 @@ export const CustomerSelector = ({
     }
   };
 
+  // Get the actual filtered customers array
+  const filteredCustomersArray = filteredCustomers();
+
   return (
     <div className="max-h-[60vh] flex flex-col">
       <div className="flex justify-between mb-4">
@@ -205,13 +216,13 @@ export const CustomerSelector = ({
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto mb-4 max-h-[40vh]">
-          {filteredCustomers.length === 0 ? (
+          {filteredCustomersArray.length === 0 ? (
             <div className="text-center py-6 text-muted-foreground">
               No customers found.
             </div>
           ) : (
             <div className="space-y-2">
-              {filteredCustomers.map((customer) => (
+              {filteredCustomersArray.map((customer) => (
                 <div
                   key={customer.id}
                   className={`

@@ -57,7 +57,6 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
   });
   
   const [selectedCustomerId, setSelectedCustomerId] = useState(initialCustomerId);
-  const [selectedItemsData, setSelectedItemsData] = useState<any[]>([]);
   const [cachedItemsData, setCachedItemsData] = useState<any[]>([]);
   const [selectedDriverId, setSelectedDriverId] = useState(initialDriverId);
   const [notes, setNotes] = useState(initialNotes);
@@ -132,7 +131,6 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
     
     // Ensure itemsData is an array before processing
     const safeItemsData = Array.isArray(itemsData) ? itemsData : [];
-    setSelectedItemsData(safeItemsData);
     setCachedItemsData(safeItemsData);
     
     // Show a toast confirmation to provide user feedback

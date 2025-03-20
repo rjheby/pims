@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from "react";
+
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter 
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { RecurrenceData } from "./RecurringOrderForm";
 import { useRetailInventory } from "@/pages/dispatch/hooks/useRetailInventory";
-import { Plus, Minus, Search, X } from "lucide-react";
+import { Plus, Minus, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -38,8 +39,11 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
   const [selectedProductType, setSelectedProductType] = useState('');
   const [selectedSize, setSelectedSize] = useState('');
   
+  // Fetch inventory data once
+  const inventoryItems = useMemo(() => getInventoryWithProductDetails(), [getInventoryWithProductDetails]);
+  
+  // Parse initial items only when they change or dialog opens
   useEffect(() => {
-    console.log("ItemSelector open/initialItems changed:", { open, initialItems });
     if (open && initialItems) {
       try {
         const itemsArray = initialItems.split(',').map(item => item.trim());
@@ -72,39 +76,46 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
     }
   }, [open, initialItems]);
   
-  const inventoryItems = getInventoryWithProductDetails();
   console.log("Available inventory items:", inventoryItems.length);
   
-  // Sort all inventory items by popularity and then alphabetically
-  const sortedInventoryItems = [...inventoryItems].sort((a, b) => {
-    // First sort by popularity (is_popular products with lower rank first)
-    const popularityA = a.product?.is_popular ? (a.product?.popularity_rank || 999) : 999;
-    const popularityB = b.product?.is_popular ? (b.product?.popularity_rank || 999) : 999;
-    
-    if (popularityA !== popularityB) {
-      return popularityA - popularityB;
-    }
-    
-    // Then by product name alphabetically when popularity is the same
-    const nameA = a.product?.name?.toLowerCase() || '';
-    const nameB = b.product?.name?.toLowerCase() || '';
-    return nameA.localeCompare(nameB);
-  });
-  
-  const productTypes = [...new Set(inventoryItems
-    .map(item => item.product?.sku || undefined)
-    .filter(Boolean))];
-    
-  const productSizes = [...new Set(inventoryItems
-    .map(item => {
-      if (item.product?.description) {
-        const sizeMatch = item.product.description.match(/(\d+"\s*x\s*\d+"\s*x\s*\d+"|\d+\s*bundle|\d+\s*box|\d+\s*pack)/i);
-        return sizeMatch ? sizeMatch[0] : undefined;
+  // Sort inventory items - memoized to avoid recalculation on every render
+  const sortedInventoryItems = useMemo(() => {
+    return [...inventoryItems].sort((a, b) => {
+      // First sort by popularity (is_popular products with lower rank first)
+      const popularityA = a.product?.is_popular ? (a.product?.popularity_rank || 999) : 999;
+      const popularityB = b.product?.is_popular ? (b.product?.popularity_rank || 999) : 999;
+      
+      if (popularityA !== popularityB) {
+        return popularityA - popularityB;
       }
-      return undefined;
-    })
-    .filter(Boolean))];
+      
+      // Then by product name alphabetically when popularity is the same
+      const nameA = a.product?.name?.toLowerCase() || '';
+      const nameB = b.product?.name?.toLowerCase() || '';
+      return nameA.localeCompare(nameB);
+    });
+  }, [inventoryItems]);
   
+  // Extract product types and sizes - memoized
+  const productTypes = useMemo(() => {
+    return [...new Set(inventoryItems
+      .map(item => item.product?.sku || undefined)
+      .filter(Boolean))];
+  }, [inventoryItems]);
+    
+  const productSizes = useMemo(() => {
+    return [...new Set(inventoryItems
+      .map(item => {
+        if (item.product?.description) {
+          const sizeMatch = item.product.description.match(/(\d+"\s*x\s*\d+"\s*x\s*\d+"|\d+\s*bundle|\d+\s*box|\d+\s*pack)/i);
+          return sizeMatch ? sizeMatch[0] : undefined;
+        }
+        return undefined;
+      })
+      .filter(Boolean))];
+  }, [inventoryItems]);
+  
+  // Update filtered products when search term changes
   useEffect(() => {
     if (searchTerm.length > 0) {
       const filtered = inventoryItems.filter(item => 
@@ -112,11 +123,12 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
         item.product?.description?.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setFilteredProducts(filtered);
-    } else {
+    } else if (selectionMode === 'search') {
       setFilteredProducts([]);
     }
-  }, [searchTerm, inventoryItems]);
+  }, [searchTerm, inventoryItems, selectionMode]);
   
+  // Update filtered products based on selected attributes
   useEffect(() => {
     if (selectionMode === 'attributes' && (selectedProductType || selectedSize)) {
       const filtered = inventoryItems.filter(item => {
@@ -131,68 +143,75 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
       });
       
       setFilteredProducts(filtered);
+    } else if (selectionMode === 'attributes') {
+      setFilteredProducts([]);
     }
   }, [selectedProductType, selectedSize, selectionMode, inventoryItems]);
   
-  const addItem = (item: any) => {
+  const addItem = useCallback((item: any) => {
     console.log("Adding item:", item);
-    const existingItem = selectedItems.find(i => 
-      i.id === String(item.product?.id) || i.name === item.product?.name);
-    
-    if (existingItem) {
-      console.log("Item already exists, increasing quantity:", existingItem);
-      setSelectedItems(selectedItems.map(i => 
-        (i.id === String(item.product?.id) || i.name === item.product?.name) 
-          ? { ...i, quantity: i.quantity + 1 }
-          : i
-      ));
-    } else {
-      const newItem = {
-        id: String(item.product?.id),
-        name: item.product?.name || 'Unknown Product',
-        quantity: 1,
-        price: item.product?.price
-      };
-      console.log("Adding new item:", newItem);
-      setSelectedItems([...selectedItems, newItem]);
-    }
-  };
+    setSelectedItems(prev => {
+      const existingItem = prev.find(i => 
+        i.id === String(item.product?.id) || i.name === item.product?.name);
+      
+      if (existingItem) {
+        console.log("Item already exists, increasing quantity:", existingItem);
+        return prev.map(i => 
+          (i.id === String(item.product?.id) || i.name === item.product?.name) 
+            ? { ...i, quantity: i.quantity + 1 }
+            : i
+        );
+      } else {
+        const newItem = {
+          id: String(item.product?.id),
+          name: item.product?.name || 'Unknown Product',
+          quantity: 1,
+          price: item.product?.price
+        };
+        console.log("Adding new item:", newItem);
+        return [...prev, newItem];
+      }
+    });
+  }, []);
   
-  const removeItem = (item: any) => {
+  const removeItem = useCallback((item: any) => {
     console.log("Removing item:", item);
-    const existingItem = selectedItems.find(i => 
-      i.id === String(item.product?.id) || i.name === item.product?.name);
-    
-    if (existingItem && existingItem.quantity > 1) {
-      console.log("Item exists with multiple quantity, decreasing:", existingItem);
-      setSelectedItems(selectedItems.map(i => 
-        (i.id === String(item.product?.id) || i.name === item.product?.name) 
-          ? { ...i, quantity: i.quantity - 1 }
-          : i
-      ));
-    } else {
-      console.log("Removing item completely");
-      setSelectedItems(selectedItems.filter(i => 
-        i.id !== String(item.product?.id) && i.name !== item.product?.name));
-    }
-  };
+    setSelectedItems(prev => {
+      const existingItem = prev.find(i => 
+        i.id === String(item.product?.id) || i.name === item.product?.name);
+      
+      if (existingItem && existingItem.quantity > 1) {
+        console.log("Item exists with multiple quantity, decreasing:", existingItem);
+        return prev.map(i => 
+          (i.id === String(item.product?.id) || i.name === item.product?.name) 
+            ? { ...i, quantity: i.quantity - 1 }
+            : i
+        );
+      } else {
+        console.log("Removing item completely");
+        return prev.filter(i => 
+          i.id !== String(item.product?.id) && i.name !== item.product?.name);
+      }
+    });
+  }, []);
   
-  const handleQuantityChange = (index: number, value: string) => {
+  const handleQuantityChange = useCallback((index: number, value: string) => {
     const quantity = parseInt(value) || 0;
     if (quantity >= 0) {
-      setSelectedItems(selectedItems.map((item, idx) => 
+      setSelectedItems(prev => prev.map((item, idx) => 
         idx === index ? { ...item, quantity } : item
       ));
     }
-  };
+  }, []);
   
-  const formatSelectedItemsForOutput = () => {
+  // Format selected items for output - memoized
+  const formatSelectedItemsForOutput = useCallback(() => {
     const formatted = selectedItems.map(item => 
       `${item.quantity}x ${item.name}${item.price ? ` @$${item.price}` : ''}`
     ).join(', ');
     console.log("Formatted items for output:", formatted);
     return formatted;
-  };
+  }, [selectedItems]);
   
   const handleSave = () => {
     const formattedItems = formatSelectedItemsForOutput();
@@ -324,7 +343,7 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="any-type">Any</SelectItem>
+                    <SelectItem value="">Any</SelectItem>
                     {productTypes.map((type) => (
                       <SelectItem key={type} value={type || "unknown-type"}>{type || "Unknown"}</SelectItem>
                     ))}
@@ -339,7 +358,7 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
                     <SelectValue placeholder="Select size" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="any-size">Any</SelectItem>
+                    <SelectItem value="">Any</SelectItem>
                     {productSizes.map((size) => (
                       <SelectItem key={size} value={size || "unknown-size"}>{size || "Unknown"}</SelectItem>
                     ))}
