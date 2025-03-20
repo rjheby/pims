@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { DragDropContext, Droppable } from "@hello-pangea/dnd";
 import { MapPinPlus, Search } from "lucide-react";
@@ -85,10 +86,11 @@ const StopsTable = ({
     
     setLoading(true);
     try {
+      // Use consistent query across components
       const { data: customersData, error: customersError } = await supabase
         .from('customers')
-        .select('id, name, address, phone, email, notes, street_address, city, state, zip_code')
-        .order('created_at', { ascending: false });
+        .select('id, name, address, phone, email, notes, type, street_address, city, state, zip_code')
+        .order('name');
 
       if (customersError) {
         throw new Error(`Error fetching customers: ${customersError.message}`);
@@ -100,9 +102,10 @@ const StopsTable = ({
       const validCustomers = customersData.filter(customer => customer.id);
       console.log(`${validCustomers.length} customers have valid IDs`);
       
+      // Handle type field consistently
       const customersWithType = validCustomers.map((customer) => ({
         ...customer,
-        type: 'RETAIL'
+        type: customer.type || 'RETAIL'
       }));
 
       setCustomers(customersWithType);
@@ -110,7 +113,7 @@ const StopsTable = ({
       const { data: driversData, error: driversError } = await supabase
         .from('drivers')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('name');
 
       if (driversError) {
         throw new Error(`Error fetching drivers: ${driversError.message}`);

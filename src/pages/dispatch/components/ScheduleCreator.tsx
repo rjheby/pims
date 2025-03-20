@@ -26,20 +26,10 @@ interface ScheduleCreatorProps {
 }
 
 // Helper function to format date for display
-// Always use noon to prevent timezone issues shifting the date
 const formatDisplayDate = (dateString: string): string => {
   try {
-    // Create date at noon to avoid timezone issues
-    const dateParts = dateString.split('-');
-    if (dateParts.length !== 3) return dateString;
-    
-    // Create a date object at noon on the specified date
-    const year = parseInt(dateParts[0], 10);
-    const month = parseInt(dateParts[1], 10) - 1; // months are 0-indexed in JS
-    const day = parseInt(dateParts[2], 10);
-    
-    const date = new Date(year, month, day, 12, 0, 0);
-    return format(date, "EEEE, MMMM d, yyyy");
+    // Use parseISO to handle date string consistently across timezones
+    return format(parseISO(dateString), "EEEE, MMMM d, yyyy");
   } catch (error) {
     console.error("Error formatting date:", error);
     return dateString;

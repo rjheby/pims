@@ -1,4 +1,3 @@
-
 import { useParams, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,29 +41,72 @@ export default function DispatchForm() {
   useEffect(() => {
     async function fetchCustomersAndDrivers() {
       try {
+        console.log("DispatchForm: Fetching customers and drivers");
         const { data: customersData, error: customersError } = await supabase
           .from('customers')
           .select('id, name, address, phone, email, notes, type, street_address, city, state, zip_code')
           .order('name');
           
-        if (customersError) throw customersError;
-        setCustomers(customersData || []);
+        if (customersError) {
+          console.error("Error fetching customers:", customersError);
+          toast({
+            title: "Error",
+            description: `Failed to fetch customers: ${customersError.message}`,
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        console.log(`DispatchForm: Fetched ${customersData?.length || 0} customers`);
+        
+        const processedCustomers = customersData.map(customer => ({
+          ...customer,
+          type: customer.type || 'RETAIL',
+          address: customer.address || constructAddress(customer)
+        }));
+        
+        setCustomers(processedCustomers);
         
         const { data: driversData, error: driversError } = await supabase
           .from('drivers')
           .select('id, name, phone, email, status')
           .order('name');
           
-        if (driversError) throw driversError;
+        if (driversError) {
+          console.error("Error fetching drivers:", driversError);
+          toast({
+            title: "Error",
+            description: `Failed to fetch drivers: ${driversError.message}`,
+            variant: "destructive"
+          });
+          return;
+        }
+        
         console.log("Loaded drivers:", driversData?.length || 0);
         setDrivers(driversData || []);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching data:", error);
+        toast({
+          title: "Error",
+          description: "An unexpected error occurred while fetching data",
+          variant: "destructive"
+        });
       }
     }
     
     fetchCustomersAndDrivers();
-  }, []);
+  }, [toast]);
+  
+  const constructAddress = (customer: any) => {
+    const parts = [
+      customer.street_address,
+      customer.city,
+      customer.state,
+      customer.zip_code
+    ].filter(Boolean);
+    
+    return parts.length > 0 ? parts.join(', ') : '';
+  };
 
   const handleDownloadPdf = () => {
     if (!masterSchedule) return;
