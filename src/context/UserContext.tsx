@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { User, UserRole } from "@/types/user";
 import { supabase } from "@/integrations/supabase/client";
@@ -203,20 +204,30 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      // Try to sign in with the provided credentials
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       
       if (error) {
+        console.error("Sign in error:", error);
+        
+        // Provide a more specific message for the database error
+        let errorMessage = error.message;
+        if (error.message.includes("Database error querying schema")) {
+          errorMessage = "Authentication system error. Please try again or contact support if the issue persists.";
+        }
+        
         toast({
           title: "Sign in failed",
-          description: error.message,
+          description: errorMessage,
           variant: "destructive",
         });
         return { error };
       }
       
+      // If we get here, sign in was successful
       toast({
         title: "Welcome back!",
         description: "You have successfully signed in.",
@@ -225,6 +236,14 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       return { error: null };
     } catch (error: any) {
       console.error("Sign in error:", error);
+      
+      // Provide a generic error message for unexpected errors
+      toast({
+        title: "Sign in failed",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+      
       return { error };
     }
   };

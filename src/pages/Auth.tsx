@@ -5,10 +5,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/context/UserContext";
 import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function Auth() {
   const [email, setEmail] = useState("");
@@ -17,6 +18,7 @@ export default function Auth() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { toast } = useToast();
   const { user, signIn } = useUser();
   const navigate = useNavigate();
@@ -33,11 +35,13 @@ export default function Auth() {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setErrorMessage(null);
 
     try {
       if (isSignUp) {
         // Handle sign up
         if (password !== confirmPassword) {
+          setErrorMessage("Passwords do not match");
           toast({
             title: "Passwords do not match",
             description: "Please make sure your passwords match.",
@@ -58,6 +62,7 @@ export default function Auth() {
         });
 
         if (error) {
+          setErrorMessage(error.message);
           toast({
             title: "Sign up failed",
             description: error.message,
@@ -77,10 +82,16 @@ export default function Auth() {
         
         if (error) {
           console.error("Sign in error:", error);
+          if (typeof error === 'object' && error !== null && 'message' in error) {
+            setErrorMessage((error as any).message);
+          } else {
+            setErrorMessage("Failed to sign in. Please try again.");
+          }
         }
       }
     } catch (error) {
       console.error("Authentication error:", error);
+      setErrorMessage("An unexpected error occurred. Please try again.");
       toast({
         title: "Authentication failed",
         description: "An unexpected error occurred. Please try again.",
@@ -111,6 +122,13 @@ export default function Auth() {
         </CardHeader>
         <form onSubmit={handleAuth}>
           <CardContent className="space-y-4">
+            {errorMessage && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{errorMessage}</AlertDescription>
+              </Alert>
+            )}
+            
             {isSignUp && (
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
