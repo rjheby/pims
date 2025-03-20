@@ -168,6 +168,15 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
     }
   };
   
+  const handleQuantityChange = (index: number, value: string) => {
+    const quantity = parseInt(value) || 0;
+    if (quantity >= 0) {
+      setSelectedItems(selectedItems.map((item, idx) => 
+        idx === index ? { ...item, quantity } : item
+      ));
+    }
+  };
+  
   const formatSelectedItemsForOutput = () => {
     const formatted = selectedItems.map(item => 
       `${item.quantity}x ${item.name}${item.price ? ` @$${item.price}` : ''}`
@@ -214,7 +223,13 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
                       >
                         <Minus className="h-4 w-4" />
                       </Button>
-                      <span>{item.quantity}</span>
+                      <Input
+                        type="number"
+                        min="1"
+                        value={item.quantity}
+                        onChange={(e) => handleQuantityChange(index, e.target.value)}
+                        className="h-8 w-14 text-center"
+                      />
                       <Button 
                         variant="outline" 
                         size="sm"
@@ -354,10 +369,40 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
                           >
                             <Minus className="h-4 w-4" />
                           </Button>
-                          <span className="w-6 text-center">
-                            {selectedItems.find(i => 
+                          <Input
+                            type="number"
+                            min="0"
+                            className="h-8 w-14 text-center"
+                            value={selectedItems.find(i => 
                               i.id === String(item.product?.id) || i.name === item.product?.name)?.quantity || 0}
-                          </span>
+                            onChange={(e) => {
+                              const quantity = parseInt(e.target.value) || 0;
+                              if (quantity > 0) {
+                                const existingItem = selectedItems.find(i => 
+                                  i.id === String(item.product?.id) || i.name === item.product?.name);
+                                
+                                if (existingItem) {
+                                  setSelectedItems(selectedItems.map(i => 
+                                    (i.id === String(item.product?.id) || i.name === item.product?.name) 
+                                      ? { ...i, quantity: quantity }
+                                      : i
+                                  ));
+                                } else {
+                                  const newItem = {
+                                    id: String(item.product?.id),
+                                    name: item.product?.name || 'Unknown Product',
+                                    quantity: quantity,
+                                    price: item.product?.price
+                                  };
+                                  setSelectedItems([...selectedItems, newItem]);
+                                }
+                              } else if (quantity === 0) {
+                                setSelectedItems(selectedItems.filter(i => 
+                                  i.id !== String(item.product?.id) && i.name !== item.product?.name));
+                              }
+                            }}
+                            disabled={item.packages_available === 0}
+                          />
                           <Button 
                             variant="outline" 
                             size="sm"
