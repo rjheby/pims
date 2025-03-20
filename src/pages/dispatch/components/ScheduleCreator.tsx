@@ -36,6 +36,15 @@ export const ScheduleCreator = ({
   const { toast } = useToast();
   const isMobile = useIsMobile();
   
+  // Define the formatDisplayDate function before using it
+  const formatDisplayDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), "EEEE, MMMM d, yyyy");
+    } catch (error) {
+      return dateString;
+    }
+  };
+  
   const generateScheduleNumber = (dateString: string, driverIds: string[] = []) => {
     const creationDate = new Date();
     const deliveryDate = new Date(dateString);
@@ -74,14 +83,6 @@ export const ScheduleCreator = ({
       ...prev,
       schedule_date: newDate
     }));
-  };
-  
-  const formatDisplayDate = (dateString: string) => {
-    try {
-      return format(new Date(dateString), "EEEE, MMMM d, yyyy");
-    } catch (error) {
-      return dateString;
-    }
   };
   
   const calculateTotals = () => {
