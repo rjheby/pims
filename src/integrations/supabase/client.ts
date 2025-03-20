@@ -9,6 +9,33 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+// Clear any potentially corrupted auth state before initializing
+const clearAllAuthState = () => {
+  try {
+    if (typeof window !== 'undefined') {
+      // Remove our custom token
+      localStorage.removeItem('woodbourne-auth-token');
+      
+      // Remove standard Supabase tokens
+      localStorage.removeItem('supabase.auth.token');
+      sessionStorage.removeItem('supabase.auth.token');
+      
+      // Clear any other Supabase-related storage
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.includes('supabase') || key.includes('sb-'))) {
+          localStorage.removeItem(key);
+        }
+      }
+    }
+  } catch (error) {
+    console.warn("Failed to clean localStorage during initialization", error);
+  }
+};
+
+// Clear auth state at startup
+clearAllAuthState();
+
 // Create client with enhanced configuration
 export const supabase = createClient<Database>(
   SUPABASE_URL, 
@@ -21,6 +48,7 @@ export const supabase = createClient<Database>(
       storageKey: 'woodbourne-auth-token',
       detectSessionInUrl: false,
       flowType: 'implicit',
+      debug: true // Enable debug logging to help diagnose issues
     },
     global: {
       headers: {

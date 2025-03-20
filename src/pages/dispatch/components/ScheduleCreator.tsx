@@ -36,15 +36,6 @@ export const ScheduleCreator = ({
   const { toast } = useToast();
   const isMobile = useIsMobile();
   
-  // Define the formatDisplayDate function before using it
-  const formatDisplayDate = (dateString: string) => {
-    try {
-      return format(new Date(dateString), "EEEE, MMMM d, yyyy");
-    } catch (error) {
-      return dateString;
-    }
-  };
-  
   const generateScheduleNumber = (dateString: string, driverIds: string[] = []) => {
     const creationDate = new Date();
     const deliveryDate = new Date(dateString);
@@ -74,15 +65,19 @@ export const ScheduleCreator = ({
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Format the current schedule date for display
-  const formattedDisplayDate = formatDisplayDate(schedule.schedule_date);
-  
   const handleScheduleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newDate = e.target.value;
     setSchedule(prev => ({
       ...prev,
-      schedule_date: newDate
+      schedule_date: e.target.value
     }));
+  };
+  
+  const formatDisplayDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), "EEEE, MMMM d, yyyy");
+    } catch (error) {
+      return dateString;
+    }
   };
   
   const calculateTotals = () => {
@@ -323,7 +318,7 @@ export const ScheduleCreator = ({
         <CardHeader>
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <CardTitle className="text-xl md:text-2xl">
-              {isMobile ? "Delivery Schedule" : `Delivery Schedule for ${formattedDisplayDate}`}
+              {isMobile ? "Delivery Schedule" : `Delivery Schedule for ${formatDisplayDate(schedule.schedule_date)}`}
             </CardTitle>
           </div>
         </CardHeader>
@@ -352,11 +347,11 @@ export const ScheduleCreator = ({
                   </div>
                   {isMobile ? (
                     <p className="text-sm text-gray-600 font-semibold">
-                      {formattedDisplayDate}
+                      {formatDisplayDate(schedule.schedule_date)}
                     </p>
                   ) : (
                     <p className="text-sm text-gray-600">
-                      All stops will be scheduled for {formattedDisplayDate}
+                      All stops will be scheduled for {formatDisplayDate(schedule.schedule_date)}
                     </p>
                   )}
                 </div>

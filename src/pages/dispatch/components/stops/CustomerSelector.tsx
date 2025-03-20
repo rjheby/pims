@@ -9,8 +9,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { useDebounce } from "../../../../hooks/useDebounce";
 
 interface CustomerSelectorProps {
   onSelect: (customer: Customer) => void;
@@ -26,7 +24,6 @@ export const CustomerSelector = ({
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const debouncedSearch = useDebounce(search, 300);
   const [selectedId, setSelectedId] = useState<string | null>(initialCustomerId || null);
   const [showNewCustomerDialog, setShowNewCustomerDialog] = useState(false);
   const [newCustomer, setNewCustomer] = useState<Omit<Customer, 'id'>>({
@@ -36,14 +33,42 @@ export const CustomerSelector = ({
     phone: '',
     email: ''
   });
-  
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalCustomers, setTotalCustomers] = useState(0);
-  const ITEMS_PER_PAGE = 10;
 
-  // Function to construct address from components
+  useEffect(() => {
+    fetchCustomers();
+  }, []);
+
+  async function fetchCustomers() {
+    try {
+      setLoading(true);
+      
+      const { data, error } = await supabase
+        .from('customers')
+        .select('id, name, address, phone, email, notes, type, street_address, city, state, zip_code')
+        .order('name');
+        
+      if (error) {
+        throw error;
+      }
+
+      // Ensure all customers have the expected fields according to the schema
+      const processedCustomers = data.map((customer) => ({
+        ...customer,
+        // Ensure type is set (defaults to RETAIL if missing)
+        type: customer.type || 'RETAIL',
+        // Make sure address is available even if it's constructed from components
+        address: customer.address || constructAddress(customer),
+      }));
+      
+      setCustomers(processedCustomers);
+    } catch (error) {
+      console.error("Error fetching customers:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Helper function to construct address from components if needed
   const constructAddress = (customer: any) => {
     const parts = [
       customer.street_address,
@@ -55,114 +80,12 @@ export const CustomerSelector = ({
     return parts.length > 0 ? parts.join(', ') : '';
   };
 
-  // Fetch customers
-  const fetchCustomers = async (page = 1, searchTerm = "") => {
-    try {
-      setLoading(true);
-      
-      // Calculate pagination range
-      const from = (page - 1) * ITEMS_PER_PAGE;
-      const to = from + ITEMS_PER_PAGE - 1;
-      
-      // Build query
-      let query = supabase
-        .from('customers')
-        .select('id, name, address, phone, email, notes, type, street_address, city, state, zip_code', { count: 'exact' });
-      
-      // Add search filter if search term is provided
-      if (searchTerm) {
-        query = query.or(`name.ilike.%${searchTerm}%,address.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
-      }
-      
-      // Add pagination
-      const { data, error, count } = await query
-        .order('name')
-        .range(from, to);
-        
-      if (error) {
-        throw error;
-      }
+  const filteredCustomers = customers.filter(customer => 
+    (customer.name || "").toLowerCase().includes(search.toLowerCase()) ||
+    (customer.address || "").toLowerCase().includes(search.toLowerCase()) ||
+    (customer.phone || "").toLowerCase().includes(search.toLowerCase())
+  );
 
-      // Calculate total pages
-      if (count !== null) {
-        setTotalPages(Math.ceil(count / ITEMS_PER_PAGE));
-        setTotalCustomers(count);
-      }
-      
-      // Process customer data
-      const processedCustomers = data.map((customer) => ({
-        ...customer,
-        type: customer.type || 'RETAIL',
-        address: customer.address || constructAddress(customer),
-      }));
-      
-      setCustomers(processedCustomers);
-    } catch (error) {
-      console.error("Error fetching customers:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load customers. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Fetch initial data or when page/search changes
-  useEffect(() => {
-    fetchCustomers(currentPage, debouncedSearch);
-  }, [currentPage, debouncedSearch]);
-
-  // If an initial customer ID is provided, fetch and select that customer
-  useEffect(() => {
-    if (!initialCustomerId) return;
-    
-    const fetchInitialCustomer = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('customers')
-          .select('id, name, address, phone, email, notes, type, street_address, city, state, zip_code')
-          .eq('id', initialCustomerId)
-          .single();
-          
-        if (error) throw error;
-        
-        if (data) {
-          setSelectedId(data.id);
-          // Add to full list if not already there
-          setCustomers(prev => {
-            if (!prev.some(c => c.id === data.id)) {
-              return [...prev, {
-                ...data,
-                type: data.type || 'RETAIL',
-                address: data.address || constructAddress(data)
-              }];
-            }
-            return prev;
-          });
-        }
-      } catch (error) {
-        console.error("Error fetching initial customer:", error);
-      }
-    };
-    
-    fetchInitialCustomer();
-  }, [initialCustomerId]);
-
-  // Handle search input change
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearch(e.target.value);
-    setCurrentPage(1); // Reset to first page on new search
-  };
-
-  // Handle page change
-  const handlePageChange = (page: number) => {
-    if (page === currentPage) return;
-    setCurrentPage(page);
-  };
-
-  // Handle selection confirmation
   const handleConfirm = () => {
     if (!selectedId) return;
     
@@ -172,7 +95,6 @@ export const CustomerSelector = ({
     }
   };
 
-  // Create new customer
   const handleCreateCustomer = async () => {
     if (!newCustomer.name) {
       toast({
@@ -184,8 +106,6 @@ export const CustomerSelector = ({
     }
 
     try {
-      setLoading(true);
-      
       // Use the add_customer function
       const { data, error } = await supabase
         .rpc('add_customer', {
@@ -230,7 +150,7 @@ export const CustomerSelector = ({
         address: customerData.address || constructAddress(customerData),
       };
       
-      setCustomers(prev => [newCustomerWithAllFields, ...prev]);
+      setCustomers(prev => [...prev, newCustomerWithAllFields]);
       setSelectedId(newCustomerId);
       setShowNewCustomerDialog(false);
       
@@ -248,110 +168,7 @@ export const CustomerSelector = ({
         description: "An unexpected error occurred",
         variant: "destructive"
       });
-    } finally {
-      setLoading(false);
     }
-  };
-
-  // Pagination rendering
-  const renderPagination = () => {
-    if (totalPages <= 1) return null;
-    
-    return (
-      <Pagination>
-        <PaginationContent>
-          <PaginationItem>
-            <PaginationPrevious 
-              onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}
-              className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-            />
-          </PaginationItem>
-          
-          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-            // Simple pagination with up to 5 pages shown
-            let pageNumber;
-            if (totalPages <= 5) {
-              // If 5 or fewer pages, show all
-              pageNumber = i + 1;
-            } else if (currentPage <= 3) {
-              // If current page is near the beginning
-              pageNumber = i + 1;
-            } else if (currentPage >= totalPages - 2) {
-              // If current page is near the end
-              pageNumber = totalPages - 4 + i;
-            } else {
-              // Current page is in the middle
-              pageNumber = currentPage - 2 + i;
-            }
-            
-            return (
-              <PaginationItem key={pageNumber}>
-                <PaginationLink 
-                  isActive={currentPage === pageNumber}
-                  onClick={() => handlePageChange(pageNumber)}
-                >
-                  {pageNumber}
-                </PaginationLink>
-              </PaginationItem>
-            );
-          })}
-          
-          <PaginationItem>
-            <PaginationNext 
-              onClick={() => currentPage < totalPages && handlePageChange(currentPage + 1)}
-              className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-            />
-          </PaginationItem>
-        </PaginationContent>
-      </Pagination>
-    );
-  };
-
-  // Render customer list with selection
-  const renderCustomerList = () => {
-    if (loading) {
-      return (
-        <div className="flex justify-center items-center h-40">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-      );
-    }
-    
-    if (customers.length === 0) {
-      return (
-        <div className="text-center py-6 text-muted-foreground">
-          {debouncedSearch ? "No customers found matching your search." : "No customers found."}
-        </div>
-      );
-    }
-    
-    return (
-      <div className="space-y-2">
-        {totalCustomers > 0 && (
-          <p className="text-xs text-muted-foreground">
-            Showing {customers.length} of {totalCustomers} customers
-          </p>
-        )}
-        {customers.map((customer) => (
-          <div
-            key={customer.id}
-            className={`
-              p-3 rounded-md cursor-pointer border transition-colors
-              ${selectedId === customer.id ? 'bg-primary/10 border-primary' : 'hover:bg-accent'}
-            `}
-            onClick={() => setSelectedId(customer.id)}
-          >
-            <div className="font-medium">{customer.name || "Unnamed Customer"}</div>
-            {customer.address && (
-              <div className="text-sm text-muted-foreground">{customer.address}</div>
-            )}
-            {customer.phone && (
-              <div className="text-sm text-muted-foreground">{customer.phone}</div>
-            )}
-          </div>
-        ))}
-      </div>
-    );
   };
 
   return (
@@ -362,7 +179,7 @@ export const CustomerSelector = ({
           <Input
             placeholder="Search customers..."
             value={search}
-            onChange={handleSearchChange}
+            onChange={(e) => setSearch(e.target.value)}
             className="pl-8"
           />
         </div>
@@ -377,11 +194,40 @@ export const CustomerSelector = ({
         </Button>
       </div>
       
-      <div className="flex-1 overflow-y-auto mb-4 max-h-[40vh]">
-        {renderCustomerList()}
-      </div>
-      
-      {renderPagination()}
+      {loading ? (
+        <div className="flex justify-center items-center h-40">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto mb-4 max-h-[40vh]">
+          {filteredCustomers.length === 0 ? (
+            <div className="text-center py-6 text-muted-foreground">
+              No customers found.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {filteredCustomers.map((customer) => (
+                <div
+                  key={customer.id}
+                  className={`
+                    p-3 rounded-md cursor-pointer border
+                    ${selectedId === customer.id ? 'bg-primary/10 border-primary' : 'hover:bg-accent'}
+                  `}
+                  onClick={() => setSelectedId(customer.id)}
+                >
+                  <div className="font-medium">{customer.name || "Unnamed Customer"}</div>
+                  {customer.address && (
+                    <div className="text-sm text-muted-foreground">{customer.address}</div>
+                  )}
+                  {customer.phone && (
+                    <div className="text-sm text-muted-foreground">{customer.phone}</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       
       <div className="flex justify-end space-x-2 mt-auto pt-4 border-t">
         <Button variant="outline" onClick={onCancel}>
@@ -455,16 +301,7 @@ export const CustomerSelector = ({
             >
               Cancel
             </Button>
-            <Button onClick={handleCreateCustomer} disabled={loading}>
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                "Create Customer"
-              )}
-            </Button>
+            <Button onClick={handleCreateCustomer}>Create Customer</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
