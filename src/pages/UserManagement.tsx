@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -24,6 +25,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type ExtendedUser = User & {
   created_at: string;
@@ -73,6 +75,9 @@ export default function UserManagement() {
   const [userEmail, setUserEmail] = useState("");
   const [userRole, setUserRole] = useState<UserRole>("customer");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sendInvite, setSendInvite] = useState(true);
+  const [password, setPassword] = useState("");
+  const [hasSetPassword, setHasSetPassword] = useState(false);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -138,6 +143,9 @@ export default function UserManagement() {
     setUserName("");
     setUserEmail("");
     setUserRole("customer");
+    setSendInvite(true);
+    setPassword("");
+    setHasSetPassword(false);
     setModalOpen(true);
   };
 
@@ -146,6 +154,9 @@ export default function UserManagement() {
     setUserName(user.name);
     setUserEmail(user.email);
     setUserRole(user.role);
+    setSendInvite(false);
+    setPassword("");
+    setHasSetPassword(false);
     setModalOpen(true);
   };
 
@@ -187,10 +198,93 @@ export default function UserManagement() {
             : user
         ));
       } else {
-        toast({
-          title: "User creation disabled",
-          description: "In a production system, this would create a new user and send an invitation.",
-        });
+        // Creating a new user
+        // Split the name into first_name and last_name
+        const nameParts = userName.trim().split(' ');
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+        
+        // Map application role to database role
+        const dbRole = mapToDbRole(userRole);
+        
+        if (sendInvite) {
+          // Create user with invitation
+          const { data, error } = await supabase.auth.admin.inviteUserByEmail(userEmail, {
+            data: {
+              firstName,
+              lastName,
+              role: dbRole,
+            }
+          });
+          
+          if (error) throw error;
+          
+          toast({
+            title: "User invited",
+            description: `An invitation has been sent to ${userEmail}.`,
+          });
+        } else if (hasSetPassword && password) {
+          // Create user with a set password
+          const { data, error } = await supabase.auth.admin.createUser({
+            email: userEmail,
+            password: password,
+            email_confirm: true,
+            user_metadata: {
+              firstName,
+              lastName,
+            }
+          });
+          
+          if (error) throw error;
+          
+          // Update the user's role in the profile
+          if (data.user) {
+            const { error: profileError } = await supabase
+              .from('profiles')
+              .update({ role: dbRole })
+              .eq('id', data.user.id);
+              
+            if (profileError) throw profileError;
+          }
+          
+          toast({
+            title: "User created",
+            description: `${userName} has been created successfully.`,
+          });
+        } else {
+          toast({
+            title: "Missing information",
+            description: "Please either send an invitation or set a password for the new user.",
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
+        }
+        
+        // Refresh user list
+        setLoading(true);
+        const { data: authUsers } = await supabase.auth.admin.listUsers();
+        const { data: profilesData } = await supabase.from('profiles').select('*');
+        
+        if (authUsers && profilesData) {
+          const combinedUsers = authUsers.users.map((authUser) => {
+            const profile = profilesData?.find(p => p.id === authUser.id);
+            
+            const userStatus: "active" | "inactive" = authUser.banned ? 'inactive' : 'active';
+            
+            return {
+              id: authUser.id,
+              name: profile ? `${profile.first_name} ${profile.last_name}`.trim() : (authUser.user_metadata?.name || 'Unnamed User'),
+              email: authUser.email || '',
+              role: profile ? mapFromDbRole(profile.role) : 'customer',
+              avatar: null,
+              created_at: authUser.created_at || '',
+              status: userStatus,
+            } as ExtendedUser;
+          });
+          
+          setUsers(combinedUsers);
+        }
       }
       
       setModalOpen(false);
@@ -203,6 +297,7 @@ export default function UserManagement() {
       });
     } finally {
       setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
@@ -339,6 +434,56 @@ export default function UserManagement() {
                   </SelectContent>
                 </Select>
               </div>
+              
+              {!editUser && (
+                <>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="sendInvite" 
+                      checked={sendInvite}
+                      onCheckedChange={(checked) => {
+                        if (checked === true) {
+                          setSendInvite(true);
+                          setHasSetPassword(false);
+                        } else {
+                          setSendInvite(false);
+                        }
+                      }}
+                    />
+                    <Label htmlFor="sendInvite">Send email invitation to set up password</Label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="setPassword" 
+                      checked={hasSetPassword}
+                      onCheckedChange={(checked) => {
+                        if (checked === true) {
+                          setHasSetPassword(true);
+                          setSendInvite(false);
+                        } else {
+                          setHasSetPassword(false);
+                        }
+                      }}
+                    />
+                    <Label htmlFor="setPassword">Set initial password</Label>
+                  </div>
+                  
+                  {hasSetPassword && (
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Initial Password</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Enter initial password"
+                        required={hasSetPassword}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
             </div>
             <DialogFooter className="mt-4">
               <Button type="submit" disabled={isSubmitting}>
