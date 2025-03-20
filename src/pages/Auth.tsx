@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,9 +32,20 @@ export default function Auth() {
   }, [user, navigate, location]);
 
   const clearLocalAuthData = () => {
+    // Clear all auth-related data
+    localStorage.removeItem('woodbourne-auth-token');
     localStorage.removeItem('supabase.auth.token');
     sessionStorage.removeItem('supabase.auth.token');
     
+    // Also clear any other potential Supabase storage
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.includes('supabase') || key.includes('sb-'))) {
+        localStorage.removeItem(key);
+      }
+    }
+    
+    // Reload the page to reset all application state
     window.location.reload();
     
     toast({
@@ -94,6 +106,19 @@ export default function Auth() {
             setErrorMessage((error as any).message);
           } else {
             setErrorMessage("Failed to sign in. Please try again.");
+          }
+          
+          // If we got a database error, suggest clearing session data
+          if (typeof error === 'object' && error !== null && 'message' in error) {
+            const errorMsg = (error as any).message;
+            if (errorMsg.includes("Database error") || errorMsg.includes("Scan error") || 
+                errorMsg.includes("converting NULL")) {
+              toast({
+                title: "Authentication system error",
+                description: "Try clicking the 'Clear Session Data' button below and then sign in again.",
+                variant: "destructive",
+              });
+            }
           }
         }
       }

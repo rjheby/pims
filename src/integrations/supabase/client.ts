@@ -16,7 +16,10 @@ export const supabase = createClient<Database>(
     auth: {
       autoRefreshToken: true,
       persistSession: true,
-      storage: localStorage
+      storage: localStorage,
+      storageKey: 'woodbourne-auth-token',
+      detectSessionInUrl: false,
+      flowType: 'implicit'
     }
   }
 );

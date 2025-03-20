@@ -203,6 +203,10 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
   const signIn = async (email: string, password: string) => {
     try {
+      // Clear any existing problematic auth state before attempting sign in
+      localStorage.removeItem('supabase.auth.token');
+      sessionStorage.removeItem('supabase.auth.token');
+      
       // Try to sign in with the provided credentials
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -220,8 +224,17 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
           errorMessage = "Authentication system error. Please try again or contact support if the issue persists.";
           
           // Let's attempt to clear any problematic cached auth state
+          localStorage.removeItem('woodbourne-auth-token');
           localStorage.removeItem('supabase.auth.token');
           sessionStorage.removeItem('supabase.auth.token');
+          
+          // Also clear any other potential Supabase storage
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && (key.includes('supabase') || key.includes('sb-'))) {
+              localStorage.removeItem(key);
+            }
+          }
         }
         
         toast({
