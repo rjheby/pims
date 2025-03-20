@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,11 +11,6 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { useDebounce } from "../../../../hooks/useDebounce";
-import { Progress } from "@/components/ui/progress";
-
-// Cache for storing previously loaded customers
-const customersCache: Record<string, { data: Customer[], timestamp: number, count: number }> = {};
-const CACHE_EXPIRY_TIME = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 interface CustomerSelectorProps {
   onSelect: (customer: Customer) => void;
@@ -42,15 +37,14 @@ export const CustomerSelector = ({
     email: ''
   });
   
-  // Pagination state with memoized initialization
+  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCustomers, setTotalCustomers] = useState(0);
-  const [loadingProgress, setLoadingProgress] = useState(0);
   const ITEMS_PER_PAGE = 10;
 
-  // Function to construct address from components - memoized to prevent recreation
-  const constructAddress = useCallback((customer: any) => {
+  // Function to construct address from components
+  const constructAddress = (customer: any) => {
     const parts = [
       customer.street_address,
       customer.city,
@@ -59,30 +53,12 @@ export const CustomerSelector = ({
     ].filter(Boolean);
     
     return parts.length > 0 ? parts.join(', ') : '';
-  }, []);
+  };
 
-  // Fetch customers with optimized caching and performance
-  const fetchCustomers = useCallback(async (page = 1, searchTerm = "") => {
+  // Fetch customers
+  const fetchCustomers = async (page = 1, searchTerm = "") => {
     try {
       setLoading(true);
-      setLoadingProgress(10); // Start progress indicator
-      
-      // Create a cache key based on pagination and search
-      const cacheKey = `customers_page${page}_search${searchTerm}`;
-      const now = Date.now();
-      
-      // Check if we have valid cached data
-      if (customersCache[cacheKey] && (now - customersCache[cacheKey].timestamp) < CACHE_EXPIRY_TIME) {
-        console.log("Using cached customer data for:", cacheKey);
-        setCustomers(customersCache[cacheKey].data);
-        setTotalPages(Math.ceil(customersCache[cacheKey].count / ITEMS_PER_PAGE));
-        setTotalCustomers(customersCache[cacheKey].count);
-        setLoadingProgress(100);
-        setLoading(false);
-        return;
-      }
-      
-      setLoadingProgress(30); // Update progress during fetch
       
       // Calculate pagination range
       const from = (page - 1) * ITEMS_PER_PAGE;
@@ -98,15 +74,11 @@ export const CustomerSelector = ({
         query = query.or(`name.ilike.%${searchTerm}%,address.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
       }
       
-      setLoadingProgress(50); // Update progress
-      
       // Add pagination
       const { data, error, count } = await query
         .order('name')
         .range(from, to);
         
-      setLoadingProgress(70); // Update progress after data received
-      
       if (error) {
         throw error;
       }
@@ -116,8 +88,6 @@ export const CustomerSelector = ({
         setTotalPages(Math.ceil(count / ITEMS_PER_PAGE));
         setTotalCustomers(count);
       }
-
-      setLoadingProgress(90); // Almost done
       
       // Process customer data
       const processedCustomers = data.map((customer) => ({
@@ -126,15 +96,7 @@ export const CustomerSelector = ({
         address: customer.address || constructAddress(customer),
       }));
       
-      // Cache the results
-      customersCache[cacheKey] = {
-        data: processedCustomers,
-        timestamp: now,
-        count: count || 0
-      };
-      
       setCustomers(processedCustomers);
-      setLoadingProgress(100); // Complete
     } catch (error) {
       console.error("Error fetching customers:", error);
       toast({
@@ -145,29 +107,24 @@ export const CustomerSelector = ({
     } finally {
       setLoading(false);
     }
-  }, [constructAddress]);
+  };
 
-  // Fetch initial data or when page/search changes - with dependencies correctly specified
+  // Fetch initial data or when page/search changes
   useEffect(() => {
-    console.log("Effect running to fetch customers with:", { currentPage, debouncedSearch });
     fetchCustomers(currentPage, debouncedSearch);
-  }, [fetchCustomers, currentPage, debouncedSearch]);
+  }, [currentPage, debouncedSearch]);
 
-  // If an initial customer ID is provided, fetch and select that customer - with proper dependency tracking
+  // If an initial customer ID is provided, fetch and select that customer
   useEffect(() => {
     if (!initialCustomerId) return;
     
     const fetchInitialCustomer = async () => {
       try {
-        setLoadingProgress(20); // Start progress
-        
         const { data, error } = await supabase
           .from('customers')
           .select('id, name, address, phone, email, notes, type, street_address, city, state, zip_code')
           .eq('id', initialCustomerId)
           .single();
-          
-        setLoadingProgress(70); // Update progress
           
         if (error) throw error;
         
@@ -185,39 +142,37 @@ export const CustomerSelector = ({
             return prev;
           });
         }
-        
-        setLoadingProgress(100); // Complete
       } catch (error) {
         console.error("Error fetching initial customer:", error);
       }
     };
     
     fetchInitialCustomer();
-  }, [initialCustomerId, constructAddress]);
+  }, [initialCustomerId]);
 
-  // Handle search input change - optimized to reduce state updates
+  // Handle search input change
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
     setCurrentPage(1); // Reset to first page on new search
   };
 
-  // Handle page change - memoized to prevent recreation
-  const handlePageChange = useCallback((page: number) => {
-    if (page === currentPage) return; // Prevent unnecessary updates
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    if (page === currentPage) return;
     setCurrentPage(page);
-  }, [currentPage]);
+  };
 
-  // Memoized customer selection handler
-  const handleConfirm = useCallback(() => {
+  // Handle selection confirmation
+  const handleConfirm = () => {
     if (!selectedId) return;
     
     const selectedCustomer = customers.find(c => c.id === selectedId);
     if (selectedCustomer) {
       onSelect(selectedCustomer);
     }
-  }, [selectedId, customers, onSelect]);
+  };
 
-  // Create new customer with optimized error handling
+  // Create new customer
   const handleCreateCustomer = async () => {
     if (!newCustomer.name) {
       toast({
@@ -230,7 +185,6 @@ export const CustomerSelector = ({
 
     try {
       setLoading(true);
-      setLoadingProgress(20);
       
       // Use the add_customer function
       const { data, error } = await supabase
@@ -242,8 +196,6 @@ export const CustomerSelector = ({
           customer_type: newCustomer.type
         });
 
-      setLoadingProgress(50);
-      
       if (error) {
         toast({
           title: "Error",
@@ -254,7 +206,6 @@ export const CustomerSelector = ({
       }
 
       const newCustomerId = data;
-      setLoadingProgress(70);
       
       // Fetch the newly created customer to get all fields
       const { data: customerData, error: customerError } = await supabase
@@ -262,8 +213,6 @@ export const CustomerSelector = ({
         .select('id, name, address, phone, email, notes, type, street_address, city, state, zip_code')
         .eq('id', newCustomerId)
         .single();
-      
-      setLoadingProgress(90);
         
       if (customerError) {
         toast({
@@ -280,13 +229,6 @@ export const CustomerSelector = ({
         type: customerData.type || 'RETAIL',
         address: customerData.address || constructAddress(customerData),
       };
-      
-      // Update cache and state
-      Object.keys(customersCache).forEach(key => {
-        if (key.startsWith('customers_page')) {
-          delete customersCache[key]; // Invalidate cache
-        }
-      });
       
       setCustomers(prev => [newCustomerWithAllFields, ...prev]);
       setSelectedId(newCustomerId);
@@ -307,13 +249,12 @@ export const CustomerSelector = ({
         variant: "destructive"
       });
     } finally {
-      setLoadingProgress(100);
       setLoading(false);
     }
   };
 
-  // Pagination controls rendering - memoized to prevent recreation on every render
-  const renderPagination = useMemo(() => {
+  // Pagination rendering
+  const renderPagination = () => {
     if (totalPages <= 1) return null;
     
     return (
@@ -326,58 +267,34 @@ export const CustomerSelector = ({
             />
           </PaginationItem>
           
-          {/* First page */}
-          {currentPage > 2 && (
-            <PaginationItem>
-              <PaginationLink onClick={() => handlePageChange(1)}>1</PaginationLink>
-            </PaginationItem>
-          )}
-          
-          {/* Ellipsis */}
-          {currentPage > 3 && (
-            <PaginationItem>
-              <span className="flex h-9 w-9 items-center justify-center">...</span>
-            </PaginationItem>
-          )}
-          
-          {/* Previous page */}
-          {currentPage > 1 && (
-            <PaginationItem>
-              <PaginationLink onClick={() => handlePageChange(currentPage - 1)}>
-                {currentPage - 1}
-              </PaginationLink>
-            </PaginationItem>
-          )}
-          
-          {/* Current page */}
-          <PaginationItem>
-            <PaginationLink isActive>{currentPage}</PaginationLink>
-          </PaginationItem>
-          
-          {/* Next page */}
-          {currentPage < totalPages && (
-            <PaginationItem>
-              <PaginationLink onClick={() => handlePageChange(currentPage + 1)}>
-                {currentPage + 1}
-              </PaginationLink>
-            </PaginationItem>
-          )}
-          
-          {/* Ellipsis */}
-          {currentPage < totalPages - 2 && (
-            <PaginationItem>
-              <span className="flex h-9 w-9 items-center justify-center">...</span>
-            </PaginationItem>
-          )}
-          
-          {/* Last page */}
-          {currentPage < totalPages - 1 && (
-            <PaginationItem>
-              <PaginationLink onClick={() => handlePageChange(totalPages)}>
-                {totalPages}
-              </PaginationLink>
-            </PaginationItem>
-          )}
+          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+            // Simple pagination with up to 5 pages shown
+            let pageNumber;
+            if (totalPages <= 5) {
+              // If 5 or fewer pages, show all
+              pageNumber = i + 1;
+            } else if (currentPage <= 3) {
+              // If current page is near the beginning
+              pageNumber = i + 1;
+            } else if (currentPage >= totalPages - 2) {
+              // If current page is near the end
+              pageNumber = totalPages - 4 + i;
+            } else {
+              // Current page is in the middle
+              pageNumber = currentPage - 2 + i;
+            }
+            
+            return (
+              <PaginationItem key={pageNumber}>
+                <PaginationLink 
+                  isActive={currentPage === pageNumber}
+                  onClick={() => handlePageChange(pageNumber)}
+                >
+                  {pageNumber}
+                </PaginationLink>
+              </PaginationItem>
+            );
+          })}
           
           <PaginationItem>
             <PaginationNext 
@@ -388,20 +305,14 @@ export const CustomerSelector = ({
         </PaginationContent>
       </Pagination>
     );
-  }, [currentPage, totalPages, handlePageChange]);
+  };
 
-  // Render customer list with selection - memoized to prevent recreation on every render
-  const renderCustomerList = useMemo(() => {
+  // Render customer list with selection
+  const renderCustomerList = () => {
     if (loading) {
       return (
-        <div className="flex flex-col justify-center items-center h-40 space-y-4">
+        <div className="flex justify-center items-center h-40">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          <div className="w-full max-w-xs">
-            <Progress value={loadingProgress} className="h-2" />
-            <p className="text-xs text-center mt-1 text-muted-foreground">
-              {loadingProgress < 100 ? `Loading customers (${loadingProgress}%)` : 'Preparing data...'}
-            </p>
-          </div>
         </div>
       );
     }
@@ -441,7 +352,7 @@ export const CustomerSelector = ({
         ))}
       </div>
     );
-  }, [customers, loading, selectedId, debouncedSearch, totalCustomers, loadingProgress]);
+  };
 
   return (
     <div className="max-h-[60vh] flex flex-col">
@@ -467,10 +378,10 @@ export const CustomerSelector = ({
       </div>
       
       <div className="flex-1 overflow-y-auto mb-4 max-h-[40vh]">
-        {renderCustomerList}
+        {renderCustomerList()}
       </div>
       
-      {renderPagination}
+      {renderPagination()}
       
       <div className="flex justify-end space-x-2 mt-auto pt-4 border-t">
         <Button variant="outline" onClick={onCancel}>
