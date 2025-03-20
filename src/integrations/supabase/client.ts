@@ -9,6 +9,25 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+// Reset any potentially corrupted auth state before initializing
+try {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('woodbourne-auth-token');
+    localStorage.removeItem('supabase.auth.token');
+    sessionStorage.removeItem('supabase.auth.token');
+    
+    // Also clear any other potential Supabase storage
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.includes('supabase') || key.includes('sb-'))) {
+        localStorage.removeItem(key);
+      }
+    }
+  }
+} catch (error) {
+  console.warn("Failed to clean localStorage during initialization", error);
+}
+
 export const supabase = createClient<Database>(
   SUPABASE_URL, 
   SUPABASE_PUBLISHABLE_KEY,
@@ -23,3 +42,21 @@ export const supabase = createClient<Database>(
     }
   }
 );
+
+// Add diagnostic helper to log auth errors - helps with debugging
+export const checkSupabaseHealth = async () => {
+  try {
+    // Simple ping to Supabase to check if it's responding
+    const { data, error } = await supabase.from('profiles').select('count', { count: 'exact', head: true });
+    
+    return {
+      isHealthy: !error,
+      error: error ? `${error.code}: ${error.message}` : null
+    };
+  } catch (error) {
+    return {
+      isHealthy: false,
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
+};

@@ -5,10 +5,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import { Loader2, AlertCircle, RefreshCw, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/context/UserContext";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, checkSupabaseHealth } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function Auth() {
@@ -19,6 +19,8 @@ export default function Auth() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [supabaseStatus, setSupabaseStatus] = useState<{isHealthy: boolean, error: string | null} | null>(null);
+  const [isCheckingHealth, setIsCheckingHealth] = useState(false);
   const { toast } = useToast();
   const { user, signIn } = useUser();
   const navigate = useNavigate();
@@ -30,6 +32,26 @@ export default function Auth() {
       navigate(from, { replace: true });
     }
   }, [user, navigate, location]);
+
+  // Check Supabase health on component mount
+  useEffect(() => {
+    const checkHealth = async () => {
+      setIsCheckingHealth(true);
+      const health = await checkSupabaseHealth();
+      setSupabaseStatus(health);
+      setIsCheckingHealth(false);
+      
+      if (!health.isHealthy) {
+        toast({
+          title: "Connection issue detected",
+          description: "There may be issues connecting to the database. Consider clearing session data.",
+          variant: "destructive",
+        });
+      }
+    };
+    
+    checkHealth();
+  }, [toast]);
 
   const clearLocalAuthData = () => {
     // Clear all auth-related data
@@ -98,6 +120,9 @@ export default function Auth() {
           setIsSignUp(false);
         }
       } else {
+        // Add a small delay to ensure any prior auth state is cleared
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         const { error } = await signIn(email, password);
         
         if (error) {
@@ -135,6 +160,21 @@ export default function Auth() {
     }
   };
 
+  const checkAndReportSupabaseHealth = async () => {
+    setIsCheckingHealth(true);
+    const health = await checkSupabaseHealth();
+    setSupabaseStatus(health);
+    setIsCheckingHealth(false);
+    
+    toast({
+      title: health.isHealthy ? "Connection is healthy" : "Connection issue detected",
+      description: health.isHealthy 
+        ? "Successfully connected to the database."
+        : `Connection issue: ${health.error || "Unknown error"}`,
+      variant: health.isHealthy ? "default" : "destructive",
+    });
+  };
+
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-50">
       <Card className="w-full max-w-md">
@@ -159,6 +199,15 @@ export default function Auth() {
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{errorMessage}</AlertDescription>
+              </Alert>
+            )}
+            
+            {supabaseStatus && !supabaseStatus.isHealthy && (
+              <Alert variant="destructive" className="bg-amber-50 text-amber-900 border-amber-200">
+                <Info className="h-4 w-4" />
+                <AlertDescription className="text-amber-800">
+                  Connection issue detected. Try clearing session data below.
+                </AlertDescription>
               </Alert>
             )}
             
@@ -250,15 +299,29 @@ export default function Auth() {
               )}
             </div>
             
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="mt-4 text-xs flex items-center gap-1"
-              onClick={clearLocalAuthData}
-            >
-              <RefreshCw className="h-3 w-3" /> Clear Session Data
-            </Button>
+            <div className="flex gap-2 w-full">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="flex-1 text-xs flex items-center gap-1"
+                onClick={clearLocalAuthData}
+              >
+                <RefreshCw className="h-3 w-3" /> Clear Session Data
+              </Button>
+              
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="flex-1 text-xs flex items-center gap-1"
+                onClick={checkAndReportSupabaseHealth}
+                disabled={isCheckingHealth}
+              >
+                {isCheckingHealth ? <Loader2 className="h-3 w-3 animate-spin" /> : <Info className="h-3 w-3" />} 
+                Check Connection
+              </Button>
+            </div>
           </CardFooter>
         </form>
       </Card>
