@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { User, UserRole } from "@/types/user";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +9,7 @@ interface UserContextType {
   setUser: (user: User | null) => void;
   hasPermission: (requiredRole: UserRole) => boolean;
   isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signIn: (email: string, password: string, keepSignedIn?: boolean) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -70,10 +69,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   // Helper function to selectively clear auth state - only used in extreme cases
   const clearAuthState = () => {
     try {
-      // We'll only remove our specific token, not all Supabase tokens
       localStorage.removeItem('woodbourne-auth-token');
-      
-      // Don't clear other tokens unless we're sure we're in a bad state
       console.log("Cleared specific auth token only");
     } catch (error) {
       console.error("Error clearing auth state:", error);
@@ -86,14 +82,12 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       try {
         setIsLoading(true);
         
-        // Set up auth state change listener first
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (event, session) => {
             console.log("Auth state change:", event, !!session);
             
             if (event === 'SIGNED_IN' && session) {
               try {
-                // Get user profile after sign in
                 const { data: userData } = await supabase
                   .from('profiles')
                   .select('*')
@@ -105,18 +99,17 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
                   email: session.user.email || '',
                   name: userData ? `${userData.first_name} ${userData.last_name}`.trim() : (session.user.user_metadata?.name || 'User'),
                   role: userData ? mapDatabaseRole(userData.role) : 'customer',
-                  avatar: null, // profiles don't have avatar field, default to null
+                  avatar: null,
                   created_at: session.user.created_at,
                   last_sign_in: session.user.last_sign_in_at,
                 });
               } catch (error) {
                 console.error("Error fetching profile after sign in:", error);
-                // Set basic user info without profile data
                 setUser({
                   id: session.user.id,
                   email: session.user.email || '',
                   name: session.user.user_metadata?.name || 'User',
-                  role: 'customer', // Default role
+                  role: 'customer',
                   avatar: null,
                   created_at: session.user.created_at,
                   last_sign_in: session.user.last_sign_in_at,
@@ -126,7 +119,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
             
             if (event === 'SIGNED_OUT') {
               setUser(null);
-              // Only navigate if we're not already on the auth page
               if (location.pathname !== '/auth') {
                 navigate('/auth');
               }
@@ -134,7 +126,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
           }
         );
         
-        // Get current session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
@@ -146,7 +137,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         
         if (session) {
           try {
-            // Get user profile data
             const { data: userData, error: userError } = await supabase
               .from('profiles')
               .select('*')
@@ -157,24 +147,22 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
               console.error("Error fetching user profile:", userError);
             }
             
-            // Set user with session and profile data
             setUser({
               id: session.user.id,
               email: session.user.email || '',
               name: userData ? `${userData.first_name} ${userData.last_name}`.trim() : (session.user.user_metadata?.name || 'User'),
               role: userData ? mapDatabaseRole(userData.role) : 'customer',
-              avatar: null, // profiles don't have avatar field, default to null
+              avatar: null,
               created_at: session.user.created_at,
               last_sign_in: session.user.last_sign_in_at,
             });
           } catch (profileError) {
             console.error("Error in profile processing:", profileError);
-            // Continue with session data only
             setUser({
               id: session.user.id,
               email: session.user.email || '',
               name: session.user.user_metadata?.name || 'User',
-              role: 'customer', // Default role
+              role: 'customer',
               avatar: null,
               created_at: session.user.created_at,
               last_sign_in: session.user.last_sign_in_at,
@@ -183,7 +171,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         } else {
           setUser(null);
           
-          // Check if current route is protected and redirect to login if needed
           const currentPath = location.pathname;
           if (protectedRoutes.some(route => currentPath.startsWith(route)) && currentPath !== '/auth') {
             toast({
@@ -203,8 +190,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     };
     
     checkAuth();
-    
-    // No need to return cleanup function as the subscription is handled separately
   }, [location.pathname, navigate, toast]);
 
   // Check role restrictions for current route
@@ -214,7 +199,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       
       const currentPath = location.pathname;
       
-      // Check if current route has role restrictions
       for (const [route, requiredRole] of Object.entries(roleRestrictedRoutes)) {
         if (currentPath.startsWith(route)) {
           if (!hasPermission(requiredRole)) {
@@ -238,18 +222,19 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     return roleHierarchy[user.role] >= roleHierarchy[requiredRole];
   };
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string, keepSignedIn: boolean = true) => {
     try {
-      // Try to sign in with the provided credentials
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
+        options: {
+          expiresIn: keepSignedIn ? 30 * 24 * 60 * 60 : 8 * 60 * 60
+        }
       });
       
       if (error) {
         console.error("Sign in error:", error);
         
-        // Handle specific errors without clearing all auth state
         let errorMessage = error.message;
         
         toast({
@@ -260,17 +245,21 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         return { error };
       }
       
-      // If we get here, sign in was successful
       toast({
         title: "Welcome back!",
         description: "You have successfully signed in.",
       });
       
+      try {
+        localStorage.setItem('woodbourne-keep-signed-in', keepSignedIn ? 'true' : 'false');
+      } catch (e) {
+        console.warn("Could not save session preference", e);
+      }
+      
       return { error: null };
     } catch (error: any) {
       console.error("Sign in error:", error);
       
-      // Provide a generic error message for unexpected errors
       toast({
         title: "Sign in failed",
         description: "An unexpected error occurred. Please try again.",
@@ -284,6 +273,12 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
+      
+      try {
+        localStorage.removeItem('woodbourne-keep-signed-in');
+      } catch (e) {
+        console.warn("Could not clear session preference", e);
+      }
       
       toast({
         title: "Signed out",
@@ -315,7 +310,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
           email: session.user.email || '',
           name: userData ? `${userData.first_name} ${userData.last_name}`.trim() : (session.user.user_metadata?.name || 'User'),
           role: userData ? mapDatabaseRole(userData.role) : 'customer',
-          avatar: null, // profiles don't have avatar field, default to null
+          avatar: null,
           created_at: session.user.created_at,
           last_sign_in: session.user.last_sign_in_at,
         });

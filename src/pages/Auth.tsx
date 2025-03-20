@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/context/UserContext";
 import { supabase, checkSupabaseHealth } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function Auth() {
   const [email, setEmail] = useState("");
@@ -22,6 +23,7 @@ export default function Auth() {
   const [supabaseStatus, setSupabaseStatus] = useState<{isHealthy: boolean, error: string | null} | null>(null);
   const [isCheckingHealth, setIsCheckingHealth] = useState(false);
   const [connectionAttempts, setConnectionAttempts] = useState(0);
+  const [keepSignedIn, setKeepSignedIn] = useState(true);
   const { toast } = useToast();
   const { user, signIn } = useUser();
   const navigate = useNavigate();
@@ -116,7 +118,7 @@ export default function Auth() {
         }
       } else {
         try {
-          const { error } = await signIn(email, password);
+          const { error } = await signIn(email, password, keepSignedIn);
           
           if (error) {
             console.error("Sign in error:", error);
@@ -236,6 +238,19 @@ export default function Auth() {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
                 />
+              </div>
+            )}
+            
+            {!isSignUp && (
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="keepSignedIn" 
+                  checked={keepSignedIn} 
+                  onCheckedChange={(checked) => setKeepSignedIn(checked as boolean)}
+                />
+                <Label htmlFor="keepSignedIn" className="text-sm font-medium leading-none cursor-pointer">
+                  Keep me signed in
+                </Label>
               </div>
             )}
           </CardContent>
