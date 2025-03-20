@@ -16,19 +16,23 @@ export function AuthGuard({ children, requiredRole }: AuthGuardProps) {
   const location = useLocation();
 
   useEffect(() => {
-    if (!isLoading) {
-      if (!user) {
-        // Redirect to login if not authenticated
-        navigate('/auth', { state: { from: location.pathname } });
-      } else if (requiredRole && !hasPermission(requiredRole)) {
-        // Redirect to home if user doesn't have required permissions
-        navigate('/', { 
-          state: { 
-            permissionDenied: true, 
-            requiredRole 
-          } 
-        });
-      }
+    // Don't redirect if still loading - prevents flashing
+    if (isLoading) return;
+    
+    // Don't do anything if we're already on the auth page
+    if (location.pathname === '/auth') return;
+    
+    if (!user) {
+      // Redirect to login if not authenticated
+      navigate('/auth', { state: { from: location.pathname } });
+    } else if (requiredRole && !hasPermission(requiredRole)) {
+      // Redirect to home if user doesn't have required permissions
+      navigate('/', { 
+        state: { 
+          permissionDenied: true, 
+          requiredRole 
+        } 
+      });
     }
   }, [user, isLoading, requiredRole, hasPermission, navigate, location.pathname]);
 
@@ -45,6 +49,10 @@ export function AuthGuard({ children, requiredRole }: AuthGuardProps) {
     return <>{children}</>;
   }
 
-  // This will likely never render as the redirects should happen in the useEffect
-  return null;
+  // Show loading state instead of returning null to prevent flashing
+  return (
+    <div className="flex justify-center items-center min-h-screen">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
+  );
 }

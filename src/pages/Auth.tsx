@@ -45,7 +45,7 @@ export default function Auth() {
       if (!health.isHealthy) {
         toast({
           title: "Connection issue detected",
-          description: "There may be issues connecting to the database. Consider clearing session data.",
+          description: "There may be issues connecting to the database.",
           variant: "destructive",
         });
       }
@@ -55,18 +55,8 @@ export default function Auth() {
   }, [toast, connectionAttempts]);
 
   const clearLocalAuthData = () => {
-    // Clear all auth-related data
+    // Only clear the specific auth token, not all auth-related data
     localStorage.removeItem('woodbourne-auth-token');
-    localStorage.removeItem('supabase.auth.token');
-    sessionStorage.removeItem('supabase.auth.token');
-    
-    // Also clear any other potential Supabase storage
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && (key.includes('supabase') || key.includes('sb-'))) {
-        localStorage.removeItem(key);
-      }
-    }
     
     // Increment connection attempts to trigger a health check
     setConnectionAttempts(prev => prev + 1);
@@ -125,9 +115,6 @@ export default function Auth() {
           setIsSignUp(false);
         }
       } else {
-        // Add a small delay to ensure any prior auth state is cleared
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
         try {
           const { error } = await signIn(email, password);
           
@@ -140,40 +127,15 @@ export default function Auth() {
             }
             
             setErrorMessage(errorMsg);
-            
-            // Special handling for Supabase database errors
-            if (errorMsg.includes("Database error") || errorMsg.includes("schema") || 
-                errorMsg.includes("converting NULL")) {
-              toast({
-                title: "Authentication system error",
-                description: "Please click 'Clear Session Data' below and try again.",
-                variant: "destructive",
-              });
-              
-              // Auto-clear session data after 2 seconds to help the user
-              setTimeout(clearLocalAuthData, 2000);
-            }
           }
         } catch (signInError) {
           console.error("Unexpected sign in error:", signInError);
           setErrorMessage("An unexpected error occurred during sign in");
-          
-          // Suggest clearing session data for any unexpected errors
-          toast({
-            title: "Authentication failed",
-            description: "Please try clearing session data and signing in again.",
-            variant: "destructive",
-          });
         }
       }
     } catch (error) {
       console.error("Authentication error:", error);
       setErrorMessage("An unexpected error occurred. Please try again.");
-      toast({
-        title: "Authentication failed",
-        description: "An unexpected error occurred. Please try clearing session data.",
-        variant: "destructive",
-      });
     } finally {
       setIsSubmitting(false);
     }
@@ -225,7 +187,7 @@ export default function Auth() {
               <Alert variant="destructive" className="bg-amber-50 text-amber-900 border-amber-200">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription className="text-amber-800">
-                  Connection issue detected. Try clearing session data below or using a different browser.
+                  Connection issue detected. Try clearing session data below.
                 </AlertDescription>
               </Alert>
             )}
@@ -276,13 +238,6 @@ export default function Auth() {
                 />
               </div>
             )}
-            
-            <Alert className="bg-blue-50 border-blue-200">
-              <Info className="h-4 w-4 text-blue-600" />
-              <AlertDescription className="text-blue-700 text-sm">
-                If you're having trouble signing in, try clicking the "Clear Session Data" button below.
-              </AlertDescription>
-            </Alert>
           </CardContent>
           <CardFooter className="flex-col space-y-4">
             <Button
@@ -328,7 +283,7 @@ export default function Auth() {
             <div className="flex gap-2 w-full">
               <Button
                 type="button"
-                variant="destructive"
+                variant="outline"
                 size="sm"
                 className="flex-1 text-xs flex items-center gap-1"
                 onClick={clearLocalAuthData}
