@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -38,7 +37,6 @@ export const CustomerSelector = ({
     try {
       setLoading(true);
       
-      // Get total count for pagination
       const { count, error: countError } = await supabase
         .from('customers')
         .select('*', { count: 'exact', head: true });
@@ -57,7 +55,6 @@ export const CustomerSelector = ({
         setTotalPages(Math.ceil(count / itemsPerPage));
       }
       
-      // Fetch only essential fields for the current page
       const { data, error } = await supabase
         .from('customers')
         .select('id, name, address, street_address, city, state, zip_code')
@@ -73,17 +70,15 @@ export const CustomerSelector = ({
         return;
       }
 
-      // Process customers with minimal data
       const processedCustomers = data.map((customer) => ({
         ...customer,
-        type: 'RETAIL', // Default type, will be loaded in full data if needed
+        type: 'RETAIL',
         address: customer.address || constructAddress(customer),
         phone: '',
         email: '',
         notes: ''
       }));
       
-      // Sort by popularity
       const sortedCustomers = sortCustomersByPopularity(processedCustomers);
       
       setCustomers(sortedCustomers);
@@ -193,7 +188,6 @@ export const CustomerSelector = ({
       setLoading(true);
       
       try {
-        // Fetch complete customer data on selection
         const fullCustomerData = await fetchCustomerDetails(selectedId);
         
         if (fullCustomerData) {
@@ -286,6 +280,7 @@ export const CustomerSelector = ({
         searchValue={search}
         onSearchChange={handleSearch}
         onAddNew={() => setShowNewCustomerDialog(true)}
+        debounceTime={400}
       />
       
       {loading ? (
