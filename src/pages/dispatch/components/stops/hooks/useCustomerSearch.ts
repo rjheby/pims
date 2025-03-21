@@ -1,6 +1,6 @@
 
 import { useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, handleSupabaseError } from "@/integrations/supabase/client";
 import { Customer } from "../types";
 import { toast } from "@/components/ui/use-toast";
 import { constructAddress, sortCustomersByPopularity } from "../CustomerUtils";
@@ -16,6 +16,12 @@ export function useCustomerSearch(itemsPerPage = 10) {
     try {
       setLoading(true);
       
+      // First, make a simple test query to check connection
+      const testQuery = await supabase.from('customers').select('count', { count: 'exact', head: true });
+      if (testQuery.error) {
+        throw new Error(`Connection test failed: ${testQuery.error.message}`);
+      }
+      
       const { count, error: countError } = await supabase
         .from('customers')
         .select('*', { count: 'exact', head: true });
@@ -23,7 +29,7 @@ export function useCustomerSearch(itemsPerPage = 10) {
       if (countError) {
         toast({
           title: "Error",
-          description: `Failed to count customers: ${countError.message}`,
+          description: `Failed to count customers: ${handleSupabaseError(countError)}`,
           variant: "destructive"
         });
         return;
@@ -43,7 +49,7 @@ export function useCustomerSearch(itemsPerPage = 10) {
       if (error) {
         toast({
           title: "Error",
-          description: `Failed to fetch customers: ${error.message}`,
+          description: `Failed to fetch customers: ${handleSupabaseError(error)}`,
           variant: "destructive"
         });
         return;
@@ -62,9 +68,10 @@ export function useCustomerSearch(itemsPerPage = 10) {
       
       setCustomers(sortedCustomers);
     } catch (error: any) {
+      console.error("Customer search error:", error);
       toast({
         title: "Error",
-        description: "An unexpected error occurred while fetching customers",
+        description: handleSupabaseError(error),
         variant: "destructive"
       });
     } finally {

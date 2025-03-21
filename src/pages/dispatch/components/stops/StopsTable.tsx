@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { DragDropContext, Droppable } from "@hello-pangea/dnd";
 import { MapPinPlus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, handleSupabaseError } from "@/integrations/supabase/client";
 import StopsDesktopTable from "./StopsDesktopTable";
 import { StopsMobileCards } from "./StopsMobileCards";
 import { StopDialogs } from "./StopDialogs";
@@ -86,6 +85,12 @@ const StopsTable = ({
     
     setLoading(true);
     try {
+      // First, make a simple test query to verify connection
+      const testQuery = await supabase.from('customers').select('count', { count: 'exact', head: true });
+      if (testQuery.error) {
+        throw new Error(`Connection test failed: ${testQuery.error.message}`);
+      }
+      
       // Use consistent query across components
       const { data: customersData, error: customersError } = await supabase
         .from('customers')
@@ -130,7 +135,7 @@ const StopsTable = ({
       console.error("Error in fetchData:", error);
       toast({
         title: "Error",
-        description: error.message,
+        description: handleSupabaseError(error),
         variant: "destructive",
       });
     } finally {
