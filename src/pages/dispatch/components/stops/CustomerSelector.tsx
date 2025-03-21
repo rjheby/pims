@@ -10,14 +10,12 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
-// Define popular customers for priority sorting
 const POPULAR_CUSTOMERS = [
   "paulie g",
   "numero 28 brooklyn",
   "sunday in brooklyn"
 ];
 
-// Helper function to get popularity score (higher = more popular)
 const getPopularityScore = (name: string): number => {
   const normalizedName = name.toLowerCase();
   const index = POPULAR_CUSTOMERS.findIndex(popular => 
@@ -50,13 +48,11 @@ export const CustomerSelector = ({
     email: ''
   });
   
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCustomers, setTotalCustomers] = useState(0);
-  const itemsPerPage = 10; // Show 10 customers per page
+  const itemsPerPage = 10;
 
-  // Memoize the constructAddress function to avoid recreation on every render
   const constructAddress = useCallback((customer: any) => {
     const parts = [
       customer.street_address,
@@ -68,19 +64,16 @@ export const CustomerSelector = ({
     return parts.length > 0 ? parts.join(', ') : '';
   }, []);
 
-  // Optimized function to fetch customers with minimal fields for display
   const fetchCustomersMinimal = useCallback(async (page = 1) => {
     try {
       setLoading(true);
-      console.log(`CustomerSelector: Fetching minimal customer data for page ${page}`);
       
-      // First, get total count for pagination
+      // Get total count for pagination
       const { count, error: countError } = await supabase
         .from('customers')
         .select('*', { count: 'exact', head: true });
         
       if (countError) {
-        console.error("Error counting customers:", countError);
         toast({
           title: "Error",
           description: `Failed to count customers: ${countError.message}`,
@@ -94,7 +87,7 @@ export const CustomerSelector = ({
         setTotalPages(Math.ceil(count / itemsPerPage));
       }
       
-      // Then fetch only the essential fields for the current page
+      // Fetch only essential fields for the current page
       const { data, error } = await supabase
         .from('customers')
         .select('id, name, address, street_address, city, state, zip_code')
@@ -102,7 +95,6 @@ export const CustomerSelector = ({
         .order('name');
         
       if (error) {
-        console.error("Error fetching customers:", error);
         toast({
           title: "Error",
           description: `Failed to fetch customers: ${error.message}`,
@@ -111,14 +103,11 @@ export const CustomerSelector = ({
         return;
       }
 
-      console.log(`CustomerSelector: Fetched ${data?.length || 0} customers for page ${page}`);
-
       // Process customers with minimal data
       const processedCustomers = data.map((customer) => ({
         ...customer,
         type: 'RETAIL', // Default type, will be loaded in full data if needed
         address: customer.address || constructAddress(customer),
-        // These fields will be loaded later when needed
         phone: '',
         email: '',
         notes: ''
@@ -133,13 +122,11 @@ export const CustomerSelector = ({
           return scoreB - scoreA; // Higher score (more popular) first
         }
         
-        // If popularity is the same, sort alphabetically
         return a.name.localeCompare(b.name);
       });
       
       setCustomers(sortedCustomers);
     } catch (error: any) {
-      console.error("Error in fetchCustomersMinimal:", error);
       toast({
         title: "Error",
         description: "An unexpected error occurred while fetching customers",
@@ -150,11 +137,8 @@ export const CustomerSelector = ({
     }
   }, [constructAddress]);
 
-  // Function to fetch complete customer data when selected
   const fetchCustomerDetails = useCallback(async (customerId: string) => {
     try {
-      console.log(`CustomerSelector: Fetching complete data for customer ID ${customerId}`);
-      
       const { data, error } = await supabase
         .from('customers')
         .select('id, name, address, phone, email, notes, type, street_address, city, state, zip_code')
@@ -162,7 +146,6 @@ export const CustomerSelector = ({
         .single();
         
       if (error) {
-        console.error("Error fetching customer details:", error);
         return null;
       }
       
@@ -173,37 +156,30 @@ export const CustomerSelector = ({
       };
       
     } catch (error) {
-      console.error("Error in fetchCustomerDetails:", error);
       return null;
     }
   }, [constructAddress]);
 
-  // Initialize with first page of minimal data
   useEffect(() => {
     fetchCustomersMinimal(currentPage);
   }, [fetchCustomersMinimal, currentPage]);
 
-  // Handle page changes
   const handlePageChange = (page: number) => {
     if (page < 1 || page > totalPages) return;
     setCurrentPage(page);
   };
 
-  // Handle search with pagination reset
   const handleSearch = (searchValue: string) => {
     setSearch(searchValue);
     
     if (searchValue.length > 0) {
-      // When searching, we might want to fetch all results instead of paginating
       searchCustomers(searchValue);
     } else {
-      // Reset to first page when clearing search
       setCurrentPage(1);
       fetchCustomersMinimal(1);
     }
   };
   
-  // Search function
   const searchCustomers = async (searchTerm: string) => {
     try {
       setLoading(true);
@@ -215,7 +191,6 @@ export const CustomerSelector = ({
         .order('name');
         
       if (error) {
-        console.error("Error searching customers:", error);
         toast({
           title: "Error",
           description: `Failed to search customers: ${error.message}`,
@@ -224,18 +199,15 @@ export const CustomerSelector = ({
         return;
       }
       
-      console.log(`Search found ${data?.length || 0} customers`);
-      
       const processedCustomers = data.map((customer) => ({
         ...customer,
-        type: 'RETAIL', // Default type
+        type: 'RETAIL',
         address: customer.address || constructAddress(customer),
         phone: '',
         email: '',
         notes: ''
       }));
       
-      // Sort search results by popularity
       const sortedCustomers = processedCustomers.sort((a, b) => {
         const scoreA = getPopularityScore(a.name);
         const scoreB = getPopularityScore(b.name);
@@ -248,10 +220,8 @@ export const CustomerSelector = ({
       });
       
       setCustomers(sortedCustomers);
-      // For search results, don't paginate for now (could be enhanced later)
       setTotalPages(1);
     } catch (error: any) {
-      console.error("Error in searchCustomers:", error);
       toast({
         title: "Error",
         description: "An unexpected error occurred while searching customers",
@@ -265,25 +235,21 @@ export const CustomerSelector = ({
   const handleConfirm = async () => {
     if (!selectedId) return;
     
-    // When confirming selection, fetch complete customer data
     const selectedCustomer = customers.find(c => c.id === selectedId);
     
     if (selectedCustomer) {
       setLoading(true);
       
       try {
-        // Fetch complete customer data
+        // Fetch complete customer data on selection
         const fullCustomerData = await fetchCustomerDetails(selectedId);
         
         if (fullCustomerData) {
           onSelect(fullCustomerData);
         } else {
-          // Fallback to the minimal data if fetch fails
           onSelect(selectedCustomer);
         }
       } catch (error) {
-        console.error("Error fetching complete customer data:", error);
-        // Still allow selection with minimal data
         onSelect(selectedCustomer);
       } finally {
         setLoading(false);
@@ -354,7 +320,6 @@ export const CustomerSelector = ({
       
       onSelect(newCustomerWithAllFields);
     } catch (err) {
-      console.error("Error creating customer:", err);
       toast({
         title: "Error",
         description: "An unexpected error occurred",
@@ -429,7 +394,6 @@ export const CustomerSelector = ({
         </div>
       )}
       
-      {/* Add pagination controls */}
       {totalPages > 1 && !search && (
         <div className="mt-2 mb-4">
           <Pagination>
@@ -444,7 +408,6 @@ export const CustomerSelector = ({
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                 let pageNumber;
                 
-                // Logic to show pages around current page
                 if (totalPages <= 5) {
                   pageNumber = i + 1;
                 } else if (currentPage <= 3) {
