@@ -1,20 +1,21 @@
 
 import React from "react";
 import { Customer } from "./types";
+import { getPopularityScore } from "./CustomerUtils";
 
 interface CustomerCardProps {
   customer: Customer;
   isSelected: boolean;
   onClick: () => void;
-  popularityScore: number;
 }
 
 export const CustomerCard: React.FC<CustomerCardProps> = ({
   customer,
   isSelected,
   onClick,
-  popularityScore,
 }) => {
+  const popularityScore = getPopularityScore(customer.name);
+  
   return (
     <div
       className={`
