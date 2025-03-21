@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Customer } from "@/pages/customers/types"; // Import the Customer type
 
 export function useDispatchForm(id: string | undefined) {
   const navigate = useNavigate();
@@ -63,7 +64,7 @@ export function useDispatchForm(id: string | undefined) {
         // Process stops to ensure all required fields
         const processedStops = (stopsData || []).map((stop, index) => {
           // Get customer data from nested object and handle potential undefined
-          const customer = stop.customers || {};
+          const customer: Customer = stop.customers as Customer || {};
           
           // Construct full address if needed
           let address = customer.address || '';
