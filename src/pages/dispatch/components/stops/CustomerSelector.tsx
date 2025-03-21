@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -69,11 +68,11 @@ export const CustomerSelector = ({
     return parts.length > 0 ? parts.join(', ') : '';
   }, []);
 
-  // Fetch customers with pagination
-  const fetchCustomers = useCallback(async (page = 1) => {
+  // Optimized function to fetch customers with minimal fields for display
+  const fetchCustomersMinimal = useCallback(async (page = 1) => {
     try {
       setLoading(true);
-      console.log(`CustomerSelector: Fetching customers for page ${page}`);
+      console.log(`CustomerSelector: Fetching minimal customer data for page ${page}`);
       
       // First, get total count for pagination
       const { count, error: countError } = await supabase
@@ -95,10 +94,10 @@ export const CustomerSelector = ({
         setTotalPages(Math.ceil(count / itemsPerPage));
       }
       
-      // Then fetch the current page of data
+      // Then fetch only the essential fields for the current page
       const { data, error } = await supabase
         .from('customers')
-        .select('id, name, address, phone, email, notes, type, street_address, city, state, zip_code')
+        .select('id, name, address, street_address, city, state, zip_code')
         .range((page - 1) * itemsPerPage, page * itemsPerPage - 1)
         .order('name');
         
@@ -114,11 +113,15 @@ export const CustomerSelector = ({
 
       console.log(`CustomerSelector: Fetched ${data?.length || 0} customers for page ${page}`);
 
-      // Process customers only once after fetching
+      // Process customers with minimal data
       const processedCustomers = data.map((customer) => ({
         ...customer,
-        type: customer.type || 'RETAIL',
+        type: 'RETAIL', // Default type, will be loaded in full data if needed
         address: customer.address || constructAddress(customer),
+        // These fields will be loaded later when needed
+        phone: '',
+        email: '',
+        notes: ''
       }));
       
       // Sort by popularity first, then alphabetically
@@ -136,7 +139,7 @@ export const CustomerSelector = ({
       
       setCustomers(sortedCustomers);
     } catch (error: any) {
-      console.error("Error in fetchCustomers:", error);
+      console.error("Error in fetchCustomersMinimal:", error);
       toast({
         title: "Error",
         description: "An unexpected error occurred while fetching customers",
@@ -147,10 +150,38 @@ export const CustomerSelector = ({
     }
   }, [constructAddress]);
 
-  // Initialize with first page of data
+  // Function to fetch complete customer data when selected
+  const fetchCustomerDetails = useCallback(async (customerId: string) => {
+    try {
+      console.log(`CustomerSelector: Fetching complete data for customer ID ${customerId}`);
+      
+      const { data, error } = await supabase
+        .from('customers')
+        .select('id, name, address, phone, email, notes, type, street_address, city, state, zip_code')
+        .eq('id', customerId)
+        .single();
+        
+      if (error) {
+        console.error("Error fetching customer details:", error);
+        return null;
+      }
+      
+      return {
+        ...data,
+        type: data.type || 'RETAIL',
+        address: data.address || constructAddress(data),
+      };
+      
+    } catch (error) {
+      console.error("Error in fetchCustomerDetails:", error);
+      return null;
+    }
+  }, [constructAddress]);
+
+  // Initialize with first page of minimal data
   useEffect(() => {
-    fetchCustomers(currentPage);
-  }, [fetchCustomers, currentPage]);
+    fetchCustomersMinimal(currentPage);
+  }, [fetchCustomersMinimal, currentPage]);
 
   // Handle page changes
   const handlePageChange = (page: number) => {
@@ -168,7 +199,7 @@ export const CustomerSelector = ({
     } else {
       // Reset to first page when clearing search
       setCurrentPage(1);
-      fetchCustomers(1);
+      fetchCustomersMinimal(1);
     }
   };
   
@@ -179,8 +210,8 @@ export const CustomerSelector = ({
       
       const { data, error } = await supabase
         .from('customers')
-        .select('id, name, address, phone, email, notes, type, street_address, city, state, zip_code')
-        .or(`name.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%,address.ilike.%${searchTerm}%`)
+        .select('id, name, address, street_address, city, state, zip_code')
+        .or(`name.ilike.%${searchTerm}%,address.ilike.%${searchTerm}%`)
         .order('name');
         
       if (error) {
@@ -197,8 +228,11 @@ export const CustomerSelector = ({
       
       const processedCustomers = data.map((customer) => ({
         ...customer,
-        type: customer.type || 'RETAIL',
+        type: 'RETAIL', // Default type
         address: customer.address || constructAddress(customer),
+        phone: '',
+        email: '',
+        notes: ''
       }));
       
       // Sort search results by popularity
@@ -228,12 +262,32 @@ export const CustomerSelector = ({
     }
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (!selectedId) return;
     
+    // When confirming selection, fetch complete customer data
     const selectedCustomer = customers.find(c => c.id === selectedId);
+    
     if (selectedCustomer) {
-      onSelect(selectedCustomer);
+      setLoading(true);
+      
+      try {
+        // Fetch complete customer data
+        const fullCustomerData = await fetchCustomerDetails(selectedId);
+        
+        if (fullCustomerData) {
+          onSelect(fullCustomerData);
+        } else {
+          // Fallback to the minimal data if fetch fails
+          onSelect(selectedCustomer);
+        }
+      } catch (error) {
+        console.error("Error fetching complete customer data:", error);
+        // Still allow selection with minimal data
+        onSelect(selectedCustomer);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
