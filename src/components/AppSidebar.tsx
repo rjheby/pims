@@ -1,3 +1,4 @@
+
 import { Link, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -46,7 +47,7 @@ const menuGroups = {
   orders: {
     title: "Orders",
     items: [
-      { title: "Place Orders", icon: ShoppingCart, path: "/dispatch" },
+      // Removed "Place Orders" item that led to "/dispatch"
       { title: "Client Orders", icon: FileText, path: "/client-order" },
       { title: "Supplier Form", icon: ClipboardList, path: "/wholesale-order" },
       { title: "Supplier Archives", icon: Archive, path: "/wholesale-orders" },
