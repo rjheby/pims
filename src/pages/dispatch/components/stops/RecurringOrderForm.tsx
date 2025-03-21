@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -10,7 +10,10 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { recurrenceOptions, dayOptions } from './utils';
+import { Badge } from '@/components/ui/badge';
+import { Calendar } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 
 export interface RecurrenceData {
   isRecurring: boolean;
@@ -26,11 +29,69 @@ export interface RecurringOrderFormProps {
   initialRecurrence?: RecurrenceData;
 }
 
+// Enhanced recurrence options with descriptions
+export const recurrenceOptions = [
+  { value: 'none', label: 'None' },
+  { value: 'weekly', label: 'Weekly', description: 'Deliver once every week' },
+  { value: 'biweekly', label: 'Bi-Weekly', description: 'Deliver once every two weeks' },
+  { value: 'monthly', label: 'Monthly', description: 'Deliver once per month' },
+  { value: 'custom', label: 'Custom', description: 'Define a custom schedule' }
+];
+
+export const dayOptions = [
+  { value: 'monday', label: 'Monday' },
+  { value: 'tuesday', label: 'Tuesday' },
+  { value: 'wednesday', label: 'Wednesday' },
+  { value: 'thursday', label: 'Thursday' },
+  { value: 'friday', label: 'Friday' },
+  { value: 'saturday', label: 'Saturday' },
+  { value: 'sunday', label: 'Sunday' }
+];
+
 export const RecurringOrderForm = ({ 
   recurrenceData, 
   onRecurrenceChange,
   initialRecurrence 
 }: RecurringOrderFormProps) => {
+  // Use a summary state to display a human-readable description
+  const [summary, setSummary] = useState<string>('');
+  
+  // Update summary whenever recurrence data changes
+  useEffect(() => {
+    if (!recurrenceData.isRecurring) {
+      setSummary('');
+      return;
+    }
+    
+    let summaryText = '';
+    const frequency = recurrenceOptions.find(o => o.value === recurrenceData.frequency)?.label || '';
+    const day = dayOptions.find(d => d.value === recurrenceData.preferredDay)?.label || '';
+    
+    if (frequency && day) {
+      summaryText = `Delivers ${frequency.toLowerCase()} on ${day}`;
+      
+      if (recurrenceData.startDate) {
+        try {
+          const formattedDate = new Date(recurrenceData.startDate).toLocaleDateString();
+          summaryText += ` starting ${formattedDate}`;
+        } catch (e) {
+          // Invalid date, skip
+        }
+      }
+      
+      if (recurrenceData.endDate) {
+        try {
+          const formattedDate = new Date(recurrenceData.endDate).toLocaleDateString();
+          summaryText += ` until ${formattedDate}`;
+        } catch (e) {
+          // Invalid date, skip
+        }
+      }
+    }
+    
+    setSummary(summaryText);
+  }, [recurrenceData]);
+
   const handleChange = (field: keyof RecurrenceData, value: any) => {
     const updatedData = { ...recurrenceData, [field]: value };
     
@@ -59,6 +120,15 @@ export const RecurringOrderForm = ({
         />
       </div>
       
+      {summary && (
+        <Card className="bg-primary/5 border-primary/20">
+          <CardContent className="p-3 flex items-center">
+            <Calendar className="h-4 w-4 mr-2 text-primary" />
+            <span className="text-sm font-medium">{summary}</span>
+          </CardContent>
+        </Card>
+      )}
+      
       {recurrenceData.isRecurring && (
         <div className="space-y-4 mt-2">
           <div>
@@ -73,7 +143,12 @@ export const RecurringOrderForm = ({
               <SelectContent>
                 {recurrenceOptions.filter(option => option.value !== 'none').map((option) => (
                   <SelectItem key={option.value} value={option.value}>
-                    {option.label}
+                    <div className="flex flex-col">
+                      <span>{option.label}</span>
+                      {option.description && (
+                        <span className="text-xs text-muted-foreground">{option.description}</span>
+                      )}
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>

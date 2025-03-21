@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RecurrenceData } from "./RecurringOrderForm";
@@ -5,6 +6,10 @@ import { Customer, Driver } from "./types";
 import { ItemSelector } from "./ItemSelector";
 import { CustomerSelector } from "./CustomerSelector";
 import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { RecurringOrderForm } from "./RecurringOrderForm";
 
 interface StopDialogsProps {
   customerDialogOpen: boolean;
@@ -59,6 +64,8 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
   const [cachedItemsData, setCachedItemsData] = useState<any[]>([]);
   const [selectedDriverId, setSelectedDriverId] = useState(initialDriverId);
   const [notes, setNotes] = useState(initialNotes);
+  const [driverDialogOpen, setDriverDialogOpen] = useState(false);
+  const [localRecurrenceData, setLocalRecurrenceData] = useState(recurrenceData);
 
   useEffect(() => {
     console.log("StopDialogs: initialCustomerId changed to:", initialCustomerId);
@@ -76,29 +83,36 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
   }, [initialNotes]);
 
   useEffect(() => {
+    console.log("StopDialogs: recurrenceData changed:", recurrenceData);
+    setLocalRecurrenceData(recurrenceData);
+  }, [recurrenceData]);
+
+  useEffect(() => {
     if (!itemsDialogOpen && cachedItemsData.length > 0) {
       console.log("Items dialog closed with cached items, ensuring they're saved:", cachedItemsData);
       const formattedItems = cachedItemsData.map(item => 
         `${item.quantity}x ${item.name}${item.price ? ` @$${item.price}` : ''}`
       ).join(', ');
       
-      onItemsSelect(formattedItems, cachedItemsData, recurrenceData);
+      onItemsSelect(formattedItems, cachedItemsData, localRecurrenceData);
       setCachedItemsData([]);
     }
-  }, [itemsDialogOpen, cachedItemsData, onItemsSelect, recurrenceData]);
+  }, [itemsDialogOpen, cachedItemsData, onItemsSelect, localRecurrenceData]);
 
-  const handleOpenChange = (open: boolean, dialogType: 'customer' | 'items') => {
+  const handleOpenChange = (open: boolean, dialogType: 'customer' | 'items' | 'driver') => {
     console.log(`${dialogType} dialog openChange event:`, open);
     if (dialogType === 'customer') {
       if (!open) {
         console.log("Customer dialog closing via UI interaction");
       }
       setCustomerDialogOpen(open);
-    } else {
+    } else if (dialogType === 'items') {
       if (!open) {
         console.log("Items dialog closing via UI interaction");
       }
       setItemsDialogOpen(open);
+    } else if (dialogType === 'driver') {
+      setDriverDialogOpen(open);
     }
   };
 
@@ -124,6 +138,10 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
     const safeItemsData = Array.isArray(itemsData) ? itemsData : [];
     setCachedItemsData(safeItemsData);
     
+    if (recurrenceData) {
+      setLocalRecurrenceData(recurrenceData);
+    }
+    
     if (safeItemsData.length > 0) {
       toast({
         title: "Items Selected",
@@ -131,7 +149,37 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
       });
     }
     
-    onItemsSelect(items, safeItemsData, recurrenceData);
+    onItemsSelect(items, safeItemsData, recurrenceData || localRecurrenceData);
+  };
+
+  const handleDriverChange = (driverId: string | null) => {
+    console.log("Driver changed to:", driverId);
+    setSelectedDriverId(driverId);
+    
+    if (onDriverSelect) {
+      onDriverSelect(driverId);
+    }
+    
+    // Show a toast to confirm driver selection
+    const driverName = driverId ? drivers.find(d => d.id === driverId)?.name || "Unknown" : "None";
+    toast({
+      title: "Driver Assigned",
+      description: `Assigned driver: ${driverName}`
+    });
+  };
+  
+  const handleNotesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newNotes = e.target.value;
+    setNotes(newNotes);
+    
+    if (onNotesChange) {
+      onNotesChange(newNotes);
+    }
+  };
+  
+  const handleRecurrenceChange = (newRecurrenceData: RecurrenceData) => {
+    console.log("Recurrence data changed:", newRecurrenceData);
+    setLocalRecurrenceData(newRecurrenceData);
   };
 
   return (
@@ -153,17 +201,77 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
         </DialogContent>
       </Dialog>
       
-      <ItemSelector
-        open={itemsDialogOpen}
-        onOpenChange={(open) => handleOpenChange(open, 'items')}
-        onSelect={handleItemsSelect}
-        onCancel={() => {
-          console.log("Cancel called from ItemSelector");
-          onCancel();
-        }}
-        initialItems={initialItems}
-        recurrenceData={recurrenceData}
-      />
+      {itemsDialogOpen && (
+        <ItemSelector
+          open={itemsDialogOpen}
+          onOpenChange={(open) => handleOpenChange(open, 'items')}
+          onSelect={handleItemsSelect}
+          onCancel={() => {
+            console.log("Cancel called from ItemSelector");
+            onCancel();
+          }}
+          initialItems={initialItems}
+          recurrenceData={localRecurrenceData}
+        />
+      )}
+      
+      <Dialog 
+        open={driverDialogOpen} 
+        onOpenChange={(open) => handleOpenChange(open, 'driver')}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delivery Details</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="driver">Assign Driver</Label>
+              <Select 
+                value={selectedDriverId || ''} 
+                onValueChange={(value) => handleDriverChange(value || null)}
+              >
+                <SelectTrigger id="driver">
+                  <SelectValue placeholder="Select a driver" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Unassigned</SelectItem>
+                  {drivers.map((driver) => (
+                    <SelectItem key={driver.id} value={driver.id}>
+                      {driver.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="notes">Delivery Notes</Label>
+              <Input
+                id="notes"
+                value={notes || ''}
+                onChange={handleNotesChange}
+                placeholder="Add any special instructions for this delivery"
+              />
+            </div>
+            
+            <RecurringOrderForm
+              recurrenceData={localRecurrenceData}
+              onRecurrenceChange={handleRecurrenceChange}
+              initialRecurrence={recurrenceData}
+            />
+          </div>
+          
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button variant="outline" onClick={() => setDriverDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => setDriverDialogOpen(false)}>
+              Confirm
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

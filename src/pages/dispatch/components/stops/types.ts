@@ -18,6 +18,8 @@ export interface RecurringOrderSettings {
   preferredDay?: string;
   startDate?: string;
   endDate?: string;
+  occurrences?: number;
+  nextDeliveryDate?: string;
 }
 
 export interface DeliveryStop {
