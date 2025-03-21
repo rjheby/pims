@@ -63,8 +63,7 @@ export const CustomerSelector = ({
     const selectedCustomer = customers.find(c => c.id === selectedId);
     
     if (selectedCustomer) {
-      setLoading(true);
-      
+      // Use existing loading state from the hook
       try {
         const fullCustomerData = await fetchCustomerDetails(selectedId);
         
@@ -75,8 +74,6 @@ export const CustomerSelector = ({
         }
       } catch (error) {
         onSelect(selectedCustomer);
-      } finally {
-        setLoading(false);
       }
     }
   };
