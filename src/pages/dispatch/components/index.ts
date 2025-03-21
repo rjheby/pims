@@ -13,3 +13,5 @@ export { CustomerCard } from './stops/CustomerCard';
 export { PaginationControls } from './stops/PaginationControls';
 export { NewCustomerForm } from './stops/NewCustomerForm';
 export { CustomerSearch } from './stops/CustomerSearch';
+export { DriverSelector } from './stops/DriverSelector';
+
