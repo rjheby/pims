@@ -62,14 +62,17 @@ export function useDispatchForm(id: string | undefined) {
       } else {
         // Process stops to ensure all required fields
         const processedStops = (stopsData || []).map((stop, index) => {
+          // Get customer data from nested object
+          const customer = stop.customers || {};
+          
           // Construct full address if needed
-          let address = stop.customers?.address;
-          if (!address && stop.customers) {
+          let address = customer.address;
+          if (!address && customer) {
             const addressParts = [
-              stop.customers.street_address,
-              stop.customers.city,
-              stop.customers.state,
-              stop.customers.zip_code
+              customer.street_address,
+              customer.city,
+              customer.state,
+              customer.zip_code
             ].filter(Boolean);
             
             if (addressParts.length > 0) {
@@ -80,9 +83,9 @@ export function useDispatchForm(id: string | undefined) {
           return {
             ...stop,
             stop_number: index + 1,
-            customer_name: stop.customers?.name || 'Unknown Customer',
+            customer_name: customer.name || 'Unknown Customer',
             customer_address: address || '',
-            customer_phone: stop.customers?.phone || '',
+            customer_phone: customer.phone || '',
             price: calculatePrice(stop.items)
           };
         });

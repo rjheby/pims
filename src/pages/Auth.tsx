@@ -1,224 +1,126 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, AlertCircle, RefreshCw, Info, AlertTriangle } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { useUser } from "@/context/UserContext";
-import { supabase, checkSupabaseHealth } from "@/integrations/supabase/client";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Checkbox } from "@/components/ui/checkbox";
+import { useToast } from "@/components/ui/use-toast";
+import { Loader2 } from "lucide-react";
 
-export default function Auth() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [name, setName] = useState("");
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [supabaseStatus, setSupabaseStatus] = useState<{isHealthy: boolean, error: string | null} | null>(null);
-  const [isCheckingHealth, setIsCheckingHealth] = useState(false);
-  const [connectionAttempts, setConnectionAttempts] = useState(0);
-  const [keepSignedIn, setKeepSignedIn] = useState(true);
-  const { toast } = useToast();
-  const { user, signIn } = useUser();
+export function Auth() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { toast } = useToast();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
 
   useEffect(() => {
-    if (user) {
-      const from = location.state?.from || "/";
-      navigate(from, { replace: true });
-    }
-  }, [user, navigate, location]);
-
-  // Check Supabase health on component mount and when connectionAttempts changes
-  useEffect(() => {
-    const checkHealth = async () => {
-      setIsCheckingHealth(true);
-      const health = await checkSupabaseHealth();
-      setSupabaseStatus(health);
-      setIsCheckingHealth(false);
-      
-      if (!health.isHealthy) {
-        toast({
-          title: "Connection issue detected",
-          description: "There may be issues connecting to the database.",
-          variant: "destructive",
-        });
+    async function checkSession() {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Error checking session:", error);
+          setIsCheckingSession(false);
+          return;
+        }
+        
+        if (data.session) {
+          // User is already logged in, redirect to dashboard
+          const returnUrl = new URLSearchParams(location.search).get('returnUrl');
+          navigate(returnUrl || '/dashboard');
+        } else {
+          setIsCheckingSession(false);
+        }
+      } catch (error) {
+        console.error("Session check error:", error);
+        setIsCheckingSession(false);
       }
-    };
+    }
     
-    checkHealth();
-  }, [toast, connectionAttempts]);
-
-  const clearLocalAuthData = () => {
-    // Only clear the specific auth token, not all auth-related data
-    localStorage.removeItem('woodbourne-auth-token');
-    
-    // Increment connection attempts to trigger a health check
-    setConnectionAttempts(prev => prev + 1);
-    
-    // Reset form state
-    setIsSubmitting(false);
-    setErrorMessage(null);
-    
-    toast({
-      title: "Session data cleared",
-      description: "Please try signing in again.",
-    });
-  };
+    checkSession();
+  }, [navigate, location]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    setErrorMessage(null);
-
+    setLoading(true);
+    
     try {
       if (isSignUp) {
-        if (password !== confirmPassword) {
-          setErrorMessage("Passwords do not match");
-          toast({
-            title: "Passwords do not match",
-            description: "Please make sure your passwords match.",
-            variant: "destructive",
-          });
-          setIsSubmitting(false);
-          return;
-        }
-
-        const { data, error } = await supabase.auth.signUp({
+        // Sign up flow
+        const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: {
-            data: {
-              name,
-            },
-          },
         });
-
-        if (error) {
-          setErrorMessage(error.message);
-          toast({
-            title: "Sign up failed",
-            description: error.message,
-            variant: "destructive",
-          });
-          console.error("Sign up error:", error);
-        } else {
-          toast({
-            title: "Account created",
-            description: "Please check your email to confirm your account.",
-          });
-          setIsSignUp(false);
-        }
+        
+        if (error) throw error;
+        
+        toast({
+          title: "Check your email",
+          description: "We've sent you a confirmation link to complete your registration.",
+        });
       } else {
-        try {
-          const { error } = await signIn(email, password, keepSignedIn);
-          
-          if (error) {
-            console.error("Sign in error:", error);
-            
-            let errorMsg = "Failed to sign in";
-            if (typeof error === 'object' && error !== null && 'message' in error) {
-              errorMsg = (error as any).message;
-            }
-            
-            setErrorMessage(errorMsg);
-          }
-        } catch (signInError) {
-          console.error("Unexpected sign in error:", signInError);
-          setErrorMessage("An unexpected error occurred during sign in");
-        }
+        // Sign in flow
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        
+        if (error) throw error;
+        
+        const returnUrl = new URLSearchParams(location.search).get('returnUrl');
+        navigate(returnUrl || '/dashboard');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Authentication error:", error);
-      setErrorMessage("An unexpected error occurred. Please try again.");
+      toast({
+        title: "Authentication error",
+        description: error.message || "An error occurred during authentication",
+        variant: "destructive",
+      });
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
-  const checkAndReportSupabaseHealth = async () => {
-    setIsCheckingHealth(true);
-    const health = await checkSupabaseHealth();
-    setSupabaseStatus(health);
-    setIsCheckingHealth(false);
-    
-    toast({
-      title: health.isHealthy ? "Connection is healthy" : "Connection issue detected",
-      description: health.isHealthy 
-        ? "Successfully connected to the database."
-        : `Connection issue: ${health.error || "Unknown error"}`,
-      variant: health.isHealthy ? "default" : "destructive",
-    });
-  };
+  if (isCheckingSession) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-50">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <div className="flex justify-center mb-4">
-            <img 
-              src="/lovable-uploads/21d56fd9-ffa2-4b0c-9d82-b10f7d03a546.png"
-              alt="Woodbourne Logo"
-              className="h-12 w-auto object-contain" 
-            />
-          </div>
-          <CardTitle>{isSignUp ? "Create an Account" : "Welcome Back"}</CardTitle>
-          <CardDescription>
-            {isSignUp 
-              ? "Enter your information to create an account" 
-              : "Enter your credentials to access your account"}
-          </CardDescription>
-        </CardHeader>
-        <form onSubmit={handleAuth}>
-          <CardContent className="space-y-4">
-            {errorMessage && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{errorMessage}</AlertDescription>
-              </Alert>
-            )}
-            
-            {supabaseStatus && !supabaseStatus.isHealthy && (
-              <Alert variant="destructive" className="bg-amber-50 text-amber-900 border-amber-200">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription className="text-amber-800">
-                  Connection issue detected. Try clearing session data below.
-                </AlertDescription>
-              </Alert>
-            )}
-            
-            {isSignUp && (
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="John Doe"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
-              </div>
-            )}
-            <div className="space-y-2">
+    <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold">{isSignUp ? "Create an Account" : "Sign In"}</h1>
+          <p className="mt-2 text-gray-600">
+            {isSignUp
+              ? "Create your account to get started"
+              : "Sign in to your account to continue"}
+          </p>
+        </div>
+
+        <form onSubmit={handleAuth} className="mt-8 space-y-6">
+          <div className="space-y-4">
+            <div>
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="name@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                placeholder="Enter your email"
+                className="mt-1"
               />
             </div>
-            <div className="space-y-2">
+            <div>
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
@@ -226,101 +128,42 @@ export default function Auth() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                placeholder="Enter your password"
+                className="mt-1"
               />
             </div>
-            {isSignUp && (
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                />
-              </div>
+          </div>
+
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {isSignUp ? "Creating Account..." : "Signing In..."}
+              </>
+            ) : (
+              <>{isSignUp ? "Create Account" : "Sign In"}</>
             )}
-            
-            {!isSignUp && (
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="keepSignedIn" 
-                  checked={keepSignedIn} 
-                  onCheckedChange={(checked) => setKeepSignedIn(checked as boolean)}
-                />
-                <Label htmlFor="keepSignedIn" className="text-sm font-medium leading-none cursor-pointer">
-                  Keep me signed in
-                </Label>
-              </div>
-            )}
-          </CardContent>
-          <CardFooter className="flex-col space-y-4">
-            <Button
-              type="submit"
-              className="w-full bg-[#2A4131] hover:bg-[#2A4131]/90"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : isSignUp ? (
-                "Create Account"
-              ) : (
-                "Sign In"
-              )}
-            </Button>
-            
-            <div className="text-center text-sm">
-              {isSignUp ? (
-                <div>
-                  Already have an account?{" "}
-                  <Button
-                    variant="link"
-                    className="p-0 h-auto text-primary"
-                    onClick={() => setIsSignUp(false)}
-                  >
-                    Sign in
-                  </Button>
-                </div>
-              ) : (
-                <div>
-                  Don't have an account?{" "}
-                  <Button
-                    variant="link"
-                    className="p-0 h-auto text-primary"
-                    onClick={() => setIsSignUp(true)}
-                  >
-                    Create one
-                  </Button>
-                </div>
-              )}
-            </div>
-            
-            <div className="flex gap-2 w-full">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="flex-1 text-xs flex items-center gap-1"
-                onClick={clearLocalAuthData}
-              >
-                <RefreshCw className="h-3 w-3" /> Clear Session Data
-              </Button>
-              
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="flex-1 text-xs flex items-center gap-1"
-                onClick={checkAndReportSupabaseHealth}
-                disabled={isCheckingHealth}
-              >
-                {isCheckingHealth ? <Loader2 className="h-3 w-3 animate-spin" /> : <Info className="h-3 w-3" />} 
-                Check Connection
-              </Button>
-            </div>
-          </CardFooter>
+          </Button>
         </form>
-      </Card>
+
+        <div className="mt-4 text-center">
+          <Button
+            variant="link"
+            onClick={() => setIsSignUp(!isSignUp)}
+            className="text-sm"
+          >
+            {isSignUp
+              ? "Already have an account? Sign In"
+              : "Don't have an account? Sign Up"}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
+
+export default Auth;
