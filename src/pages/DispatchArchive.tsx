@@ -3,12 +3,12 @@ import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 function DispatchArchive() {
-  // Fix for accessing array properties correctly (assuming this is the issue in lines 174-176)
+  // Fix for accessing array properties correctly
   const processCustomerData = (data: any) => {
     if (!data || !Array.isArray(data)) return [];
     
     return data.map(item => {
-      // Ensure we're accessing properties on individual objects, not the array itself
+      // Process individual items, not the whole array
       return {
         name: item?.name || 'Unknown',
         address: item?.address || 'No address',
@@ -102,7 +102,6 @@ function DispatchArchive() {
   };
 
   return (
-    // Render component as normal
     <div>
       <div className="container mx-auto py-10">
         <h1 className="text-3xl font-bold mb-5">Dispatch Schedule Archive</h1>
@@ -142,7 +141,7 @@ function DispatchArchive() {
                     <td className="py-2 px-4 border-b">
                       <div className="flex gap-2">
                         <a
-                          href={`/dispatch/${schedule.id}`}
+                          href={`/dispatch-form/${schedule.id}`}
                           className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
                         >
                           View

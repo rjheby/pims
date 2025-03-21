@@ -62,11 +62,11 @@ export function useDispatchForm(id: string | undefined) {
       } else {
         // Process stops to ensure all required fields
         const processedStops = (stopsData || []).map((stop, index) => {
-          // Get customer data from nested object
+          // Get customer data from nested object and handle potential undefined
           const customer = stop.customers || {};
           
           // Construct full address if needed
-          let address = customer.address;
+          let address = customer.address || '';
           if (!address && customer) {
             const addressParts = [
               customer.street_address,
