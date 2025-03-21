@@ -1,28 +1,16 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Search, Loader2, UserPlus, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Customer } from "./types";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/use-toast";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-
-const POPULAR_CUSTOMERS = [
-  "paulie g",
-  "numero 28 brooklyn",
-  "sunday in brooklyn"
-];
-
-const getPopularityScore = (name: string): number => {
-  const normalizedName = name.toLowerCase();
-  const index = POPULAR_CUSTOMERS.findIndex(popular => 
-    normalizedName.includes(popular.toLowerCase())
-  );
-  return index >= 0 ? POPULAR_CUSTOMERS.length - index : 0;
-};
+import { CustomerCard } from "./CustomerCard";
+import { PaginationControls } from "./PaginationControls";
+import { NewCustomerForm } from "./NewCustomerForm";
+import { CustomerSearch } from "./CustomerSearch";
+import { constructAddress, getPopularityScore, sortCustomersByPopularity } from "./CustomerUtils";
 
 interface CustomerSelectorProps {
   onSelect: (customer: Customer) => void;
@@ -40,29 +28,11 @@ export const CustomerSelector = ({
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(initialCustomerId || null);
   const [showNewCustomerDialog, setShowNewCustomerDialog] = useState(false);
-  const [newCustomer, setNewCustomer] = useState<Omit<Customer, 'id'>>({
-    name: '',
-    type: 'RETAIL',
-    address: '',
-    phone: '',
-    email: ''
-  });
   
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCustomers, setTotalCustomers] = useState(0);
   const itemsPerPage = 10;
-
-  const constructAddress = useCallback((customer: any) => {
-    const parts = [
-      customer.street_address,
-      customer.city,
-      customer.state,
-      customer.zip_code
-    ].filter(Boolean);
-    
-    return parts.length > 0 ? parts.join(', ') : '';
-  }, []);
 
   const fetchCustomersMinimal = useCallback(async (page = 1) => {
     try {
@@ -113,17 +83,8 @@ export const CustomerSelector = ({
         notes: ''
       }));
       
-      // Sort by popularity first, then alphabetically
-      const sortedCustomers = processedCustomers.sort((a, b) => {
-        const scoreA = getPopularityScore(a.name);
-        const scoreB = getPopularityScore(b.name);
-        
-        if (scoreA !== scoreB) {
-          return scoreB - scoreA; // Higher score (more popular) first
-        }
-        
-        return a.name.localeCompare(b.name);
-      });
+      // Sort by popularity
+      const sortedCustomers = sortCustomersByPopularity(processedCustomers);
       
       setCustomers(sortedCustomers);
     } catch (error: any) {
@@ -135,7 +96,7 @@ export const CustomerSelector = ({
     } finally {
       setLoading(false);
     }
-  }, [constructAddress]);
+  }, []);
 
   const fetchCustomerDetails = useCallback(async (customerId: string) => {
     try {
@@ -158,7 +119,7 @@ export const CustomerSelector = ({
     } catch (error) {
       return null;
     }
-  }, [constructAddress]);
+  }, []);
 
   useEffect(() => {
     fetchCustomersMinimal(currentPage);
@@ -208,16 +169,7 @@ export const CustomerSelector = ({
         notes: ''
       }));
       
-      const sortedCustomers = processedCustomers.sort((a, b) => {
-        const scoreA = getPopularityScore(a.name);
-        const scoreB = getPopularityScore(b.name);
-        
-        if (scoreA !== scoreB) {
-          return scoreB - scoreA;
-        }
-        
-        return a.name.localeCompare(b.name);
-      });
+      const sortedCustomers = sortCustomersByPopularity(processedCustomers);
       
       setCustomers(sortedCustomers);
       setTotalPages(1);
@@ -257,7 +209,7 @@ export const CustomerSelector = ({
     }
   };
 
-  const handleCreateCustomer = async () => {
+  const handleCreateCustomer = async (newCustomer: Omit<Customer, 'id'>) => {
     if (!newCustomer.name) {
       toast({
         title: "Error",
@@ -330,26 +282,11 @@ export const CustomerSelector = ({
 
   return (
     <div className="max-h-[60vh] flex flex-col">
-      <div className="flex justify-between mb-4">
-        <div className="relative flex-1 mr-2">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search customers..."
-            value={search}
-            onChange={(e) => handleSearch(e.target.value)}
-            className="pl-8"
-          />
-        </div>
-        <Button 
-          onClick={() => setShowNewCustomerDialog(true)} 
-          variant="outline"
-          size="sm"
-          className="whitespace-nowrap"
-        >
-          <UserPlus className="mr-2 h-4 w-4" />
-          New Customer
-        </Button>
-      </div>
+      <CustomerSearch 
+        searchValue={search}
+        onSearchChange={handleSearch}
+        onAddNew={() => setShowNewCustomerDialog(true)}
+      />
       
       {loading ? (
         <div className="flex justify-center items-center h-40">
@@ -364,30 +301,13 @@ export const CustomerSelector = ({
           ) : (
             <div className="space-y-2">
               {customers.map((customer) => (
-                <div
+                <CustomerCard
                   key={customer.id}
-                  className={`
-                    p-3 rounded-md cursor-pointer border
-                    ${selectedId === customer.id ? 'bg-primary/10 border-primary' : 'hover:bg-accent'}
-                    ${getPopularityScore(customer.name) > 0 ? 'border-yellow-300' : ''}
-                  `}
+                  customer={customer}
+                  isSelected={selectedId === customer.id}
                   onClick={() => setSelectedId(customer.id)}
-                >
-                  <div className="font-medium">
-                    {customer.name || "Unnamed Customer"}
-                    {getPopularityScore(customer.name) > 0 && (
-                      <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded-full">
-                        Popular
-                      </span>
-                    )}
-                  </div>
-                  {customer.address && (
-                    <div className="text-sm text-muted-foreground">{customer.address}</div>
-                  )}
-                  {customer.phone && (
-                    <div className="text-sm text-muted-foreground">{customer.phone}</div>
-                  )}
-                </div>
+                  popularityScore={getPopularityScore(customer.name)}
+                />
               ))}
             </div>
           )}
@@ -395,50 +315,11 @@ export const CustomerSelector = ({
       )}
       
       {totalPages > 1 && !search && (
-        <div className="mt-2 mb-4">
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious 
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                />
-              </PaginationItem>
-              
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                let pageNumber;
-                
-                if (totalPages <= 5) {
-                  pageNumber = i + 1;
-                } else if (currentPage <= 3) {
-                  pageNumber = i + 1;
-                } else if (currentPage >= totalPages - 2) {
-                  pageNumber = totalPages - 4 + i;
-                } else {
-                  pageNumber = currentPage - 2 + i;
-                }
-                
-                return (
-                  <PaginationItem key={pageNumber}>
-                    <PaginationLink
-                      isActive={pageNumber === currentPage}
-                      onClick={() => handlePageChange(pageNumber)}
-                    >
-                      {pageNumber}
-                    </PaginationLink>
-                  </PaginationItem>
-                );
-              })}
-              
-              <PaginationItem>
-                <PaginationNext 
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        </div>
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+        />
       )}
       
       <div className="flex justify-end space-x-2 mt-auto pt-4 border-t">
@@ -452,68 +333,10 @@ export const CustomerSelector = ({
 
       <Dialog open={showNewCustomerDialog} onOpenChange={setShowNewCustomerDialog}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add New Customer</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="customerName">Name *</Label>
-              <Input 
-                id="customerName" 
-                value={newCustomer.name} 
-                onChange={(e) => setNewCustomer({...newCustomer, name: e.target.value})}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="customerType">Type *</Label>
-              <Select 
-                value={newCustomer.type} 
-                onValueChange={(value) => setNewCustomer({...newCustomer, type: value})}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="commercial">Commercial</SelectItem>
-                  <SelectItem value="residential">Residential</SelectItem>
-                  <SelectItem value="RETAIL">Retail</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="customerAddress">Address</Label>
-              <Input 
-                id="customerAddress" 
-                value={newCustomer.address || ''} 
-                onChange={(e) => setNewCustomer({...newCustomer, address: e.target.value})}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="customerPhone">Phone</Label>
-              <Input 
-                id="customerPhone" 
-                value={newCustomer.phone || ''} 
-                onChange={(e) => setNewCustomer({...newCustomer, phone: e.target.value})}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="customerEmail">Email</Label>
-              <Input 
-                id="customerEmail" 
-                value={newCustomer.email || ''} 
-                onChange={(e) => setNewCustomer({...newCustomer, email: e.target.value})}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setShowNewCustomerDialog(false)}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleCreateCustomer}>Create Customer</Button>
-          </DialogFooter>
+          <NewCustomerForm 
+            onCreateCustomer={handleCreateCustomer}
+            onCancel={() => setShowNewCustomerDialog(false)}
+          />
         </DialogContent>
       </Dialog>
     </div>

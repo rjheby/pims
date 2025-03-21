@@ -9,3 +9,7 @@ export { ItemSelector } from './stops/ItemSelector';
 export { StopDialogs } from './stops/StopDialogs';
 export { RecurringOrderForm } from './stops/RecurringOrderForm';
 export { CustomerSelector } from './stops/CustomerSelector';
+export { CustomerCard } from './stops/CustomerCard';
+export { PaginationControls } from './stops/PaginationControls';
+export { NewCustomerForm } from './stops/NewCustomerForm';
+export { CustomerSearch } from './stops/CustomerSearch';
