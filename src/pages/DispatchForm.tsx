@@ -12,11 +12,11 @@ import { BaseOrderActions } from "@/components/templates/BaseOrderActions";
 import { downloadSchedulePDF } from "@/utils/GenerateSchedulePDF";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useDispatchForm } from "./dispatch/hooks/useDispatchForm";
-import { calculateTotals, calculateInventoryTotals } from "./dispatch/utils/inventoryUtils";
-import { InventorySummary } from "./dispatch/components/InventorySummary";
-import { useEffect, useState } from "react";
-import { Customer, Driver } from "./dispatch/components/stops/types";
+import { calculateTotals } from "./dispatch/utils/inventoryUtils";
 import { AuthGuard } from "@/components/AuthGuard";
+import { useState, useEffect } from "react";
+import { Customer, Driver } from "./dispatch/components/stops/types";
+import ScheduleSummary from "./dispatch/components/ScheduleSummary";
 
 export default function DispatchForm() {
   const { id } = useParams<{ id: string }>();
@@ -190,11 +190,11 @@ export default function DispatchForm() {
                   drivers={drivers}
                 />
 
-                <BaseOrderSummary 
-                  items={calculateTotals(stops)}
-                  renderCustomSummary={() => (
-                    <InventorySummary inventoryTotals={calculateInventoryTotals(stops)} />
-                  )}
+                {/* Enhanced schedule summary component */}
+                <ScheduleSummary 
+                  data={calculateTotals(stops)}
+                  scheduleNumber={masterSchedule.schedule_number}
+                  scheduleDate={formatDateForInput(masterSchedule.schedule_date)}
                 />
 
                 <div className="flex flex-col md:flex-row gap-4 justify-between pb-6 md:pb-0">
