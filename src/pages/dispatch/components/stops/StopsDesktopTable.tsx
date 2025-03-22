@@ -185,7 +185,9 @@ const StopsDesktopTable: React.FC<StopsDesktopTableProps> = ({
                 </TableCell>
                 
                 <TableCell className="px-4 py-2 whitespace-nowrap text-sm font-medium text-center">
-                  {stop.price !== undefined && stop.price !== null ? formatPrice(stop.price) : '$0.00'}
+                  {stop.price !== undefined && stop.price !== null 
+                    ? formatPrice(typeof stop.price === 'string' ? Number(stop.price) : stop.price) 
+                    : '$0.00'}
                 </TableCell>
                 
                 <TableCell className="px-4 py-2 whitespace-nowrap text-center">
