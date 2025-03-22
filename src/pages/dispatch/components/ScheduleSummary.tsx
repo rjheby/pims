@@ -12,10 +12,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScheduleSummaryData, formatPrice } from "../utils/inventoryUtils";
 import { Progress } from "@/components/ui/progress";
-import { Printer, Download } from "lucide-react";
+import { Printer, Download, ChevronDown, ChevronUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import { Badge } from "@/components/ui/badge";
 
 interface ScheduleSummaryProps {
   data: ScheduleSummaryData;
@@ -30,6 +31,25 @@ const ScheduleSummary: React.FC<ScheduleSummaryProps> = ({
 }) => {
   const { toast } = useToast();
   const summaryRef = React.useRef<HTMLDivElement>(null);
+  const [expandedCategories, setExpandedCategories] = React.useState<Record<string, boolean>>({});
+
+  // Initialize all categories as expanded
+  React.useEffect(() => {
+    if (data.inventoryByCategory) {
+      const initialExpandState: Record<string, boolean> = {};
+      Object.keys(data.inventoryByCategory).forEach(category => {
+        initialExpandState[category] = true;
+      });
+      setExpandedCategories(initialExpandState);
+    }
+  }, [data.inventoryByCategory]);
+
+  const toggleCategory = (category: string) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [category]: !prev[category]
+    }));
+  };
 
   const printSummary = () => {
     const content = document.getElementById("scheduleSummaryPrint");
@@ -94,6 +114,16 @@ const ScheduleSummary: React.FC<ScheduleSummaryProps> = ({
     }
   };
 
+  // Calculate summary statistics for inventory
+  const totalItems = data.itemizedInventory.reduce((sum, item) => sum + item.quantity, 0);
+  const totalValue = data.itemizedInventory.reduce((sum, item) => sum + item.estimatedPrice, 0);
+  const categoryTotals = Object.entries(data.inventoryByCategory || {}).map(([category, items]) => ({
+    category,
+    itemCount: items.length,
+    totalQuantity: items.reduce((sum, item) => sum + item.quantity, 0),
+    totalValue: items.reduce((sum, item) => sum + item.estimatedPrice, 0)
+  }));
+
   return (
     <div className="space-y-6">
       <Card>
@@ -150,32 +180,85 @@ const ScheduleSummary: React.FC<ScheduleSummaryProps> = ({
             
             <div>
               <h3 className="font-semibold mb-3 text-slate-700">Inventory Requirements (Packing List)</h3>
-              <div className="rounded-md border overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Item</TableHead>
-                      <TableHead className="text-right">Quantity</TableHead>
-                      <TableHead className="text-right">Est. Value</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {data.itemizedInventory.map((item, index) => (
-                      <TableRow key={index}>
-                        <TableCell className="font-medium">{item.name}</TableCell>
-                        <TableCell className="text-right">{item.quantity}</TableCell>
-                        <TableCell className="text-right">{formatPrice(item.estimatedPrice)}</TableCell>
-                      </TableRow>
-                    ))}
-                    {data.itemizedInventory.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={3} className="text-center py-4 text-muted-foreground">
-                          No items added to this schedule yet
-                        </TableCell>
-                      </TableRow>
+              
+              {/* Inventory Summary Stats */}
+              <div className="mb-4 bg-gray-50 p-3 rounded-md">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center">
+                    <div className="text-sm text-gray-500">Total Items</div>
+                    <div className="font-semibold text-lg">{totalItems}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-sm text-gray-500">Total Value</div>
+                    <div className="font-semibold text-lg">{formatPrice(totalValue)}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-sm text-gray-500">Categories</div>
+                    <div className="font-semibold text-lg">{categoryTotals.length}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-sm text-gray-500">Item Types</div>
+                    <div className="font-semibold text-lg">{data.itemizedInventory.length}</div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Categories Breakdown */}
+              <div className="space-y-4">
+                {categoryTotals.map(({ category, itemCount, totalQuantity, totalValue }) => (
+                  <div key={category} className="border rounded-md overflow-hidden">
+                    <div 
+                      className="bg-gray-100 px-4 py-2 flex justify-between items-center cursor-pointer"
+                      onClick={() => toggleCategory(category)}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <h4 className="font-medium">{category}</h4>
+                        <Badge variant="outline" className="ml-2">
+                          {itemCount} item type{itemCount !== 1 ? 's' : ''}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center space-x-4">
+                        <span className="text-sm">{totalQuantity} units · {formatPrice(totalValue)}</span>
+                        {expandedCategories[category] ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </div>
+                    </div>
+                    
+                    {expandedCategories[category] && (
+                      <div className="rounded-md overflow-hidden">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Item</TableHead>
+                              <TableHead className="text-right">Quantity</TableHead>
+                              <TableHead className="text-right">Est. Value</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {data.inventoryByCategory[category].map((item, index) => (
+                              <TableRow key={index}>
+                                <TableCell className="font-medium">{item.name}</TableCell>
+                                <TableCell className="text-right">
+                                  {item.quantity} {item.unit || 'units'}
+                                </TableCell>
+                                <TableCell className="text-right">{formatPrice(item.estimatedPrice)}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
                     )}
-                  </TableBody>
-                </Table>
+                  </div>
+                ))}
+                
+                {data.itemizedInventory.length === 0 && (
+                  <div className="text-center py-4 text-muted-foreground border rounded-md">
+                    No items added to this schedule yet
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -210,38 +293,48 @@ const ScheduleSummary: React.FC<ScheduleSummaryProps> = ({
             <div className="border p-4 rounded-md">
               <h3 className="font-semibold mb-2">Capacity</h3>
               <p>Utilization: {data.capacityUtilization}%</p>
-              <p>Total Items: {data.itemizedInventory.reduce((sum, item) => sum + item.quantity, 0)}</p>
+              <p>Total Items: {totalItems}</p>
             </div>
           </div>
           
           <div className="mb-6">
             <h3 className="font-semibold mb-3 border-b pb-2">WAREHOUSE PACKING LIST</h3>
-            <table className="w-full">
+            {Object.entries(data.inventoryByCategory || {}).map(([category, items]) => (
+              <div key={category} className="mb-4">
+                <h4 className="font-medium border-b border-dashed pb-1 mb-2">{category}</h4>
+                <table className="w-full mb-3">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-2">Item Description</th>
+                      <th className="text-right p-2">Quantity</th>
+                      <th className="text-right p-2">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((item, i) => (
+                      <tr key={i} className="border-b">
+                        <td className="p-2">{item.name}</td>
+                        <td className="text-right p-2">{item.quantity} {item.unit || 'units'}</td>
+                        <td className="text-right p-2">{formatPrice(item.estimatedPrice)}</td>
+                      </tr>
+                    ))}
+                    <tr className="font-medium bg-gray-50">
+                      <td className="p-2">Category Total</td>
+                      <td className="text-right p-2">{items.reduce((sum, item) => sum + item.quantity, 0)}</td>
+                      <td className="text-right p-2">{formatPrice(items.reduce((sum, item) => sum + item.estimatedPrice, 0))}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            ))}
+            <table className="w-full mt-4">
               <thead>
-                <tr className="border-b">
-                  <th className="text-left p-2">Item Description</th>
-                  <th className="text-right p-2">Quantity</th>
-                  <th className="text-right p-2">Value</th>
+                <tr className="border-b border-t-2 border-t-black">
+                  <th className="text-left p-2 font-bold">TOTALS</th>
+                  <th className="text-right p-2 font-bold">{totalItems}</th>
+                  <th className="text-right p-2 font-bold">{formatPrice(totalValue)}</th>
                 </tr>
               </thead>
-              <tbody>
-                {data.itemizedInventory.map((item, i) => (
-                  <tr key={i} className="border-b">
-                    <td className="p-2">{item.name}</td>
-                    <td className="text-right p-2">{item.quantity}</td>
-                    <td className="text-right p-2">{formatPrice(item.estimatedPrice)}</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="font-bold">
-                  <td className="p-2">TOTALS</td>
-                  <td className="text-right p-2">
-                    {data.itemizedInventory.reduce((sum, item) => sum + item.quantity, 0)}
-                  </td>
-                  <td className="text-right p-2">{formatPrice(data.totalPrice)}</td>
-                </tr>
-              </tfoot>
             </table>
           </div>
           

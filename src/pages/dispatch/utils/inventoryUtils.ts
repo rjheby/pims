@@ -7,6 +7,8 @@ export interface InventoryItemDetail {
   name: string;
   quantity: number;
   estimatedPrice: number;
+  category?: string;
+  unit?: string;
 }
 
 export interface ScheduleSummaryData {
@@ -15,6 +17,7 @@ export interface ScheduleSummaryData {
   totalPrice: number;
   laborCost: number;
   itemizedInventory: InventoryItemDetail[];
+  inventoryByCategory: Record<string, InventoryItemDetail[]>;
   capacityUtilization: number;
 }
 
@@ -44,39 +47,96 @@ export function extractItemizedInventory(stops: any[]): InventoryItemDetail[] {
   const itemCounts: Record<string, number> = {};
   
   stops.forEach(stop => {
-    if (!stop.items) return;
-    
-    const itemsList = stop.items.split(',').map((item: string) => item.trim()).filter(Boolean);
-    
-    itemsList.forEach((itemDescription: string) => {
-      if (!itemDescription) return;
+    // First try to use itemsData if available (structured data)
+    if (Array.isArray(stop.itemsData) && stop.itemsData.length > 0) {
+      stop.itemsData.forEach((item: any) => {
+        if (!item) return;
+        
+        const name = item.name || 'Unknown Item';
+        const quantity = parseInt(item.quantity) || 1;
+        
+        // Standardize the name for consistent grouping
+        const standardName = normalizeProductName(name);
+        
+        // Add to counts
+        itemCounts[standardName] = (itemCounts[standardName] || 0) + quantity;
+      });
+    }
+    // Fall back to parsing text items if no itemsData
+    else if (stop.items) {
+      const itemsList = stop.items.split(',').map((item: string) => item.trim()).filter(Boolean);
       
-      // Parse quantity from formats like "2x Firewood" or just count as 1
-      const match = itemDescription.match(/^(\d+)x\s+(.+)$/);
-      const quantity = match ? parseInt(match[1]) : 1;
-      const name = match ? match[2] : itemDescription;
-      
-      // Standardize the name for consistent grouping
-      const standardName = normalizeProductName(name);
-      
-      // Add to counts
-      itemCounts[standardName] = (itemCounts[standardName] || 0) + quantity;
-    });
+      itemsList.forEach((itemDescription: string) => {
+        if (!itemDescription) return;
+        
+        // Parse quantity from formats like "2x Firewood" or just count as 1
+        const match = itemDescription.match(/^(\d+)x\s+(.+)$/);
+        const quantity = match ? parseInt(match[1]) : 1;
+        const name = match ? match[2] : itemDescription;
+        
+        // Standardize the name for consistent grouping
+        const standardName = normalizeProductName(name);
+        
+        // Add to counts
+        itemCounts[standardName] = (itemCounts[standardName] || 0) + quantity;
+      });
+    }
   });
   
-  // Convert to array of detailed items with estimated prices
+  // Convert to array of detailed items with estimated prices and categories
   return Object.entries(itemCounts).map(([name, quantity]) => {
     // Estimate price based on product type and quantity
-    // This is a simplified pricing model - could be enhanced with actual product prices
     const basePrice = estimateBasePrice(name);
     const estimatedPrice = basePrice * quantity;
+    
+    // Determine product category and unit of measurement
+    const { category, unit } = determineProductCategory(name);
     
     return {
       name,
       quantity,
-      estimatedPrice
+      estimatedPrice,
+      category,
+      unit
     };
-  }).sort((a, b) => b.quantity - a.quantity); // Sort by quantity descending
+  }).sort((a, b) => {
+    // First sort by category
+    if (a.category !== b.category) {
+      return a.category?.localeCompare(b.category || '') || 0;
+    }
+    // Then sort by quantity descending
+    return b.quantity - a.quantity;
+  });
+}
+
+// Helper function to determine product category and unit
+function determineProductCategory(productName: string): { category: string; unit: string } {
+  const lowerName = productName.toLowerCase();
+  
+  if (lowerName.includes('cord') || lowerName.includes('firewood')) {
+    return { 
+      category: 'Firewood', 
+      unit: lowerName.includes('cord') ? 'cord' : 'unit'
+    };
+  }
+  
+  if (lowerName.includes('bundle')) {
+    return { category: 'Bundles', unit: 'bundle' };
+  }
+  
+  if (lowerName.includes('kindling')) {
+    return { category: 'Kindling', unit: 'box' };
+  }
+  
+  if (lowerName.includes('box')) {
+    return { category: 'Packaged', unit: 'box' };
+  }
+  
+  if (lowerName.includes('pallet')) {
+    return { category: 'Wholesale', unit: 'pallet' };
+  }
+  
+  return { category: 'Other', unit: 'unit' };
 }
 
 // Helper function to estimate base price of a product
@@ -176,6 +236,16 @@ export function calculateTotals(stops: any[]): ScheduleSummaryData {
   // Get itemized inventory
   const itemizedInventory = extractItemizedInventory(stops);
   
+  // Group inventory by category
+  const inventoryByCategory = itemizedInventory.reduce((acc: Record<string, InventoryItemDetail[]>, item) => {
+    const category = item.category || 'Other';
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(item);
+    return acc;
+  }, {});
+  
   // Calculate capacity utilization
   const capacityUtilization = calculateCapacityUtilization(itemizedInventory);
 
@@ -185,6 +255,7 @@ export function calculateTotals(stops: any[]): ScheduleSummaryData {
     totalPrice,
     laborCost,
     itemizedInventory,
+    inventoryByCategory,
     capacityUtilization
   };
 }
