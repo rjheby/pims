@@ -263,9 +263,13 @@ export function calculateTotals(stops: any[]): ScheduleSummaryData {
 // Format price to display as currency
 export function formatPrice(price: number | null): string {
   if (price === null) return '$0.00';
+  
+  // Ensure price is a number before formatting
+  const numericPrice = typeof price === 'string' ? Number(price) : price;
+  
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
     minimumFractionDigits: 2
-  }).format(price);
+  }).format(numericPrice);
 }
