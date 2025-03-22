@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 
@@ -27,21 +27,38 @@ export const DriverSelectorEnhanced: React.FC<DriverSelectorEnhancedProps> = ({
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchDrivers();
-  }, []);
+  }, [retryCount]);
 
   const fetchDrivers = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Test connection first
-      const testConnection = await supabase.from('drivers').select('count', { count: 'exact', head: true });
-      if (testConnection.error) {
-        throw new Error(`Connection error: ${testConnection.error.message}`);
+      // Test connection first with a timeout
+      console.log("Testing Supabase connection...");
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      try {
+        const testConnection = await supabase.from('drivers').select('count', { count: 'exact', head: true });
+        clearTimeout(timeoutId);
+        
+        if (testConnection.error) {
+          throw new Error(`Connection error: ${testConnection.error.message}`);
+        }
+        
+        console.log("Connection test passed");
+      } catch (error: any) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+          throw new Error('Connection timed out. Please check your network connection.');
+        }
+        throw error;
       }
 
       const { data, error } = await supabase
@@ -60,6 +77,15 @@ export const DriverSelectorEnhanced: React.FC<DriverSelectorEnhancedProps> = ({
       }));
       
       setDrivers(mappedDrivers);
+      
+      // If we had an error before but now succeeded, show success toast
+      if (retryCount > 0) {
+        toast({
+          title: "Connection restored",
+          description: "Successfully loaded driver data",
+          variant: "default"
+        });
+      }
     } catch (error: any) {
       console.error("Error fetching drivers:", error);
       setError(error.message);
@@ -76,6 +102,10 @@ export const DriverSelectorEnhanced: React.FC<DriverSelectorEnhancedProps> = ({
   // Group drivers by status to show active drivers first
   const activeDrivers = drivers.filter(d => d.status === 'active' || !d.status);
   const inactiveDrivers = drivers.filter(d => d.status && d.status !== 'active');
+
+  const handleRetry = () => {
+    setRetryCount(prev => prev + 1);
+  };
 
   if (loading) {
     return (
@@ -100,16 +130,28 @@ export const DriverSelectorEnhanced: React.FC<DriverSelectorEnhancedProps> = ({
           {required && <span className="text-red-500 ml-1">*</span>}
         </Label>
         <div className="flex flex-col space-y-2">
-          <div className="text-sm text-red-500">
-            Failed to load drivers: {error}
+          <div className="text-sm text-red-500 flex items-start">
+            <AlertCircle className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
+            <span>Failed to load drivers: {error}</span>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={fetchDrivers}
-          >
-            Retry
-          </Button>
+          <div className="flex space-x-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleRetry}
+              className="flex items-center"
+            >
+              <Loader2 className={`h-3 w-3 mr-1 ${retryCount > 0 && loading ? 'animate-spin' : ''}`} />
+              Retry
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => window.location.href = "/driver-management"}
+            >
+              Manage Drivers
+            </Button>
+          </div>
         </div>
       </div>
     );
