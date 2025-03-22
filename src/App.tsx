@@ -41,7 +41,7 @@ import DispatchScheduleView from './pages/DispatchScheduleView';
 import Auth from './pages/Auth';
 import UserManagement from './pages/UserManagement';
 
-// New pages for addressing issues
+// Pages that were missing proper routes
 import Profile from './pages/Profile';
 import DriverManagement from './pages/DriverManagement';
 import RecurringOrders from './pages/RecurringOrders';
@@ -91,7 +91,7 @@ function App() {
                 <Route path="/user-management" element={<AppLayout><UserManagement /></AppLayout>} />
                 <Route path="/driver-management" element={<AppLayout><DriverManagement /></AppLayout>} />
                 
-                {/* New routes for addressing issues */}
+                {/* Previously missing routes - NOW ADDED */}
                 <Route path="/profile" element={<AppLayout><Profile /></AppLayout>} />
                 <Route path="/recurring-orders" element={<AppLayout><RecurringOrders /></AppLayout>} />
                 

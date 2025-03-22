@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -41,6 +40,7 @@ const menuGroups = {
     items: [
       { title: "Delivery Schedule", icon: Truck, path: "/schedule-creator" },
       { title: "Schedule View", icon: Calendar, path: "/dispatch-schedule" },
+      { title: "Recurring Orders", icon: Clock, path: "/recurring-orders" },
       { title: "Archive", icon: Archive, path: "/dispatch-archive" },
     ],
   },
@@ -63,7 +63,8 @@ const menuGroups = {
   settings: {
     title: "Settings",
     items: [
-      { title: "Settings", icon: Settings, path: "/team-settings" },
+      { title: "Team Settings", icon: Settings, path: "/team-settings" },
+      { title: "Driver Management", icon: Truck, path: "/driver-management" },
     ],
   },
 };
