@@ -35,17 +35,19 @@ export interface DeliveryStop {
   customer_id?: string;
   customer_name?: string;
   customer_address?: string;
+  customer_phone?: string;
   driver_id?: string;
   driver_name?: string;
   items?: string;
   itemsData?: any[];
   notes?: string;
-  price?: number;
+  price?: number | string;
   status?: string;
   is_recurring?: boolean;
   recurring_id?: string;
   customer?: Customer;
   customers?: Customer;
+  recurring?: RecurrenceData;
 }
 
 export interface StopFormData {
@@ -54,6 +56,7 @@ export interface StopFormData {
   customer_id?: string;
   customer_name?: string;
   customer_address?: string;
+  customer_phone?: string;
   driver_id?: string;
   driver_name?: string;
   items?: string;
@@ -64,3 +67,31 @@ export interface StopFormData {
   is_recurring?: boolean;
   recurring_id?: string;
 }
+
+// Status options for delivery stops
+export const DELIVERY_STATUS_OPTIONS = [
+  "pending",
+  "in_progress",
+  "completed",
+  "cancelled",
+  "failed"
+];
+
+export type DeliveryStatus = typeof DELIVERY_STATUS_OPTIONS[number];
+
+// Helper function to get badge variant based on status
+export const getStatusBadgeVariant = (status: string): "default" | "outline" | "secondary" | "destructive" | "success" => {
+  switch (status) {
+    case "completed":
+      return "success";
+    case "in_progress":
+      return "secondary";
+    case "cancelled":
+      return "destructive";
+    case "failed":
+      return "destructive";
+    case "pending":
+    default:
+      return "outline";
+  }
+};

@@ -4,8 +4,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Button } from "@/components/ui/button";
 import { CustomerDialog } from "./CustomerDialog";
 import { ItemsDialog } from "./ItemsDialog";
-import { Customer } from "./types";
-import { RecurrenceData } from "../RecurringOrderForm";
+import { Customer, RecurrenceData } from "./types";
 import { RecurringOrderForm } from "../RecurringOrderForm";
 
 interface StopDialogsProps {
