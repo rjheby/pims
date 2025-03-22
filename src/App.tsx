@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './components/theme-provider';
@@ -6,8 +7,6 @@ import { UserProvider } from './context/UserContext';
 import { HistoryProvider } from './context/HistoryContext';
 import { AdminProvider } from './context/AdminContext';
 import DateBasedScheduleCreator from './pages/DateBasedScheduleCreator';
-
-// Note: We removed the global AdminProvider here because it's now in AppLayout
 
 // Layouts
 import AppLayout from './components/layouts/AppLayout';
@@ -41,6 +40,11 @@ import DispatchScheduleView from './pages/DispatchScheduleView';
 // New authentication pages
 import Auth from './pages/Auth';
 import UserManagement from './pages/UserManagement';
+
+// New pages for addressing issues
+import Profile from './pages/Profile';
+import DriverManagement from './pages/DriverManagement';
+import RecurringOrders from './pages/RecurringOrders';
 
 function App() {
   return (
@@ -85,6 +89,11 @@ function App() {
                 {/* Settings */}
                 <Route path="/team-settings" element={<AppLayout><TeamSettings /></AppLayout>} />
                 <Route path="/user-management" element={<AppLayout><UserManagement /></AppLayout>} />
+                <Route path="/driver-management" element={<AppLayout><DriverManagement /></AppLayout>} />
+                
+                {/* New routes for addressing issues */}
+                <Route path="/profile" element={<AppLayout><Profile /></AppLayout>} />
+                <Route path="/recurring-orders" element={<AppLayout><RecurringOrders /></AppLayout>} />
                 
                 {/* 404 Route */}
                 <Route path="*" element={<NotFound />} />
