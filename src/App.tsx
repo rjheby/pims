@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './components/theme-provider';
 import { Toaster } from './components/ui/toaster';
 import { UserProvider } from './context/UserContext';
@@ -59,6 +59,7 @@ function App() {
                 
                 {/* Dashboard */}
                 <Route path="/" element={<AppLayout><Dashboard /></AppLayout>} />
+                <Route path="/dashboard" element={<AppLayout><Dashboard /></AppLayout>} />
                 
                 {/* Orders Routes */}
                 <Route path="/dispatch" element={<AppLayout><Dispatch /></AppLayout>} />

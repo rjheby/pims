@@ -1,13 +1,15 @@
 
 import { useLocation, Link } from "react-router-dom";
 import { useEffect } from "react";
-import { ArrowLeft, Home } from "lucide-react";
+import { ArrowLeft, Home, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigation } from "@/hooks/useNavigation";
+import { useUser } from "@/context/UserContext";
 
 const NotFound = () => {
   const location = useLocation();
   const { goBack } = useNavigation();
+  const { user, isLoading } = useUser();
 
   useEffect(() => {
     console.error(
@@ -24,7 +26,9 @@ const NotFound = () => {
     "/drivers-management": "/driver-management",
     "/driver-manage": "/driver-management",
     "/drivers": "/drivers",
-    "/settings": "/team-settings"
+    "/settings": "/team-settings",
+    "/dashboard": "/",
+    "/home": "/"
   };
 
   // Check if the current path is close to any known routes
@@ -47,6 +51,7 @@ const NotFound = () => {
   };
 
   const suggestedRoute = getSuggestion();
+  const isAuthenticated = !!user && !isLoading;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -57,6 +62,19 @@ const NotFound = () => {
         <p className="text-gray-500 mb-4">
           The page at <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">{location.pathname}</span> could not be found.
         </p>
+        
+        {!isAuthenticated && (
+          <div className="mb-6 p-4 bg-yellow-50 rounded-md text-left">
+            <p className="text-yellow-700 font-medium">You may have been logged out.</p>
+            <p className="text-yellow-600 text-sm mt-1">Please sign in to continue:</p>
+            <Button asChild className="mt-2 w-full bg-yellow-600 hover:bg-yellow-700">
+              <Link to="/auth" className="flex items-center justify-center gap-2">
+                <LogIn className="h-4 w-4" />
+                Sign In
+              </Link>
+            </Button>
+          </div>
+        )}
         
         {suggestedRoute && (
           <div className="mb-6 p-4 bg-blue-50 rounded-md text-left">

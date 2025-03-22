@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,9 +14,23 @@ export function Auth() {
   const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
+
+  // Get the return URL from location state or query params
+  const getReturnUrl = () => {
+    // Check if there's a returnUrl in query params
+    const searchParams = new URLSearchParams(location.search);
+    const queryReturnUrl = searchParams.get('returnUrl');
+    
+    // Check if there's a from path in location state
+    const stateFrom = location.state?.from;
+    
+    // Prioritize query param, then state, then default to home
+    return queryReturnUrl || stateFrom || '/';
+  };
 
   useEffect(() => {
     async function checkSession() {
@@ -29,9 +44,10 @@ export function Auth() {
         }
         
         if (data.session) {
-          // User is already logged in, redirect to dashboard
-          const returnUrl = new URLSearchParams(location.search).get('returnUrl');
-          navigate(returnUrl || '/dashboard');
+          // User is already logged in, redirect to appropriate page
+          const returnUrl = getReturnUrl();
+          console.log("User is logged in, redirecting to:", returnUrl);
+          navigate(returnUrl);
         } else {
           setIsCheckingSession(false);
         }
@@ -71,8 +87,17 @@ export function Auth() {
         
         if (error) throw error;
         
-        const returnUrl = new URLSearchParams(location.search).get('returnUrl');
-        navigate(returnUrl || '/dashboard');
+        const returnUrl = getReturnUrl();
+        console.log("Sign in successful, redirecting to:", returnUrl);
+        
+        // Store remember me preference
+        try {
+          localStorage.setItem('woodbourne-keep-signed-in', rememberMe ? 'true' : 'false');
+        } catch (e) {
+          console.warn("Could not save session preference", e);
+        }
+        
+        navigate(returnUrl);
       }
     } catch (error: any) {
       console.error("Authentication error:", error);
@@ -132,6 +157,22 @@ export function Auth() {
                 className="mt-1"
               />
             </div>
+            
+            {!isSignUp && (
+              <div className="flex items-center">
+                <input
+                  id="remember-me"
+                  name="remember-me"
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary"
+                />
+                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-600">
+                  Remember me
+                </label>
+              </div>
+            )}
           </div>
 
           <Button
