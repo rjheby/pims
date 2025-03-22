@@ -3,7 +3,7 @@ import React from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { CustomerDialog } from "./CustomerDialog";
-import { ItemsDialog } from "./ItemsDialog";
+import { ItemSelector } from "./ItemSelector";
 import { Customer, RecurrenceData } from "./types";
 import { RecurringOrderForm } from "../RecurringOrderForm";
 
@@ -52,34 +52,14 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={itemsDialogOpen} onOpenChange={setItemsDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Select Items</DialogTitle>
-          </DialogHeader>
-          <ItemsDialog
-            onItemsSelect={onItemsSelect}
-            onCancel={() => setItemsDialogOpen(false)}
-            initialItems={initialItems}
-          />
-          
-          {recurrenceData && onRecurrenceChange && (
-            <RecurringOrderForm
-              recurrenceData={recurrenceData}
-              onRecurrenceChange={onRecurrenceChange}
-            />
-          )}
-          
-          <DialogFooter className="mt-4">
-            <Button variant="outline" onClick={() => setItemsDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={() => setItemsDialogOpen(false)}>
-              Save Items
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ItemSelector
+        open={itemsDialogOpen}
+        onOpenChange={setItemsDialogOpen}
+        onSelect={onItemsSelect}
+        onCancel={() => setItemsDialogOpen(false)}
+        initialItems={initialItems}
+        recurrenceData={recurrenceData}
+      />
     </>
   );
 };

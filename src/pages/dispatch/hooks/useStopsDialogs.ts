@@ -199,8 +199,13 @@ export function useStopsDialogs(
     setItemsDialogOpen(true);
   }, []);
 
-  const handleItemsSelect = useCallback((items: string) => {
+  const handleItemsSelect = useCallback((items: string, itemsData?: any[], recurrenceDataUpdate?: RecurrenceData) => {
     console.log("Selected items:", items);
+    
+    // If recurrence data was updated through the ItemSelector, update it here
+    if (recurrenceDataUpdate) {
+      setRecurrenceData(recurrenceDataUpdate);
+    }
     
     // Simple price calculation (can be enhanced)
     const itemsArray = items.split(',').filter(Boolean);
