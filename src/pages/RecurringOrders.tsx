@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, Plus, Edit, Trash2, Calendar, Clock } from "lucide-react";
+import { Loader2, Plus, Search } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { RecurringOrdersTable } from "./dispatch/components/RecurringOrdersTable";
 
 interface Customer {
   id: string;
@@ -40,6 +41,7 @@ export default function RecurringOrders() {
   const [currentOrder, setCurrentOrder] = useState<Partial<RecurringOrder> | null>(null);
   const [search, setSearch] = useState("");
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     fetchOrders();
@@ -117,6 +119,33 @@ export default function RecurringOrders() {
     setOrderDialogOpen(true);
   };
 
+  const handleDeleteOrder = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this recurring order?")) return;
+    
+    try {
+      const { error } = await supabase
+        .from("recurring_orders")
+        .delete()
+        .eq("id", id);
+        
+      if (error) throw error;
+      
+      toast({
+        title: "Success",
+        description: "Recurring order deleted successfully"
+      });
+      
+      fetchOrders();
+    } catch (error: any) {
+      console.error("Error deleting recurring order:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete recurring order",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleSaveOrder = async () => {
     if (!currentOrder || !currentOrder.customer_id || !currentOrder.frequency) {
       toast({
@@ -178,33 +207,6 @@ export default function RecurringOrders() {
     }
   };
 
-  const handleDeleteOrder = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this recurring order?")) return;
-    
-    try {
-      const { error } = await supabase
-        .from("recurring_orders")
-        .delete()
-        .eq("id", id);
-        
-      if (error) throw error;
-      
-      toast({
-        title: "Success",
-        description: "Recurring order deleted successfully"
-      });
-      
-      fetchOrders();
-    } catch (error: any) {
-      console.error("Error deleting recurring order:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete recurring order",
-        variant: "destructive"
-      });
-    }
-  };
-
   const frequencyOptions = [
     { value: "weekly", label: "Weekly" },
     { value: "biweekly", label: "Bi-Weekly" },
@@ -247,8 +249,8 @@ export default function RecurringOrders() {
 
   return (
     <AuthGuard>
-      <div className="container mx-auto py-8 px-4">
-        <div className="flex justify-between items-center mb-6">
+      <div className="container mx-auto py-6 px-4 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
             <h1 className="text-2xl font-bold">Recurring Orders</h1>
             <p className="text-muted-foreground">Manage recurring delivery schedules</p>
@@ -261,14 +263,18 @@ export default function RecurringOrders() {
 
         <Card>
           <CardHeader>
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <CardTitle>All Recurring Orders</CardTitle>
-              <div className="w-64">
-                <Input
-                  placeholder="Search orders..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
+              <div className="w-full sm:w-64">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search orders..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-8"
+                  />
+                </div>
               </div>
             </div>
           </CardHeader>
@@ -278,57 +284,15 @@ export default function RecurringOrders() {
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Customer</TableHead>
-                      <TableHead>Frequency</TableHead>
-                      <TableHead>Preferred Day</TableHead>
-                      <TableHead>Preferred Time</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredOrders.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
-                          {search ? "No orders match your search criteria" : "No recurring orders found"}
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      filteredOrders.map((order) => (
-                        <TableRow key={order.id}>
-                          <TableCell className="font-medium">{order.customer?.name || "Unknown Customer"}</TableCell>
-                          <TableCell>{formatFrequency(order.frequency)}</TableCell>
-                          <TableCell>{formatDay(order.preferred_day)}</TableCell>
-                          <TableCell>{formatTime(order.preferred_time)}</TableCell>
-                          <TableCell>{format(new Date(order.created_at), "MMM d, yyyy")}</TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                onClick={() => handleEditOrder(order)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                onClick={() => handleDeleteOrder(order.id)}
-                              >
-                                <Trash2 className="h-4 w-4 text-red-500" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
+              <RecurringOrdersTable
+                orders={orders}
+                onEditOrder={handleEditOrder}
+                onDeleteOrder={handleDeleteOrder}
+                formatFrequency={formatFrequency}
+                formatDay={formatDay}
+                formatTime={formatTime}
+                filteredOrders={filteredOrders}
+              />
             )}
           </CardContent>
         </Card>
@@ -336,7 +300,7 @@ export default function RecurringOrders() {
 
       {/* Add/Edit Order Dialog */}
       <Dialog open={orderDialogOpen} onOpenChange={setOrderDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className={isMobile ? "w-[95%] sm:max-w-md" : "sm:max-w-md"}>
           <DialogHeader>
             <DialogTitle>
               {currentOrder?.id ? "Edit Recurring Order" : "Add New Recurring Order"}

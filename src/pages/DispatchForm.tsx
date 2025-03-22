@@ -2,7 +2,7 @@
 import { useParams, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, FileDown } from "lucide-react";
+import { Loader2, FileDown, CalendarClock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { StopsTable } from "./dispatch/components"; 
@@ -17,6 +17,7 @@ import { AuthGuard } from "@/components/AuthGuard";
 import { useState, useEffect } from "react";
 import { Customer, Driver } from "./dispatch/components/stops/types";
 import ScheduleSummary from "./dispatch/components/ScheduleSummary";
+import { Badge } from "@/components/ui/badge";
 
 export default function DispatchForm() {
   const { id } = useParams<{ id: string }>();
@@ -24,6 +25,7 @@ export default function DispatchForm() {
   const isMobile = useIsMobile();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [showRecurringStops, setShowRecurringStops] = useState(false);
   
   const {
     masterSchedule,
@@ -137,6 +139,94 @@ export default function DispatchForm() {
     }
   };
 
+  // Function to import recurring orders that match the schedule date
+  const handleImportRecurringOrders = async () => {
+    if (!masterSchedule) return;
+    
+    try {
+      setShowRecurringStops(true);
+      const scheduleDate = new Date(masterSchedule.schedule_date);
+      const dayOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][scheduleDate.getDay()];
+      
+      toast({
+        title: "Loading",
+        description: `Finding recurring orders for ${dayOfWeek}...`,
+      });
+      
+      // Fetch recurring orders for this day of week
+      const { data: recurringOrders, error: recurringError } = await supabase
+        .from('recurring_orders')
+        .select(`
+          *,
+          customer:customer_id (
+            id, name, address, phone, email, street_address, city, state, zip_code
+          )
+        `)
+        .eq('preferred_day', dayOfWeek);
+        
+      if (recurringError) throw recurringError;
+      
+      if (recurringOrders && recurringOrders.length > 0) {
+        console.log(`Found ${recurringOrders.length} recurring orders for ${dayOfWeek}`);
+        
+        // Convert recurring orders to stops
+        const newStops = recurringOrders.map((order, index) => {
+          const customer = order.customer;
+          
+          // Check if this customer already exists in the stops
+          const existingStopIndex = stops.findIndex(s => s.customer_id === customer.id);
+          if (existingStopIndex >= 0) {
+            return null; // Skip if already in schedule
+          }
+          
+          const address = customer.address || constructAddress(customer);
+          
+          return {
+            stop_number: stops.length + index + 1,
+            customer_id: customer.id,
+            customer_name: customer.name,
+            customer_address: address,
+            customer_phone: customer.phone || '',
+            items: '', // No default items
+            notes: `Recurring ${order.frequency} order`,
+            price: 0,
+            is_recurring: true,
+            recurring_id: order.id,
+            status: 'pending'
+          };
+        }).filter(Boolean) as any[];
+        
+        if (newStops.length > 0) {
+          setStops([...stops, ...newStops]);
+          
+          toast({
+            title: "Success",
+            description: `Added ${newStops.length} recurring orders to schedule`,
+          });
+        } else {
+          toast({
+            title: "Info",
+            description: "All recurring orders are already in this schedule",
+          });
+        }
+      } else {
+        toast({
+          title: "Info",
+          description: `No recurring orders found for ${dayOfWeek}`,
+        });
+      }
+    } catch (error: any) {
+      console.error("Error importing recurring orders:", error);
+      toast({
+        title: "Error",
+        description: "Failed to import recurring orders: " + error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const recurringStopsCount = stops.filter(stop => stop.is_recurring).length;
+
   return (
     <AuthGuard requiredRole="driver">
       {loading ? (
@@ -161,7 +251,14 @@ export default function DispatchForm() {
           <Card className="shadow-sm mb-16 md:mb-6">
             <CardHeader>
               <div className="flex justify-between items-center">
-                <CardTitle>Dispatch Schedule #{masterSchedule.schedule_number}</CardTitle>
+                <div className="flex items-center gap-3">
+                  <CardTitle>Dispatch Schedule #{masterSchedule.schedule_number}</CardTitle>
+                  {recurringStopsCount > 0 && (
+                    <Badge variant="outline" className="bg-primary/10 text-primary">
+                      {recurringStopsCount} Recurring
+                    </Badge>
+                  )}
+                </div>
                 {masterSchedule.status === 'submitted' && (
                   <div className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
                     Submitted
@@ -179,6 +276,21 @@ export default function DispatchForm() {
                   onDeliveryDateChange={handleScheduleDateChange}
                   disabled={masterSchedule.status === 'submitted'}
                 />
+                
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-medium">Delivery Stops</h3>
+                  {masterSchedule.status !== 'submitted' && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleImportRecurringOrders}
+                      className="flex items-center gap-2"
+                    >
+                      <CalendarClock className="h-4 w-4" />
+                      Import Recurring Orders
+                    </Button>
+                  )}
+                </div>
                 
                 <StopsTable 
                   stops={stops} 

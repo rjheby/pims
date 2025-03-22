@@ -1,51 +1,10 @@
 
-export interface FirewoodProduct {
-  id: number;
-  item_name: string;
-  item_full_name: string;
-  species?: string;
-  length?: string;
-  split_size?: string;
-  package_size?: string;
-  product_type?: string;
-  minimum_quantity?: number;
-  image_reference?: string;
-}
-
-export interface RecurringOrderSettings {
+export interface RecurrenceData {
   isRecurring: boolean;
   frequency: string;
   preferredDay?: string;
   startDate?: string;
   endDate?: string;
-  occurrences?: number;
-  nextDeliveryDate?: string;
-}
-
-export interface DeliveryStop {
-  id?: string;
-  customer_id?: string;
-  customer_name?: string;
-  customer_address?: string;
-  customer_phone?: string;
-  items?: string;
-  itemsData?: {
-    id: string;
-    name: string;
-    quantity: number;
-    price?: number;
-  }[]; // Properly typed itemsData array
-  price?: number;
-  status?: string;
-  recurring?: RecurringOrderSettings;
-  notes?: string;
-  driver_id?: string;
-  driver_name?: string;
-  sequence?: number;
-  stop_number?: number;
-  master_schedule_id?: string;
-  created_at?: string;
-  updated_at?: string;
 }
 
 export interface Customer {
@@ -54,8 +13,8 @@ export interface Customer {
   address?: string;
   phone?: string;
   email?: string;
-  notes?: string;
   type?: string;
+  notes?: string;
   street_address?: string;
   city?: string;
   state?: string;
@@ -70,39 +29,38 @@ export interface Driver {
   status?: string;
 }
 
-export interface StopFormData {
-  customer_id: string | null;
-  notes: string | null;
-  driver_id: string | null;
-  items: string | null;
-  stop_number?: number;
-  itemsData?: {
-    id: string;
-    name: string;
-    quantity: number;
-    price?: number;
-  }[];
+export interface DeliveryStop {
+  id?: string;
+  stop_number: number;
+  customer_id?: string;
+  customer_name?: string;
+  customer_address?: string;
+  driver_id?: string;
+  driver_name?: string;
+  items?: string;
+  itemsData?: any[];
+  notes?: string;
+  price?: number;
+  status?: string;
+  is_recurring?: boolean;
+  recurring_id?: string;
+  customer?: Customer;
+  customers?: Customer;
 }
 
-export const DELIVERY_STATUS_OPTIONS = [
-  'scheduled',
-  'in-progress',
-  'completed',
-  'cancelled'
-] as const;
-
-export type DeliveryStatus = typeof DELIVERY_STATUS_OPTIONS[number];
-
-export const getStatusBadgeVariant = (status?: string) => {
-  switch (status?.toLowerCase()) {
-    case 'completed':
-      return 'success';
-    case 'in-progress':
-      return 'warning';
-    case 'cancelled':
-      return 'destructive';
-    case 'scheduled':
-    default:
-      return 'outline';
-  }
-};
+export interface StopFormData {
+  id?: string;
+  stop_number: number;
+  customer_id?: string;
+  customer_name?: string;
+  customer_address?: string;
+  driver_id?: string;
+  driver_name?: string;
+  items?: string;
+  itemsData?: any[];
+  notes?: string;
+  price?: number | string;
+  status?: string;
+  is_recurring?: boolean;
+  recurring_id?: string;
+}
