@@ -24,6 +24,22 @@ export interface DriverCapacity {
   currentItems: CapacityItem[];
 }
 
+// Interface for inventory totals
+export interface InventoryTotals {
+  [key: string]: number;
+}
+
+// Interface for schedule summary data
+export interface ScheduleSummaryData {
+  totalStops: number;
+  stopsByDriver: { [key: string]: number };
+  totalPrice: number;
+  laborCost: number;
+  itemizedInventory: Array<{ item: string; quantity: number }>;
+  inventoryByCategory: { [key: string]: Array<string> };
+  capacityUtilization: number;
+}
+
 /**
  * Calculates total pallet equivalents for a set of items
  */
@@ -118,4 +134,129 @@ export const estimateDeliveryDuration = (items: CapacityItem[]): number => {
   const additionalTime = Math.ceil(palletEquivalents * 10); // 10 minutes per pallet equivalent
   
   return baseTime + additionalTime;
+};
+
+/**
+ * Normalizes a product name for consistent display
+ */
+export const normalizeProductName = (itemDescription: string): string => {
+  if (!itemDescription) return '';
+  
+  // Parse format like "2x Firewood - 1/4 cord"
+  const match = itemDescription.match(/^(\d+)x\s+(.+?)(?:\s+@\$(\d+\.\d+))?$/);
+  if (!match) return itemDescription;
+  
+  const quantity = match[1];
+  const name = match[2].trim();
+  const price = match[3];
+  
+  // Return formatted display name
+  return price ? `${quantity}x ${name} @$${price}` : `${quantity}x ${name}`;
+};
+
+/**
+ * Format price to display in currency format
+ */
+export const formatPrice = (price: number): string => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2
+  }).format(price);
+};
+
+/**
+ * Calculate totals from stops data for schedule summary
+ */
+export const calculateTotals = (stops: any[]): ScheduleSummaryData => {
+  const stopsByDriver: { [key: string]: number } = {};
+  let totalPrice = 0;
+  const itemizedInventory: Array<{ item: string; quantity: number }> = [];
+  const inventoryByCategory: { [key: string]: Array<string> } = {};
+  let capacityUtilization = 0;
+  
+  // Process each stop
+  stops.forEach(stop => {
+    // Count stops by driver
+    const driverName = stop.driver_name || 'Unassigned';
+    stopsByDriver[driverName] = (stopsByDriver[driverName] || 0) + 1;
+    
+    // Add price
+    totalPrice += parseFloat(stop.price || '0');
+    
+    // Process items
+    if (stop.items) {
+      const itemsArray = stop.items.split(',').map((item: string) => item.trim());
+      
+      itemsArray.forEach((itemStr: string) => {
+        const match = itemStr.match(/^(\d+)x\s+(.+?)(?:\s+@\$(\d+\.\d+))?$/);
+        if (match) {
+          const quantity = parseInt(match[1]);
+          const name = match[2].trim();
+          
+          // Add to itemized inventory
+          const existingItemIndex = itemizedInventory.findIndex(item => item.item === itemStr);
+          if (existingItemIndex >= 0) {
+            itemizedInventory[existingItemIndex].quantity += quantity;
+          } else {
+            itemizedInventory.push({ item: itemStr, quantity });
+          }
+          
+          // Categorize inventory
+          // Simple categorization based on keywords
+          let category = 'Other';
+          if (name.toLowerCase().includes('firewood')) {
+            category = 'Firewood';
+          } else if (name.toLowerCase().includes('kindling')) {
+            category = 'Kindling';
+          } else if (name.toLowerCase().includes('pallet')) {
+            category = 'Pallets';
+          }
+          
+          if (!inventoryByCategory[category]) {
+            inventoryByCategory[category] = [];
+          }
+          
+          if (!inventoryByCategory[category].includes(itemStr)) {
+            inventoryByCategory[category].push(itemStr);
+          }
+        }
+      });
+    }
+  });
+  
+  // Calculate estimated labor cost (simplified)
+  // Assume $25/hour and estimated duration from items
+  const totalEstimatedHours = stops.reduce((total, stop) => {
+    const items = parseItemsToCapacityItems(stop.items);
+    const durationMinutes = estimateDeliveryDuration(items);
+    return total + (durationMinutes / 60);
+  }, 0);
+  
+  const laborCost = totalEstimatedHours * 25; // $25 per hour
+  
+  // Calculate capacity utilization (simplified)
+  // Assume each driver has a maximum capacity of 20 pallet equivalents
+  const driverCount = Object.keys(stopsByDriver).length || 1;
+  const totalCapacity = driverCount * 20; // 20 pallet equivalents per driver
+  
+  const totalPalletEquivalents = stops.reduce((total, stop) => {
+    const items = parseItemsToCapacityItems(stop.items);
+    return total + calculatePalletEquivalents(items);
+  }, 0);
+  
+  capacityUtilization = Math.min(
+    Math.round((totalPalletEquivalents / totalCapacity) * 100),
+    100
+  );
+  
+  return {
+    totalStops: stops.length,
+    stopsByDriver,
+    totalPrice,
+    laborCost,
+    itemizedInventory,
+    inventoryByCategory,
+    capacityUtilization
+  };
 };
