@@ -228,7 +228,9 @@ export const updateRecurringSchedule = async (
         const futureScheduleIds = futureRelationships
           .filter(rel => {
             if (!rel.dispatch_schedules || !schedule) return false;
-            // The dispatch_schedules property is an object, not an array
+            
+            // The dispatch_schedules property is a single object, not an array
+            // Fixed type access here
             const scheduleDate = new Date(rel.dispatch_schedules.schedule_date);
             const thisDate = new Date(schedule.schedule_date);
             return scheduleDate >= thisDate;
