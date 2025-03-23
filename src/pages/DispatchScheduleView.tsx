@@ -110,7 +110,7 @@ export default function DispatchScheduleView() {
         </div>
         
         {connectionStatus && (
-          <Alert variant="warning">
+          <Alert>
             <AlertDescription>
               {connectionStatus}
             </AlertDescription>

@@ -27,7 +27,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       console.log(`WebSocket reconnect attempt ${retryCount + 1} after ${delay}ms`);
       return delay;
     }
-    // Removed the maxReconnectAttempts property as it's not supported in the RealtimeClientOptions type
   },
   // Add global error handler for debugging
   global: {

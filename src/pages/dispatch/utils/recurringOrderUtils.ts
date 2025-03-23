@@ -1,294 +1,440 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { format, addDays, addWeeks, addMonths, parse, isAfter, isBefore, isSameDay } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
 
-export const createRecurringOrderFromSchedule = async (
-  scheduleId: string,
-  recurrenceData: {
-    frequency: string;
-    preferredDay: string;
-    preferredTime?: string | Date;
-    startDate?: Date;
-    endDate?: Date;
-  },
-  toast: any
-) => {
+// Types
+export interface RecurringOrder {
+  id: string;
+  customer_id: string;
+  frequency: string;
+  preferred_day: string;
+  preferred_time: string | null;
+  active_status: boolean;
+  created_at: string;
+  updated_at: string;
+  customer?: {
+    id: string;
+    name: string;
+    address: string;
+    phone: string;
+  };
+}
+
+export interface RecurringSchedule {
+  id: string;
+  recurring_order_id: string;
+  schedule_id: string;
+  status: string;
+  modified_from_template: boolean;
+  created_at: string;
+  updated_at: string;
+  recurring_order?: RecurringOrder;
+  schedule?: {
+    id: string;
+    schedule_date: string;
+    schedule_number: string;
+    status: string;
+  };
+}
+
+// Helper to get the next occurrence date based on frequency and preferred day
+export const getNextOccurrence = (
+  startDate: Date,
+  frequency: string,
+  preferredDay: string
+): Date | null => {
   try {
-    // First get the schedule details
-    const { data: schedule, error: scheduleError } = await supabase
-      .from('dispatch_schedules')
-      .select('*')
-      .eq('id', scheduleId)
-      .single();
-      
-    if (scheduleError) throw scheduleError;
-    
-    // Get the delivery stops for this schedule to find customer info
-    const { data: stops, error: stopsError } = await supabase
-      .from('delivery_stops')
-      .select(`
-        *,
-        customers:customer_id (
-          id, 
-          name, 
-          address, 
-          phone
-        )
-      `)
-      .eq('master_schedule_id', scheduleId);
-      
-    if (stopsError) throw stopsError;
-    
-    if (!stops || stops.length === 0) {
-      throw new Error("No delivery stops found for this schedule");
+    if (!preferredDay) {
+      console.warn('No preferred day specified for recurring order');
+      return null;
     }
+
+    let nextDate = new Date(startDate);
     
-    // Use the first stop's customer for the recurring order
-    // In a real implementation, you might want to confirm with user which customer 
-    // or create multiple recurring orders if the schedule has multiple customers
-    const firstStop = stops[0];
+    // Reset time to midnight
+    nextDate.setHours(0, 0, 0, 0);
     
-    // Format the preferred time as a string if it's a Date
-    let preferredTimeStr = recurrenceData.preferredTime as string;
-    if (recurrenceData.preferredTime instanceof Date) {
-      const hours = recurrenceData.preferredTime.getHours().toString().padStart(2, '0');
-      const minutes = recurrenceData.preferredTime.getMinutes().toString().padStart(2, '0');
-      preferredTimeStr = `${hours}:${minutes}`;
-    }
-    
-    // Create the recurring order
-    const { data: recurringOrder, error: createError } = await supabase
-      .from('recurring_orders')
-      .insert({
-        customer_id: firstStop.customer_id,
-        frequency: recurrenceData.frequency,
-        preferred_day: recurrenceData.preferredDay.toLowerCase(),
-        preferred_time: preferredTimeStr,
-        active_status: true
-      })
-      .select()
-      .single();
-      
-    if (createError) throw createError;
-    
-    // Create an entry in the recurring_order_schedules join table
-    const { error: joinError } = await supabase
-      .from('recurring_order_schedules')
-      .insert({
-        recurring_order_id: recurringOrder.id,
-        schedule_id: scheduleId,
-        status: 'active',
-        modified_from_template: false
-      });
-      
-    if (joinError) {
-      // If there's an error creating the join record, 
-      // we should clean up the recurring order
-      await supabase
-        .from('recurring_orders')
-        .delete()
-        .eq('id', recurringOrder.id);
+    // Handle different frequencies
+    switch (frequency.toLowerCase()) {
+      case 'weekly': {
+        // Preferred day should be day of week (0-6, where 0 is Sunday)
+        const targetDay = getDayNumber(preferredDay);
+        if (targetDay === -1) return null;
         
-      throw joinError;
+        // Calculate days to add to reach the target day
+        const currentDay = nextDate.getDay();
+        let daysToAdd = targetDay - currentDay;
+        if (daysToAdd <= 0) daysToAdd += 7; // Move to next week if the day has already passed
+        
+        return addDays(nextDate, daysToAdd);
+      }
+      
+      case 'bi-weekly': {
+        // First get the next weekly occurrence
+        const targetDay = getDayNumber(preferredDay);
+        if (targetDay === -1) return null;
+        
+        // Calculate days to add to reach the target day
+        const currentDay = nextDate.getDay();
+        let daysToAdd = targetDay - currentDay;
+        if (daysToAdd <= 0) daysToAdd += 7;
+        
+        // Get next weekly occurrence
+        const nextWeeklyDate = addDays(nextDate, daysToAdd);
+        
+        // For bi-weekly, add another week if it's an odd-numbered week from the start date
+        // This logic assumes we want to schedule on even-numbered weeks from the start
+        const weeksBetween = Math.round(
+          (nextWeeklyDate.getTime() - new Date().getTime()) / (7 * 24 * 60 * 60 * 1000)
+        );
+        
+        return weeksBetween % 2 === 0 ? nextWeeklyDate : addWeeks(nextWeeklyDate, 1);
+      }
+      
+      case 'monthly': {
+        // Preferred day could be a day of month (1-31) or a pattern like "first monday"
+        if (/^\d+$/.test(preferredDay)) {
+          // Numeric day of month
+          const targetDay = parseInt(preferredDay, 10);
+          let result = new Date(nextDate);
+          
+          // Move to the next month if the day has passed this month
+          if (nextDate.getDate() > targetDay) {
+            result = addMonths(result, 1);
+          }
+          
+          result.setDate(targetDay);
+          return result;
+        } else {
+          // Pattern like "first monday"
+          const parts = preferredDay.split(' ');
+          if (parts.length !== 2) return null;
+          
+          const ordinal = parts[0].toLowerCase();
+          const day = parts[1].toLowerCase();
+          
+          // Convert ordinal to number (first->1, second->2, etc.)
+          const ordinalMap: Record<string, number> = {
+            'first': 1, 'second': 2, 'third': 3, 'fourth': 4, 'last': -1
+          };
+          
+          const ordinalNum = ordinalMap[ordinal];
+          if (ordinalNum === undefined) return null;
+          
+          const dayNum = getDayNumber(day);
+          if (dayNum === -1) return null;
+          
+          // Calculate the date for the pattern in the current month
+          let result = new Date(nextDate.getFullYear(), nextDate.getMonth(), 1);
+          
+          if (ordinalNum === -1) {
+            // Last X of the month
+            // Go to the first day of next month and then back up to find the last occurrence
+            result = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0);
+            while (result.getDay() !== dayNum) {
+              result = addDays(result, -1);
+            }
+          } else {
+            // Find the first occurrence of the day in the month
+            while (result.getDay() !== dayNum) {
+              result = addDays(result, 1);
+            }
+            
+            // Add weeks to get to the nth occurrence
+            result = addDays(result, (ordinalNum - 1) * 7);
+          }
+          
+          // If the calculated date is before the start date, move to next month
+          if (isBefore(result, nextDate)) {
+            return getNextOccurrence(addMonths(nextDate, 1), frequency, preferredDay);
+          }
+          
+          return result;
+        }
+      }
+      
+      default:
+        console.warn(`Unknown frequency: ${frequency}`);
+        return null;
     }
-    
-    toast({
-      title: "Success",
-      description: "Recurring order created successfully"
-    });
-    
-    return recurringOrder;
-  } catch (error: any) {
-    console.error("Error creating recurring order:", error);
-    toast({
-      title: "Error",
-      description: error.message || "Failed to create recurring order",
-      variant: "destructive"
-    });
+  } catch (error) {
+    console.error('Error calculating next occurrence:', error);
     return null;
   }
 };
 
-export const getRecurringOrderInfo = async (scheduleId: string) => {
+// Helper to convert day name to number
+export const getDayNumber = (day: string): number => {
+  const days: Record<string, number> = {
+    'sunday': 0, 'sun': 0,
+    'monday': 1, 'mon': 1,
+    'tuesday': 2, 'tue': 2,
+    'wednesday': 3, 'wed': 3,
+    'thursday': 4, 'thu': 4,
+    'friday': 5, 'fri': 5,
+    'saturday': 6, 'sat': 6
+  };
+  
+  return days[day.toLowerCase()] ?? -1;
+};
+
+// Function to calculate the next N occurrences of a recurring order
+export const calculateNextOccurrences = (
+  startDate: Date,
+  frequency: string,
+  preferredDay: string,
+  count: number = 10
+): Date[] => {
+  const occurrences: Date[] = [];
+  let currentDate = new Date(startDate);
+  
+  for (let i = 0; i < count; i++) {
+    const nextDate = getNextOccurrence(currentDate, frequency, preferredDay);
+    if (!nextDate) break;
+    
+    occurrences.push(nextDate);
+    currentDate = addDays(nextDate, 1); // Move past the found date to find the next one
+  }
+  
+  return occurrences;
+};
+
+// Function to fetch all recurring orders
+export const fetchRecurringOrders = async (): Promise<RecurringOrder[]> => {
   try {
     const { data, error } = await supabase
+      .from('recurring_orders')
+      .select(`
+        *,
+        customer:customer_id (
+          id, name, address, phone
+        )
+      `)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching recurring orders:', error);
+    throw error;
+  }
+};
+
+// Function to check if a date has recurring orders
+export const checkDateForRecurringOrders = async (date: Date): Promise<{ hasRecurring: boolean, schedules: any[] }> => {
+  try {
+    // Format the date to YYYY-MM-DD
+    const formattedDate = format(date, 'yyyy-MM-dd');
+    
+    // First, try to find any schedule for this date that is linked to a recurring order
+    const { data: existingSchedules, error: scheduleError } = await supabase
       .from('recurring_order_schedules')
       .select(`
-        recurring_order_id,
-        modified_from_template,
-        recurring_orders (
-          id,
-          frequency,
-          preferred_day,
-          preferred_time,
-          customers:customer_id (
-            id,
-            name,
-            address,
-            phone
+        *,
+        schedule:schedule_id (
+          id, schedule_date, schedule_number, status
+        ),
+        recurring_order:recurring_order_id (
+          id, customer_id, frequency, preferred_day, preferred_time,
+          customer:customer_id (
+            id, name, address, phone
           )
         )
       `)
-      .eq('schedule_id', scheduleId)
-      .maybeSingle();
-      
-    if (error) throw error;
+      .eq('schedule.schedule_date', formattedDate);
     
-    if (!data) return null;
+    if (scheduleError) {
+      console.error('Error checking for existing recurring schedules:', scheduleError);
+      throw scheduleError;
+    }
     
-    // Fix the TypeScript errors by correctly handling the nested data structure
-    const recurringOrderInfo = {
-      recurring_order_id: data.recurring_order_id,
-      modified_from_template: data.modified_from_template,
-      recurring_orders: data.recurring_orders // This is a single object, not an array
+    const matchingSchedules = Array.isArray(existingSchedules) ? existingSchedules : [];
+    
+    return { 
+      hasRecurring: matchingSchedules.length > 0,
+      schedules: matchingSchedules
     };
-    
-    return recurringOrderInfo;
   } catch (error) {
-    console.error("Error getting recurring order info:", error);
-    return null;
+    console.error('Error checking date for recurring orders:', error);
+    return { hasRecurring: false, schedules: [] };
   }
 };
 
-export const updateRecurringSchedule = async (
-  scheduleId: string,
-  updates: any,
-  updateType: 'single' | 'future' | 'all',
-  toast: any
-) => {
+// Function to create or update schedules for recurring orders
+export const createSchedulesForRecurringOrders = async (
+  recurringOrderId: string,
+  startDate: Date,
+  endDate: Date
+): Promise<{ success: boolean, schedulesCreated: number, error?: string }> => {
   try {
-    // First check if this is a recurring schedule
-    const { data: relationship, error: relError } = await supabase
-      .from('recurring_order_schedules')
-      .select('recurring_order_id')
-      .eq('schedule_id', scheduleId)
-      .maybeSingle();
+    // Fetch the recurring order details
+    const { data: orderData, error: orderError } = await supabase
+      .from('recurring_orders')
+      .select(`
+        *,
+        customer:customer_id (
+          id, name, address, phone
+        )
+      `)
+      .eq('id', recurringOrderId)
+      .single();
     
-    if (relError) throw relError;
+    if (orderError) throw orderError;
+    if (!orderData) throw new Error('Recurring order not found');
     
-    if (!relationship) {
-      // Not a recurring schedule, just update normally
-      const { error } = await supabase
-        .from('dispatch_schedules')
-        .update(updates)
-        .eq('id', scheduleId);
-      
-      if (error) throw error;
-      
-      return true;
+    // Check if the order is active
+    if (!orderData.active_status) {
+      return { success: false, schedulesCreated: 0, error: 'Recurring order is inactive' };
     }
     
-    // This is a recurring schedule
-    const recurringOrderId = relationship.recurring_order_id;
+    // Calculate occurrences between start and end date
+    const occurrences: Date[] = [];
+    let currentDate = new Date(startDate);
     
-    if (updateType === 'single') {
-      // Update just this schedule and mark as modified from template
-      const { error: updateError } = await supabase
+    while (isBefore(currentDate, endDate) || isSameDay(currentDate, endDate)) {
+      const nextDate = getNextOccurrence(currentDate, orderData.frequency, orderData.preferred_day);
+      if (!nextDate) break;
+      
+      if (isBefore(nextDate, endDate) || isSameDay(nextDate, endDate)) {
+        occurrences.push(nextDate);
+      }
+      
+      currentDate = addDays(nextDate, 1);
+    }
+    
+    // For each occurrence, create or update a schedule
+    let schedulesCreated = 0;
+    
+    for (const occurrenceDate of occurrences) {
+      const formattedDate = format(occurrenceDate, 'yyyy-MM-dd');
+      
+      // Check if a schedule already exists for this date
+      const { data: existingSchedules, error: scheduleError } = await supabase
         .from('dispatch_schedules')
-        .update(updates)
-        .eq('id', scheduleId);
-      
-      if (updateError) throw updateError;
-      
-      // Mark as modified from template
-      const { error: relUpdateError } = await supabase
-        .from('recurring_order_schedules')
-        .update({ modified_from_template: true })
-        .eq('schedule_id', scheduleId);
-      
-      if (relUpdateError) throw relUpdateError;
-    } 
-    else if (updateType === 'future') {
-      // Get the schedule date
-      const { data: schedule, error: scheduleError } = await supabase
-        .from('dispatch_schedules')
-        .select('schedule_date')
-        .eq('id', scheduleId)
-        .single();
+        .select('id, schedule_date')
+        .eq('schedule_date', formattedDate);
       
       if (scheduleError) throw scheduleError;
       
-      // Find all schedules related to this recurring order with date >= this schedule's date
-      const { data: futureRelationships, error: futureError } = await supabase
-        .from('recurring_order_schedules')
-        .select(`
-          schedule_id,
-          dispatch_schedules:schedule_id (
-            id,
-            schedule_date
-          )
-        `)
-        .eq('recurring_order_id', recurringOrderId);
+      let scheduleId: string;
       
-      if (futureError) throw futureError;
-      
-      // Fix: Properly check and process the nested data
-      if (futureRelationships && futureRelationships.length > 0) {
-        // Filter to only include future schedules
-        const futureScheduleIds = futureRelationships
-          .filter(rel => {
-            if (!rel.dispatch_schedules || !schedule) return false;
-            
-            // The dispatch_schedules property is a single object, not an array
-            // Fixed type access here by explicitly accessing as an object
-            const relatedSchedule = rel.dispatch_schedules as { id: string, schedule_date: string };
-            const scheduleDate = new Date(relatedSchedule.schedule_date);
-            const thisDate = new Date(schedule.schedule_date);
-            return scheduleDate >= thisDate;
-          })
-          .map(rel => rel.schedule_id);
+      if (existingSchedules && existingSchedules.length > 0) {
+        // Use existing schedule
+        scheduleId = existingSchedules[0].id;
+      } else {
+        // Create new schedule
+        const scheduleNumber = `DS-${format(occurrenceDate, 'yyyyMMdd')}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
         
-        // Update all future schedules
-        for (const futureId of futureScheduleIds) {
-          const { error: updateError } = await supabase
-            .from('dispatch_schedules')
-            .update(updates)
-            .eq('id', futureId);
-          
-          if (updateError) console.error(`Error updating schedule ${futureId}:`, updateError);
+        const { data: newSchedule, error: createError } = await supabase
+          .from('dispatch_schedules')
+          .insert({
+            schedule_date: formattedDate,
+            schedule_number: scheduleNumber,
+            status: 'draft'
+          })
+          .select()
+          .single();
+        
+        if (createError) throw createError;
+        scheduleId = newSchedule.id;
+        
+        // Create a delivery stop for this schedule
+        const { error: stopError } = await supabase
+          .from('delivery_stops')
+          .insert({
+            master_schedule_id: scheduleId,
+            customer_id: orderData.customer_id,
+            customer_name: orderData.customer?.name || 'Unknown',
+            customer_address: orderData.customer?.address || '',
+            customer_phone: orderData.customer?.phone || '',
+            items: 'Recurring delivery',
+            notes: `Recurring ${orderData.frequency} delivery`
+          });
+        
+        if (stopError) {
+          console.error('Error creating delivery stop:', stopError);
+          // Continue anyway to link the recurring order to the schedule
         }
       }
-    }
-    else if (updateType === 'all') {
-      // Update all schedules related to this recurring order
-      const { data: allRelationships, error: allError } = await supabase
+      
+      // Link the recurring order to the schedule
+      const { error: linkError } = await supabase
         .from('recurring_order_schedules')
-        .select('schedule_id')
-        .eq('recurring_order_id', recurringOrderId);
+        .insert({
+          recurring_order_id: recurringOrderId,
+          schedule_id: scheduleId,
+          status: 'active'
+        })
+        .onConflict(['recurring_order_id', 'schedule_id'])
+        .ignore();
       
-      if (allError) throw allError;
-      
-      // Update all related schedules
-      const allScheduleIds = allRelationships?.map(rel => rel.schedule_id) || [];
-      
-      for (const schedId of allScheduleIds) {
-        const { error: updateError } = await supabase
-          .from('dispatch_schedules')
-          .update(updates)
-          .eq('id', schedId);
-        
-        if (updateError) console.error(`Error updating schedule ${schedId}:`, updateError);
+      if (linkError) {
+        console.error('Error linking recurring order to schedule:', linkError);
+        continue;
       }
       
-      // Also update the recurring order template if needed
-      // This would depend on what fields are being updated
-      // For simplicity, we're not implementing this part here
+      schedulesCreated++;
     }
     
-    toast({
-      title: "Success",
-      description: `Schedule ${updateType === 'single' ? 'occurrence' : 
-        updateType === 'future' ? 'and future occurrences' : 'and all occurrences'} updated successfully`
-    });
-    
-    return true;
+    return { success: true, schedulesCreated };
   } catch (error: any) {
-    console.error("Error updating recurring schedule:", error);
-    toast({
-      title: "Error",
-      description: error.message || "Failed to update recurring schedule",
-      variant: "destructive"
-    });
-    return false;
+    console.error('Error creating schedules for recurring order:', error);
+    return { success: false, schedulesCreated: 0, error: error.message };
+  }
+};
+
+// Function to find schedules for a specific date that include recurring orders
+export const findSchedulesForDate = async (date: Date): Promise<any[]> => {
+  try {
+    const formattedDate = format(date, 'yyyy-MM-dd');
+    
+    // Get all schedules for this date
+    const { data: schedules, error: schedulesError } = await supabase
+      .from('dispatch_schedules')
+      .select('*')
+      .eq('schedule_date', formattedDate);
+    
+    if (schedulesError) throw schedulesError;
+    
+    if (!schedules || schedules.length === 0) {
+      return [];
+    }
+    
+    // For each schedule, check if it's linked to a recurring order
+    const scheduleIds = schedules.map(s => s.id);
+    
+    const { data: recurringLinks, error: linksError } = await supabase
+      .from('recurring_order_schedules')
+      .select(`
+        *,
+        recurring_order:recurring_order_id (
+          id, customer_id, frequency, preferred_day, preferred_time,
+          customer:customer_id (
+            id, name
+          )
+        )
+      `)
+      .in('schedule_id', scheduleIds);
+    
+    if (linksError) throw linksError;
+    
+    // Create a map of scheduleId -> isRecurring
+    const recurringMap: Record<string, boolean> = {};
+    
+    if (recurringLinks) {
+      for (const link of recurringLinks) {
+        recurringMap[link.schedule_id] = true;
+      }
+    }
+    
+    // Annotate the schedules with isRecurring flag
+    return schedules.map(schedule => ({
+      ...schedule,
+      isRecurring: !!recurringMap[schedule.id]
+    }));
+  } catch (error) {
+    console.error('Error finding schedules for date:', error);
+    return [];
   }
 };

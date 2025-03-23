@@ -13,6 +13,7 @@ import { supabase, fetchWithFallback, handleSupabaseError } from "@/integrations
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
+import { findSchedulesForDate, checkDateForRecurringOrders } from "../utils/recurringOrderUtils";
 
 interface DispatchSchedule {
   id: string;
@@ -60,6 +61,42 @@ export function DispatchScheduleManager({
       setLoading(true);
       setError(null);
       
+      // If a specific date is selected, use our specialized function to find
+      // both regular and recurring schedules for that date
+      if (selectedDate) {
+        const schedulesWithRecurring = await findSchedulesForDate(selectedDate);
+        
+        // Fetch stop counts for each schedule
+        const schedulesWithStops = await Promise.all(
+          schedulesWithRecurring.map(async (schedule) => {
+            try {
+              const { data: stops, error: stopsError } = await supabase
+                .from('delivery_stops')
+                .select('id')
+                .eq('master_schedule_id', schedule.id);
+              
+              if (stopsError) throw stopsError;
+              
+              return {
+                ...schedule,
+                stops_count: stops?.length || 0
+              };
+            } catch (error) {
+              console.error(`Error fetching stops for schedule ${schedule.id}:`, error);
+              return {
+                ...schedule,
+                stops_count: 0
+              };
+            }
+          })
+        );
+        
+        setSchedules(schedulesWithStops);
+        setLoading(false);
+        return;
+      }
+      
+      // For archive view without a specific date, use the regular query
       let query = supabase
         .from('dispatch_schedules')
         .select(`
@@ -67,13 +104,6 @@ export function DispatchScheduleManager({
           stops:delivery_stops(count),
           recurring_schedules:recurring_order_schedules(recurring_order_id)
         `);
-      
-      // Apply date filter if provided
-      if (selectedDate) {
-        // Format date as YYYY-MM-DD for the query
-        const formattedDate = selectedDate.toISOString().split('T')[0];
-        query = query.eq('schedule_date', formattedDate);
-      }
       
       // Apply status filter if provided
       if (filters.status) {
@@ -211,6 +241,23 @@ export function DispatchScheduleManager({
       
       if (stopsError) throw stopsError;
       
+      // Check if this is a recurring schedule
+      const { data: recurringInfo, error: recurringError } = await supabase
+        .from('recurring_order_schedules')
+        .select(`
+          *,
+          recurring_order:recurring_order_id (
+            id, frequency, preferred_day, preferred_time,
+            customer:customer_id (name)
+          )
+        `)
+        .eq('schedule_id', schedule.id)
+        .maybeSingle();
+      
+      if (recurringError) {
+        console.warn('Error checking recurring status:', recurringError);
+      }
+      
       // Create a new PDF document
       const doc = new jsPDF();
       
@@ -223,10 +270,18 @@ export function DispatchScheduleManager({
       doc.text(`Date: ${format(new Date(schedule.schedule_date), 'MMMM d, yyyy')}`, 14, 39);
       doc.text(`Status: ${schedule.status.toUpperCase()}`, 14, 46);
       
+      // Add recurring information if available
+      let currentY = 53;
+      if (recurringInfo && recurringInfo.recurring_order) {
+        doc.text(`Recurring: ${recurringInfo.recurring_order.frequency} (${recurringInfo.recurring_order.preferred_day})`, 14, currentY);
+        currentY += 7;
+      }
+      
       if (schedule.notes) {
-        doc.text('Notes:', 14, 53);
+        doc.text('Notes:', 14, currentY);
         doc.setFontSize(10);
-        doc.text(schedule.notes, 14, 60, { maxWidth: 180 });
+        doc.text(schedule.notes, 14, currentY + 7, { maxWidth: 180 });
+        currentY += 14;
       }
       
       // Add stops table
@@ -241,7 +296,7 @@ export function DispatchScheduleManager({
       autoTable(doc, {
         head: [['Stop', 'Customer', 'Address', 'Phone', 'Status']],
         body: tableData,
-        startY: schedule.notes ? 70 : 53,
+        startY: currentY,
         theme: 'striped',
         headStyles: { fillColor: [42, 65, 49] },
         styles: { fontSize: 10 }
@@ -283,6 +338,26 @@ export function DispatchScheduleManager({
 
   const handleDeleteSchedule = async (scheduleId: string) => {
     try {
+      // Check if this schedule is associated with recurring orders
+      const { data: recurringLinks, error: recurringError } = await supabase
+        .from('recurring_order_schedules')
+        .select('id')
+        .eq('schedule_id', scheduleId);
+      
+      if (recurringError) {
+        console.warn('Error checking recurring links:', recurringError);
+      } else if (recurringLinks && recurringLinks.length > 0) {
+        // Delete the recurring order links first
+        const { error: deleteLinksError } = await supabase
+          .from('recurring_order_schedules')
+          .delete()
+          .eq('schedule_id', scheduleId);
+        
+        if (deleteLinksError) {
+          console.warn('Error deleting recurring links:', deleteLinksError);
+        }
+      }
+      
       // First delete all stops associated with this schedule
       const { error: stopsError } = await supabase
         .from('delivery_stops')
@@ -290,17 +365,6 @@ export function DispatchScheduleManager({
         .eq('master_schedule_id', scheduleId);
       
       if (stopsError) throw stopsError;
-      
-      // Delete any recurring order relationships
-      const { error: recurringError } = await supabase
-        .from('recurring_order_schedules')
-        .delete()
-        .eq('schedule_id', scheduleId);
-      
-      if (recurringError) {
-        console.warn('Error deleting recurring relationships:', recurringError);
-        // Continue anyway
-      }
       
       // Now delete the schedule itself
       const { error } = await supabase

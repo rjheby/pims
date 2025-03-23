@@ -523,8 +523,54 @@ export type Database = {
         }
         Relationships: []
       }
+      recurring_order_schedules: {
+        Row: {
+          created_at: string
+          id: string
+          modified_from_template: boolean
+          recurring_order_id: string
+          schedule_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          modified_from_template?: boolean
+          recurring_order_id: string
+          schedule_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          modified_from_template?: boolean
+          recurring_order_id?: string
+          schedule_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_order_schedules_recurring_order_id_fkey"
+            columns: ["recurring_order_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_order_schedules_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "dispatch_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recurring_orders: {
         Row: {
+          active_status: boolean | null
           created_at: string | null
           customer_id: string
           frequency: string
@@ -534,6 +580,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          active_status?: boolean | null
           created_at?: string | null
           customer_id: string
           frequency: string
@@ -543,6 +590,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          active_status?: boolean | null
           created_at?: string | null
           customer_id?: string
           frequency?: string
