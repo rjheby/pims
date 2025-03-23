@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
-  Clock, ArrowRight, CalendarClock, CheckCircle, Loader2
+  Clock, ArrowRight, CalendarClock, CheckCircle, Loader2, AlertCircle
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -12,7 +13,7 @@ import { StopsTable } from "./index";
 import { BaseOrderSummary } from "@/components/templates/BaseOrderSummary";
 import { BaseOrderDetails } from "@/components/templates/BaseOrderDetails";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, fetchWithFallback, handleSupabaseError } from "@/integrations/supabase/client";
 import { AuthGuard } from "@/components/AuthGuard";
 import { useDispatchSchedule } from "../context/DispatchScheduleContext";
 import { calculateTotals } from "../utils/inventoryUtils";
@@ -21,6 +22,7 @@ import { RecurringOrderScheduler } from "./RecurringOrderScheduler";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DeliveryStop } from "./stops/types";
 import { Stop } from "../context/types";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export const ScheduleCreator = () => {
   const isMobile = useIsMobile();
@@ -39,6 +41,7 @@ export const ScheduleCreator = () => {
   } = useDispatchSchedule();
   
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [showRecurringTab, setShowRecurringTab] = useState(false);
   const [autoLoadedRecurring, setAutoLoadedRecurring] = useState(false);
   const [recurringStopsCount, setRecurringStopsCount] = useState(0);
@@ -110,20 +113,24 @@ export const ScheduleCreator = () => {
     
     try {
       setSubmitting(true);
+      setSubmitError(null);
       
       const scheduleDate = scheduleData.date.toISOString().split('T')[0];
       
       const scheduleNumber = `DS-${format(new Date(), "yyyyMMdd")}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
       
-      const { data: masterSchedule, error: masterError } = await supabase
-        .from('dispatch_schedules')
-        .insert({
-          schedule_date: scheduleDate,
-          schedule_number: scheduleNumber,
-          status: 'draft'
-        })
-        .select()
-        .single();
+      // Use fetchWithFallback to handle WebSocket connection issues
+      const { data: masterSchedule, error: masterError } = await fetchWithFallback(
+        'dispatch_schedules',
+        (query) => query
+          .insert({
+            schedule_date: scheduleDate,
+            schedule_number: scheduleNumber,
+            status: 'draft'
+          })
+          .select()
+          .single()
+      );
         
       if (masterError) throw masterError;
       
@@ -131,6 +138,7 @@ export const ScheduleCreator = () => {
       
       const stopsPromises = stops.map(async (stop, index) => {
         try {
+          // Create the delivery stop
           const { error: stopError } = await supabase
             .from('delivery_stops')
             .insert({
@@ -154,6 +162,7 @@ export const ScheduleCreator = () => {
             return null;
           }
           
+          // Create the delivery schedule entry
           const { error: scheduleError } = await supabase
             .from('delivery_schedules')
             .insert({
@@ -169,6 +178,22 @@ export const ScheduleCreator = () => {
             
           if (scheduleError) {
             console.error("Error creating delivery schedule entry:", scheduleError);
+          }
+          
+          // If this is a recurring stop, create the join table entry
+          if (stop.is_recurring && stop.recurring_id) {
+            const { error: joinError } = await supabase
+              .from('recurring_order_schedules')
+              .insert({
+                recurring_order_id: stop.recurring_id,
+                schedule_id: masterSchedule.id,
+                status: 'active',
+                modified_from_template: false
+              });
+              
+            if (joinError) {
+              console.error("Error creating recurring join entry:", joinError);
+            }
           }
           
           return true;
@@ -188,9 +213,11 @@ export const ScheduleCreator = () => {
       navigate(`/dispatch-form/${masterSchedule.id}`);
     } catch (error: any) {
       console.error("Error creating schedule:", error);
+      const errorMessage = handleSupabaseError(error);
+      setSubmitError(errorMessage);
       toast({
         title: "Error",
-        description: `Failed to create schedule: ${error.message}`,
+        description: `Failed to create schedule: ${errorMessage}`,
         variant: "destructive",
       });
     } finally {
@@ -236,6 +263,15 @@ export const ScheduleCreator = () => {
                 onOrderDateChange={handleDateChange}
                 onDeliveryDateChange={handleDateChange}
               />
+              
+              {submitError && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    {submitError}
+                  </AlertDescription>
+                </Alert>
+              )}
               
               <Tabs defaultValue="stops" className="w-full mt-4">
                 <div className="flex justify-between items-center mb-4">

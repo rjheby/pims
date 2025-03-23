@@ -3,13 +3,14 @@ import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, CheckCircle, Clock, AlertCircle, CalendarDays } from "lucide-react";
+import { Calendar, CheckCircle, Clock, AlertCircle, CalendarDays, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { useRecurringOrdersScheduling } from '../hooks/useRecurringOrdersScheduling';
 import { parsePreferredTimeToWindow, formatTimeWindow } from '../utils/timeWindowUtils';
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface RecurringOrderSchedulerProps {
   scheduleDate: Date;
@@ -24,11 +25,12 @@ export function RecurringOrderScheduler({
 }: RecurringOrderSchedulerProps) {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("today");
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const { toast } = useToast();
   
   // Initialize with the current schedule date and a month from now
   const endDate = new Date(scheduleDate);
-  endDate.setDate(endDate.getDate() + 1); // Just look at today's schedule
+  endDate.setDate(endDate.getDate() + 7); // Look at the next week
   
   const { 
     recurringOrders,
@@ -36,7 +38,8 @@ export function RecurringOrderScheduler({
     loading: recurringLoading, 
     error,
     fetchRecurringOrders,
-    generateOccurrences
+    generateOccurrences,
+    checkForScheduleConflicts
   } = useRecurringOrdersScheduling(scheduleDate, endDate);
 
   // Get occurrences for the selected date range
@@ -115,6 +118,7 @@ export function RecurringOrderScheduler({
       });
     } catch (error: any) {
       console.error("Error adding recurring orders:", error);
+      setConnectionError(error.message);
       toast({
         title: "Error",
         description: "Failed to add recurring orders: " + error.message,
@@ -123,6 +127,11 @@ export function RecurringOrderScheduler({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRetry = () => {
+    setConnectionError(null);
+    fetchRecurringOrders();
   };
 
   const renderOccurrenceItem = (occurrence: any) => {
@@ -192,6 +201,19 @@ export function RecurringOrderScheduler({
         </div>
       </CardHeader>
       <CardContent>
+        {error || connectionError ? (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between">
+              <span>{error || connectionError}</span>
+              <Button variant="outline" size="sm" onClick={handleRetry}>
+                <RefreshCw className="h-3 w-3 mr-1" />
+                Retry
+              </Button>
+            </AlertDescription>
+          </Alert>
+        ) : null}
+        
         <Tabs defaultValue="today" onValueChange={setActiveTab} className="w-full">
           <TabsList className="mb-4">
             <TabsTrigger value="today">Today</TabsTrigger>

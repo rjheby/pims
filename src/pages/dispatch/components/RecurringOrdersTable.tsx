@@ -2,10 +2,21 @@
 import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2 } from "lucide-react";
+import { Edit, Trash2, Calendar, Clock, AlertCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface RecurringOrder {
   id: string;
@@ -15,6 +26,7 @@ interface RecurringOrder {
   preferred_time?: string;
   created_at: string;
   updated_at: string;
+  active_status?: boolean;
   customer?: {
     id: string;
     name: string;
@@ -44,6 +56,21 @@ export function RecurringOrdersTable({
   filteredOrders
 }: RecurringOrdersTableProps) {
   const isMobile = useIsMobile();
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+
+  const handleDeleteClick = (id: string) => {
+    setItemToDelete(id);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (itemToDelete) {
+      onDeleteOrder(itemToDelete);
+      setItemToDelete(null);
+    }
+    setDeleteConfirmOpen(false);
+  };
 
   return (
     <div className="w-full">
@@ -61,16 +88,31 @@ export function RecurringOrdersTable({
               <Card key={order.id} className="overflow-hidden">
                 <CardContent className="p-0">
                   <div className="p-4 bg-muted/30">
-                    <div className="font-medium">{order.customer?.name || "Unknown Customer"}</div>
+                    <div className="flex justify-between items-center">
+                      <div className="font-medium">{order.customer?.name || "Unknown Customer"}</div>
+                      {order.active_status !== false ? (
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                          Active
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-gray-50 text-gray-500 border-gray-200">
+                          Inactive
+                        </Badge>
+                      )}
+                    </div>
                     <div className="text-sm text-muted-foreground">{formatFrequency(order.frequency)}</div>
                   </div>
                   <div className="p-4 space-y-2">
                     <div className="grid grid-cols-2 gap-1 text-sm">
-                      <span className="text-muted-foreground">Preferred Day:</span>
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <Calendar className="h-3 w-3" /> Preferred Day:
+                      </span>
                       <span>{formatDay(order.preferred_day)}</span>
                     </div>
                     <div className="grid grid-cols-2 gap-1 text-sm">
-                      <span className="text-muted-foreground">Preferred Time:</span>
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <Clock className="h-3 w-3" /> Preferred Time:
+                      </span>
                       <span>{formatTime(order.preferred_time)}</span>
                     </div>
                     <div className="grid grid-cols-2 gap-1 text-sm">
@@ -83,6 +125,7 @@ export function RecurringOrdersTable({
                       variant="ghost" 
                       size="sm"
                       onClick={() => onEditOrder(order)}
+                      className="text-blue-600"
                     >
                       <Edit className="h-4 w-4 mr-1" />
                       Edit
@@ -90,7 +133,7 @@ export function RecurringOrdersTable({
                     <Button 
                       variant="ghost" 
                       size="sm"
-                      onClick={() => onDeleteOrder(order.id)}
+                      onClick={() => handleDeleteClick(order.id)}
                       className="text-red-500 hover:text-red-600"
                     >
                       <Trash2 className="h-4 w-4 mr-1" />
@@ -108,6 +151,7 @@ export function RecurringOrdersTable({
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Status</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Frequency</TableHead>
                 <TableHead>Preferred Day</TableHead>
@@ -119,17 +163,34 @@ export function RecurringOrdersTable({
             <TableBody>
               {filteredOrders.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
                     {orders.length === 0 ? "No recurring orders found" : "No orders match your search criteria"}
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredOrders.map((order) => (
                   <TableRow key={order.id}>
+                    <TableCell>
+                      {order.active_status !== false ? (
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                          Active
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-gray-50 text-gray-500 border-gray-200">
+                          Inactive
+                        </Badge>
+                      )}
+                    </TableCell>
                     <TableCell className="font-medium">{order.customer?.name || "Unknown Customer"}</TableCell>
                     <TableCell>{formatFrequency(order.frequency)}</TableCell>
-                    <TableCell>{formatDay(order.preferred_day)}</TableCell>
-                    <TableCell>{formatTime(order.preferred_time)}</TableCell>
+                    <TableCell className="flex items-center gap-1">
+                      <Calendar className="h-3 w-3 text-muted-foreground" />
+                      {formatDay(order.preferred_day)}
+                    </TableCell>
+                    <TableCell className="flex items-center gap-1">
+                      <Clock className="h-3 w-3 text-muted-foreground" />
+                      {formatTime(order.preferred_time)}
+                    </TableCell>
                     <TableCell>{format(new Date(order.created_at), "MMM d, yyyy")}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
@@ -137,15 +198,17 @@ export function RecurringOrdersTable({
                           variant="ghost" 
                           size="icon"
                           onClick={() => onEditOrder(order)}
+                          className="text-blue-600"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button 
                           variant="ghost" 
                           size="icon"
-                          onClick={() => onDeleteOrder(order.id)}
+                          onClick={() => handleDeleteClick(order.id)}
+                          className="text-red-500"
                         >
-                          <Trash2 className="h-4 w-4 text-red-500" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>
@@ -156,6 +219,25 @@ export function RecurringOrdersTable({
           </Table>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Recurring Order</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this recurring order? This action cannot be undone,
+              and will remove all future occurrences of this order.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
