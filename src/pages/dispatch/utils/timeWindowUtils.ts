@@ -201,7 +201,9 @@ export const calculateRecurringDates = (
   let currentDate = new Date(startDate);
   
   // First, find the first occurrence of the preferred day on or after the start date
-  if (preferredDay.toLowerCase() !== startDate.toLocaleDateString('en-US', { weekday: 'lowercase' })) {
+  // Fix here: Changed from "lowercase" to "long" and then convert to lowercase manually
+  const currentDayName = currentDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+  if (preferredDay.toLowerCase() !== currentDayName) {
     currentDate = getNextDayOccurrence(preferredDay, startDate);
   }
   
@@ -297,3 +299,4 @@ export const getTimeSlotColor = (timeWindow: TimeWindow): string => {
     return 'bg-purple-50 border-purple-200 text-purple-700';
   }
 };
+
