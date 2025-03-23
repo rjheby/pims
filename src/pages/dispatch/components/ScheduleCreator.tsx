@@ -34,11 +34,13 @@ export const ScheduleCreator = () => {
     drivers,
     customers,
     loading,
-    addStops
+    addStops,
+    loadRecurringOrders
   } = useDispatchSchedule();
   
   const [submitting, setSubmitting] = useState(false);
   const [showRecurringTab, setShowRecurringTab] = useState(false);
+  const [autoLoadedRecurring, setAutoLoadedRecurring] = useState(false);
   
   // Check if we have a selected date passed from the schedule view
   useEffect(() => {
@@ -51,8 +53,32 @@ export const ScheduleCreator = () => {
     }
   }, [location.state, setScheduleDate]);
 
+  // When date changes and it's the first load, automatically load recurring orders
+  useEffect(() => {
+    const loadRecurringOrdersForDate = async () => {
+      if (scheduleData.date && !autoLoadedRecurring) {
+        // Mark that we've already auto-loaded recurring orders to avoid duplicates
+        setAutoLoadedRecurring(true);
+        
+        const recurringStops = await loadRecurringOrders(scheduleData.date);
+        
+        if (recurringStops.length > 0) {
+          addStops(recurringStops);
+          
+          toast({
+            title: "Recurring Orders",
+            description: `Automatically added ${recurringStops.length} recurring orders for ${format(scheduleData.date, "EEEE, MMMM d")}`,
+          });
+        }
+      }
+    };
+    
+    loadRecurringOrdersForDate();
+  }, [scheduleData.date, autoLoadedRecurring, loadRecurringOrders, addStops, toast]);
+
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     console.log("Date changed to:", e.target.value);
+    setAutoLoadedRecurring(false); // Reset so we can auto-load recurring orders for the new date
     setScheduleDate(new Date(e.target.value));
   };
 
@@ -262,7 +288,6 @@ export const ScheduleCreator = () => {
                 </TabsContent>
               </Tabs>
 
-              {/* Enhanced schedule summary component */}
               <ScheduleSummary 
                 data={calculateTotals(stops)}
                 scheduleNumber="Draft"

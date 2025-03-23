@@ -37,4 +37,5 @@ export interface DispatchScheduleContextType {
   removeStop: (index: number) => void;
   updateStop: (index: number, stop: Stop) => void;
   clearStops: () => void;
+  loadRecurringOrders: (date: Date) => Promise<Stop[]>;
 }
