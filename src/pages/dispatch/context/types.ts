@@ -15,6 +15,11 @@ export interface Stop {
   recurring_id?: string;
   stop_number: number;
   status?: string;
+  preferred_time?: string;
+  time_window?: {
+    start: string;
+    end: string;
+  };
 }
 
 // Schedule data interface
@@ -38,4 +43,33 @@ export interface DispatchScheduleContextType {
   updateStop: (index: number, stop: Stop) => void;
   clearStops: () => void;
   loadRecurringOrders: (date: Date) => Promise<Stop[]>;
+}
+
+// Recurring order interfaces
+export interface RecurringOrder {
+  id: string;
+  customer_id: string;
+  frequency: string;
+  preferred_day: string;
+  preferred_time?: string;
+  created_at: string;
+  customer?: {
+    id: string;
+    name: string;
+    address?: string;
+    phone?: string;
+    email?: string;
+  };
+}
+
+export interface RecurringOrderOccurrence {
+  recurringOrder: RecurringOrder;
+  date: Date;
+}
+
+// Time window types
+export interface TimeWindow {
+  start: string; // in 24h format
+  end: string;   // in 24h format
+  label: string; // human readable label
 }

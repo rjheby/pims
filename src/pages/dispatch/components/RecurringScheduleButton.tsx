@@ -1,90 +1,56 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+
+import React from 'react';
 import { Button } from "@/components/ui/button";
-import { CalendarCheck, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { CalendarClock, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { format } from 'date-fns';
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface RecurringScheduleButtonProps {
-  date: string;
-  hasRecurringOrders: boolean;
+  count: number;
+  onClick: () => void;
+  variant?: 'default' | 'warning';
 }
 
-export function RecurringScheduleButton({ date, hasRecurringOrders }: RecurringScheduleButtonProps) {
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const [creating, setCreating] = useState(false);
-
-  // Function to check if a schedule already exists for this date
-  const checkExistingSchedule = async (date: string): Promise<string | null> => {
-    try {
-      const { data, error } = await supabase
-        .from('dispatch_schedules')
-        .select('id')
-        .eq('schedule_date', date)
-        .maybeSingle();
-      
-      if (error) throw error;
-      
-      return data?.id || null;
-    } catch (error) {
-      console.error("Error checking for existing schedule:", error);
-      return null;
-    }
-  };
-
-  const handleCreateSchedule = async () => {
-    if (!hasRecurringOrders) return;
+export const RecurringScheduleButton: React.FC<RecurringScheduleButtonProps> = ({
+  count,
+  onClick,
+  variant = 'default'
+}) => {
+  const isMobile = useIsMobile();
+  const isWarning = variant === 'warning';
+  
+  // Different styling based on variant
+  const buttonClasses = isWarning
+    ? 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300'
+    : 'bg-green-50 hover:bg-green-100 text-green-800 border-green-300';
     
-    try {
-      setCreating(true);
-      
-      // First check if a schedule already exists for this date
-      const existingScheduleId = await checkExistingSchedule(date);
-      
-      if (existingScheduleId) {
-        // If a schedule exists, navigate to it
-        navigate(`/dispatch-form/${existingScheduleId}`);
-        return;
-      }
-      
-      // Otherwise create a new schedule and navigate to it
-      navigate('/schedule-creator', { 
-        state: { selectedDate: new Date(date).toISOString() } 
-      });
-    } catch (error) {
-      console.error("Error handling schedule creation:", error);
-      toast({
-        title: "Error",
-        description: "Failed to create or find schedule",
-        variant: "destructive"
-      });
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  if (!hasRecurringOrders) return null;
+  const iconComponent = isWarning 
+    ? <AlertCircle className="mr-2 h-4 w-4 text-amber-500" />
+    : <CalendarClock className="mr-2 h-4 w-4 text-green-600" />;
 
   return (
-    <Button 
-      size="sm"
-      onClick={handleCreateSchedule}
-      disabled={creating}
-      className="bg-[#2A4131] hover:bg-[#2A4131]/90"
+    <Button
+      variant="outline"
+      size={isMobile ? "sm" : "default"}
+      onClick={onClick}
+      className={buttonClasses}
     >
-      {creating ? (
+      {iconComponent}
+      {isMobile ? (
         <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Processing...
+          <Badge variant={isWarning ? "outline" : "secondary"} className="ml-1">
+            {count}
+          </Badge>
         </>
       ) : (
         <>
-          <CalendarCheck className="mr-2 h-4 w-4" />
-          Create Schedule with Recurring Orders
+          Recurring Orders
+          <Badge variant={isWarning ? "outline" : "secondary"} className="ml-2">
+            {count}
+          </Badge>
         </>
       )}
     </Button>
   );
-}
+};

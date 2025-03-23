@@ -64,7 +64,7 @@ export function RecurringOrderScheduler({
     return scheduledOccurrences.filter(occurrence => {
       const occurrenceDate = new Date(occurrence.date);
       return occurrenceDate >= scheduleDate && occurrenceDate <= planEndDate;
-    });
+    }).sort((a, b) => a.date.getTime() - b.date.getTime()); // Sort by date
   };
 
   const planningOccurrences = getPlanningOccurrences();
@@ -130,7 +130,8 @@ export function RecurringOrderScheduler({
     const formattedTimeWindow = formatTimeWindow(timeWindow);
     
     return (
-      <div key={occurrence.recurringOrder.id} className="flex justify-between items-center p-3 bg-muted/40 rounded-md border border-gray-100 hover:border-primary/20 transition-colors">
+      <div key={`${occurrence.recurringOrder.id}-${occurrence.date.toISOString()}`} 
+           className="flex justify-between items-center p-3 bg-muted/40 rounded-md border border-gray-100 hover:border-primary/20 transition-colors">
         <div>
           <p className="font-medium">{occurrence.recurringOrder.customer?.name}</p>
           <div className="text-sm text-muted-foreground space-y-1">
@@ -145,14 +146,18 @@ export function RecurringOrderScheduler({
               )}
             </div>
             {activeTab === "planning" && (
-              <p className="text-xs flex items-center gap-1">
+              <p className="text-xs flex items-center gap-1 mt-1">
                 <CalendarDays className="h-3 w-3" />
                 {format(occurrence.date, "EEE, MMM d")}
               </p>
             )}
           </div>
         </div>
-        <CheckCircle className="h-4 w-4 text-primary/70" />
+        {activeTab === "today" ? (
+          <CheckCircle className="h-4 w-4 text-primary/70" />
+        ) : (
+          <Clock className="h-4 w-4 text-muted-foreground" />
+        )}
       </div>
     );
   };

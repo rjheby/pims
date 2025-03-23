@@ -41,34 +41,36 @@ export const ScheduleCreator = () => {
   const [submitting, setSubmitting] = useState(false);
   const [showRecurringTab, setShowRecurringTab] = useState(false);
   const [autoLoadedRecurring, setAutoLoadedRecurring] = useState(false);
+  const [recurringStopsCount, setRecurringStopsCount] = useState(0);
   
-  // Check if we have a selected date passed from the schedule view
   useEffect(() => {
     const state = location.state as { selectedDate?: string };
     if (state?.selectedDate) {
       const date = new Date(state.selectedDate);
       setScheduleDate(date);
-      // Auto show recurring tab if date was specifically selected
       setShowRecurringTab(true);
     }
   }, [location.state, setScheduleDate]);
 
-  // When date changes and it's the first load, automatically load recurring orders
   useEffect(() => {
     const loadRecurringOrdersForDate = async () => {
       if (scheduleData.date && !autoLoadedRecurring) {
-        // Mark that we've already auto-loaded recurring orders to avoid duplicates
         setAutoLoadedRecurring(true);
         
-        const recurringStops = await loadRecurringOrders(scheduleData.date);
-        
-        if (recurringStops.length > 0) {
-          addStops(recurringStops);
+        try {
+          const recurringStops = await loadRecurringOrders(scheduleData.date);
           
-          toast({
-            title: "Recurring Orders",
-            description: `Automatically added ${recurringStops.length} recurring orders for ${format(scheduleData.date, "EEEE, MMMM d")}`,
-          });
+          if (recurringStops.length > 0) {
+            addStops(recurringStops);
+            setRecurringStopsCount(recurringStops.length);
+            
+            toast({
+              title: "Recurring Orders",
+              description: `Automatically added ${recurringStops.length} recurring orders for ${format(scheduleData.date, "EEEE, MMMM d")}`,
+            });
+          }
+        } catch (error) {
+          console.error("Error loading recurring orders:", error);
         }
       }
     };
@@ -76,14 +78,18 @@ export const ScheduleCreator = () => {
     loadRecurringOrdersForDate();
   }, [scheduleData.date, autoLoadedRecurring, loadRecurringOrders, addStops, toast]);
 
+  useEffect(() => {
+    const count = stops.filter(stop => stop.is_recurring).length;
+    setRecurringStopsCount(count);
+  }, [stops]);
+
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     console.log("Date changed to:", e.target.value);
-    setAutoLoadedRecurring(false); // Reset so we can auto-load recurring orders for the new date
+    setAutoLoadedRecurring(false);
     setScheduleDate(new Date(e.target.value));
   };
 
   const handleSubmit = async () => {
-    // Validate required fields
     if (!scheduleData.date) {
       toast({
         title: "Missing details",
@@ -105,13 +111,10 @@ export const ScheduleCreator = () => {
     try {
       setSubmitting(true);
       
-      // Format date for db
       const scheduleDate = scheduleData.date.toISOString().split('T')[0];
       
-      // Generate schedule number
       const scheduleNumber = `DS-${format(new Date(), "yyyyMMdd")}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
       
-      // Create master schedule
       const { data: masterSchedule, error: masterError } = await supabase
         .from('dispatch_schedules')
         .insert({
@@ -126,7 +129,6 @@ export const ScheduleCreator = () => {
       
       console.log("Created master schedule:", masterSchedule);
       
-      // Create stops for each delivery
       const stopsPromises = stops.map(async (stop, index) => {
         try {
           const { error: stopError } = await supabase
@@ -152,7 +154,6 @@ export const ScheduleCreator = () => {
             return null;
           }
           
-          // Also create entry in delivery_schedules for proper tracking
           const { error: scheduleError } = await supabase
             .from('delivery_schedules')
             .insert({
@@ -184,7 +185,6 @@ export const ScheduleCreator = () => {
         description: "Schedule created successfully",
       });
       
-      // Navigate to the detail page to view the newly created schedule
       navigate(`/dispatch-form/${masterSchedule.id}`);
     } catch (error: any) {
       console.error("Error creating schedule:", error);
@@ -198,7 +198,6 @@ export const ScheduleCreator = () => {
     }
   };
 
-  // Handle adding stops from recurring order scheduler
   const handleAddRecurringStops = (newStops: any[]) => {
     if (newStops.length === 0) return;
     
@@ -210,11 +209,7 @@ export const ScheduleCreator = () => {
     });
   };
 
-  // Get list of customer IDs already in the schedule
   const existingCustomerIds = stops.map(stop => stop.customer_id);
-  
-  // Count recurring stops
-  const recurringStopsCount = stops.filter(stop => stop.is_recurring).length;
 
   return (
     <AuthGuard requiredRole="driver">
@@ -250,10 +245,10 @@ export const ScheduleCreator = () => {
                       variant="outline" 
                       size="sm"
                       onClick={() => setShowRecurringTab(true)}
-                      className="flex items-center gap-2"
+                      className={`flex items-center gap-2 ${recurringStopsCount > 0 ? 'bg-primary/10 text-primary' : ''}`}
                     >
                       <CalendarClock className="h-4 w-4" />
-                      Manage Recurring Orders
+                      {recurringStopsCount > 0 ? `${recurringStopsCount} Recurring Orders` : 'Manage Recurring Orders'}
                     </Button>
                     <TabsList>
                       <TabsTrigger value="stops">All Stops</TabsTrigger>
