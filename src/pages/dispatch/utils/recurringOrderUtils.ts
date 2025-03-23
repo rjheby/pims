@@ -136,18 +136,16 @@ export const getRecurringOrderInfo = async (scheduleId: string) => {
     
     if (!data) return null;
     
-    // Fix the TypeScript errors by properly accessing the nested customer data
+    // Fix the TypeScript errors by correctly handling the nested data
     const recurringOrderInfo = {
       recurring_order_id: data.recurring_order_id,
       modified_from_template: data.modified_from_template,
       recurring_orders: {
-        ...data.recurring_orders,
-        customers: {
-          id: data.recurring_orders.customers?.id,
-          name: data.recurring_orders.customers?.name,
-          address: data.recurring_orders.customers?.address,
-          phone: data.recurring_orders.customers?.phone
-        }
+        id: data.recurring_orders?.id,
+        frequency: data.recurring_orders?.frequency,
+        preferred_day: data.recurring_orders?.preferred_day,
+        preferred_time: data.recurring_orders?.preferred_time,
+        customers: data.recurring_orders?.customers
       }
     };
     
@@ -230,23 +228,27 @@ export const updateRecurringSchedule = async (
       
       if (futureError) throw futureError;
       
-      // Filter to only include future schedules
-      const futureScheduleIds = futureRelationships
-        ?.filter(rel => {
-          const scheduleDate = new Date(rel.dispatch_schedules.schedule_date);
-          const thisDate = new Date(schedule.schedule_date);
-          return scheduleDate >= thisDate;
-        })
-        .map(rel => rel.schedule_id);
-      
-      // Update all future schedules
-      for (const futureId of futureScheduleIds) {
-        const { error: updateError } = await supabase
-          .from('dispatch_schedules')
-          .update(updates)
-          .eq('id', futureId);
+      // Fix: Properly check and process the nested data
+      if (futureRelationships && futureRelationships.length > 0) {
+        // Filter to only include future schedules
+        const futureScheduleIds = futureRelationships
+          .filter(rel => {
+            if (!rel.dispatch_schedules || !schedule) return false;
+            const scheduleDate = new Date(rel.dispatch_schedules.schedule_date);
+            const thisDate = new Date(schedule.schedule_date);
+            return scheduleDate >= thisDate;
+          })
+          .map(rel => rel.schedule_id);
         
-        if (updateError) console.error(`Error updating schedule ${futureId}:`, updateError);
+        // Update all future schedules
+        for (const futureId of futureScheduleIds) {
+          const { error: updateError } = await supabase
+            .from('dispatch_schedules')
+            .update(updates)
+            .eq('id', futureId);
+          
+          if (updateError) console.error(`Error updating schedule ${futureId}:`, updateError);
+        }
       }
     }
     else if (updateType === 'all') {

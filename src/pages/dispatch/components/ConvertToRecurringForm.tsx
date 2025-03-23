@@ -45,9 +45,9 @@ export function ConvertToRecurringForm({
         {
           frequency: recurrenceData.frequency,
           preferredDay: recurrenceData.preferredDay,
-          preferredTime: recurrenceData.startDate, // Currently using startDate field for time, consider refactoring
-          startDate: recurrenceData.startDate,
-          endDate: recurrenceData.endDate
+          preferredTime: recurrenceData.startDate, // Using string directly
+          startDate: recurrenceData.startDate ? new Date(recurrenceData.startDate) : undefined, // Convert string to Date
+          endDate: recurrenceData.endDate ? new Date(recurrenceData.endDate) : undefined // Convert string to Date
         },
         toast
       );
