@@ -20,6 +20,7 @@ import { calculateTotals } from "../utils/inventoryUtils";
 import ScheduleSummary from "../components/ScheduleSummary";
 import { RecurringOrderScheduler } from "./RecurringOrderScheduler";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DeliveryStop } from "./stops/types";
 
 export const ScheduleCreator = () => {
   const isMobile = useIsMobile();
@@ -33,6 +34,7 @@ export const ScheduleCreator = () => {
     drivers,
     customers,
     loading,
+    addStops
   } = useDispatchSchedule();
   
   const [submitting, setSubmitting] = useState(false);
@@ -174,9 +176,6 @@ export const ScheduleCreator = () => {
   const handleAddRecurringStops = (newStops: any[]) => {
     if (newStops.length === 0) return;
     
-    const dispatchContext = useDispatchSchedule();
-    const { addStops } = dispatchContext;
-    
     addStops(newStops);
     
     toast({
@@ -244,7 +243,7 @@ export const ScheduleCreator = () => {
                 
                 <TabsContent value="stops" className="mt-0">
                   <StopsTable 
-                    stops={stops} 
+                    stops={stops as DeliveryStop[]} 
                     onStopsChange={() => {/* Handled by context */}}
                     useMobileLayout={isMobile}
                     customers={customers}
