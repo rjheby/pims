@@ -89,3 +89,119 @@ export const convert24hTo12h = (time24h: string): string => {
   
   return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
 };
+
+/**
+ * Check if a date falls on a specified day of the week
+ * @param date The date to check
+ * @param dayName Day name (e.g., "monday", "tuesday") - case insensitive
+ * @returns Boolean indicating if the date falls on the specified day
+ */
+export const isDateOnDay = (date: Date, dayName: string): boolean => {
+  const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+  return dayOfWeek === dayName.toLowerCase();
+};
+
+/**
+ * Get the next date that falls on a specific day of the week
+ * @param startDate The starting date
+ * @param dayName Day name (e.g., "monday", "tuesday") - case insensitive
+ * @returns Date object representing the next occurrence of the specified day
+ */
+export const getNextSpecificDay = (startDate: Date, dayName: string): Date => {
+  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const targetDayIndex = dayNames.findIndex(d => d === dayName.toLowerCase());
+  
+  if (targetDayIndex === -1) {
+    throw new Error(`Invalid day name: ${dayName}`);
+  }
+  
+  const result = new Date(startDate);
+  result.setHours(0, 0, 0, 0);
+  
+  // Calculate days to add to reach the next occurrence of the target day
+  const currentDayIndex = result.getDay();
+  let daysToAdd = targetDayIndex - currentDayIndex;
+  
+  // If today is the target day or we've already passed it this week, go to next week
+  if (daysToAdd <= 0) {
+    daysToAdd += 7;
+  }
+  
+  result.setDate(result.getDate() + daysToAdd);
+  return result;
+};
+
+/**
+ * Calculate recurring dates based on frequency and preferred day
+ * @param frequency Recurrence frequency ("weekly", "biweekly", "monthly")
+ * @param preferredDay Day of the week (e.g., "monday", "tuesday")
+ * @param startDate Start date for calculation
+ * @param endDate End date for calculation
+ * @returns Array of dates that match the recurrence pattern
+ */
+export const calculateRecurringDates = (
+  frequency: string,
+  preferredDay: string,
+  startDate: Date,
+  endDate: Date
+): Date[] => {
+  const result: Date[] = [];
+  const currentDate = new Date(startDate);
+  currentDate.setHours(0, 0, 0, 0);
+  
+  // Ensure startDate is not after endDate
+  if (currentDate > endDate) {
+    return result;
+  }
+  
+  // Find the first occurrence of the preferred day starting from startDate
+  if (!isDateOnDay(currentDate, preferredDay)) {
+    currentDate.setTime(getNextSpecificDay(currentDate, preferredDay).getTime());
+  }
+  
+  // Calculate occurrences based on frequency until reaching endDate
+  while (currentDate <= endDate) {
+    result.push(new Date(currentDate));
+    
+    // Increment date based on frequency
+    if (frequency.toLowerCase() === 'weekly') {
+      currentDate.setDate(currentDate.getDate() + 7);
+    } else if (frequency.toLowerCase() === 'biweekly') {
+      currentDate.setDate(currentDate.getDate() + 14);
+    } else if (frequency.toLowerCase() === 'monthly') {
+      // For monthly, find the next occurrence after a month
+      const newDate = new Date(currentDate);
+      newDate.setMonth(newDate.getMonth() + 1);
+      
+      // Find the next preferred day from the new month start
+      const firstDayOfNextMonth = new Date(newDate.getFullYear(), newDate.getMonth(), 1);
+      currentDate.setTime(getNextSpecificDay(firstDayOfNextMonth, preferredDay).getTime());
+    } else {
+      // Default to weekly if frequency is unknown
+      currentDate.setDate(currentDate.getDate() + 7);
+    }
+  }
+  
+  return result;
+};
+
+/**
+ * Get future recurring dates for a specific frequency and preferred day
+ * @param frequency Recurrence frequency ("weekly", "biweekly", "monthly")
+ * @param preferredDay Day of the week (e.g., "monday", "tuesday")
+ * @param daysAhead Number of days to look ahead
+ * @returns Array of dates matching the recurring pattern
+ */
+export const getFutureRecurringDates = (
+  frequency: string,
+  preferredDay: string,
+  daysAhead: number = 30
+): Date[] => {
+  const startDate = new Date();
+  startDate.setHours(0, 0, 0, 0);
+  
+  const endDate = new Date(startDate);
+  endDate.setDate(endDate.getDate() + daysAhead);
+  
+  return calculateRecurringDates(frequency, preferredDay, startDate, endDate);
+};
