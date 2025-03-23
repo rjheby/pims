@@ -63,6 +63,7 @@ export default function DispatchScheduleView() {
       to: null
     }
   });
+  const [weekDays, setWeekDays] = useState<Date[]>([]);
 
   // Set up the recurring orders hook for a 30-day window
   const today = new Date();
@@ -80,6 +81,9 @@ export default function DispatchScheduleView() {
   useEffect(() => {
     console.log("Initial load - fetching recurring orders");
     fetchRecurringOrders();
+    
+    // Generate week days starting from today
+    generateWeekDays();
   }, [fetchRecurringOrders]);
 
   useEffect(() => {
@@ -97,6 +101,31 @@ export default function DispatchScheduleView() {
     console.log(`Fetching recurring deliveries with ${recurringOrders.length} recurring orders`);
     fetchRecurringDeliveries();
   }, [activeTab, selectedDate, recurringOrders]);
+
+  // Generate week days starting from today
+  const generateWeekDays = () => {
+    const days: Date[] = [];
+    const startDate = new Date();
+    
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(startDate);
+      day.setDate(day.getDate() + i);
+      days.push(day);
+    }
+    
+    setWeekDays(days);
+  };
+
+  // Format date with day name and date in MM/DD/YYYY format
+  const formatDateWithDay = (date: Date): string => {
+    const dayName = format(date, 'EEEE');
+    return `${dayName} ${format(date, 'MM/dd/yyyy')}`;
+  };
+
+  // Format date in MM/DD/YYYY format
+  const formatDateSlash = (date: Date): string => {
+    return format(date, 'MM/dd/yyyy');
+  };
 
   const fetchRecurringDeliveries = () => {
     console.log("Fetching recurring deliveries for tab:", activeTab);
@@ -242,11 +271,8 @@ export default function DispatchScheduleView() {
     try {
       const date = parseISO(dateString);
       
-      if (isToday(date)) return "Today";
-      if (isTomorrow(date)) return "Tomorrow";
-      if (isYesterday(date)) return "Yesterday";
-      
-      return format(date, "EEEE, MMMM d, yyyy");
+      // Updated to show day name and date in MM/DD/YYYY format
+      return formatDateWithDay(date);
     } catch (error) {
       return dateString;
     }
@@ -255,6 +281,11 @@ export default function DispatchScheduleView() {
   const handleDateSelect = (date: string) => {
     console.log("Date selected:", date);
     setSelectedDate(date);
+    setActiveTab("custom");
+  };
+
+  const handleDayButtonClick = (date: Date) => {
+    setSelectedDate(date.toISOString().split('T')[0]);
     setActiveTab("custom");
   };
 
@@ -352,23 +383,52 @@ export default function DispatchScheduleView() {
     return Array.from(dates).sort();
   };
 
+  const getViewTitle = () => {
+    if (activeTab === "today") {
+      return "Today's Deliveries";
+    } else if (activeTab === "tomorrow") {
+      return "Tomorrow's Deliveries"; 
+    } else if (activeTab === "next7days") {
+      return "Deliveries for the Next 7 Days";
+    } else if (activeTab === "custom" && selectedDate) {
+      const date = new Date(selectedDate);
+      return `Deliveries for ${formatDateWithDay(date)}`;
+    }
+    return "Deliveries";
+  };
+
   const TabButton = ({ 
     id, 
     label, 
-    active 
+    active,
+    dateFormat
   }: { 
     id: string; 
     label: string; 
-    active: boolean 
-  }) => (
-    <Button
-      variant={active ? "default" : "outline"}
-      className={`${active ? "bg-[#2A4131]" : ""}`}
-      onClick={() => setActiveTab(id)}
-    >
-      {label}
-    </Button>
-  );
+    active: boolean;
+    dateFormat?: string;
+  }) => {
+    // Get the appropriate date for this button
+    let buttonDate = new Date();
+    if (id === "tomorrow") {
+      buttonDate = addDays(new Date(), 1);
+    }
+
+    // Format the complete label with date if dateFormat is provided
+    const displayLabel = dateFormat 
+      ? `${label} ${format(buttonDate, dateFormat)}`
+      : label;
+
+    return (
+      <Button
+        variant={active ? "default" : "outline"}
+        className={`${active ? "bg-[#2A4131]" : ""}`}
+        onClick={() => setActiveTab(id)}
+      >
+        {displayLabel}
+      </Button>
+    );
+  };
 
   if (loading && schedules.length === 0 && !recurringLoading) {
     return (
@@ -415,9 +475,23 @@ export default function DispatchScheduleView() {
         <CardContent>
           <div className="space-y-6">
             <div className="flex flex-wrap gap-2">
-              <TabButton id="today" label="Today" active={activeTab === "today"} />
-              <TabButton id="tomorrow" label="Tomorrow" active={activeTab === "tomorrow"} />
-              <TabButton id="next7days" label="Next 7 Days" active={activeTab === "next7days"} />
+              <TabButton 
+                id="today" 
+                label="Today" 
+                active={activeTab === "today"} 
+                dateFormat="MM/dd/yyyy"
+              />
+              <TabButton 
+                id="tomorrow" 
+                label="Tomorrow" 
+                active={activeTab === "tomorrow"} 
+                dateFormat="MM/dd/yyyy"
+              />
+              <TabButton 
+                id="next7days" 
+                label="Next 7 Days" 
+                active={activeTab === "next7days"} 
+              />
               
               <div className="flex items-center ml-auto">
                 <input 
@@ -428,12 +502,27 @@ export default function DispatchScheduleView() {
                 />
               </div>
             </div>
+
+            {/* Weekly Day Buttons */}
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {weekDays.map((date, index) => (
+                <Button
+                  key={index}
+                  variant={activeTab === "custom" && selectedDate === date.toISOString().split('T')[0] ? "default" : "outline"}
+                  className={`whitespace-nowrap ${
+                    activeTab === "custom" && selectedDate === date.toISOString().split('T')[0] 
+                      ? "bg-[#2A4131]" 
+                      : ""
+                  }`}
+                  onClick={() => handleDayButtonClick(date)}
+                >
+                  {formatDateWithDay(date)}
+                </Button>
+              ))}
+            </div>
             
             <div className="text-lg font-medium">
-              {activeTab === "today" ? "Today's Deliveries" : 
-               activeTab === "tomorrow" ? "Tomorrow's Deliveries" :
-               activeTab === "next7days" ? "Deliveries for the Next 7 Days" :
-               `Deliveries for ${formatDisplayDate(selectedDate)}`}
+              {getViewTitle()}
               
               {filters.status && (
                 <span className="ml-2 text-sm font-normal text-muted-foreground">
