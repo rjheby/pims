@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { format } from "date-fns";
@@ -21,6 +20,7 @@ import ScheduleSummary from "../components/ScheduleSummary";
 import { RecurringOrderScheduler } from "./RecurringOrderScheduler";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DeliveryStop } from "./stops/types";
+import { Stop } from "../context/types";
 
 export const ScheduleCreator = () => {
   const isMobile = useIsMobile();
