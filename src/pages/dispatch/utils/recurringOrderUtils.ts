@@ -230,8 +230,9 @@ export const updateRecurringSchedule = async (
             if (!rel.dispatch_schedules || !schedule) return false;
             
             // The dispatch_schedules property is a single object, not an array
-            // Fixed type access here
-            const scheduleDate = new Date(rel.dispatch_schedules.schedule_date);
+            // Fixed type access here by explicitly accessing as an object
+            const relatedSchedule = rel.dispatch_schedules as { id: string, schedule_date: string };
+            const scheduleDate = new Date(relatedSchedule.schedule_date);
             const thisDate = new Date(schedule.schedule_date);
             return scheduleDate >= thisDate;
           })

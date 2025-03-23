@@ -26,19 +26,19 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       const delay = Math.min(1000 * (2 ** retryCount) + Math.random() * 1000, 10000);
       console.log(`WebSocket reconnect attempt ${retryCount + 1} after ${delay}ms`);
       return delay;
-    },
-    maxReconnectAttempts: 5
+    }
+    // Removed the maxReconnectAttempts property as it's not supported in the RealtimeClientOptions type
   },
   // Add global error handler for debugging
   global: {
     headers: {
       'X-Client-Info': 'woodbourne-dispatch-app'
     },
-    fetch: (...args) => {
-      // Override fetch for better error handling
-      return fetch(...args).then(response => {
+    fetch: (url, options) => {
+      // Fixed the spread argument issue by explicitly defining parameters
+      return fetch(url, options).then(response => {
         if (!response.ok) {
-          console.warn(`Supabase fetch failed: ${response.status} ${response.statusText}`, args[0]);
+          console.warn(`Supabase fetch failed: ${response.status} ${response.statusText}`, url);
         }
         return response;
       }).catch(err => {
