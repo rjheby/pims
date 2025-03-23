@@ -137,7 +137,6 @@ export const getRecurringOrderInfo = async (scheduleId: string) => {
     if (!data) return null;
     
     // Fix the TypeScript errors by correctly handling the nested data structure
-    // Supabase returns the data as a single object, not an array
     const recurringOrderInfo = {
       recurring_order_id: data.recurring_order_id,
       modified_from_template: data.modified_from_template,
