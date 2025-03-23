@@ -4,18 +4,26 @@ import { useNavigate } from "react-router-dom";
 import { format, addDays, parseISO, isToday, isYesterday, isTomorrow } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, Filter, Download, Clock, CalendarCheck, AlertCircle } from "lucide-react";
+import { Loader2, Plus, Filter, Download, Clock, CalendarCheck, AlertCircle, Copy, Mail, MessageSquare, Trash2, Edit, Copy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
 } from "@/components/ui/table";
 import { DispatchFilters } from "./dispatch/components/DispatchFilters";
-import { downloadSchedulePDF } from "@/utils/GenerateSchedulePDF";
+import { downloadSchedulePDF, generateDispatchPDF } from "@/utils/GenerateSchedulePDF";
 import { Badge } from "@/components/ui/badge";
 import { useRecurringOrdersScheduling } from "./dispatch/hooks/useRecurringOrdersScheduling";
 import { parsePreferredTimeToWindow, formatTimeWindow } from "./dispatch/utils/timeWindowUtils";
 import { RecurringScheduleButton } from "./dispatch/components/RecurringScheduleButton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface DeliverySchedule {
   id: string;
@@ -306,6 +314,10 @@ export default function DispatchScheduleView() {
     navigate(`/dispatch-form/${masterId}`);
   };
 
+  const handleEditSchedule = (scheduleId: string) => {
+    navigate(`/dispatch/schedule/${scheduleId}`);
+  };
+
   const handleDownloadPDF = async (masterId: string) => {
     try {
       const { data: masterData, error: masterError } = await supabase
@@ -347,6 +359,136 @@ export default function DispatchScheduleView() {
         description: "Failed to generate PDF",
         variant: "destructive"
       });
+    }
+  };
+
+  const handleDuplicateSchedule = async (schedule: DeliverySchedule) => {
+    try {
+      const { data: originalSchedule, error: fetchError } = await supabase
+        .from('delivery_schedules')
+        .select('*')
+        .eq('id', schedule.id)
+        .single();
+      
+      if (fetchError) throw fetchError;
+      
+      const { id, created_at, updated_at, ...scheduleToDuplicate } = originalSchedule;
+      
+      // Create a new master schedule
+      const { data: newMasterSchedule, error: masterError } = await supabase
+        .from('dispatch_schedules')
+        .insert({
+          schedule_date: scheduleToDuplicate.delivery_date,
+          schedule_number: `${scheduleToDuplicate.master_schedule_id}-COPY`,
+          status: 'draft'
+        })
+        .select()
+        .single();
+      
+      if (masterError) throw masterError;
+      
+      // Create a new delivery schedule
+      const { data: newSchedule, error: scheduleError } = await supabase
+        .from('delivery_schedules')
+        .insert({
+          ...scheduleToDuplicate,
+          master_schedule_id: newMasterSchedule.id,
+          status: 'draft'
+        })
+        .select()
+        .single();
+      
+      if (scheduleError) throw scheduleError;
+      
+      toast({
+        title: "Schedule duplicated",
+        description: "The schedule has been duplicated successfully."
+      });
+      
+      // Refresh the list
+      fetchSchedules();
+      
+    } catch (error) {
+      console.error("Error duplicating schedule:", error);
+      toast({
+        title: "Error",
+        description: "Failed to duplicate the schedule",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeleteSchedule = async (scheduleId: string, masterId: string) => {
+    try {
+      // First delete the delivery schedule
+      const { error: scheduleError } = await supabase
+        .from('delivery_schedules')
+        .delete()
+        .eq('id', scheduleId);
+      
+      if (scheduleError) throw scheduleError;
+      
+      // Check if this was the last schedule for this master
+      const { data: remainingSchedules, error: countError } = await supabase
+        .from('delivery_schedules')
+        .select('id')
+        .eq('master_schedule_id', masterId);
+      
+      if (countError) throw countError;
+      
+      // If no more schedules, delete the master schedule
+      if (remainingSchedules.length === 0) {
+        const { error: masterError } = await supabase
+          .from('dispatch_schedules')
+          .delete()
+          .eq('id', masterId);
+        
+        if (masterError) throw masterError;
+      }
+      
+      toast({
+        title: "Success",
+        description: "Schedule deleted successfully",
+      });
+      
+      // Refresh the list
+      fetchSchedules();
+      
+    } catch (error) {
+      console.error("Error deleting schedule:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete schedule",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleCopyLink = (scheduleId: string) => {
+    try {
+      const link = `${window.location.origin}/dispatch/schedule/${scheduleId}/view`;
+      navigator.clipboard.writeText(link);
+      
+      toast({
+        title: "Link copied",
+        description: "The shareable schedule link has been copied to your clipboard."
+      });
+    } catch (error) {
+      console.error("Error copying link:", error);
+      toast({
+        title: "Error",
+        description: "Failed to copy link to clipboard.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleShare = (scheduleId: string, method: 'email' | 'sms') => {
+    const link = `${window.location.origin}/dispatch/schedule/${scheduleId}/view`;
+    if (method === 'email') {
+      window.location.href = `mailto:?subject=Delivery Schedule Details&body=View the schedule details here: ${link}`;
+    } else if (method === 'sms') {
+      window.location.href = `sms:?body=View the delivery schedule details here: ${link}`;
     }
   };
 
@@ -611,23 +753,48 @@ export default function DispatchScheduleView() {
                                     </span>
                                   </TableCell>
                                   <TableCell className="text-right">
-                                    <div className="flex justify-end gap-2">
-                                      <Button 
-                                        variant="outline" 
-                                        size="sm" 
-                                        onClick={() => handleDownloadPDF(schedule.master_schedule_id)}
-                                      >
-                                        <Download className="h-4 w-4" />
-                                      </Button>
-                                      <Button 
-                                        variant="default" 
-                                        size="sm" 
-                                        className="bg-[#2A4131] hover:bg-[#2A4131]/90"
-                                        onClick={() => handleViewSchedule(schedule.master_schedule_id)}
-                                      >
-                                        View
-                                      </Button>
-                                    </div>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" size="sm">
+                                          Actions
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent>
+                                        <DropdownMenuItem onClick={() => handleViewSchedule(schedule.master_schedule_id)}>
+                                          <Edit className="mr-2 h-4 w-4" />
+                                          View/Edit
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleDuplicateSchedule(schedule)}>
+                                          <Copy className="mr-2 h-4 w-4" />
+                                          Duplicate
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleDownloadPDF(schedule.master_schedule_id)}>
+                                          <Download className="mr-2 h-4 w-4" />
+                                          Download PDF
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem onClick={() => handleCopyLink(schedule.id)}>
+                                          <Copy className="mr-2 h-4 w-4" />
+                                          Copy Link
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleShare(schedule.id, 'email')}>
+                                          <Mail className="mr-2 h-4 w-4" />
+                                          Share via Email
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleShare(schedule.id, 'sms')}>
+                                          <MessageSquare className="mr-2 h-4 w-4" />
+                                          Share via SMS
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem 
+                                          onClick={() => handleDeleteSchedule(schedule.id, schedule.master_schedule_id)}
+                                          className="text-red-600"
+                                        >
+                                          <Trash2 className="mr-2 h-4 w-4" />
+                                          Delete
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
                                   </TableCell>
                                 </TableRow>
                               ))}
