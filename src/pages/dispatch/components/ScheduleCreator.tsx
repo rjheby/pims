@@ -1,428 +1,305 @@
 
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { format, parseISO } from "date-fns";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { 
+  Clock, ArrowRight, CalendarClock, CheckCircle, Loader2
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { StopsTable } from "./index";
 import { BaseOrderSummary } from "@/components/templates/BaseOrderSummary";
-import { BaseOrderActions } from "@/components/templates/BaseOrderActions";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { DeliveryStop } from "./stops/types";
-import { calculatePrice } from "./stops/utils";
+import { BaseOrderDetails } from "@/components/templates/BaseOrderDetails";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { AuthGuard } from "@/components/AuthGuard";
+import { useDispatchSchedule } from "../context/DispatchScheduleContext";
+import { calculateTotals } from "../utils/inventoryUtils";
+import ScheduleSummary from "../components/ScheduleSummary";
+import { RecurringOrderScheduler } from "./RecurringOrderScheduler";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-interface ScheduleData {
-  schedule_number: string;
-  schedule_date: string;
-}
-
-interface ScheduleCreatorProps {
-  initialStops?: DeliveryStop[];
-  initialScheduleDate?: string;
-  onSaved?: (scheduleId: string) => void;
-  onSubmitted?: () => void;
-}
-
-// Helper function to format date for display
-const formatDisplayDate = (dateString: string): string => {
-  try {
-    // Use parseISO to handle date string consistently across timezones
-    return format(parseISO(dateString), "EEEE, MMMM d, yyyy");
-  } catch (error) {
-    console.error("Error formatting date:", error);
-    return dateString;
-  }
-};
-
-export const ScheduleCreator = ({ 
-  initialStops = [],
-  initialScheduleDate,
-  onSaved,
-  onSubmitted
-}: ScheduleCreatorProps) => {
-  const navigate = useNavigate();
-  const { toast } = useToast();
+export const ScheduleCreator = () => {
   const isMobile = useIsMobile();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { 
+    scheduleData, 
+    setScheduleDate,
+    stops,
+    drivers,
+    customers,
+    loading,
+  } = useDispatchSchedule();
   
-  const generateScheduleNumber = (dateString: string, driverIds: string[] = []) => {
-    const creationDate = new Date();
-    const deliveryDate = new Date(dateString);
-    
-    const creationFormatted = creationDate.toISOString().slice(2, 10).replace(/-/g, '');
-    
-    const daysOfWeek = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-    const deliveryDOW = daysOfWeek[deliveryDate.getDay()];
-    
-    const driverCode = driverIds.length > 0 
-      ? `D${driverIds.map(id => id.slice(0, 4)).join('')}` 
-      : 'D00';
-    
-    return `DS-${creationFormatted}-${deliveryDOW}-${driverCode}`;
+  const [submitting, setSubmitting] = useState(false);
+  const [showRecurringTab, setShowRecurringTab] = useState(false);
+  
+  // Check if we have a selected date passed from the schedule view
+  useEffect(() => {
+    const state = location.state as { selectedDate?: string };
+    if (state?.selectedDate) {
+      const date = new Date(state.selectedDate);
+      setScheduleDate(date);
+      // Auto show recurring tab if date was specifically selected
+      setShowRecurringTab(true);
+    }
+  }, [location.state, setScheduleDate]);
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log("Date changed to:", e.target.value);
+    setScheduleDate(new Date(e.target.value));
   };
-  
-  const defaultDate = initialScheduleDate || new Date().toISOString().split('T')[0];
-  
-  const [schedule, setSchedule] = useState<ScheduleData>(() => {
-    return {
-      schedule_number: generateScheduleNumber(defaultDate),
-      schedule_date: defaultDate
-    };
-  });
-  
-  const [stops, setStops] = useState<DeliveryStop[]>(initialStops);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const handleScheduleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newDate = e.target.value;
-    
-    // Get current driver IDs for schedule number generation
-    const driverIds = stops
-      .map(stop => stop.driver_id)
-      .filter((id): id is string => Boolean(id))
-      .filter((id, index, array) => array.indexOf(id) === index)
-      .sort();
-      
-    setSchedule(prev => ({
-      ...prev,
-      schedule_date: newDate,
-      schedule_number: generateScheduleNumber(newDate, driverIds)
-    }));
-  };
-  
-  const validateSchedule = () => {
-    if (!schedule.schedule_date) {
-      throw new Error("Schedule date is required");
+
+  const handleSubmit = async () => {
+    // Validate required fields
+    if (!scheduleData.date) {
+      toast({
+        title: "Missing details",
+        description: "Please select a schedule date",
+        variant: "destructive",
+      });
+      return;
     }
     
     if (stops.length === 0) {
-      throw new Error("At least one delivery stop is required");
+      toast({
+        title: "Missing stops",
+        description: "Please add at least one delivery stop",
+        variant: "destructive",
+      });
+      return;
     }
     
-    return true;
-  };
-  
-  const handleSave = async () => {
     try {
-      setIsSaving(true);
+      setSubmitting(true);
       
-      validateSchedule();
+      // Format date for db
+      const scheduleDate = scheduleData.date.toISOString().split('T')[0];
       
-      const { data: masterData, error: masterError } = await supabase
+      // Generate schedule number
+      const scheduleNumber = `DS-${format(new Date(), "yyyyMMdd")}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
+      
+      // Create master schedule
+      const { data: masterSchedule, error: masterError } = await supabase
         .from('dispatch_schedules')
         .insert({
-          schedule_number: schedule.schedule_number,
-          schedule_date: schedule.schedule_date,
-          status: 'draft',
-          notes: ''
+          schedule_date: scheduleDate,
+          schedule_number: scheduleNumber,
+          status: 'draft'
         })
-        .select();
-      
+        .select()
+        .single();
+        
       if (masterError) throw masterError;
       
-      if (!masterData || masterData.length === 0) {
-        throw new Error("Failed to create schedule");
-      }
+      console.log("Created master schedule:", masterSchedule);
       
-      const masterId = masterData[0].id;
-      
-      // Save each stop to the database
-      for (const stop of stops) {
-        const stopData = {
-          customer_id: stop.customer_id,
-          customer_name: stop.customer_name,
-          customer_address: stop.customer_address,
-          customer_phone: stop.customer_phone,
-          driver_id: stop.driver_id,
-          driver_name: stop.driver_name,
-          items: stop.items,
-          notes: stop.notes,
-          stop_number: stop.stop_number,
-          price: stop.price || calculatePrice(stop.items || null),
-          status: 'draft',
-          master_schedule_id: masterId
-        };
-
-        // Add recurring settings if present
-        if (stop.recurring?.isRecurring) {
-          await supabase
+      // Create stops for each delivery
+      const stopsPromises = stops.map(async (stop, index) => {
+        try {
+          const { error: stopError } = await supabase
+            .from('delivery_stops')
+            .insert({
+              master_schedule_id: masterSchedule.id,
+              customer_id: stop.customer_id,
+              customer_name: stop.customer_name,
+              customer_address: stop.customer_address,
+              customer_phone: stop.customer_phone,
+              stop_number: index + 1,
+              items: stop.items || '',
+              notes: stop.notes || '',
+              price: stop.price || 0,
+              driver_id: stop.driver_id,
+              status: 'pending',
+              is_recurring: !!stop.is_recurring,
+              recurring_id: stop.recurring_id
+            });
+            
+          if (stopError) {
+            console.error("Error creating stop:", stopError);
+            return null;
+          }
+          
+          // Also create entry in delivery_schedules for proper tracking
+          const { error: scheduleError } = await supabase
             .from('delivery_schedules')
             .insert({
-              ...stopData,
-              schedule_type: 'recurring',
-              recurring_frequency: stop.recurring.frequency,
-              recurring_day: stop.recurring.preferredDay,
-              recurring_start_date: stop.recurring.startDate,
-              recurring_end_date: stop.recurring.endDate
+              customer_id: stop.customer_id,
+              master_schedule_id: masterSchedule.id,
+              delivery_date: scheduleDate,
+              schedule_type: stop.is_recurring ? 'recurring' : 'standard',
+              driver_id: stop.driver_id,
+              items: stop.items || '',
+              status: 'draft',
+              notes: stop.notes || ''
             });
-        } else {
-          await supabase
-            .from('delivery_schedules')
-            .insert({
-              ...stopData,
-              schedule_type: 'one-time',
-              delivery_date: schedule.schedule_date
-            });
+            
+          if (scheduleError) {
+            console.error("Error creating delivery schedule entry:", scheduleError);
+          }
+          
+          return true;
+        } catch (error) {
+          console.error("Error in stop creation:", error);
+          return null;
         }
-      }
+      });
+      
+      await Promise.all(stopsPromises);
       
       toast({
         title: "Success",
-        description: "Schedule saved as draft"
+        description: "Schedule created successfully",
       });
       
-      if (onSaved) {
-        onSaved(masterId);
-      } else {
-        // Navigate to the edit form
-        navigate(`/dispatch-form/${masterId}`);
-      }
-      
+      // Navigate to the detail page to view the newly created schedule
+      navigate(`/dispatch-form/${masterSchedule.id}`);
     } catch (error: any) {
-      console.error('Error saving schedule:', error);
+      console.error("Error creating schedule:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to save schedule",
-        variant: "destructive"
+        description: `Failed to create schedule: ${error.message}`,
+        variant: "destructive",
       });
     } finally {
-      setIsSaving(false);
+      setSubmitting(false);
     }
   };
-  
-  const handleSubmit = async () => {
-    try {
-      setIsSubmitting(true);
-      
-      validateSchedule();
-      
-      const { data: masterData, error: masterError } = await supabase
-        .from('dispatch_schedules')
-        .insert({
-          schedule_number: schedule.schedule_number,
-          schedule_date: schedule.schedule_date,
-          status: 'submitted',
-          notes: ''
-        })
-        .select();
-      
-      if (masterError) throw masterError;
-      
-      if (!masterData || masterData.length === 0) {
-        throw new Error("Failed to create schedule");
-      }
-      
-      const masterId = masterData[0].id;
-      
-      // Save each stop with submitted status
-      for (const stop of stops) {
-        const stopData = {
-          customer_id: stop.customer_id,
-          customer_name: stop.customer_name,
-          customer_address: stop.customer_address,
-          customer_phone: stop.customer_phone,
-          driver_id: stop.driver_id,
-          driver_name: stop.driver_name,
-          items: stop.items,
-          notes: stop.notes,
-          stop_number: stop.stop_number,
-          price: stop.price || calculatePrice(stop.items || null),
-          status: 'submitted',
-          master_schedule_id: masterId
-        };
 
-        // Add recurring settings if present
-        if (stop.recurring?.isRecurring) {
-          await supabase
-            .from('delivery_schedules')
-            .insert({
-              ...stopData,
-              schedule_type: 'recurring',
-              recurring_frequency: stop.recurring.frequency,
-              recurring_day: stop.recurring.preferredDay,
-              recurring_start_date: stop.recurring.startDate,
-              recurring_end_date: stop.recurring.endDate
-            });
-        } else {
-          await supabase
-            .from('delivery_schedules')
-            .insert({
-              ...stopData,
-              schedule_type: 'one-time',
-              delivery_date: schedule.schedule_date
-            });
-        }
-      }
-      
-      toast({
-        title: "Success",
-        description: "Schedule submitted successfully"
-      });
-      
-      if (onSubmitted) {
-        onSubmitted();
-      } else {
-        // Navigate to archive
-        navigate('/dispatch-archive');
-      }
-      
-    } catch (error: any) {
-      console.error('Error submitting schedule:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to submit schedule",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-  
-  const handleStopsChange = (newStops: DeliveryStop[]) => {
-    setStops(newStops);
+  // Handle adding stops from recurring order scheduler
+  const handleAddRecurringStops = (newStops: any[]) => {
+    if (newStops.length === 0) return;
     
-    // Update schedule number based on drivers
-    const driverIds = newStops
-      .map(stop => stop.driver_id)
-      .filter((id): id is string => Boolean(id))
-      .filter((id, index, array) => array.indexOf(id) === index)
-      .sort();
+    const dispatchContext = useDispatchSchedule();
+    const { addStops } = dispatchContext;
     
-    const newScheduleNumber = generateScheduleNumber(schedule.schedule_date, driverIds);
+    addStops(newStops);
     
-    if (newScheduleNumber !== schedule.schedule_number) {
-      setSchedule(prev => ({
-        ...prev,
-        schedule_number: newScheduleNumber
-      }));
-    }
-  };
-  
-  const calculateTotals = () => {
-    const totalStops = stops.length;
-    
-    // Count stops by driver
-    const stopsByDriver: Record<string, number> = {};
-    stops.forEach(stop => {
-      const driverName = stop.driver_name || 'Unassigned';
-      stopsByDriver[driverName] = (stopsByDriver[driverName] || 0) + 1;
+    toast({
+      title: "Success",
+      description: `Added ${newStops.length} recurring orders to the schedule`,
     });
-    
-    // Calculate total price
-    const totalPrice = stops.reduce((sum: number, stop) => {
-      // If price is already calculated, use it; otherwise calculate based on items
-      const price = stop.price || calculatePrice(stop.items || null);
-      return sum + Number(price);
-    }, 0);
-    
-    return {
-      totalQuantity: totalStops,
-      totalValue: totalPrice,
-      quantityByPackaging: stopsByDriver
-    };
   };
+
+  // Get list of customer IDs already in the schedule
+  const existingCustomerIds = stops.map(stop => stop.customer_id);
   
+  // Count recurring stops
+  const recurringStopsCount = stops.filter(stop => stop.is_recurring).length;
+
   return (
-    <div className="flex-1">
-      <Card className="shadow-sm mx-auto max-w-6xl mb-24 md:mb-6">
-        <CardHeader>
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <CardTitle className="text-xl md:text-2xl">
-              {isMobile ? "Delivery Schedule" : `Delivery Schedule for ${formatDisplayDate(schedule.schedule_date)}`}
-            </CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
-            <div className="border rounded-lg p-6 bg-gray-50">
-              <h3 className="text-lg font-medium mb-4">Schedule Details</h3>
-              <div className={`grid grid-cols-1 ${isMobile ? "" : "md:grid-cols-2"} gap-6`}>
-                <div className="space-y-2">
-                  <label htmlFor="schedule-date" className="block text-sm font-medium">
-                    Schedule Date
-                  </label>
-                  <div className="flex">
-                    <div className="relative w-full">
-                      <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                        <CalendarIcon className="h-4 w-4 text-gray-500" />
-                      </div>
-                      <input
-                        id="schedule-date"
-                        type="date"
-                        value={schedule.schedule_date}
-                        onChange={handleScheduleDateChange}
-                        className="border rounded-md px-3 py-2 pl-10 w-full"
-                      />
-                    </div>
+    <AuthGuard requiredRole="driver">
+      <div className="flex-1">
+        <Card className="shadow-sm mb-16 md:mb-6">
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <CardTitle>Create New Dispatch Schedule</CardTitle>
+                {recurringStopsCount > 0 && (
+                  <Badge variant="outline" className="bg-primary/10 text-primary">
+                    {recurringStopsCount} Recurring
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              <BaseOrderDetails
+                orderNumber="Auto-generated on save"
+                orderDate={scheduleData.date ? format(scheduleData.date, "yyyy-MM-dd") : ""}
+                deliveryDate={scheduleData.date ? format(scheduleData.date, "yyyy-MM-dd") : ""}
+                onOrderDateChange={handleDateChange}
+                onDeliveryDateChange={handleDateChange}
+              />
+              
+              <Tabs defaultValue="stops" className="w-full mt-4">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-medium">Delivery Stops</h3>
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setShowRecurringTab(true)}
+                      className="flex items-center gap-2"
+                    >
+                      <CalendarClock className="h-4 w-4" />
+                      Manage Recurring Orders
+                    </Button>
+                    <TabsList>
+                      <TabsTrigger value="stops">All Stops</TabsTrigger>
+                      <TabsTrigger 
+                        value="recurring" 
+                        onClick={() => setShowRecurringTab(true)}
+                      >
+                        Recurring
+                      </TabsTrigger>
+                    </TabsList>
                   </div>
-                  {isMobile ? (
-                    <p className="text-sm text-gray-600 font-semibold">
-                      {formatDisplayDate(schedule.schedule_date)}
-                    </p>
-                  ) : (
-                    <p className="text-sm text-gray-600">
-                      All stops will be scheduled for {formatDisplayDate(schedule.schedule_date)}
-                    </p>
-                  )}
                 </div>
-                <div className="space-y-2">
-                  <label htmlFor="schedule-number" className="block text-sm font-medium">
-                    Schedule Number
-                  </label>
-                  <input
-                    id="schedule-number"
-                    type="text"
-                    value={schedule.schedule_number}
-                    readOnly
-                    className="border rounded-md px-3 py-2 w-full bg-gray-100"
+                
+                <TabsContent value="stops" className="mt-0">
+                  <StopsTable 
+                    stops={stops} 
+                    onStopsChange={() => {/* Handled by context */}}
+                    useMobileLayout={isMobile}
+                    customers={customers}
+                    drivers={drivers}
                   />
-                  <p className="text-sm text-gray-600">
-                    Auto-generated based on date and assigned drivers
-                  </p>
-                </div>
+                </TabsContent>
+                
+                <TabsContent value="recurring" className="mt-0">
+                  {showRecurringTab && scheduleData.date && (
+                    <RecurringOrderScheduler
+                      scheduleDate={scheduleData.date}
+                      onAddStops={handleAddRecurringStops}
+                      existingCustomerIds={existingCustomerIds}
+                    />
+                  )}
+                </TabsContent>
+              </Tabs>
+
+              {/* Enhanced schedule summary component */}
+              <ScheduleSummary 
+                data={calculateTotals(stops)}
+                scheduleNumber="Draft"
+                scheduleDate={scheduleData.date ? format(scheduleData.date, "yyyy-MM-dd") : ""}
+              />
+
+              <div className="flex flex-col md:flex-row gap-4 justify-between">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate('/dispatch-archive')}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSubmit}
+                  disabled={submitting || loading || !scheduleData.date}
+                  className="bg-[#2A4131] hover:bg-[#2A4131]/90"
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Create Schedule
+                    </>
+                  )}
+                </Button>
               </div>
             </div>
-            
-            <div className={`${isMobile ? "pb-20" : ""} mx-auto`}>
-              <StopsTable
-                stops={stops}
-                onStopsChange={handleStopsChange}
-                useMobileLayout={isMobile}
-              />
-            </div>
-            
-            <BaseOrderSummary 
-              items={calculateTotals()}
-            />
-            
-            {isMobile ? (
-              <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4 z-10 safe-area-bottom">
-                <BaseOrderActions
-                  onSave={handleSave}
-                  onSubmit={handleSubmit}
-                  submitLabel="Submit Schedule"
-                  archiveLink="/dispatch-archive"
-                  isSaving={isSaving}
-                  isSubmitting={isSubmitting}
-                  mobileLayout={true}
-                />
-              </div>
-            ) : (
-              <BaseOrderActions
-                onSave={handleSave}
-                onSubmit={handleSubmit}
-                submitLabel="Submit Schedule"
-                archiveLink="/dispatch-archive"
-                isSaving={isSaving}
-                isSubmitting={isSubmitting}
-              />
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+          </CardContent>
+        </Card>
+      </div>
+    </AuthGuard>
   );
 };

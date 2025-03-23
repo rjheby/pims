@@ -1,374 +1,230 @@
 
-// Time window utility functions for delivery scheduling
+import { format, addDays, startOfWeek, addWeeks, startOfMonth, getDate, getMonth, getYear, isAfter, isBefore, isEqual } from 'date-fns';
 
-type TimeWindow = {
-  start: string; // Format: HH:MM in 24-hour format
-  end: string;   // Format: HH:MM in 24-hour format
-};
+export interface TimeWindow {
+  start: string; // HH:MM format
+  end: string;   // HH:MM format
+}
 
-/**
- * Checks if a time string is in a valid HH:MM format
- */
-export const isValidTimeFormat = (time: string): boolean => {
-  // Check if time matches HH:MM format (24-hour)
-  const timeRegex = /^([01]?[0-9]|2[0-3]):([0-5][0-9])$/;
-  return timeRegex.test(time);
-};
-
-/**
- * Converts time from string (HH:MM) to minutes from midnight
- */
-export const convertTimeToMinutes = (time: string): number => {
-  if (!isValidTimeFormat(time)) {
-    console.error(`Invalid time format: ${time}, expected HH:MM`);
-    return 0;
-  }
-  
-  const [hours, minutes] = time.split(':').map(Number);
-  return hours * 60 + minutes;
-};
-
-/**
- * Converts minutes from midnight back to HH:MM format
- */
-export const convertMinutesToTime = (minutes: number): string => {
-  if (minutes < 0 || minutes > 1439) {
-    console.error(`Invalid minutes value: ${minutes}, must be between 0 and 1439`);
-    return "00:00";
-  }
-  
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  
-  return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-};
-
-/**
- * Checks if two time windows overlap
- */
-export const doTimeWindowsOverlap = (window1: TimeWindow, window2: TimeWindow): boolean => {
-  const start1 = convertTimeToMinutes(window1.start);
-  const end1 = convertTimeToMinutes(window1.end);
-  const start2 = convertTimeToMinutes(window2.start);
-  const end2 = convertTimeToMinutes(window2.end);
-  
-  // Check if one window starts before the other ends
-  return start1 < end2 && start2 < end1;
-};
-
-/**
- * Formats a TimeWindow object into a human-readable string
- */
-export const formatTimeWindow = (window: TimeWindow): string => {
-  if (!isValidTimeFormat(window.start) || !isValidTimeFormat(window.end)) {
-    return "Invalid time window";
-  }
-  
-  return `${formatTimeWithMeridian(window.start)} - ${formatTimeWithMeridian(window.end)}`;
-};
-
-/**
- * Converts 24-hour time format to 12-hour format with AM/PM
- */
-export const formatTimeWithMeridian = (time: string): string => {
-  if (!isValidTimeFormat(time)) {
-    return time;
-  }
-  
-  const [hours, minutes] = time.split(':').map(Number);
-  const period = hours >= 12 ? 'PM' : 'AM';
-  const hours12 = hours % 12 || 12; // Convert 0 to 12 for 12 AM
-  
-  return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
-};
-
-/**
- * Checks if a timeWindow is within business hours (default: 8:00 AM to 6:00 PM)
- */
-export const isWithinBusinessHours = (
-  window: TimeWindow,
-  businessStart: string = "08:00",
-  businessEnd: string = "18:00"
-): boolean => {
-  const windowStartMinutes = convertTimeToMinutes(window.start);
-  const windowEndMinutes = convertTimeToMinutes(window.end);
-  const businessStartMinutes = convertTimeToMinutes(businessStart);
-  const businessEndMinutes = convertTimeToMinutes(businessEnd);
-  
-  return windowStartMinutes >= businessStartMinutes && windowEndMinutes <= businessEndMinutes;
-};
-
-/**
- * Validates a time window for basic logical consistency
- */
-export const isValidTimeWindow = (window: TimeWindow): boolean => {
-  if (!isValidTimeFormat(window.start) || !isValidTimeFormat(window.end)) {
-    return false;
-  }
-  
-  const startMinutes = convertTimeToMinutes(window.start);
-  const endMinutes = convertTimeToMinutes(window.end);
-  
-  // End time must be after start time
-  return endMinutes > startMinutes;
-};
-
-/**
- * Generates time slot options at 30-minute intervals
- */
-export const generateTimeOptions = (
-  startHour: number = 8,
-  endHour: number = 18,
-  intervalMinutes: number = 30
-): string[] => {
-  const options: string[] = [];
-  const startMinutes = startHour * 60;
-  const endMinutes = endHour * 60;
-  
-  for (let minutes = startMinutes; minutes <= endMinutes; minutes += intervalMinutes) {
-    options.push(convertMinutesToTime(minutes));
-  }
-  
-  return options;
-};
-
-/**
- * Converts a text-based time period (morning, afternoon, evening) to a TimeWindow
- * Used for recurring orders with preferred time periods
- */
-export const timeOfDayToWindow = (timeOfDay: string): TimeWindow => {
-  switch (timeOfDay.toLowerCase()) {
-    case 'morning':
-      return { start: '08:00', end: '12:00' };
-    case 'afternoon':
-      return { start: '12:00', end: '16:00' };
-    case 'evening':
-      return { start: '16:00', end: '20:00' };
-    default:
-      return { start: '08:00', end: '18:00' }; // Default business hours
-  }
-};
-
-/**
- * Get next occurrence of a day from a given date
- * @param dayName Full name of day (e.g., 'monday', 'tuesday')
- * @param fromDate Starting date to calculate from
- * @returns Date object of next occurrence of the specified day
- */
-export const getNextDayOccurrence = (dayName: string, fromDate: Date = new Date()): Date => {
-  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  const dayIndex = dayNames.indexOf(dayName.toLowerCase());
-  
-  if (dayIndex === -1) {
-    console.error(`Invalid day name: ${dayName}`);
-    return fromDate;
-  }
-  
-  const targetDate = new Date(fromDate);
-  const currentDay = targetDate.getDay();
-  
-  // Calculate days until next occurrence of the target day
-  let daysUntilTarget = dayIndex - currentDay;
-  if (daysUntilTarget <= 0) {
-    // If today is the target day or we've already passed it this week, get next week's occurrence
-    daysUntilTarget += 7;
-  }
-  
-  // Advance date by the calculated number of days
-  targetDate.setDate(targetDate.getDate() + daysUntilTarget);
-  return targetDate;
-};
-
-/**
- * Calculate all occurrences of a recurring schedule within a date range
- * @param frequency 'weekly', 'biweekly', or 'monthly'
- * @param preferredDay Day of week (e.g., 'monday', 'tuesday')
- * @param startDate Beginning of date range
- * @param endDate End of date range
- * @returns Array of dates for all occurrences
- */
-export const calculateRecurringDates = (
+// Calculate recurring dates based on frequency and preferred day
+export function calculateRecurringDates(
   frequency: string,
   preferredDay: string,
   startDate: Date,
   endDate: Date
-): Date[] => {
-  if (!preferredDay) {
-    return [];
-  }
+): Date[] {
+  console.log(`Calculating recurring dates: ${frequency}, ${preferredDay}, ${startDate.toISOString()} to ${endDate.toISOString()}`);
+  const dates: Date[] = [];
+  const normalizedPreferredDay = preferredDay.toLowerCase();
+
+  // Clone dates to avoid modifying the originals
+  const start = new Date(startDate);
+  const end = new Date(endDate);
   
-  const occurrences: Date[] = [];
-  let currentDate = new Date(startDate);
-  
-  // First, find the first occurrence of the preferred day on or after the start date
-  const currentDayName = currentDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-  if (preferredDay.toLowerCase() !== currentDayName) {
-    currentDate = getNextDayOccurrence(preferredDay, startDate);
-  }
-  
-  // Continue adding occurrences until we've passed the end date
-  while (currentDate <= endDate) {
-    occurrences.push(new Date(currentDate));
+  // Set hours to beginning of day for consistent comparison
+  start.setHours(0, 0, 0, 0);
+  end.setHours(23, 59, 59, 999);
+
+  // Weekly - Find all occurrences of the preferred day between start and end
+  if (frequency.toLowerCase() === 'weekly') {
+    let currentDate = new Date(start);
     
-    // Calculate next occurrence based on frequency
-    switch (frequency.toLowerCase()) {
-      case 'weekly':
-        currentDate.setDate(currentDate.getDate() + 7);
-        break;
-      case 'biweekly':
-        currentDate.setDate(currentDate.getDate() + 14);
-        break;
-      case 'monthly':
-        // Move forward one month, then find the next occurrence of the preferred day
-        currentDate.setMonth(currentDate.getMonth() + 1);
-        currentDate = getNextDayOccurrence(preferredDay, currentDate);
-        break;
-      default:
-        currentDate.setDate(currentDate.getDate() + 7); // Default to weekly
+    // Move to the first occurrence of preferred day on or after start date
+    while (!isDateOnDay(currentDate, normalizedPreferredDay)) {
+      currentDate = addDays(currentDate, 1);
+      if (isAfter(currentDate, end)) return dates; // No occurrences in range
+    }
+    
+    // Add all weekly occurrences
+    while (isBefore(currentDate, end) || isEqual(currentDate, end)) {
+      dates.push(new Date(currentDate));
+      currentDate = addDays(currentDate, 7); // Next week
+    }
+  }
+  // Biweekly - Similar to weekly but with 14-day intervals
+  else if (frequency.toLowerCase() === 'biweekly') {
+    let currentDate = new Date(start);
+    
+    // Move to the first occurrence of preferred day on or after start date
+    while (!isDateOnDay(currentDate, normalizedPreferredDay)) {
+      currentDate = addDays(currentDate, 1);
+      if (isAfter(currentDate, end)) return dates; // No occurrences in range
+    }
+    
+    // Add all biweekly occurrences
+    while (isBefore(currentDate, end) || isEqual(currentDate, end)) {
+      dates.push(new Date(currentDate));
+      currentDate = addDays(currentDate, 14); // Every two weeks
+    }
+  }
+  // Monthly - Find first occurrence of day in each month
+  else if (frequency.toLowerCase() === 'monthly') {
+    let currentMonth = getMonth(start);
+    let currentYear = getYear(start);
+    
+    while (
+      (currentYear < getYear(end)) || 
+      (currentYear === getYear(end) && currentMonth <= getMonth(end))
+    ) {
+      // Find the first occurrence of the preferred day in this month
+      const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+      let found = false;
+      
+      for (let day = 1; day <= 31; day++) {
+        const date = new Date(currentYear, currentMonth, day);
+        
+        // Break if we've gone to next month
+        if (getMonth(date) !== currentMonth) break;
+        
+        if (isDateOnDay(date, normalizedPreferredDay)) {
+          // Only add if in range
+          if ((isAfter(date, start) || isEqual(date, start)) && 
+              (isBefore(date, end) || isEqual(date, end))) {
+            dates.push(new Date(date));
+          }
+          found = true;
+          break;
+        }
+      }
+      
+      // Move to next month
+      currentMonth++;
+      if (currentMonth > 11) {
+        currentMonth = 0;
+        currentYear++;
+      }
     }
   }
   
-  return occurrences;
-};
+  console.log(`Found ${dates.length} recurring dates for ${preferredDay}`);
+  return dates;
+}
 
-/**
- * Parse a preferred time string from the recurring orders table to a TimeWindow
- */
-export const parsePreferredTimeToWindow = (preferredTime?: string): TimeWindow => {
-  if (!preferredTime) {
-    return { start: '08:00', end: '18:00' }; // Default to full business day
-  }
-  
-  // Check if it's a time of day term
-  if (['morning', 'afternoon', 'evening'].includes(preferredTime.toLowerCase())) {
-    return timeOfDayToWindow(preferredTime);
-  }
-  
-  // If it's a specific time window format (HH:MM-HH:MM)
-  const timeWindowMatch = preferredTime.match(/^(\d\d:\d\d)-(\d\d:\d\d)$/);
-  if (timeWindowMatch) {
-    return {
-      start: timeWindowMatch[1],
-      end: timeWindowMatch[2]
-    };
-  }
-  
-  // Default to business hours if format can't be determined
-  return { start: '08:00', end: '18:00' };
-};
-
-/**
- * Formats a recurring order frequency for display
- */
-export const formatRecurringFrequency = (frequency: string): string => {
-  switch (frequency.toLowerCase()) {
-    case 'weekly':
-      return 'Every week';
-    case 'biweekly':
-      return 'Every two weeks';
-    case 'monthly':
-      return 'Every month';
-    default:
-      return frequency;
-  }
-};
-
-/**
- * Formats a preferred day for display
- */
-export const formatPreferredDay = (day?: string): string => {
-  if (!day) return 'Any day';
-  
-  // Capitalize first letter
-  return day.charAt(0).toUpperCase() + day.slice(1).toLowerCase();
-};
-
-/**
- * Get color for a specific time slot based on the window
- */
-export const getTimeSlotColor = (timeWindow: TimeWindow): string => {
-  const start = convertTimeToMinutes(timeWindow.start);
-  
-  // Different color palettes based on time of day
-  if (start < 720) { // Morning (before noon)
-    return 'bg-blue-50 border-blue-200 text-blue-700';
-  } else if (start < 960) { // Afternoon (before 4pm)
-    return 'bg-amber-50 border-amber-200 text-amber-700';
-  } else { // Evening
-    return 'bg-purple-50 border-purple-200 text-purple-700';
-  }
-};
-
-/**
- * Get all future occurrences of recurring orders for a specified number of days
- * @param frequency 'weekly', 'biweekly', or 'monthly'
- * @param preferredDay Day of week
- * @param daysAhead Number of days to look ahead
- * @returns Array of dates for all occurrences
- */
-export const getFutureRecurringDates = (
+// Get future recurring dates based on a frequency and preferred day
+export function getFutureRecurringDates(
   frequency: string,
-  preferredDay: string, 
+  preferredDay: string,
   daysAhead: number = 30
-): Date[] => {
+): Date[] {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
-  const endDate = new Date(today);
-  endDate.setDate(endDate.getDate() + daysAhead);
+  const futureDate = addDays(today, daysAhead);
   
-  return calculateRecurringDates(frequency, preferredDay, today, endDate);
-};
+  return calculateRecurringDates(
+    frequency,
+    preferredDay,
+    today,
+    futureDate
+  );
+}
 
-/**
- * Determines if a date falls on a specific day of the week
- * @param date The date to check
- * @param dayName The day name (e.g., 'monday', 'tuesday')
- * @returns Boolean indicating if the date falls on the specified day
- */
-export const isDateOnDay = (date: Date, dayName: string): boolean => {
-  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  const dayIndex = dayNames.indexOf(dayName.toLowerCase());
-  
-  if (dayIndex === -1) {
-    console.error(`Invalid day name: ${dayName}`);
-    return false;
-  }
-  
-  return date.getDay() === dayIndex;
-};
+// Check if a date falls on a specific day of the week
+export function isDateOnDay(date: Date, dayName: string): boolean {
+  const formattedDay = date.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+  return formattedDay === dayName.toLowerCase();
+}
 
-/**
- * Get next occurrence of a specific day of week after a given date
- * @param date The reference date
- * @param dayName The target day name (e.g., 'tuesday')
- * @returns Date of the next occurrence of the specified day
- */
-export const getNextSpecificDay = (date: Date, dayName: string): Date => {
-  // Create a new date to avoid modifying the original
-  const nextDate = new Date(date);
-  nextDate.setHours(0, 0, 0, 0);
+// Get the next date that falls on a specific day of the week
+export function getNextSpecificDay(fromDate: Date, dayName: string): Date {
+  const dayOfWeek = getDayNumber(dayName);
+  const referenceDate = new Date(fromDate);
   
-  // Get the target day's index (0 = Sunday, 1 = Monday, etc.)
-  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  const targetDayIndex = dayNames.indexOf(dayName.toLowerCase());
+  let daysToAdd = dayOfWeek - referenceDate.getDay();
+  if (daysToAdd <= 0) daysToAdd += 7; // If today or earlier in the week, get next week
   
-  if (targetDayIndex === -1) {
-    console.error(`Invalid day name: ${dayName}`);
-    return nextDate;
+  return addDays(referenceDate, daysToAdd);
+}
+
+// Helper to convert day name to number (0 = Sunday, 1 = Monday, etc.)
+function getDayNumber(dayName: string): number {
+  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  return days.indexOf(dayName.toLowerCase());
+}
+
+// Parse preferred time string into a TimeWindow object
+export function parsePreferredTimeToWindow(preferredTime?: string): TimeWindow {
+  if (!preferredTime) {
+    return { start: '09:00', end: '17:00' }; // Default to business hours
   }
   
-  // Get the current day index
-  const currentDayIndex = nextDate.getDay();
-  
-  // Calculate days until next occurrence
-  let daysToAdd = targetDayIndex - currentDayIndex;
-  if (daysToAdd <= 0) {
-    // If the target day is today or earlier in the week, get next week's occurrence
-    daysToAdd += 7;
+  // Check if it's already a range (contains a hyphen)
+  if (preferredTime.includes('-')) {
+    const [start, end] = preferredTime.split('-').map(t => t.trim());
+    return { start, end };
   }
   
-  // Add the calculated days
-  nextDate.setDate(nextDate.getDate() + daysToAdd);
-  return nextDate;
-};
+  // If it's a single time, create a 2-hour window
+  const timeParts = preferredTime.trim().split(':');
+  const hour = parseInt(timeParts[0]);
+  const minute = timeParts.length > 1 ? parseInt(timeParts[1]) : 0;
+  
+  // Format the start time
+  const start = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+  
+  // Calculate end time (2 hours later)
+  const endHour = (hour + 2) % 24;
+  const end = `${endHour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+  
+  return { start, end };
+}
+
+// Format a TimeWindow into a display string
+export function formatTimeWindow(timeWindow: TimeWindow): string {
+  const { start, end } = timeWindow;
+  
+  // Helper to format 24h time to 12h time with AM/PM
+  const formatTime = (time: string): string => {
+    const [hour, minute] = time.split(':').map(Number);
+    const period = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour % 12 || 12;
+    return `${hour12}:${minute.toString().padStart(2, '0')} ${period}`;
+  };
+  
+  return `${formatTime(start)} - ${formatTime(end)}`;
+}
+
+// Get date range for a recurring pattern
+export function getRecurringDateRange(
+  frequency: string,
+  startDate: Date,
+  count: number
+): Date[] {
+  // Clone date to avoid modifying the original
+  const date = new Date(startDate);
+  const dates: Date[] = [new Date(date)];
+  
+  // Generate dates based on frequency
+  for (let i = 1; i < count; i++) {
+    if (frequency.toLowerCase() === 'weekly') {
+      date.setDate(date.getDate() + 7);
+    } else if (frequency.toLowerCase() === 'biweekly') {
+      date.setDate(date.getDate() + 14);
+    } else if (frequency.toLowerCase() === 'monthly') {
+      date.setMonth(date.getMonth() + 1);
+    }
+    
+    dates.push(new Date(date));
+  }
+  
+  return dates;
+}
+
+// Format day of week to a readable format
+export function formatDayOfWeek(date: Date): string {
+  return format(date, 'EEEE'); // Returns full day name, e.g. "Monday"
+}
+
+// Compare two dates to check if they fall on the same day
+export function isSameDay(date1: Date, date2: Date): boolean {
+  return (
+    date1.getFullYear() === date2.getFullYear() &&
+    date1.getMonth() === date2.getMonth() &&
+    date1.getDate() === date2.getDate()
+  );
+}
+
+// Convert a date to a standardized string format (YYYY-MM-DD)
+export function dateToString(date: Date): string {
+  return format(date, 'yyyy-MM-dd');
+}

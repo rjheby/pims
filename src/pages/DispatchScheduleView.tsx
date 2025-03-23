@@ -15,6 +15,7 @@ import { downloadSchedulePDF } from "@/utils/GenerateSchedulePDF";
 import { Badge } from "@/components/ui/badge";
 import { useRecurringOrdersScheduling } from "./dispatch/hooks/useRecurringOrdersScheduling";
 import { parsePreferredTimeToWindow, formatTimeWindow } from "./dispatch/utils/timeWindowUtils";
+import { RecurringScheduleButton } from "./dispatch/components/RecurringScheduleButton";
 
 interface DeliverySchedule {
   id: string;
@@ -71,9 +72,15 @@ export default function DispatchScheduleView() {
   const { 
     recurringOrders, 
     getOccurrencesForDay, 
+    getOccurrencesForDate,
     getNextDayOccurrences, 
-    loading: recurringLoading 
+    loading: recurringLoading,
+    fetchRecurringOrders
   } = useRecurringOrdersScheduling(today, thirtyDaysLater);
+
+  useEffect(() => {
+    fetchRecurringOrders();
+  }, []);
 
   useEffect(() => {
     fetchSchedules();
@@ -99,14 +106,11 @@ export default function DispatchScheduleView() {
     
     // Handle different tab selections
     if (activeTab === "today") {
-      // Get day name (e.g., "monday", "tuesday")
-      const dayName = format(startDateObj, "EEEE").toLowerCase();
-      occurrences = getOccurrencesForDay(dayName, 0);
+      occurrences = getOccurrencesForDate(today);
     } else if (activeTab === "tomorrow") {
-      const tomorrowDate = new Date(startDateObj);
+      const tomorrowDate = new Date(today);
       tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-      const dayName = format(tomorrowDate, "EEEE").toLowerCase();
-      occurrences = getOccurrencesForDay(dayName, 1);
+      occurrences = getOccurrencesForDate(tomorrowDate);
     } else if (activeTab === "next7days") {
       // For next 7 days, get occurrences for each day
       const days = [];
@@ -118,34 +122,14 @@ export default function DispatchScheduleView() {
       
       // Get all occurrences within the date range
       occurrences = [];
-      recurringOrders.forEach(order => {
-        if (!order.preferred_day) return;
-        
-        days.forEach(date => {
-          const dayName = format(date, "EEEE").toLowerCase();
-          if (order.preferred_day.toLowerCase() === dayName) {
-            // Check if this order would occur on this date based on frequency
-            const nextOccurrences = getNextDayOccurrences(dayName);
-            const matchingOccurrence = nextOccurrences.find(o => 
-              o.recurringOrder.id === order.id && 
-              format(o.date, "yyyy-MM-dd") === format(date, "yyyy-MM-dd")
-            );
-            
-            if (matchingOccurrence) {
-              occurrences.push(matchingOccurrence);
-            }
-          }
-        });
+      days.forEach(date => {
+        const dayOccurrences = getOccurrencesForDate(date);
+        occurrences.push(...dayOccurrences);
       });
     } else if (activeTab === "custom") {
       // For custom date, get occurrences for that specific date
       const customDate = new Date(selectedDate);
-      const dayName = format(customDate, "EEEE").toLowerCase();
-      
-      // Check if the custom date falls on the preferred day of any recurring order
-      occurrences = getNextDayOccurrences(dayName).filter(occurrence => 
-        format(occurrence.date, "yyyy-MM-dd") === format(customDate, "yyyy-MM-dd")
-      );
+      occurrences = getOccurrencesForDate(customDate);
     }
     
     // Convert to the expected format
@@ -159,6 +143,7 @@ export default function DispatchScheduleView() {
       isRecurring: true
     }));
     
+    console.log(`Found ${recurringDeliveries.length} recurring deliveries`);
     setUpcomingRecurringDeliveries(recurringDeliveries);
   };
 
@@ -470,16 +455,10 @@ export default function DispatchScheduleView() {
                           {formatDisplayDate(date)}
                         </h3>
                         
-                        {hasUnscheduledRecurring && (
-                          <Button 
-                            size="sm"
-                            onClick={() => handleCreateScheduleForDeliveries(date)}
-                            className="bg-[#2A4131] hover:bg-[#2A4131]/90"
-                          >
-                            <CalendarCheck className="mr-2 h-4 w-4" />
-                            Create Schedule with Recurring Orders
-                          </Button>
-                        )}
+                        <RecurringScheduleButton 
+                          date={date}
+                          hasRecurringOrders={hasUnscheduledRecurring}
+                        />
                       </div>
                       
                       {/* Scheduled deliveries */}
