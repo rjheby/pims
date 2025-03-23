@@ -4,14 +4,14 @@ import { useNavigate } from "react-router-dom";
 import { format, addDays, parseISO, isToday, isYesterday, isTomorrow } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, Filter, Download, Clock, CalendarCheck, AlertCircle, Copy, Mail, MessageSquare, Trash2, Edit, Copy } from "lucide-react";
+import { Loader2, Plus, Filter, Download, Clock, CalendarCheck, AlertCircle, Copy as CopyIcon, Mail, MessageSquare, Trash2, Edit } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
 } from "@/components/ui/table";
 import { DispatchFilters } from "./dispatch/components/DispatchFilters";
-import { downloadSchedulePDF, generateDispatchPDF } from "@/utils/GenerateSchedulePDF";
+import { downloadSchedulePDF } from "@/utils/GenerateSchedulePDF";
 import { Badge } from "@/components/ui/badge";
 import { useRecurringOrdersScheduling } from "./dispatch/hooks/useRecurringOrdersScheduling";
 import { parsePreferredTimeToWindow, formatTimeWindow } from "./dispatch/utils/timeWindowUtils";
@@ -765,7 +765,7 @@ export default function DispatchScheduleView() {
                                           View/Edit
                                         </DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => handleDuplicateSchedule(schedule)}>
-                                          <Copy className="mr-2 h-4 w-4" />
+                                          <CopyIcon className="mr-2 h-4 w-4" />
                                           Duplicate
                                         </DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => handleDownloadPDF(schedule.master_schedule_id)}>
@@ -774,7 +774,7 @@ export default function DispatchScheduleView() {
                                         </DropdownMenuItem>
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem onClick={() => handleCopyLink(schedule.id)}>
-                                          <Copy className="mr-2 h-4 w-4" />
+                                          <CopyIcon className="mr-2 h-4 w-4" />
                                           Copy Link
                                         </DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => handleShare(schedule.id, 'email')}>
