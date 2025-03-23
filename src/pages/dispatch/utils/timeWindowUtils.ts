@@ -198,9 +198,14 @@ export const calculateRecurringDates = (
   }
   
   const occurrences: Date[] = [];
-  let currentDate = getNextDayOccurrence(preferredDay, startDate);
+  let currentDate = new Date(startDate);
   
-  // Continue until we've passed the end date
+  // First, find the first occurrence of the preferred day on or after the start date
+  if (preferredDay.toLowerCase() !== startDate.toLocaleDateString('en-US', { weekday: 'lowercase' })) {
+    currentDate = getNextDayOccurrence(preferredDay, startDate);
+  }
+  
+  // Continue adding occurrences until we've passed the end date
   while (currentDate <= endDate) {
     occurrences.push(new Date(currentDate));
     
@@ -249,4 +254,46 @@ export const parsePreferredTimeToWindow = (preferredTime?: string): TimeWindow =
   
   // Default to business hours if format can't be determined
   return { start: '08:00', end: '18:00' };
+};
+
+/**
+ * Formats a recurring order frequency for display
+ */
+export const formatRecurringFrequency = (frequency: string): string => {
+  switch (frequency.toLowerCase()) {
+    case 'weekly':
+      return 'Every week';
+    case 'biweekly':
+      return 'Every two weeks';
+    case 'monthly':
+      return 'Every month';
+    default:
+      return frequency;
+  }
+};
+
+/**
+ * Formats a preferred day for display
+ */
+export const formatPreferredDay = (day?: string): string => {
+  if (!day) return 'Any day';
+  
+  // Capitalize first letter
+  return day.charAt(0).toUpperCase() + day.slice(1).toLowerCase();
+};
+
+/**
+ * Get color for a specific time slot based on the window
+ */
+export const getTimeSlotColor = (timeWindow: TimeWindow): string => {
+  const start = convertTimeToMinutes(timeWindow.start);
+  
+  // Different color palettes based on time of day
+  if (start < 720) { // Morning (before noon)
+    return 'bg-blue-50 border-blue-200 text-blue-700';
+  } else if (start < 960) { // Afternoon (before 4pm)
+    return 'bg-amber-50 border-amber-200 text-amber-700';
+  } else { // Evening
+    return 'bg-purple-50 border-purple-200 text-purple-700';
+  }
 };

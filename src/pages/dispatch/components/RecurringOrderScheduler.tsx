@@ -3,11 +3,13 @@ import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, CheckCircle, Clock, AlertCircle } from "lucide-react";
+import { Calendar, CheckCircle, Clock, AlertCircle, CalendarDays } from "lucide-react";
 import { format } from "date-fns";
 import { useRecurringOrdersScheduling } from '../hooks/useRecurringOrdersScheduling';
 import { parsePreferredTimeToWindow, formatTimeWindow } from '../utils/timeWindowUtils';
 import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface RecurringOrderSchedulerProps {
   scheduleDate: Date;
@@ -21,6 +23,7 @@ export function RecurringOrderScheduler({
   existingCustomerIds = []
 }: RecurringOrderSchedulerProps) {
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>("today");
   const { toast } = useToast();
   
   // Initialize with the current schedule date and a month from now
@@ -52,6 +55,19 @@ export function RecurringOrderScheduler({
   const availableOccurrences = currentDateOccurrences.filter(occurrence => {
     return !existingCustomerIds.includes(occurrence.recurringOrder.customer_id);
   });
+
+  // Get occurrences for the next 7 days for the planning tab
+  const getPlanningOccurrences = () => {
+    const planEndDate = new Date(scheduleDate);
+    planEndDate.setDate(planEndDate.getDate() + 7);
+    
+    return scheduledOccurrences.filter(occurrence => {
+      const occurrenceDate = new Date(occurrence.date);
+      return occurrenceDate >= scheduleDate && occurrenceDate <= planEndDate;
+    });
+  };
+
+  const planningOccurrences = getPlanningOccurrences();
 
   const handleAddAllToSchedule = () => {
     if (availableOccurrences.length === 0) {
@@ -109,6 +125,50 @@ export function RecurringOrderScheduler({
     }
   };
 
+  const renderOccurrenceItem = (occurrence: any) => {
+    const timeWindow = parsePreferredTimeToWindow(occurrence.recurringOrder.preferred_time);
+    const formattedTimeWindow = formatTimeWindow(timeWindow);
+    
+    return (
+      <div key={occurrence.recurringOrder.id} className="flex justify-between items-center p-3 bg-muted/40 rounded-md border border-gray-100 hover:border-primary/20 transition-colors">
+        <div>
+          <p className="font-medium">{occurrence.recurringOrder.customer?.name}</p>
+          <div className="text-sm text-muted-foreground space-y-1">
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="capitalize bg-primary/10 text-primary">
+                {occurrence.recurringOrder.frequency}
+              </Badge>
+              {occurrence.recurringOrder.preferred_time && (
+                <Badge variant="secondary" className="font-normal">
+                  {formattedTimeWindow}
+                </Badge>
+              )}
+            </div>
+            {activeTab === "planning" && (
+              <p className="text-xs flex items-center gap-1">
+                <CalendarDays className="h-3 w-3" />
+                {format(occurrence.date, "EEE, MMM d")}
+              </p>
+            )}
+          </div>
+        </div>
+        <CheckCircle className="h-4 w-4 text-primary/70" />
+      </div>
+    );
+  };
+
+  const renderSkeletonItems = () => {
+    return Array(3).fill(0).map((_, i) => (
+      <div key={i} className="p-3 bg-muted/40 rounded-md">
+        <Skeleton className="h-5 w-40 mb-2" />
+        <div className="flex gap-2">
+          <Skeleton className="h-4 w-16" />
+          <Skeleton className="h-4 w-24" />
+        </div>
+      </div>
+    ));
+  };
+
   return (
     <Card className="mt-4">
       <CardHeader className="pb-3">
@@ -117,63 +177,89 @@ export function RecurringOrderScheduler({
             <Calendar className="h-5 w-5" />
             Recurring Orders for {format(scheduleDate, "EEEE, MMMM d, yyyy")}
           </CardTitle>
-          <Badge variant="outline" className="ml-2">
-            {availableOccurrences.length} Available
+          <Badge variant="outline" className={activeTab === "today" 
+            ? "ml-2 bg-primary/10 text-primary" 
+            : "ml-2"}>
+            {activeTab === "today" 
+              ? `${availableOccurrences.length} Available` 
+              : `${planningOccurrences.length} Upcoming`}
           </Badge>
         </div>
       </CardHeader>
       <CardContent>
-        {recurringLoading ? (
-          <div className="text-center py-4">
-            <Clock className="h-5 w-5 animate-spin mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">Loading recurring orders...</p>
-          </div>
-        ) : error ? (
-          <div className="text-center py-4 text-destructive">
-            <AlertCircle className="h-5 w-5 mx-auto mb-2" />
-            <p className="text-sm">{error}</p>
-          </div>
-        ) : availableOccurrences.length === 0 ? (
-          <div className="text-center py-6 text-muted-foreground">
-            <p>No recurring orders available for this date.</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              {availableOccurrences.map((occurrence) => (
-                <div key={occurrence.recurringOrder.id} className="flex justify-between items-center p-3 bg-muted/40 rounded-md">
-                  <div>
-                    <p className="font-medium">{occurrence.recurringOrder.customer?.name}</p>
-                    <div className="text-sm text-muted-foreground flex items-center gap-2">
-                      <span className="capitalize">{occurrence.recurringOrder.frequency}</span>
-                      {occurrence.recurringOrder.preferred_time && (
-                        <span>• {occurrence.recurringOrder.preferred_time}</span>
-                      )}
-                    </div>
-                  </div>
-                  <CheckCircle className="h-4 w-4 text-primary/70" />
+        <Tabs defaultValue="today" onValueChange={setActiveTab} className="w-full">
+          <TabsList className="mb-4">
+            <TabsTrigger value="today">Today</TabsTrigger>
+            <TabsTrigger value="planning">Next 7 Days</TabsTrigger>
+          </TabsList>
+        
+          <TabsContent value="today">
+            {recurringLoading ? (
+              <div className="space-y-2">
+                {renderSkeletonItems()}
+              </div>
+            ) : error ? (
+              <div className="text-center py-4 text-destructive">
+                <AlertCircle className="h-5 w-5 mx-auto mb-2" />
+                <p className="text-sm">{error}</p>
+              </div>
+            ) : availableOccurrences.length === 0 ? (
+              <div className="text-center py-6 text-muted-foreground">
+                <p>No recurring orders available for this date.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  {availableOccurrences.map(renderOccurrenceItem)}
                 </div>
-              ))}
-            </div>
-            
-            <div className="pt-2">
-              <Button 
-                onClick={handleAddAllToSchedule}
-                disabled={loading || availableOccurrences.length === 0}
-                className="w-full"
-              >
-                {loading ? (
-                  <>
-                    <Clock className="mr-2 h-4 w-4 animate-spin" />
-                    Adding...
-                  </>
-                ) : (
-                  "Add All to Schedule"
-                )}
-              </Button>
-            </div>
-          </div>
-        )}
+                
+                <div className="pt-2">
+                  <Button 
+                    onClick={handleAddAllToSchedule}
+                    disabled={loading || availableOccurrences.length === 0}
+                    className="w-full bg-[#2A4131] hover:bg-[#2A4131]/90"
+                  >
+                    {loading ? (
+                      <>
+                        <Clock className="mr-2 h-4 w-4 animate-spin" />
+                        Adding...
+                      </>
+                    ) : (
+                      "Add All to Schedule"
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="planning">
+            {recurringLoading ? (
+              <div className="space-y-2">
+                {renderSkeletonItems()}
+              </div>
+            ) : error ? (
+              <div className="text-center py-4 text-destructive">
+                <AlertCircle className="h-5 w-5 mx-auto mb-2" />
+                <p className="text-sm">{error}</p>
+              </div>
+            ) : planningOccurrences.length === 0 ? (
+              <div className="text-center py-6 text-muted-foreground">
+                <p>No upcoming recurring orders for the next 7 days.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  {planningOccurrences.map(renderOccurrenceItem)}
+                </div>
+                
+                <div className="pt-2 text-center text-sm text-muted-foreground">
+                  <p>This view shows upcoming recurring orders for planning purposes.</p>
+                </div>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );

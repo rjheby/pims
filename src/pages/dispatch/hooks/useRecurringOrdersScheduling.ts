@@ -34,7 +34,7 @@ export function useRecurringOrdersScheduling(startDate?: Date, endDate?: Date) {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Fetch recurring orders
+  // Fetch recurring orders with customer information
   const fetchRecurringOrders = async () => {
     try {
       setLoading(true);
@@ -54,8 +54,16 @@ export function useRecurringOrdersScheduling(startDate?: Date, endDate?: Date) {
         
       if (error) throw error;
       
-      setRecurringOrders(data || []);
-      return data || [];
+      // Validate that necessary data is present
+      const validOrders = (data || []).filter(order => 
+        order.customer_id && order.frequency && order.preferred_day);
+      
+      if (validOrders.length < (data || []).length) {
+        console.warn(`Filtered out ${(data || []).length - validOrders.length} invalid recurring orders`);
+      }
+      
+      setRecurringOrders(validOrders);
+      return validOrders;
     } catch (error: any) {
       console.error("Error fetching recurring orders:", error);
       setError(error.message);
@@ -70,7 +78,7 @@ export function useRecurringOrdersScheduling(startDate?: Date, endDate?: Date) {
     }
   };
 
-  // Generate schedule occurrences for a date range using our improved time window utilities
+  // Generate schedule occurrences for a date range using the time window utilities
   const generateOccurrences = (
     orders: RecurringOrder[], 
     start: Date = new Date(), 
@@ -136,6 +144,23 @@ export function useRecurringOrdersScheduling(startDate?: Date, endDate?: Date) {
         
       if (error) throw error;
       
+      // Now also create an entry in delivery_schedules to maintain proper relationships
+      const { error: scheduleError } = await supabase
+        .from("delivery_schedules")
+        .insert({
+          customer_id: customer.id,
+          master_schedule_id: scheduleId,
+          delivery_date: date.toISOString(),
+          schedule_type: 'recurring',
+          recurring_day: recurringOrder.preferred_day,
+          status: 'pending',
+          notes: `Auto-generated from recurring ${recurringOrder.frequency} order`
+        });
+        
+      if (scheduleError) {
+        console.error("Warning: Failed to create delivery schedule entry:", scheduleError);
+      }
+      
       return data[0];
     } catch (error: any) {
       console.error("Error adding occurrence to schedule:", error);
@@ -145,6 +170,32 @@ export function useRecurringOrdersScheduling(startDate?: Date, endDate?: Date) {
         variant: "destructive"
       });
       return null;
+    }
+  };
+  
+  // Check for conflicts with existing schedules
+  const checkForScheduleConflicts = async (occurrence: ScheduledOccurrence): Promise<boolean> => {
+    try {
+      const customer = occurrence.recurringOrder.customer;
+      if (!customer) return false;
+      
+      // Format date for database query (YYYY-MM-DD)
+      const formattedDate = occurrence.date.toISOString().split('T')[0];
+      
+      // Check if customer already has a delivery scheduled for this date
+      const { data, error } = await supabase
+        .from("delivery_schedules")
+        .select("id")
+        .eq("customer_id", customer.id)
+        .eq("delivery_date", formattedDate);
+        
+      if (error) throw error;
+      
+      // Return true if conflicts exist
+      return (data && data.length > 0);
+    } catch (error) {
+      console.error("Error checking for schedule conflicts:", error);
+      return false;
     }
   };
 
@@ -167,6 +218,7 @@ export function useRecurringOrdersScheduling(startDate?: Date, endDate?: Date) {
     error,
     fetchRecurringOrders,
     generateOccurrences,
-    addOccurrenceToSchedule
+    addOccurrenceToSchedule,
+    checkForScheduleConflicts
   };
 }
