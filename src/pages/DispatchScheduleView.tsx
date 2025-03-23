@@ -73,27 +73,33 @@ export default function DispatchScheduleView() {
     recurringOrders, 
     getOccurrencesForDay, 
     getOccurrencesForDate,
-    getNextDayOccurrences, 
     loading: recurringLoading,
     fetchRecurringOrders
   } = useRecurringOrdersScheduling(today, thirtyDaysLater);
 
   useEffect(() => {
+    console.log("Initial load - fetching recurring orders");
     fetchRecurringOrders();
-  }, []);
+  }, [fetchRecurringOrders]);
 
   useEffect(() => {
+    console.log("Fetching schedules due to date, tab, or filter change");
     fetchSchedules();
   }, [selectedDate, activeTab, filters]);
 
   // Fetch recurring deliveries when activeTab changes or recurring orders are loaded
   useEffect(() => {
-    if (recurringOrders.length === 0) return;
+    if (recurringOrders.length === 0) {
+      console.log("No recurring orders loaded yet, skipping recurring deliveries fetch");
+      return;
+    }
     
+    console.log(`Fetching recurring deliveries with ${recurringOrders.length} recurring orders`);
     fetchRecurringDeliveries();
   }, [activeTab, selectedDate, recurringOrders]);
 
   const fetchRecurringDeliveries = () => {
+    console.log("Fetching recurring deliveries for tab:", activeTab);
     let occurrences = [];
     const { startDate, endDate } = getDateRange();
     
@@ -106,16 +112,19 @@ export default function DispatchScheduleView() {
     
     // Handle different tab selections
     if (activeTab === "today") {
+      console.log("Getting occurrences for today");
       occurrences = getOccurrencesForDate(today);
     } else if (activeTab === "tomorrow") {
       const tomorrowDate = new Date(today);
       tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+      console.log("Getting occurrences for tomorrow");
       occurrences = getOccurrencesForDate(tomorrowDate);
     } else if (activeTab === "next7days") {
+      console.log("Getting occurrences for next 7 days");
       // For next 7 days, get occurrences for each day
       const days = [];
       for (let i = 0; i < 7; i++) {
-        const date = new Date(startDateObj);
+        const date = new Date(today);
         date.setDate(date.getDate() + i);
         days.push(date);
       }
@@ -129,6 +138,7 @@ export default function DispatchScheduleView() {
     } else if (activeTab === "custom") {
       // For custom date, get occurrences for that specific date
       const customDate = new Date(selectedDate);
+      console.log("Getting occurrences for custom date:", format(customDate, "yyyy-MM-dd"));
       occurrences = getOccurrencesForDate(customDate);
     }
     
@@ -143,7 +153,7 @@ export default function DispatchScheduleView() {
       isRecurring: true
     }));
     
-    console.log(`Found ${recurringDeliveries.length} recurring deliveries`);
+    console.log(`Found ${recurringDeliveries.length} recurring deliveries for ${activeTab}`);
     setUpcomingRecurringDeliveries(recurringDeliveries);
   };
 
@@ -193,6 +203,7 @@ export default function DispatchScheduleView() {
       setLoading(true);
       
       const { startDate, endDate } = getDateRange();
+      console.log(`Fetching schedules for date range: ${startDate} to ${endDate}`);
       
       let query = supabase
         .from('delivery_schedules')
@@ -213,6 +224,7 @@ export default function DispatchScheduleView() {
         throw error;
       }
       
+      console.log(`Found ${data?.length || 0} scheduled deliveries`);
       setSchedules(data || []);
     } catch (error) {
       console.error("Error fetching schedules:", error);
@@ -241,6 +253,7 @@ export default function DispatchScheduleView() {
   };
 
   const handleDateSelect = (date: string) => {
+    console.log("Date selected:", date);
     setSelectedDate(date);
     setActiveTab("custom");
   };
@@ -254,6 +267,7 @@ export default function DispatchScheduleView() {
   };
 
   const handleApplyFilters = (newFilters: any) => {
+    console.log("Applying filters:", newFilters);
     setFilters(newFilters);
   };
 
@@ -305,7 +319,7 @@ export default function DispatchScheduleView() {
     }
   };
 
-  const handleCreateScheduleForDeliveries = (dateStr: string) => {
+  const handleCreateScheduleForDate = (dateStr: string) => {
     const date = new Date(dateStr);
     navigate('/schedule-creator', { state: { selectedDate: date.toISOString() } });
   };
@@ -364,7 +378,6 @@ export default function DispatchScheduleView() {
     );
   }
 
-  const groupedSchedules = groupSchedulesByMaster();
   const uniqueDates = getUniqueDates();
 
   return (
@@ -455,10 +468,18 @@ export default function DispatchScheduleView() {
                           {formatDisplayDate(date)}
                         </h3>
                         
-                        <RecurringScheduleButton 
-                          date={date}
-                          hasRecurringOrders={hasUnscheduledRecurring}
-                        />
+                        {/* Create Schedule Button */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCreateScheduleForDate(date)}
+                          className={`${hasUnscheduledRecurring ? 'bg-amber-50 text-amber-800 border-amber-300' : ''}`}
+                        >
+                          <CalendarCheck className="mr-2 h-4 w-4" />
+                          {hasUnscheduledRecurring 
+                            ? `Create Schedule (${filteredRecurringDeliveries.length} recurring)`
+                            : "Create Schedule"}
+                        </Button>
                       </div>
                       
                       {/* Scheduled deliveries */}
