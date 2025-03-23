@@ -1,275 +1,121 @@
 
-export interface InventoryTotals {
-  [key: string]: number;
-}
+// Inventory utility functions for capacity planning and calculations
 
-export interface InventoryItemDetail {
-  name: string;
+// Constants for packaging conversions
+export const PACKAGING_CONVERSIONS = {
+  WOOD_PALLET: 1.0,           // Base unit
+  WOOD_BUNDLE: 0.2,           // 5 bundles = 1 pallet
+  RETAIL_PACKAGE_SMALL: 0.05, // 20 small packages = 1 pallet
+  RETAIL_PACKAGE_MEDIUM: 0.1, // 10 medium packages = 1 pallet
+  RETAIL_PACKAGE_LARGE: 0.2,  // 5 large packages = 1 pallet
+  BOX: 0.025                  // 40 boxes = 1 pallet
+};
+
+// Types for capacity calculations
+export type PackagingType = keyof typeof PACKAGING_CONVERSIONS;
+
+export interface CapacityItem {
+  type: PackagingType;
   quantity: number;
-  estimatedPrice: number;
-  category?: string;
-  unit?: string;
 }
 
-export interface ScheduleSummaryData {
-  totalStops: number;
-  stopsByDriver: Record<string, number>;
-  totalPrice: number;
-  laborCost: number;
-  itemizedInventory: InventoryItemDetail[];
-  inventoryByCategory: Record<string, InventoryItemDetail[]>;
-  capacityUtilization: number;
+export interface DriverCapacity {
+  maxPalletEquivalents: number;
+  currentItems: CapacityItem[];
 }
 
-export function calculateInventoryTotals(stops: any[]): InventoryTotals {
-  const inventoryTotals: InventoryTotals = {};
-  
-  // Loop through each stop and count items
-  stops.forEach(stop => {
-    if (!stop.items) return;
-    
-    // Parse items from the stop
-    const itemsList = stop.items.split(',').map((item: string) => item.trim()).filter(Boolean);
-    
-    // Add each item to the totals
-    itemsList.forEach((item: string) => {
-      if (!item) return;
-      inventoryTotals[item] = (inventoryTotals[item] || 0) + 1;
-    });
-  });
-  
-  return inventoryTotals;
-}
-
-// Extract detailed inventory information
-export function extractItemizedInventory(stops: any[]): InventoryItemDetail[] {
-  // First, gather raw counts
-  const itemCounts: Record<string, number> = {};
-  
-  stops.forEach(stop => {
-    // First try to use itemsData if available (structured data)
-    if (Array.isArray(stop.itemsData) && stop.itemsData.length > 0) {
-      stop.itemsData.forEach((item: any) => {
-        if (!item) return;
-        
-        const name = item.name || 'Unknown Item';
-        const quantity = parseInt(item.quantity) || 1;
-        
-        // Standardize the name for consistent grouping
-        const standardName = normalizeProductName(name);
-        
-        // Add to counts
-        itemCounts[standardName] = (itemCounts[standardName] || 0) + quantity;
-      });
-    }
-    // Fall back to parsing text items if no itemsData
-    else if (stop.items) {
-      const itemsList = stop.items.split(',').map((item: string) => item.trim()).filter(Boolean);
-      
-      itemsList.forEach((itemDescription: string) => {
-        if (!itemDescription) return;
-        
-        // Parse quantity from formats like "2x Firewood" or just count as 1
-        const match = itemDescription.match(/^(\d+)x\s+(.+)$/);
-        const quantity = match ? parseInt(match[1]) : 1;
-        const name = match ? match[2] : itemDescription;
-        
-        // Standardize the name for consistent grouping
-        const standardName = normalizeProductName(name);
-        
-        // Add to counts
-        itemCounts[standardName] = (itemCounts[standardName] || 0) + quantity;
-      });
-    }
-  });
-  
-  // Convert to array of detailed items with estimated prices and categories
-  return Object.entries(itemCounts).map(([name, quantity]) => {
-    // Estimate price based on product type and quantity
-    const basePrice = estimateBasePrice(name);
-    const estimatedPrice = basePrice * quantity;
-    
-    // Determine product category and unit of measurement
-    const { category, unit } = determineProductCategory(name);
-    
-    return {
-      name,
-      quantity,
-      estimatedPrice,
-      category,
-      unit
-    };
-  }).sort((a, b) => {
-    // First sort by category
-    if (a.category !== b.category) {
-      return a.category?.localeCompare(b.category || '') || 0;
-    }
-    // Then sort by quantity descending
-    return b.quantity - a.quantity;
-  });
-}
-
-// Helper function to determine product category and unit
-function determineProductCategory(productName: string): { category: string; unit: string } {
-  const lowerName = productName.toLowerCase();
-  
-  if (lowerName.includes('cord') || lowerName.includes('firewood')) {
-    return { 
-      category: 'Firewood', 
-      unit: lowerName.includes('cord') ? 'cord' : 'unit'
-    };
-  }
-  
-  if (lowerName.includes('bundle')) {
-    return { category: 'Bundles', unit: 'bundle' };
-  }
-  
-  if (lowerName.includes('kindling')) {
-    return { category: 'Kindling', unit: 'box' };
-  }
-  
-  if (lowerName.includes('box')) {
-    return { category: 'Packaged', unit: 'box' };
-  }
-  
-  if (lowerName.includes('pallet')) {
-    return { category: 'Wholesale', unit: 'pallet' };
-  }
-  
-  return { category: 'Other', unit: 'unit' };
-}
-
-// Helper function to estimate base price of a product
-function estimateBasePrice(productName: string): number {
-  const lowerName = productName.toLowerCase();
-  
-  if (lowerName.includes('cord')) {
-    if (lowerName.includes('1/4')) return 120;
-    if (lowerName.includes('1/2')) return 220;
-    if (lowerName.includes('full')) return 400;
-    return 150; // Default cord price
-  }
-  
-  if (lowerName.includes('bundle')) {
-    if (lowerName.includes('oak') || lowerName.includes('hickory')) return 15;
-    if (lowerName.includes('cherry')) return 18;
-    if (lowerName.includes('maple')) return 16;
-    return 12; // Default bundle price
-  }
-  
-  if (lowerName.includes('box')) return 25;
-  if (lowerName.includes('kindling')) return 10;
-  
-  return 20; // Default price for unknown items
-}
-
-// Helper function to normalize product names for consistent display
-export function normalizeProductName(itemDescription: string): string {
-  // Parse format like "2x Firewood - 1/4 cord"
-  const match = itemDescription.match(/^(\d+)x\s+(.+)$/);
-  if (!match) return itemDescription;
-  
-  const quantity = match[1];
-  const description = match[2];
-  
-  // Extract common name by removing detailed specifications
-  // This handles formats like "Firewood - 1/4 cord, Cherry, 16 inch"
-  const commonNameMatch = description.match(/^([^,\-]+)(?:\s*[-,].*)?$/);
-  const commonName = commonNameMatch ? commonNameMatch[1].trim() : description;
-  
-  return `${quantity}x ${commonName}`;
-}
-
-// Calculate capacity utilization based on item types and quantities
-export function calculateCapacityUtilization(items: InventoryItemDetail[]): number {
-  // This is a simplified model - in a real system, this would be based on
-  // actual truck capacity dimensions and product volumes
-  
-  const totalCapacityUnits = 1000; // Arbitrary capacity units for a truck
-  let usedCapacity = 0;
-  
-  items.forEach(item => {
-    const lowerName = item.name.toLowerCase();
-    let capacityPerItem = 0;
-    
-    if (lowerName.includes('cord')) {
-      if (lowerName.includes('1/4')) capacityPerItem = 50;
-      else if (lowerName.includes('1/2')) capacityPerItem = 100;
-      else if (lowerName.includes('full')) capacityPerItem = 200;
-      else capacityPerItem = 50;
-    } else if (lowerName.includes('bundle')) {
-      capacityPerItem = 5;
-    } else if (lowerName.includes('box')) {
-      capacityPerItem = 10;
-    } else if (lowerName.includes('kindling')) {
-      capacityPerItem = 2;
-    } else {
-      capacityPerItem = 5; // Default capacity units
-    }
-    
-    usedCapacity += capacityPerItem * item.quantity;
-  });
-  
-  const utilization = Math.min(100, Math.round((usedCapacity / totalCapacityUnits) * 100));
-  return utilization;
-}
-
-export function calculateTotals(stops: any[]): ScheduleSummaryData {
-  const totalStops = stops.length;
-  
-  // Count stops by driver
-  const stopsByDriver = stops.reduce((acc: Record<string, number>, stop: any) => {
-    const driverName = stop.driver_name || 'Unassigned';
-    acc[driverName] = (acc[driverName] || 0) + 1;
-    return acc;
-  }, {});
-
-  // Calculate total price
-  const totalPrice = stops.reduce((sum: number, stop: any) => {
-    const price = stop.price || 0;
-    return sum + Number(price);
+/**
+ * Calculates total pallet equivalents for a set of items
+ */
+export const calculatePalletEquivalents = (items: CapacityItem[]): number => {
+  return items.reduce((total, item) => {
+    const conversionFactor = PACKAGING_CONVERSIONS[item.type] || 0;
+    return total + (item.quantity * conversionFactor);
   }, 0);
+};
 
-  // Calculate labor cost (15-20% of revenue)
-  const laborCost = totalPrice * 0.18; // Using 18% as the middle of 15-20% range
-
-  // Get itemized inventory
-  const itemizedInventory = extractItemizedInventory(stops);
+/**
+ * Calculates capacity percentage for a driver
+ */
+export const calculateCapacityPercentage = (driverCapacity: DriverCapacity): number => {
+  const totalPalletEquivalents = calculatePalletEquivalents(driverCapacity.currentItems);
+  if (driverCapacity.maxPalletEquivalents <= 0) return 100; // Avoid division by zero
   
-  // Group inventory by category
-  const inventoryByCategory = itemizedInventory.reduce((acc: Record<string, InventoryItemDetail[]>, item) => {
-    const category = item.category || 'Other';
-    if (!acc[category]) {
-      acc[category] = [];
+  const percentage = (totalPalletEquivalents / driverCapacity.maxPalletEquivalents) * 100;
+  return Math.min(Math.round(percentage), 100); // Cap at 100% and round
+};
+
+/**
+ * Determines if adding items would exceed capacity
+ */
+export const wouldExceedCapacity = (
+  driverCapacity: DriverCapacity,
+  additionalItems: CapacityItem[]
+): boolean => {
+  const currentPalletEquivalents = calculatePalletEquivalents(driverCapacity.currentItems);
+  const additionalPalletEquivalents = calculatePalletEquivalents(additionalItems);
+  const totalPalletEquivalents = currentPalletEquivalents + additionalPalletEquivalents;
+  
+  return totalPalletEquivalents > driverCapacity.maxPalletEquivalents;
+};
+
+/**
+ * Calculates remaining capacity for a driver
+ */
+export const calculateRemainingCapacity = (driverCapacity: DriverCapacity): number => {
+  const currentPalletEquivalents = calculatePalletEquivalents(driverCapacity.currentItems);
+  return Math.max(0, driverCapacity.maxPalletEquivalents - currentPalletEquivalents);
+};
+
+/**
+ * Converts raw items string to capacity items
+ */
+export const parseItemsToCapacityItems = (
+  itemsString: string | null
+): CapacityItem[] => {
+  if (!itemsString) return [];
+  
+  const items: CapacityItem[] = [];
+  const itemsArray = itemsString.split(',').map(item => item.trim());
+  
+  itemsArray.forEach(item => {
+    const match = item.match(/^(\d+)x\s+(.+?)(?:\s+@\$(\d+\.\d+))?$/);
+    if (match) {
+      const quantity = parseInt(match[1]);
+      const name = match[2].trim().toUpperCase();
+      
+      // Determine packaging type based on item name
+      let type: PackagingType = 'RETAIL_PACKAGE_MEDIUM'; // Default
+      
+      if (name.includes('PALLET')) {
+        type = 'WOOD_PALLET';
+      } else if (name.includes('BUNDLE')) {
+        type = 'WOOD_BUNDLE';
+      } else if (name.includes('BOX')) {
+        type = 'BOX';
+      } else if (name.includes('SMALL')) {
+        type = 'RETAIL_PACKAGE_SMALL';
+      } else if (name.includes('LARGE')) {
+        type = 'RETAIL_PACKAGE_LARGE';
+      }
+      
+      items.push({ type, quantity });
     }
-    acc[category].push(item);
-    return acc;
-  }, {});
+  });
   
-  // Calculate capacity utilization
-  const capacityUtilization = calculateCapacityUtilization(itemizedInventory);
+  return items;
+};
 
-  return {
-    totalStops,
-    stopsByDriver,
-    totalPrice,
-    laborCost,
-    itemizedInventory,
-    inventoryByCategory,
-    capacityUtilization
-  };
-}
-
-// Format price to display as currency
-export function formatPrice(price: number | null): string {
-  if (price === null) return '$0.00';
+/**
+ * Estimates delivery duration based on items quantity and type
+ */
+export const estimateDeliveryDuration = (items: CapacityItem[]): number => {
+  // Base time in minutes for any delivery
+  const baseTime = 15;
   
-  // Ensure price is a number before formatting
-  const numericPrice = typeof price === 'string' ? Number(price) : price;
+  // Additional time based on pallet equivalents
+  const palletEquivalents = calculatePalletEquivalents(items);
+  const additionalTime = Math.ceil(palletEquivalents * 10); // 10 minutes per pallet equivalent
   
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2
-  }).format(numericPrice);
-}
+  return baseTime + additionalTime;
+};

@@ -1,215 +1,133 @@
 
-export interface TimeWindow {
-  start: string; // Format: "HH:MM"
-  end: string;   // Format: "HH:MM"
-  label?: string;
-}
+// Time window utility functions for delivery scheduling
 
-export interface DeliveryTimeWindow extends TimeWindow {
-  stop_id: string;
-  customer_id: string;
-  customer_name: string;
-  priority: 'low' | 'medium' | 'high';
-}
+type TimeWindow = {
+  start: string; // Format: HH:MM in 24-hour format
+  end: string;   // Format: HH:MM in 24-hour format
+};
+
+/**
+ * Checks if a time string is in a valid HH:MM format
+ */
+export const isValidTimeFormat = (time: string): boolean => {
+  // Check if time matches HH:MM format (24-hour)
+  const timeRegex = /^([01]?[0-9]|2[0-3]):([0-5][0-9])$/;
+  return timeRegex.test(time);
+};
+
+/**
+ * Converts time from string (HH:MM) to minutes from midnight
+ */
+export const convertTimeToMinutes = (time: string): number => {
+  if (!isValidTimeFormat(time)) {
+    console.error(`Invalid time format: ${time}, expected HH:MM`);
+    return 0;
+  }
+  
+  const [hours, minutes] = time.split(':').map(Number);
+  return hours * 60 + minutes;
+};
+
+/**
+ * Converts minutes from midnight back to HH:MM format
+ */
+export const convertMinutesToTime = (minutes: number): string => {
+  if (minutes < 0 || minutes > 1439) {
+    console.error(`Invalid minutes value: ${minutes}, must be between 0 and 1439`);
+    return "00:00";
+  }
+  
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  
+  return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+};
 
 /**
  * Checks if two time windows overlap
  */
-export function doTimeWindowsOverlap(window1: TimeWindow, window2: TimeWindow): boolean {
-  // Convert times to comparable format (minutes since midnight)
-  const start1 = timeToMinutes(window1.start);
-  const end1 = timeToMinutes(window1.end);
-  const start2 = timeToMinutes(window2.start);
-  const end2 = timeToMinutes(window2.end);
+export const doTimeWindowsOverlap = (window1: TimeWindow, window2: TimeWindow): boolean => {
+  const start1 = convertTimeToMinutes(window1.start);
+  const end1 = convertTimeToMinutes(window1.end);
+  const start2 = convertTimeToMinutes(window2.start);
+  const end2 = convertTimeToMinutes(window2.end);
   
-  // Check for overlap
-  return (start1 < end2 && start2 < end1);
-}
+  // Check if one window starts before the other ends
+  return start1 < end2 && start2 < end1;
+};
 
 /**
- * Convert time string (HH:MM) to minutes since midnight
+ * Formats a TimeWindow object into a human-readable string
  */
-export function timeToMinutes(timeString: string): number {
-  const [hours, minutes] = timeString.split(':').map(Number);
-  return hours * 60 + minutes;
-}
+export const formatTimeWindow = (window: TimeWindow): string => {
+  if (!isValidTimeFormat(window.start) || !isValidTimeFormat(window.end)) {
+    return "Invalid time window";
+  }
+  
+  return `${formatTimeWithMeridian(window.start)} - ${formatTimeWithMeridian(window.end)}`;
+};
 
 /**
- * Convert minutes since midnight to time string (HH:MM)
+ * Converts 24-hour time format to 12-hour format with AM/PM
  */
-export function minutesToTime(minutes: number): string {
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-}
+export const formatTimeWithMeridian = (time: string): string => {
+  if (!isValidTimeFormat(time)) {
+    return time;
+  }
+  
+  const [hours, minutes] = time.split(':').map(Number);
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const hours12 = hours % 12 || 12; // Convert 0 to 12 for 12 AM
+  
+  return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
+};
 
 /**
- * Find conflicts among time windows
- * Returns array of pairs of conflicting time window IDs
+ * Checks if a timeWindow is within business hours (default: 8:00 AM to 6:00 PM)
  */
-export function findTimeWindowConflicts(
-  timeWindows: DeliveryTimeWindow[]
-): [string, string][] {
-  const conflicts: [string, string][] = [];
+export const isWithinBusinessHours = (
+  window: TimeWindow,
+  businessStart: string = "08:00",
+  businessEnd: string = "18:00"
+): boolean => {
+  const windowStartMinutes = convertTimeToMinutes(window.start);
+  const windowEndMinutes = convertTimeToMinutes(window.end);
+  const businessStartMinutes = convertTimeToMinutes(businessStart);
+  const businessEndMinutes = convertTimeToMinutes(businessEnd);
   
-  // Compare each time window with every other
-  for (let i = 0; i < timeWindows.length; i++) {
-    for (let j = i + 1; j < timeWindows.length; j++) {
-      if (doTimeWindowsOverlap(timeWindows[i], timeWindows[j])) {
-        conflicts.push([timeWindows[i].stop_id, timeWindows[j].stop_id]);
-      }
-    }
-  }
-  
-  return conflicts;
-}
+  return windowStartMinutes >= businessStartMinutes && windowEndMinutes <= businessEndMinutes;
+};
 
 /**
- * Check if a new stop can be accommodated in the schedule
- * based on travel time and existing time windows
+ * Validates a time window for basic logical consistency
  */
-export function canAccommodateStop(
-  newStopWindow: TimeWindow,
-  existingWindows: TimeWindow[],
-  travelTimeMinutes: number
-): boolean {
-  // If there are no existing windows, the new stop can be accommodated
-  if (existingWindows.length === 0) return true;
-  
-  // Sort existing windows by start time
-  const sortedWindows = [...existingWindows].sort(
-    (a, b) => timeToMinutes(a.start) - timeToMinutes(b.start)
-  );
-  
-  // Check if new stop fits before the first window
-  const firstWindowStart = timeToMinutes(sortedWindows[0].start);
-  const newStopEnd = timeToMinutes(newStopWindow.end) + travelTimeMinutes;
-  if (newStopEnd <= firstWindowStart) return true;
-  
-  // Check if new stop fits after the last window
-  const lastWindowEnd = timeToMinutes(sortedWindows[sortedWindows.length - 1].end);
-  const newStopStart = timeToMinutes(newStopWindow.start) - travelTimeMinutes;
-  if (newStopStart >= lastWindowEnd) return true;
-  
-  // Check if new stop fits between any two existing windows
-  for (let i = 0; i < sortedWindows.length - 1; i++) {
-    const currentWindowEnd = timeToMinutes(sortedWindows[i].end);
-    const nextWindowStart = timeToMinutes(sortedWindows[i + 1].start);
-    
-    // Calculate required time: service time + travel time before and after
-    const requiredTime = 
-      (timeToMinutes(newStopWindow.end) - timeToMinutes(newStopWindow.start)) +
-      travelTimeMinutes * 2; // Travel time to and from the stop
-    
-    // Check if gap is large enough
-    const availableGap = nextWindowStart - currentWindowEnd;
-    if (availableGap >= requiredTime) return true;
+export const isValidTimeWindow = (window: TimeWindow): boolean => {
+  if (!isValidTimeFormat(window.start) || !isValidTimeFormat(window.end)) {
+    return false;
   }
   
-  // If we get here, the new stop doesn't fit anywhere
-  return false;
-}
+  const startMinutes = convertTimeToMinutes(window.start);
+  const endMinutes = convertTimeToMinutes(window.end);
+  
+  // End time must be after start time
+  return endMinutes > startMinutes;
+};
 
 /**
- * Suggests optimal time for a delivery based on existing schedule
+ * Generates time slot options at 30-minute intervals
  */
-export function suggestDeliveryTime(
-  existingWindows: TimeWindow[],
-  deliveryDurationMinutes: number,
-  earliestTime: string = "08:00",
-  latestTime: string = "17:00"
-): TimeWindow | null {
-  // Sort existing windows by start time
-  const sortedWindows = [...existingWindows].sort(
-    (a, b) => timeToMinutes(a.start) - timeToMinutes(b.start)
-  );
+export const generateTimeOptions = (
+  startHour: number = 8,
+  endHour: number = 18,
+  intervalMinutes: number = 30
+): string[] => {
+  const options: string[] = [];
+  const startMinutes = startHour * 60;
+  const endMinutes = endHour * 60;
   
-  // Default work hours boundaries
-  const workDayStart = timeToMinutes(earliestTime);
-  const workDayEnd = timeToMinutes(latestTime);
-  
-  // Find all available gaps
-  const availableGaps: {start: number, end: number}[] = [];
-  
-  // Gap before first appointment
-  if (sortedWindows.length > 0) {
-    const firstStart = timeToMinutes(sortedWindows[0].start);
-    if (firstStart > workDayStart) {
-      availableGaps.push({
-        start: workDayStart,
-        end: firstStart
-      });
-    }
-  } else {
-    // No existing windows, entire day is available
-    availableGaps.push({
-      start: workDayStart,
-      end: workDayEnd
-    });
-    
-    // Return the middle of the day if nothing else exists
-    const midPoint = Math.floor((workDayStart + workDayEnd) / 2);
-    const halfDuration = Math.floor(deliveryDurationMinutes / 2);
-    return {
-      start: minutesToTime(midPoint - halfDuration),
-      end: minutesToTime(midPoint + halfDuration)
-    };
+  for (let minutes = startMinutes; minutes <= endMinutes; minutes += intervalMinutes) {
+    options.push(convertMinutesToTime(minutes));
   }
   
-  // Gaps between appointments
-  for (let i = 0; i < sortedWindows.length - 1; i++) {
-    const currentEnd = timeToMinutes(sortedWindows[i].end);
-    const nextStart = timeToMinutes(sortedWindows[i + 1].start);
-    
-    if (nextStart - currentEnd >= deliveryDurationMinutes) {
-      availableGaps.push({
-        start: currentEnd,
-        end: nextStart
-      });
-    }
-  }
-  
-  // Gap after last appointment
-  if (sortedWindows.length > 0) {
-    const lastEnd = timeToMinutes(sortedWindows[sortedWindows.length - 1].end);
-    if (workDayEnd - lastEnd >= deliveryDurationMinutes) {
-      availableGaps.push({
-        start: lastEnd,
-        end: workDayEnd
-      });
-    }
-  }
-  
-  // Find the best gap (prefer middle of the day)
-  const midDay = workDayStart + (workDayEnd - workDayStart) / 2;
-  let bestGap = null;
-  let bestDistance = Infinity;
-  
-  for (const gap of availableGaps) {
-    // Skip gaps that are too small
-    if (gap.end - gap.start < deliveryDurationMinutes) continue;
-    
-    // Compute the midpoint of a potential delivery in this gap
-    const potentialStart = gap.start;
-    const potentialMid = potentialStart + deliveryDurationMinutes / 2;
-    
-    // Calculate distance to mid-day (prefer times closer to middle of day)
-    const distance = Math.abs(potentialMid - midDay);
-    
-    if (distance < bestDistance) {
-      bestDistance = distance;
-      bestGap = gap;
-    }
-  }
-  
-  // If a suitable gap was found, return a suggested time window
-  if (bestGap) {
-    return {
-      start: minutesToTime(bestGap.start),
-      end: minutesToTime(bestGap.start + deliveryDurationMinutes)
-    };
-  }
-  
-  // No suitable gap found
-  return null;
-}
+  return options;
+};
