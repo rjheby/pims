@@ -1,6 +1,5 @@
-
 import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import "jspdf-autotable";
 import { format } from "date-fns";
 
 export interface DispatchScheduleData {
@@ -59,7 +58,7 @@ export const generateDispatchPDF = (data: DispatchScheduleData): jsPDF => {
       stop.items || "N/A"
     ]);
 
-    autoTable(doc, {
+    (doc as any).autoTable({
       startY: yPosition + 5,
       head: [tableHeaders],
       body: tableData,

@@ -1,21 +1,22 @@
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { format, addDays, parseISO, isToday, isYesterday, isTomorrow } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, Filter, Download, Clock, CalendarCheck, AlertCircle, Copy as CopyIcon, Mail, MessageSquare, Trash2, Edit } from "lucide-react";
+import { Loader2, Plus, Filter, Download, Clock, CalendarCheck, AlertCircle, Copy, Mail, MessageSquare, Trash2, Edit } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
 } from "@/components/ui/table";
 import { DispatchFilters } from "./dispatch/components/DispatchFilters";
-import { downloadSchedulePDF } from "@/utils/GenerateSchedulePDF";
+import { generateDispatchPDF } from "./dispatch/utils/pdfGenerator";
 import { Badge } from "@/components/ui/badge";
 import { useRecurringOrdersScheduling } from "./dispatch/hooks/useRecurringOrdersScheduling";
 import { parsePreferredTimeToWindow, formatTimeWindow } from "./dispatch/utils/timeWindowUtils";
 import { RecurringScheduleButton } from "./dispatch/components/RecurringScheduleButton";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,6 +56,7 @@ interface RecurringDelivery {
 export default function DispatchScheduleView() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   
   const [activeTab, setActiveTab] = useState<string>("today");
   const [selectedDate, setSelectedDate] = useState<string>(
@@ -346,7 +348,8 @@ export default function DispatchScheduleView() {
         }))
       };
       
-      downloadSchedulePDF(scheduleForPdf);
+      const pdf = generateDispatchPDF(scheduleForPdf);
+      pdf.save(`dispatch-schedule-${masterData.schedule_number}.pdf`);
       
       toast({
         title: "Success",
@@ -572,6 +575,343 @@ export default function DispatchScheduleView() {
     );
   };
 
+  // Mobile-optimized schedule list view
+  const MobileScheduleListView = ({ 
+    schedules, 
+    recurringDeliveries 
+  }: { 
+    schedules: DeliverySchedule[], 
+    recurringDeliveries: RecurringDelivery[] 
+  }) => {
+    const uniqueDates = getUniqueDates();
+    
+    return (
+      <div className="space-y-6">
+        {uniqueDates.length > 0 ? (
+          uniqueDates.map(date => {
+            // Get scheduled deliveries for this date
+            const dateSchedules = schedules.filter(schedule => schedule.delivery_date === date);
+            
+            // Get recurring deliveries for this date
+            const dateRecurringDeliveries = recurringDeliveries.filter(
+              delivery => delivery.date.toISOString().split('T')[0] === date
+            );
+            
+            // Filter out recurring deliveries that already have a scheduled delivery
+            const scheduledCustomerIds = new Set(dateSchedules.map(s => s.customer_id));
+            const filteredRecurringDeliveries = dateRecurringDeliveries.filter(
+              delivery => !scheduledCustomerIds.has(delivery.customer_id)
+            );
+            
+            return (
+              <div key={date} className="space-y-3">
+                <div className="flex justify-between items-center border-b pb-2">
+                  <h3 className="text-sm font-semibold">
+                    {formatDisplayDate(date)}
+                  </h3>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCreateScheduleForDate(date)}
+                    className="text-xs"
+                  >
+                    <CalendarCheck className="h-3 w-3 mr-1" />
+                    Create Schedule
+                  </Button>
+                </div>
+                
+                {/* Scheduled deliveries */}
+                {dateSchedules.length > 0 && (
+                  <div className="space-y-2">
+                    {dateSchedules.map(schedule => (
+                      <div 
+                        key={schedule.id}
+                        className="p-3 border rounded-md shadow-sm bg-white"
+                        onClick={() => handleViewSchedule(schedule.master_schedule_id)}
+                      >
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="font-medium text-sm">
+                            {schedule.customers?.name || "Unknown"}
+                          </span>
+                          <Badge 
+                            variant="outline" 
+                            className={schedule.status === "submitted" 
+                              ? "bg-green-100 text-green-800 text-xs" 
+                              : "bg-yellow-100 text-yellow-800 text-xs"}
+                          >
+                            {schedule.status === "submitted" ? "Submitted" : "Draft"}
+                          </Badge>
+                        </div>
+                        
+                        <div className="text-xs text-gray-500 mb-2">
+                          {schedule.customers?.phone || "No phone"} • 
+                          {schedule.items ? ` ${schedule.items.substring(0, 20)}...` : " No items"}
+                        </div>
+                        
+                        <div className="flex justify-end">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="sm" className="h-7 text-xs">
+                                Actions
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-[160px]">
+                              <DropdownMenuItem onClick={() => handleViewSchedule(schedule.master_schedule_id)}>
+                                <Edit className="mr-2 h-3.5 w-3.5" />
+                                View/Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleDownloadPDF(schedule.master_schedule_id)}>
+                                <Download className="mr-2 h-3.5 w-3.5" />
+                                Download PDF
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleDeleteSchedule(schedule.id, schedule.master_schedule_id)}>
+                                <Trash2 className="mr-2 h-3.5 w-3.5" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {/* Unscheduled recurring deliveries */}
+                {filteredRecurringDeliveries.length > 0 && (
+                  <div className="space-y-2">
+                    {filteredRecurringDeliveries.map(delivery => (
+                      <div 
+                        key={`${delivery.id}-${date}`}
+                        className="p-3 border rounded-md shadow-sm bg-amber-50 border-amber-200"
+                      >
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="font-medium text-sm">{delivery.customer_name}</span>
+                          <Badge variant="outline" className="bg-amber-100 text-amber-800 text-xs">
+                            Recurring
+                          </Badge>
+                        </div>
+                        
+                        <div className="text-xs text-amber-700">
+                          {delivery.frequency} • 
+                          {delivery.preferred_time 
+                            ? ` ${formatTimeWindow(parsePreferredTimeToWindow(delivery.preferred_time))}` 
+                            : " No time specified"}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {dateSchedules.length === 0 && filteredRecurringDeliveries.length === 0 && (
+                  <div className="text-center py-3 text-xs text-gray-500">
+                    No deliveries scheduled for this date.
+                  </div>
+                )}
+              </div>
+            );
+          })
+        ) : (
+          <div className="text-center py-6 text-gray-500">
+            No deliveries scheduled for this period.
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Desktop schedule list view
+  const DesktopScheduleListView = ({ 
+    schedules, 
+    recurringDeliveries 
+  }: { 
+    schedules: DeliverySchedule[], 
+    recurringDeliveries: RecurringDelivery[] 
+  }) => {
+    const uniqueDates = getUniqueDates();
+    
+    return (
+      <div className="space-y-8">
+        {uniqueDates.length > 0 ? (
+          uniqueDates.map(date => {
+            // Get scheduled deliveries for this date
+            const dateSchedules = schedules.filter(schedule => schedule.delivery_date === date);
+            
+            // Get recurring deliveries for this date
+            const dateRecurringDeliveries = recurringDeliveries.filter(
+              delivery => delivery.date.toISOString().split('T')[0] === date
+            );
+            
+            // Filter out recurring deliveries that already have a scheduled delivery
+            const scheduledCustomerIds = new Set(dateSchedules.map(s => s.customer_id));
+            const filteredRecurringDeliveries = dateRecurringDeliveries.filter(
+              delivery => !scheduledCustomerIds.has(delivery.customer_id)
+            );
+            
+            const hasUnscheduledRecurring = filteredRecurringDeliveries.length > 0;
+            
+            return (
+              <div key={date} className="space-y-4">
+                <div className="flex justify-between items-center border-b pb-2">
+                  <h3 className="text-md font-semibold">
+                    {formatDisplayDate(date)}
+                  </h3>
+                  
+                  {/* Create Schedule Button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCreateScheduleForDate(date)}
+                    className={`${hasUnscheduledRecurring ? 'bg-amber-50 text-amber-800 border-amber-300' : ''}`}
+                  >
+                    <CalendarCheck className="mr-2 h-4 w-4" />
+                    {hasUnscheduledRecurring 
+                      ? `Create Schedule (${filteredRecurringDeliveries.length} recurring)`
+                      : "Create Schedule"}
+                  </Button>
+                </div>
+                
+                {/* Scheduled deliveries */}
+                {dateSchedules.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium text-muted-foreground">Scheduled Deliveries</h4>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Client Name</TableHead>
+                          <TableHead>Client Phone</TableHead>
+                          <TableHead>Items</TableHead>
+                          <TableHead>Address</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {dateSchedules.map(schedule => (
+                          <TableRow key={schedule.id}>
+                            <TableCell className="font-medium">
+                              {schedule.customers?.name || "Unknown"}
+                            </TableCell>
+                            <TableCell>
+                              {schedule.customers?.phone || "-"}
+                            </TableCell>
+                            <TableCell className="max-w-[200px] truncate">
+                              {schedule.items || "-"}
+                            </TableCell>
+                            <TableCell className="max-w-[200px] truncate">
+                              {schedule.customers?.address || "-"}
+                            </TableCell>
+                            <TableCell>
+                              <span className={`inline-flex px-2 py-1 rounded-full text-xs ${
+                                schedule.status === "submitted" 
+                                  ? "bg-green-100 text-green-800" 
+                                  : "bg-yellow-100 text-yellow-800"
+                              }`}>
+                                {schedule.status === "submitted" ? "Submitted" : "Draft"}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="outline" size="sm">
+                                    Actions
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                  <DropdownMenuItem onClick={() => handleViewSchedule(schedule.master_schedule_id)}>
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    View/Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleDuplicateSchedule(schedule)}>
+                                    <Copy className="mr-2 h-4 w-4" />
+                                    Duplicate
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleDownloadPDF(schedule.master_schedule_id)}>
+                                    <Download className="mr-2 h-4 w-4" />
+                                    Download PDF
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => handleCopyLink(schedule.id)}>
+                                    <Copy className="mr-2 h-4 w-4" />
+                                    Copy Link
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleShare(schedule.id, 'email')}>
+                                    <Mail className="mr-2 h-4 w-4" />
+                                    Share via Email
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleShare(schedule.id, 'sms')}>
+                                    <MessageSquare className="mr-2 h-4 w-4" />
+                                    Share via SMS
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem 
+                                    onClick={() => handleDeleteSchedule(schedule.id, schedule.master_schedule_id)}
+                                    className="text-red-600"
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+                
+                {/* Unscheduled recurring deliveries */}
+                {hasUnscheduledRecurring && (
+                  <div className="space-y-2 mt-4">
+                    <h4 className="text-sm font-medium text-muted-foreground flex items-center">
+                      <AlertCircle className="h-4 w-4 mr-2 text-amber-500" />
+                      Upcoming Recurring Orders Not Yet Scheduled
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-2">
+                      {filteredRecurringDeliveries.map(delivery => {
+                        const timeWindow = parsePreferredTimeToWindow(delivery.preferred_time);
+                        const formattedTimeWindow = formatTimeWindow(timeWindow);
+                        
+                        return (
+                          <div 
+                            key={`${delivery.id}-${date}`} 
+                            className="border p-4 rounded-md bg-amber-50 border-amber-200"
+                          >
+                            <div className="flex justify-between items-start mb-2">
+                              <h5 className="font-medium">{delivery.customer_name}</h5>
+                              <Badge variant="outline" className="bg-amber-100 border-amber-300 text-amber-800">
+                                {delivery.frequency}
+                              </Badge>
+                            </div>
+                            <div className="text-sm space-y-1">
+                              <p>{formattedTimeWindow}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                
+                {dateSchedules.length === 0 && !hasUnscheduledRecurring && (
+                  <div className="text-center py-4 text-muted-foreground border rounded-md">
+                    No deliveries scheduled for this date.
+                  </div>
+                )}
+              </div>
+            );
+          })
+        ) : (
+          <div className="text-center py-8 text-gray-500 border rounded-md">
+            No deliveries scheduled for this period.
+          </div>
+        )}
+      </div>
+    );
+  };
+
   if (loading && schedules.length === 0 && !recurringLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -580,42 +920,45 @@ export default function DispatchScheduleView() {
     );
   }
 
-  const uniqueDates = getUniqueDates();
-
   return (
     <div className="flex-1">
       <Card className="shadow-sm">
         <CardHeader>
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
             <CardTitle>Dispatch Schedule View</CardTitle>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button 
                 variant="outline"
                 onClick={() => setShowFilters(true)}
+                className="text-xs md:text-sm"
               >
-                <Filter className="mr-2 h-4 w-4" />
-                Filters
+                <Filter className="mr-2 h-3 w-3 md:h-4 md:w-4" />
+                <span className="hidden md:inline">Filters</span>
+                <span className="inline md:hidden">Filter</span>
               </Button>
               <Button 
                 variant="outline"
                 onClick={handleCreateDateSchedule}
-                className="bg-white text-[#2A4131] border-[#2A4131] hover:bg-[#F2E9D2]"
+                className="text-xs md:text-sm bg-white text-[#2A4131] border-[#2A4131] hover:bg-[#F2E9D2]"
               >
-                <Clock className="mr-2 h-4 w-4" />
-                Date Schedule
+                <Clock className="mr-2 h-3 w-3 md:h-4 md:w-4" />
+                <span className="hidden md:inline">Date Schedule</span>
+                <span className="inline md:hidden">Schedule</span>
               </Button>
               <Button 
                 onClick={handleCreateNew}
-                className="bg-[#2A4131] hover:bg-[#2A4131]/90"
+                className="text-xs md:text-sm bg-[#2A4131] hover:bg-[#2A4131]/90"
               >
-                <Plus className="mr-2 h-4 w-4" />
-                New Schedule
+                <Plus className="mr-2 h-3 w-3 md:h-4 md:w-4" />
+                <span className="hidden md:inline">New Schedule</span>
+                <span className="inline md:hidden">New</span>
               </Button>
             </div>
           </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
+            {/* Date Navigation Buttons */}
             <div className="flex flex-wrap gap-2">
               <TabButton 
                 id="today" 
@@ -640,25 +983,28 @@ export default function DispatchScheduleView() {
                   type="date" 
                   value={selectedDate}
                   onChange={(e) => handleDateSelect(e.target.value)}
-                  className="border rounded-md px-3 py-2 text-sm"
+                  className="border rounded-md px-3 py-2 text-xs md:text-sm"
                 />
               </div>
             </div>
 
             {/* Weekly Day Buttons */}
-            <div className="flex gap-2 overflow-x-auto pb-2">
+            <div className="flex gap-2 overflow-x-auto pb-2 md:overflow-visible">
               {weekDays.map((date, index) => (
                 <Button
                   key={index}
                   variant={activeTab === "custom" && selectedDate === date.toISOString().split('T')[0] ? "default" : "outline"}
-                  className={`whitespace-nowrap ${
+                  className={`whitespace-nowrap text-xs md:text-sm ${
                     activeTab === "custom" && selectedDate === date.toISOString().split('T')[0] 
                       ? "bg-[#2A4131]" 
                       : ""
                   }`}
                   onClick={() => handleDayButtonClick(date)}
                 >
-                  {formatDateWithDay(date)}
+                  {isMobile 
+                    ? format(date, 'EEE MM/dd') // Shortened for mobile
+                    : formatDateWithDay(date)
+                  }
                 </Button>
               ))}
             </div>
@@ -673,182 +1019,17 @@ export default function DispatchScheduleView() {
               )}
             </div>
             
-            {uniqueDates.length > 0 ? (
-              <div className="space-y-8">
-                {uniqueDates.map(date => {
-                  // Get scheduled deliveries for this date
-                  const dateSchedules = schedules.filter(schedule => schedule.delivery_date === date);
-                  
-                  // Get recurring deliveries for this date
-                  const dateRecurringDeliveries = upcomingRecurringDeliveries.filter(
-                    delivery => delivery.date.toISOString().split('T')[0] === date
-                  );
-                  
-                  // Filter out recurring deliveries that already have a scheduled delivery
-                  const scheduledCustomerIds = new Set(dateSchedules.map(s => s.customer_id));
-                  const filteredRecurringDeliveries = dateRecurringDeliveries.filter(
-                    delivery => !scheduledCustomerIds.has(delivery.customer_id)
-                  );
-                  
-                  const hasUnscheduledRecurring = filteredRecurringDeliveries.length > 0;
-                  
-                  return (
-                    <div key={date} className="space-y-4">
-                      <div className="flex justify-between items-center border-b pb-2">
-                        <h3 className="text-md font-semibold">
-                          {formatDisplayDate(date)}
-                        </h3>
-                        
-                        {/* Create Schedule Button */}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleCreateScheduleForDate(date)}
-                          className={`${hasUnscheduledRecurring ? 'bg-amber-50 text-amber-800 border-amber-300' : ''}`}
-                        >
-                          <CalendarCheck className="mr-2 h-4 w-4" />
-                          {hasUnscheduledRecurring 
-                            ? `Create Schedule (${filteredRecurringDeliveries.length} recurring)`
-                            : "Create Schedule"}
-                        </Button>
-                      </div>
-                      
-                      {/* Scheduled deliveries */}
-                      {dateSchedules.length > 0 && (
-                        <div className="space-y-2">
-                          <h4 className="text-sm font-medium text-muted-foreground">Scheduled Deliveries</h4>
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Client Name</TableHead>
-                                <TableHead>Client Phone</TableHead>
-                                <TableHead>Items</TableHead>
-                                <TableHead>Address</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {dateSchedules.map(schedule => (
-                                <TableRow key={schedule.id}>
-                                  <TableCell className="font-medium">
-                                    {schedule.customers?.name || "Unknown"}
-                                  </TableCell>
-                                  <TableCell>
-                                    {schedule.customers?.phone || "-"}
-                                  </TableCell>
-                                  <TableCell className="max-w-[200px] truncate">
-                                    {schedule.items || "-"}
-                                  </TableCell>
-                                  <TableCell className="max-w-[200px] truncate">
-                                    {schedule.customers?.address || "-"}
-                                  </TableCell>
-                                  <TableCell>
-                                    <span className={`inline-flex px-2 py-1 rounded-full text-xs ${
-                                      schedule.status === "submitted" 
-                                        ? "bg-green-100 text-green-800" 
-                                        : "bg-yellow-100 text-yellow-800"
-                                    }`}>
-                                      {schedule.status === "submitted" ? "Submitted" : "Draft"}
-                                    </span>
-                                  </TableCell>
-                                  <TableCell className="text-right">
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                        <Button variant="outline" size="sm">
-                                          Actions
-                                        </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent>
-                                        <DropdownMenuItem onClick={() => handleViewSchedule(schedule.master_schedule_id)}>
-                                          <Edit className="mr-2 h-4 w-4" />
-                                          View/Edit
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => handleDuplicateSchedule(schedule)}>
-                                          <CopyIcon className="mr-2 h-4 w-4" />
-                                          Duplicate
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => handleDownloadPDF(schedule.master_schedule_id)}>
-                                          <Download className="mr-2 h-4 w-4" />
-                                          Download PDF
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem onClick={() => handleCopyLink(schedule.id)}>
-                                          <CopyIcon className="mr-2 h-4 w-4" />
-                                          Copy Link
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => handleShare(schedule.id, 'email')}>
-                                          <Mail className="mr-2 h-4 w-4" />
-                                          Share via Email
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => handleShare(schedule.id, 'sms')}>
-                                          <MessageSquare className="mr-2 h-4 w-4" />
-                                          Share via SMS
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem 
-                                          onClick={() => handleDeleteSchedule(schedule.id, schedule.master_schedule_id)}
-                                          className="text-red-600"
-                                        >
-                                          <Trash2 className="mr-2 h-4 w-4" />
-                                          Delete
-                                        </DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      )}
-                      
-                      {/* Unscheduled recurring deliveries */}
-                      {hasUnscheduledRecurring && (
-                        <div className="space-y-2 mt-4">
-                          <h4 className="text-sm font-medium text-muted-foreground flex items-center">
-                            <AlertCircle className="h-4 w-4 mr-2 text-amber-500" />
-                            Upcoming Recurring Orders Not Yet Scheduled
-                          </h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-2">
-                            {filteredRecurringDeliveries.map(delivery => {
-                              const timeWindow = parsePreferredTimeToWindow(delivery.preferred_time);
-                              const formattedTimeWindow = formatTimeWindow(timeWindow);
-                              
-                              return (
-                                <div 
-                                  key={`${delivery.id}-${date}`} 
-                                  className="border p-4 rounded-md bg-amber-50 border-amber-200"
-                                >
-                                  <div className="flex justify-between items-start mb-2">
-                                    <h5 className="font-medium">{delivery.customer_name}</h5>
-                                    <Badge variant="outline" className="bg-amber-100 border-amber-300 text-amber-800">
-                                      {delivery.frequency}
-                                    </Badge>
-                                  </div>
-                                  <div className="text-sm space-y-1">
-                                    <p>{formattedTimeWindow}</p>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                      
-                      {dateSchedules.length === 0 && !hasUnscheduledRecurring && (
-                        <div className="text-center py-4 text-muted-foreground border rounded-md">
-                          No deliveries scheduled for this date.
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+            {/* Responsive Schedule Display */}
+            {isMobile ? (
+              <MobileScheduleListView 
+                schedules={schedules} 
+                recurringDeliveries={upcomingRecurringDeliveries} 
+              />
             ) : (
-              <div className="text-center py-8 text-gray-500 border rounded-md">
-                No deliveries scheduled for this period.
-              </div>
+              <DesktopScheduleListView 
+                schedules={schedules} 
+                recurringDeliveries={upcomingRecurringDeliveries} 
+              />
             )}
           </div>
         </CardContent>
