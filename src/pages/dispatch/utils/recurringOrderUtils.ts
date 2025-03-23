@@ -136,17 +136,12 @@ export const getRecurringOrderInfo = async (scheduleId: string) => {
     
     if (!data) return null;
     
-    // Fix the TypeScript errors by correctly handling the nested data
+    // Fix the TypeScript errors by correctly handling the nested data structure
+    // Supabase returns the data as a single object, not an array
     const recurringOrderInfo = {
       recurring_order_id: data.recurring_order_id,
       modified_from_template: data.modified_from_template,
-      recurring_orders: {
-        id: data.recurring_orders?.id,
-        frequency: data.recurring_orders?.frequency,
-        preferred_day: data.recurring_orders?.preferred_day,
-        preferred_time: data.recurring_orders?.preferred_time,
-        customers: data.recurring_orders?.customers
-      }
+      recurring_orders: data.recurring_orders // This is a single object, not an array
     };
     
     return recurringOrderInfo;
@@ -234,6 +229,7 @@ export const updateRecurringSchedule = async (
         const futureScheduleIds = futureRelationships
           .filter(rel => {
             if (!rel.dispatch_schedules || !schedule) return false;
+            // The dispatch_schedules property is an object, not an array
             const scheduleDate = new Date(rel.dispatch_schedules.schedule_date);
             const thisDate = new Date(schedule.schedule_date);
             return scheduleDate >= thisDate;
