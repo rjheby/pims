@@ -358,19 +358,22 @@ export const createSchedulesForRecurringOrders = async (
         }
       }
       
-      // Link the recurring order to the schedule
-      const { error: linkError } = await supabase
-        .from('recurring_order_schedules')
-        .insert({
-          recurring_order_id: recurringOrderId,
-          schedule_id: scheduleId,
-          status: 'active'
-        })
-        .onConflict(['recurring_order_id', 'schedule_id'])
-        .ignore();
-      
-      if (linkError) {
-        console.error('Error linking recurring order to schedule:', linkError);
+      // Link the recurring order to the schedule - Fix the onConflict issue
+      try {
+        const { error: linkError } = await supabase
+          .from('recurring_order_schedules')
+          .insert({
+            recurring_order_id: recurringOrderId,
+            schedule_id: scheduleId,
+            status: 'active'
+          });
+        
+        if (linkError) {
+          console.error('Error linking recurring order to schedule:', linkError);
+          continue;
+        }
+      } catch (error) {
+        console.error('Error inserting record:', error);
         continue;
       }
       
@@ -438,3 +441,111 @@ export const findSchedulesForDate = async (date: Date): Promise<any[]> => {
     return [];
   }
 };
+
+// Function to create a recurring order from an existing schedule
+export const createRecurringOrderFromSchedule = async (
+  scheduleId: string,
+  frequency: string,
+  preferredDay: string,
+  preferredTime: string | null = null
+): Promise<{ success: boolean, recurringOrderId?: string, error?: string }> => {
+  try {
+    // First, fetch the schedule details to get customer information
+    const { data: schedule, error: scheduleError } = await supabase
+      .from('dispatch_schedules')
+      .select('id, schedule_date')
+      .eq('id', scheduleId)
+      .single();
+    
+    if (scheduleError) throw scheduleError;
+    if (!schedule) throw new Error('Schedule not found');
+    
+    // Get the delivery stops for this schedule
+    const { data: stops, error: stopsError } = await supabase
+      .from('delivery_stops')
+      .select('customer_id, customer_name, items, notes')
+      .eq('master_schedule_id', scheduleId);
+    
+    if (stopsError) throw stopsError;
+    if (!stops || stops.length === 0) {
+      return { success: false, error: 'No delivery stops found for this schedule' };
+    }
+    
+    // Create a recurring order for each stop
+    const results = [];
+    
+    for (const stop of stops) {
+      // Create the recurring order
+      const { data: recurringOrder, error: createError } = await supabase
+        .from('recurring_orders')
+        .insert({
+          customer_id: stop.customer_id,
+          frequency: frequency,
+          preferred_day: preferredDay,
+          preferred_time: preferredTime,
+          active_status: true
+        })
+        .select()
+        .single();
+      
+      if (createError) {
+        console.error('Error creating recurring order:', createError);
+        continue;
+      }
+      
+      // Link this recurring order to the current schedule
+      const { error: linkError } = await supabase
+        .from('recurring_order_schedules')
+        .insert({
+          recurring_order_id: recurringOrder.id,
+          schedule_id: scheduleId,
+          status: 'active',
+          modified_from_template: false
+        });
+      
+      if (linkError) {
+        console.error('Error linking recurring order to schedule:', linkError);
+      }
+      
+      results.push({
+        success: true,
+        recurringOrderId: recurringOrder.id
+      });
+    }
+    
+    if (results.length === 0) {
+      return { success: false, error: 'Failed to create any recurring orders' };
+    }
+    
+    return { 
+      success: true, 
+      recurringOrderId: results[0].recurringOrderId 
+    };
+  } catch (error: any) {
+    console.error('Error creating recurring order from schedule:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Function to update a recurring schedule
+export const updateRecurringOrder = async (
+  recurringOrderId: string,
+  updateData: Partial<RecurringOrder>
+): Promise<{ success: boolean, error?: string }> => {
+  try {
+    const { error } = await supabase
+      .from('recurring_orders')
+      .update(updateData)
+      .eq('id', recurringOrderId);
+    
+    if (error) throw error;
+    
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error updating recurring order:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Alias function to maintain compatibility with components that may be expecting this
+export const updateRecurringSchedule = updateRecurringOrder;

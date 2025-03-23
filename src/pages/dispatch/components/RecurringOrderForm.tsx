@@ -1,201 +1,239 @@
 
-import { useState, useEffect } from 'react';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
-import { 
+import React, { useState } from 'react';
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Calendar } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Calendar, Clock } from "lucide-react";
 
-export interface RecurrenceData {
-  isRecurring: boolean;
-  frequency: string;
-  preferredDay?: string;
-  startDate?: string;
-  endDate?: string;
+interface RecurringOrderFormProps {
+  customers: any[];
+  onSubmit: (formData: any) => void;
+  onCancel: () => void;
+  initialValues?: {
+    customer_id?: string;
+    frequency?: string;
+    preferred_day?: string;
+    preferred_time?: string;
+  };
 }
 
-export interface RecurringOrderFormProps {
-  recurrenceData: RecurrenceData;
-  onRecurrenceChange: (recurrenceData: RecurrenceData) => void;
-  initialRecurrence?: RecurrenceData;
-}
+export function RecurringOrderForm({
+  customers,
+  onSubmit,
+  onCancel,
+  initialValues = {}
+}: RecurringOrderFormProps) {
+  const [formData, setFormData] = useState({
+    customer_id: initialValues.customer_id || '',
+    frequency: initialValues.frequency || 'weekly',
+    preferred_day: initialValues.preferred_day || 'monday',
+    preferred_time: initialValues.preferred_time || '',
+  });
 
-// Enhanced recurrence options with descriptions
-export const recurrenceOptions = [
-  { value: 'none', label: 'None' },
-  { value: 'weekly', label: 'Weekly', description: 'Deliver once every week' },
-  { value: 'biweekly', label: 'Bi-Weekly', description: 'Deliver once every two weeks' },
-  { value: 'monthly', label: 'Monthly', description: 'Deliver once per month' },
-  { value: 'custom', label: 'Custom', description: 'Define a custom schedule' }
-];
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-export const dayOptions = [
-  { value: 'monday', label: 'Monday' },
-  { value: 'tuesday', label: 'Tuesday' },
-  { value: 'wednesday', label: 'Wednesday' },
-  { value: 'thursday', label: 'Thursday' },
-  { value: 'friday', label: 'Friday' },
-  { value: 'saturday', label: 'Saturday' },
-  { value: 'sunday', label: 'Sunday' }
-];
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    
+    if (!formData.customer_id) {
+      newErrors.customer_id = 'Customer is required';
+    }
+    
+    if (!formData.frequency) {
+      newErrors.frequency = 'Frequency is required';
+    }
+    
+    if (!formData.preferred_day) {
+      newErrors.preferred_day = 'Preferred day is required';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
-export const RecurringOrderForm = ({ 
-  recurrenceData, 
-  onRecurrenceChange,
-  initialRecurrence 
-}: RecurringOrderFormProps) => {
-  // Use a summary state to display a human-readable description
-  const [summary, setSummary] = useState<string>('');
-  
-  // Update summary whenever recurrence data changes
-  useEffect(() => {
-    if (!recurrenceData.isRecurring) {
-      setSummary('');
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
       return;
     }
     
-    let summaryText = '';
-    const frequency = recurrenceOptions.find(o => o.value === recurrenceData.frequency)?.label || '';
-    const day = dayOptions.find(d => d.value === recurrenceData.preferredDay)?.label || '';
-    
-    if (frequency && day) {
-      summaryText = `Delivers ${frequency.toLowerCase()} on ${day}`;
-      
-      if (recurrenceData.startDate) {
-        try {
-          const formattedDate = new Date(recurrenceData.startDate).toLocaleDateString();
-          summaryText += ` starting ${formattedDate}`;
-        } catch (e) {
-          // Invalid date, skip
-        }
-      }
-      
-      if (recurrenceData.endDate) {
-        try {
-          const formattedDate = new Date(recurrenceData.endDate).toLocaleDateString();
-          summaryText += ` until ${formattedDate}`;
-        } catch (e) {
-          // Invalid date, skip
-        }
-      }
-    }
-    
-    setSummary(summaryText);
-  }, [recurrenceData]);
+    onSubmit(formData);
+  };
 
-  const handleChange = (field: keyof RecurrenceData, value: any) => {
-    const updatedData = { ...recurrenceData, [field]: value };
-    
-    // If toggling recurrence off, reset other fields
-    if (field === 'isRecurring' && value === false) {
-      updatedData.frequency = 'none';
-      updatedData.preferredDay = undefined;
+  const getDayOptions = () => {
+    if (formData.frequency === 'weekly' || formData.frequency === 'bi-weekly') {
+      return [
+        { value: 'monday', label: 'Monday' },
+        { value: 'tuesday', label: 'Tuesday' },
+        { value: 'wednesday', label: 'Wednesday' },
+        { value: 'thursday', label: 'Thursday' },
+        { value: 'friday', label: 'Friday' },
+        { value: 'saturday', label: 'Saturday' },
+        { value: 'sunday', label: 'Sunday' },
+      ];
+    } else if (formData.frequency === 'monthly') {
+      // For monthly, we'll offer both day-of-month and pattern options
+      const daysOfMonth = Array.from({ length: 28 }, (_, i) => ({
+        value: `${i + 1}`,
+        label: `${i + 1}${getDaySuffix(i + 1)} of the month`,
+      }));
+      
+      const patterns = [
+        { value: 'first monday', label: 'First Monday' },
+        { value: 'first tuesday', label: 'First Tuesday' },
+        { value: 'first wednesday', label: 'First Wednesday' },
+        { value: 'first thursday', label: 'First Thursday' },
+        { value: 'first friday', label: 'First Friday' },
+        { value: 'second monday', label: 'Second Monday' },
+        { value: 'second tuesday', label: 'Second Tuesday' },
+        { value: 'second wednesday', label: 'Second Wednesday' },
+        { value: 'second thursday', label: 'Second Thursday' },
+        { value: 'second friday', label: 'Second Friday' },
+        { value: 'third monday', label: 'Third Monday' },
+        { value: 'third tuesday', label: 'Third Tuesday' },
+        { value: 'third wednesday', label: 'Third Wednesday' },
+        { value: 'third thursday', label: 'Third Thursday' },
+        { value: 'third friday', label: 'Third Friday' },
+        { value: 'last monday', label: 'Last Monday' },
+        { value: 'last tuesday', label: 'Last Tuesday' },
+        { value: 'last wednesday', label: 'Last Wednesday' },
+        { value: 'last thursday', label: 'Last Thursday' },
+        { value: 'last friday', label: 'Last Friday' },
+      ];
+      
+      return [...daysOfMonth, ...patterns];
     }
     
-    // If toggling recurrence on, set default frequency
-    if (field === 'isRecurring' && value === true && recurrenceData.frequency === 'none') {
-      updatedData.frequency = 'weekly';
+    return [];
+  };
+
+  const getDaySuffix = (day: number) => {
+    if (day >= 11 && day <= 13) {
+      return 'th';
     }
     
-    onRecurrenceChange(updatedData);
+    switch (day % 10) {
+      case 1: return 'st';
+      case 2: return 'nd';
+      case 3: return 'rd';
+      default: return 'th';
+    }
   };
 
   return (
-    <div className="space-y-4 mt-4 border-t pt-4">
-      <div className="flex items-center justify-between">
-        <Label htmlFor="isRecurring" className="font-medium">Recurring Delivery</Label>
-        <Switch
-          id="isRecurring"
-          checked={recurrenceData.isRecurring}
-          onCheckedChange={(checked) => handleChange('isRecurring', checked)}
-        />
+    <form onSubmit={handleSubmit} className="space-y-4 py-4">
+      <div className="space-y-2">
+        <Label htmlFor="customer">Customer</Label>
+        <Select
+          value={formData.customer_id}
+          onValueChange={(value) => setFormData({ ...formData, customer_id: value })}
+        >
+          <SelectTrigger id="customer" className={errors.customer_id ? 'border-red-500' : ''}>
+            <SelectValue placeholder="Select a customer" />
+          </SelectTrigger>
+          <SelectContent>
+            {customers.map((customer) => (
+              <SelectItem key={customer.id} value={customer.id}>
+                {customer.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {errors.customer_id && (
+          <p className="text-sm text-red-500">{errors.customer_id}</p>
+        )}
       </div>
       
-      {summary && (
-        <Card className="bg-primary/5 border-primary/20">
-          <CardContent className="p-3 flex items-center">
-            <Calendar className="h-4 w-4 mr-2 text-primary" />
-            <span className="text-sm font-medium">{summary}</span>
-          </CardContent>
-        </Card>
-      )}
+      <div className="space-y-2">
+        <Label htmlFor="frequency">Frequency</Label>
+        <Select
+          value={formData.frequency}
+          onValueChange={(value) => {
+            setFormData({
+              ...formData,
+              frequency: value,
+              // Reset preferred day when frequency changes
+              preferred_day: value === 'monthly' ? '1' : 'monday'
+            });
+          }}
+        >
+          <SelectTrigger id="frequency" className={errors.frequency ? 'border-red-500' : ''}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="weekly">Weekly</SelectItem>
+            <SelectItem value="bi-weekly">Bi-Weekly</SelectItem>
+            <SelectItem value="monthly">Monthly</SelectItem>
+          </SelectContent>
+        </Select>
+        {errors.frequency && (
+          <p className="text-sm text-red-500">{errors.frequency}</p>
+        )}
+      </div>
       
-      {recurrenceData.isRecurring && (
-        <div className="space-y-4 mt-2">
-          <div>
-            <Label htmlFor="frequency" className="text-sm font-medium">Frequency</Label>
-            <Select
-              value={recurrenceData.frequency}
-              onValueChange={(value) => handleChange('frequency', value)}
-            >
-              <SelectTrigger id="frequency" className="w-full">
-                <SelectValue placeholder="Select frequency" />
-              </SelectTrigger>
-              <SelectContent>
-                {recurrenceOptions.filter(option => option.value !== 'none').map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    <div className="flex flex-col">
-                      <span>{option.label}</span>
-                      {option.description && (
-                        <span className="text-xs text-muted-foreground">{option.description}</span>
-                      )}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+      <div className="space-y-2">
+        <Label htmlFor="preferred_day">
+          {formData.frequency === 'monthly' ? 'Day of Month' : 'Preferred Day'}
+        </Label>
+        <Select
+          value={formData.preferred_day}
+          onValueChange={(value) => setFormData({ ...formData, preferred_day: value })}
+        >
+          <SelectTrigger 
+            id="preferred_day" 
+            className={`${errors.preferred_day ? 'border-red-500' : ''} flex items-center`}
+          >
+            <Calendar className="mr-2 h-4 w-4 text-gray-500" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="max-h-[300px]">
+            {getDayOptions().map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {errors.preferred_day && (
+          <p className="text-sm text-red-500">{errors.preferred_day}</p>
+        )}
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="preferred_time">Preferred Time (optional)</Label>
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <Clock className="h-4 w-4 text-gray-500" />
           </div>
-          
-          <div>
-            <Label htmlFor="preferredDay" className="text-sm font-medium">Preferred Day</Label>
-            <Select
-              value={recurrenceData.preferredDay}
-              onValueChange={(value) => handleChange('preferredDay', value)}
-            >
-              <SelectTrigger id="preferredDay" className="w-full">
-                <SelectValue placeholder="Select day" />
-              </SelectTrigger>
-              <SelectContent>
-                {dayOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="startDate" className="text-sm font-medium">Start Date</Label>
-              <Input
-                id="startDate"
-                type="date"
-                value={recurrenceData.startDate || ''}
-                onChange={(e) => handleChange('startDate', e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="endDate" className="text-sm font-medium">End Date (Optional)</Label>
-              <Input
-                id="endDate"
-                type="date"
-                value={recurrenceData.endDate || ''}
-                onChange={(e) => handleChange('endDate', e.target.value)}
-              />
-            </div>
-          </div>
+          <Input
+            id="preferred_time"
+            type="time"
+            className="pl-10"
+            value={formData.preferred_time}
+            onChange={(e) => setFormData({ ...formData, preferred_time: e.target.value })}
+          />
         </div>
-      )}
-    </div>
+        <p className="text-sm text-gray-500">
+          This is a preferred time window, not a guaranteed delivery time
+        </p>
+      </div>
+      
+      <div className="flex justify-end gap-2 pt-4">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button type="submit" className="bg-[#2A4131] hover:bg-[#2A4131]/90">
+          Create Recurring Order
+        </Button>
+      </div>
+    </form>
   );
-};
+}
