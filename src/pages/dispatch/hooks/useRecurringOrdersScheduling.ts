@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { calculateRecurringDates } from '../utils/timeWindowUtils';
 
 export interface RecurringOrder {
   id: string;
@@ -32,20 +33,6 @@ export function useRecurringOrdersScheduling(startDate?: Date, endDate?: Date) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
-
-  // Helper to convert day name to number
-  const dayToNumber = (day: string): number => {
-    const days = {
-      'sunday': 0,
-      'monday': 1,
-      'tuesday': 2,
-      'wednesday': 3,
-      'thursday': 4,
-      'friday': 5,
-      'saturday': 6
-    };
-    return days[day.toLowerCase() as keyof typeof days] || 0;
-  };
 
   // Fetch recurring orders
   const fetchRecurringOrders = async () => {
@@ -83,7 +70,7 @@ export function useRecurringOrdersScheduling(startDate?: Date, endDate?: Date) {
     }
   };
 
-  // Generate schedule occurrences for a date range
+  // Generate schedule occurrences for a date range using our improved time window utilities
   const generateOccurrences = (
     orders: RecurringOrder[], 
     start: Date = new Date(), 
@@ -94,45 +81,28 @@ export function useRecurringOrdersScheduling(startDate?: Date, endDate?: Date) {
     orders.forEach(order => {
       if (!order.preferred_day) return;
       
-      const preferredDayNum = dayToNumber(order.preferred_day);
-      let currentDate = new Date(start);
+      // Use the calculateRecurringDates utility to get all dates in the range
+      const dates = calculateRecurringDates(
+        order.frequency,
+        order.preferred_day,
+        start,
+        end
+      );
       
-      // Adjust to start from today if start date is in the past
-      if (currentDate < new Date()) {
-        currentDate = new Date();
-      }
-      
-      // Move to the next occurrence of preferred day
-      while (currentDate.getDay() !== preferredDayNum) {
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-      
-      // Generate occurrences within the date range
-      while (currentDate <= end) {
+      // Create an occurrence for each date
+      dates.forEach(date => {
         occurrences.push({
-          date: new Date(currentDate),
+          date: new Date(date),
           recurringOrder: order,
           isAutoScheduled: true
         });
-        
-        // Add the next occurrence based on frequency
-        switch (order.frequency) {
-          case 'weekly':
-            currentDate.setDate(currentDate.getDate() + 7);
-            break;
-          case 'biweekly':
-            currentDate.setDate(currentDate.getDate() + 14);
-            break;
-          case 'monthly':
-            currentDate.setMonth(currentDate.getMonth() + 1);
-            break;
-          default:
-            currentDate.setDate(currentDate.getDate() + 7); // Default to weekly
-        }
-      }
+      });
     });
     
-    return occurrences.sort((a, b) => a.date.getTime() - b.date.getTime());
+    // Sort by date
+    const sortedOccurrences = occurrences.sort((a, b) => a.date.getTime() - b.date.getTime());
+    setScheduledOccurrences(sortedOccurrences);
+    return sortedOccurrences;
   };
 
   // Add recurring order occurrence to a schedule
@@ -158,7 +128,9 @@ export function useRecurringOrdersScheduling(startDate?: Date, endDate?: Date) {
           customer_address: customer.address || '',
           customer_phone: customer.phone || '',
           notes: `Recurring ${recurringOrder.frequency} order`, 
-          status: 'pending'
+          status: 'pending',
+          is_recurring: true,
+          recurring_id: recurringOrder.id
         })
         .select();
         
@@ -182,8 +154,7 @@ export function useRecurringOrdersScheduling(startDate?: Date, endDate?: Date) {
     
     const init = async () => {
       const orders = await fetchRecurringOrders();
-      const occurrences = generateOccurrences(orders, startDate, endDate);
-      setScheduledOccurrences(occurrences);
+      generateOccurrences(orders, startDate, endDate);
     };
     
     init();

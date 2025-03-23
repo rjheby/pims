@@ -18,6 +18,8 @@ import { useState, useEffect } from "react";
 import { Customer, Driver } from "./dispatch/components/stops/types";
 import ScheduleSummary from "./dispatch/components/ScheduleSummary";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RecurringOrderScheduler } from "./dispatch/components/RecurringOrderScheduler";
 
 export default function DispatchForm() {
   const { id } = useParams<{ id: string }>();
@@ -25,7 +27,7 @@ export default function DispatchForm() {
   const isMobile = useIsMobile();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [showRecurringStops, setShowRecurringStops] = useState(false);
+  const [showRecurringTab, setShowRecurringTab] = useState(false);
   
   const {
     masterSchedule,
@@ -139,92 +141,23 @@ export default function DispatchForm() {
     }
   };
 
-  // Function to import recurring orders that match the schedule date
-  const handleImportRecurringOrders = async () => {
-    if (!masterSchedule) return;
+  // Handle adding stops from recurring order scheduler
+  const handleAddRecurringStops = (newStops: any[]) => {
+    if (newStops.length === 0) return;
     
-    try {
-      setShowRecurringStops(true);
-      const scheduleDate = new Date(masterSchedule.schedule_date);
-      const dayOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][scheduleDate.getDay()];
-      
-      toast({
-        title: "Loading",
-        description: `Finding recurring orders for ${dayOfWeek}...`,
-      });
-      
-      // Fetch recurring orders for this day of week
-      const { data: recurringOrders, error: recurringError } = await supabase
-        .from('recurring_orders')
-        .select(`
-          *,
-          customer:customer_id (
-            id, name, address, phone, email, street_address, city, state, zip_code
-          )
-        `)
-        .eq('preferred_day', dayOfWeek);
-        
-      if (recurringError) throw recurringError;
-      
-      if (recurringOrders && recurringOrders.length > 0) {
-        console.log(`Found ${recurringOrders.length} recurring orders for ${dayOfWeek}`);
-        
-        // Convert recurring orders to stops
-        const newStops = recurringOrders.map((order, index) => {
-          const customer = order.customer;
-          
-          // Check if this customer already exists in the stops
-          const existingStopIndex = stops.findIndex(s => s.customer_id === customer.id);
-          if (existingStopIndex >= 0) {
-            return null; // Skip if already in schedule
-          }
-          
-          const address = customer.address || constructAddress(customer);
-          
-          return {
-            stop_number: stops.length + index + 1,
-            customer_id: customer.id,
-            customer_name: customer.name,
-            customer_address: address,
-            customer_phone: customer.phone || '',
-            items: '', // No default items
-            notes: `Recurring ${order.frequency} order`,
-            price: 0,
-            is_recurring: true,
-            recurring_id: order.id,
-            status: 'pending'
-          };
-        }).filter(Boolean) as any[];
-        
-        if (newStops.length > 0) {
-          setStops([...stops, ...newStops]);
-          
-          toast({
-            title: "Success",
-            description: `Added ${newStops.length} recurring orders to schedule`,
-          });
-        } else {
-          toast({
-            title: "Info",
-            description: "All recurring orders are already in this schedule",
-          });
-        }
-      } else {
-        toast({
-          title: "Info",
-          description: `No recurring orders found for ${dayOfWeek}`,
-        });
-      }
-    } catch (error: any) {
-      console.error("Error importing recurring orders:", error);
-      toast({
-        title: "Error",
-        description: "Failed to import recurring orders: " + error.message,
-        variant: "destructive"
-      });
-    }
+    // Add the new stops to the existing stops
+    setStops([...stops, ...newStops]);
+    
+    toast({
+      title: "Success",
+      description: `Added ${newStops.length} recurring orders to the schedule`,
+    });
   };
 
+  // Get list of customer IDs already in the schedule
+  const existingCustomerIds = stops.map(stop => stop.customer_id);
+  
+  // Count recurring stops
   const recurringStopsCount = stops.filter(stop => stop.is_recurring).length;
 
   return (
@@ -277,30 +210,56 @@ export default function DispatchForm() {
                   disabled={masterSchedule.status === 'submitted'}
                 />
                 
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-medium">Delivery Stops</h3>
-                  {masterSchedule.status !== 'submitted' && (
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={handleImportRecurringOrders}
-                      className="flex items-center gap-2"
-                    >
-                      <CalendarClock className="h-4 w-4" />
-                      Import Recurring Orders
-                    </Button>
-                  )}
-                </div>
-                
-                <StopsTable 
-                  stops={stops} 
-                  onStopsChange={setStops}
-                  useMobileLayout={isMobile}
-                  readOnly={masterSchedule.status === 'submitted'}
-                  masterScheduleId={id || ''} 
-                  customers={customers}
-                  drivers={drivers}
-                />
+                <Tabs defaultValue="stops" className="w-full mt-4">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-medium">Delivery Stops</h3>
+                    <div className="flex items-center gap-2">
+                      {masterSchedule.status !== 'submitted' && (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setShowRecurringTab(true)}
+                          className="flex items-center gap-2"
+                        >
+                          <CalendarClock className="h-4 w-4" />
+                          Manage Recurring Orders
+                        </Button>
+                      )}
+                      <TabsList>
+                        <TabsTrigger value="stops">All Stops</TabsTrigger>
+                        <TabsTrigger 
+                          value="recurring" 
+                          disabled={masterSchedule.status === 'submitted'}
+                          onClick={() => setShowRecurringTab(true)}
+                        >
+                          Recurring
+                        </TabsTrigger>
+                      </TabsList>
+                    </div>
+                  </div>
+                  
+                  <TabsContent value="stops" className="mt-0">
+                    <StopsTable 
+                      stops={stops} 
+                      onStopsChange={setStops}
+                      useMobileLayout={isMobile}
+                      readOnly={masterSchedule.status === 'submitted'}
+                      masterScheduleId={id || ''} 
+                      customers={customers}
+                      drivers={drivers}
+                    />
+                  </TabsContent>
+                  
+                  <TabsContent value="recurring" className="mt-0">
+                    {showRecurringTab && masterSchedule.schedule_date && (
+                      <RecurringOrderScheduler
+                        scheduleDate={new Date(masterSchedule.schedule_date)}
+                        onAddStops={handleAddRecurringStops}
+                        existingCustomerIds={existingCustomerIds}
+                      />
+                    )}
+                  </TabsContent>
+                </Tabs>
 
                 {/* Enhanced schedule summary component */}
                 <ScheduleSummary 

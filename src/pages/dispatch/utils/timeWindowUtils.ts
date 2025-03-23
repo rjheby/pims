@@ -131,3 +131,122 @@ export const generateTimeOptions = (
   
   return options;
 };
+
+/**
+ * Converts a text-based time period (morning, afternoon, evening) to a TimeWindow
+ * Used for recurring orders with preferred time periods
+ */
+export const timeOfDayToWindow = (timeOfDay: string): TimeWindow => {
+  switch (timeOfDay.toLowerCase()) {
+    case 'morning':
+      return { start: '08:00', end: '12:00' };
+    case 'afternoon':
+      return { start: '12:00', end: '16:00' };
+    case 'evening':
+      return { start: '16:00', end: '20:00' };
+    default:
+      return { start: '08:00', end: '18:00' }; // Default business hours
+  }
+};
+
+/**
+ * Get next occurrence of a day from a given date
+ * @param dayName Full name of day (e.g., 'monday', 'tuesday')
+ * @param fromDate Starting date to calculate from
+ * @returns Date object of next occurrence of the specified day
+ */
+export const getNextDayOccurrence = (dayName: string, fromDate: Date = new Date()): Date => {
+  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const dayIndex = dayNames.indexOf(dayName.toLowerCase());
+  
+  if (dayIndex === -1) {
+    console.error(`Invalid day name: ${dayName}`);
+    return fromDate;
+  }
+  
+  const targetDate = new Date(fromDate);
+  const currentDay = targetDate.getDay();
+  
+  // Calculate days until next occurrence of the target day
+  let daysUntilTarget = dayIndex - currentDay;
+  if (daysUntilTarget <= 0) {
+    // If today is the target day or we've already passed it this week, get next week's occurrence
+    daysUntilTarget += 7;
+  }
+  
+  // Advance date by the calculated number of days
+  targetDate.setDate(targetDate.getDate() + daysUntilTarget);
+  return targetDate;
+};
+
+/**
+ * Calculate all occurrences of a recurring schedule within a date range
+ * @param frequency 'weekly', 'biweekly', or 'monthly'
+ * @param preferredDay Day of week (e.g., 'monday', 'tuesday')
+ * @param startDate Beginning of date range
+ * @param endDate End of date range
+ * @returns Array of dates for all occurrences
+ */
+export const calculateRecurringDates = (
+  frequency: string,
+  preferredDay: string,
+  startDate: Date,
+  endDate: Date
+): Date[] => {
+  if (!preferredDay) {
+    return [];
+  }
+  
+  const occurrences: Date[] = [];
+  let currentDate = getNextDayOccurrence(preferredDay, startDate);
+  
+  // Continue until we've passed the end date
+  while (currentDate <= endDate) {
+    occurrences.push(new Date(currentDate));
+    
+    // Calculate next occurrence based on frequency
+    switch (frequency.toLowerCase()) {
+      case 'weekly':
+        currentDate.setDate(currentDate.getDate() + 7);
+        break;
+      case 'biweekly':
+        currentDate.setDate(currentDate.getDate() + 14);
+        break;
+      case 'monthly':
+        // Move forward one month, then find the next occurrence of the preferred day
+        currentDate.setMonth(currentDate.getMonth() + 1);
+        currentDate = getNextDayOccurrence(preferredDay, currentDate);
+        break;
+      default:
+        currentDate.setDate(currentDate.getDate() + 7); // Default to weekly
+    }
+  }
+  
+  return occurrences;
+};
+
+/**
+ * Parse a preferred time string from the recurring orders table to a TimeWindow
+ */
+export const parsePreferredTimeToWindow = (preferredTime?: string): TimeWindow => {
+  if (!preferredTime) {
+    return { start: '08:00', end: '18:00' }; // Default to full business day
+  }
+  
+  // Check if it's a time of day term
+  if (['morning', 'afternoon', 'evening'].includes(preferredTime.toLowerCase())) {
+    return timeOfDayToWindow(preferredTime);
+  }
+  
+  // If it's a specific time window format (HH:MM-HH:MM)
+  const timeWindowMatch = preferredTime.match(/^(\d\d:\d\d)-(\d\d:\d\d)$/);
+  if (timeWindowMatch) {
+    return {
+      start: timeWindowMatch[1],
+      end: timeWindowMatch[2]
+    };
+  }
+  
+  // Default to business hours if format can't be determined
+  return { start: '08:00', end: '18:00' };
+};
