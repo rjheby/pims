@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { format, addDays, parseISO, isToday, isYesterday, isTomorrow } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, Filter, Download, Clock } from "lucide-react";
+import { Loader2, Plus, Filter, Download, Clock, CalendarCheck, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -11,6 +12,9 @@ import {
 } from "@/components/ui/table";
 import { DispatchFilters } from "./dispatch/components/DispatchFilters";
 import { downloadSchedulePDF } from "@/utils/GenerateSchedulePDF";
+import { Badge } from "@/components/ui/badge";
+import { useRecurringOrdersScheduling } from "./dispatch/hooks/useRecurringOrdersScheduling";
+import { parsePreferredTimeToWindow, formatTimeWindow } from "./dispatch/utils/timeWindowUtils";
 
 interface DeliverySchedule {
   id: string;
@@ -29,6 +33,16 @@ interface DeliverySchedule {
   };
 }
 
+interface RecurringDelivery {
+  id: string;
+  customer_name: string;
+  customer_id: string;
+  frequency: string;
+  preferred_time?: string;
+  date: Date;
+  isRecurring: true;
+}
+
 export default function DispatchScheduleView() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -40,6 +54,7 @@ export default function DispatchScheduleView() {
   const [schedules, setSchedules] = useState<DeliverySchedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
+  const [upcomingRecurringDeliveries, setUpcomingRecurringDeliveries] = useState<RecurringDelivery[]>([]);
   const [filters, setFilters] = useState({
     status: "",
     dateRange: {
@@ -48,9 +63,104 @@ export default function DispatchScheduleView() {
     }
   });
 
+  // Set up the recurring orders hook for a 30-day window
+  const today = new Date();
+  const thirtyDaysLater = new Date(today);
+  thirtyDaysLater.setDate(today.getDate() + 30);
+  
+  const { 
+    recurringOrders, 
+    getOccurrencesForDay, 
+    getNextDayOccurrences, 
+    loading: recurringLoading 
+  } = useRecurringOrdersScheduling(today, thirtyDaysLater);
+
   useEffect(() => {
     fetchSchedules();
   }, [selectedDate, activeTab, filters]);
+
+  // Fetch recurring deliveries when activeTab changes or recurring orders are loaded
+  useEffect(() => {
+    if (recurringOrders.length === 0) return;
+    
+    fetchRecurringDeliveries();
+  }, [activeTab, selectedDate, recurringOrders]);
+
+  const fetchRecurringDeliveries = () => {
+    let occurrences = [];
+    const { startDate, endDate } = getDateRange();
+    
+    // Get the date without time component for proper comparison
+    const startDateObj = new Date(startDate);
+    startDateObj.setHours(0, 0, 0, 0);
+    
+    const endDateObj = new Date(endDate);
+    endDateObj.setHours(23, 59, 59, 999);
+    
+    // Handle different tab selections
+    if (activeTab === "today") {
+      // Get day name (e.g., "monday", "tuesday")
+      const dayName = format(startDateObj, "EEEE").toLowerCase();
+      occurrences = getOccurrencesForDay(dayName, 0);
+    } else if (activeTab === "tomorrow") {
+      const tomorrowDate = new Date(startDateObj);
+      tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+      const dayName = format(tomorrowDate, "EEEE").toLowerCase();
+      occurrences = getOccurrencesForDay(dayName, 1);
+    } else if (activeTab === "next7days") {
+      // For next 7 days, get occurrences for each day
+      const days = [];
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(startDateObj);
+        date.setDate(date.getDate() + i);
+        days.push(date);
+      }
+      
+      // Get all occurrences within the date range
+      occurrences = [];
+      recurringOrders.forEach(order => {
+        if (!order.preferred_day) return;
+        
+        days.forEach(date => {
+          const dayName = format(date, "EEEE").toLowerCase();
+          if (order.preferred_day.toLowerCase() === dayName) {
+            // Check if this order would occur on this date based on frequency
+            const nextOccurrences = getNextDayOccurrences(dayName);
+            const matchingOccurrence = nextOccurrences.find(o => 
+              o.recurringOrder.id === order.id && 
+              format(o.date, "yyyy-MM-dd") === format(date, "yyyy-MM-dd")
+            );
+            
+            if (matchingOccurrence) {
+              occurrences.push(matchingOccurrence);
+            }
+          }
+        });
+      });
+    } else if (activeTab === "custom") {
+      // For custom date, get occurrences for that specific date
+      const customDate = new Date(selectedDate);
+      const dayName = format(customDate, "EEEE").toLowerCase();
+      
+      // Check if the custom date falls on the preferred day of any recurring order
+      occurrences = getNextDayOccurrences(dayName).filter(occurrence => 
+        format(occurrence.date, "yyyy-MM-dd") === format(customDate, "yyyy-MM-dd")
+      );
+    }
+    
+    // Convert to the expected format
+    const recurringDeliveries: RecurringDelivery[] = occurrences.map(occurrence => ({
+      id: occurrence.recurringOrder.id,
+      customer_name: occurrence.recurringOrder.customer?.name || "Unknown Customer",
+      customer_id: occurrence.recurringOrder.customer_id,
+      frequency: occurrence.recurringOrder.frequency,
+      preferred_time: occurrence.recurringOrder.preferred_time,
+      date: occurrence.date,
+      isRecurring: true
+    }));
+    
+    setUpcomingRecurringDeliveries(recurringDeliveries);
+  };
 
   const getDateRange = () => {
     const today = new Date();
@@ -210,8 +320,13 @@ export default function DispatchScheduleView() {
     }
   };
 
+  const handleCreateScheduleForDeliveries = (dateStr: string) => {
+    const date = new Date(dateStr);
+    navigate('/schedule-creator', { state: { selectedDate: date.toISOString() } });
+  };
+
   const groupSchedulesByMaster = () => {
-    const groupedSchedules: Record<number, DeliverySchedule[]> = {};
+    const groupedSchedules: Record<string, DeliverySchedule[]> = {};
     
     schedules.forEach(schedule => {
       const masterId = schedule.master_schedule_id;
@@ -229,6 +344,12 @@ export default function DispatchScheduleView() {
     schedules.forEach(schedule => {
       dates.add(schedule.delivery_date);
     });
+    
+    // Add dates from recurring deliveries
+    upcomingRecurringDeliveries.forEach(delivery => {
+      dates.add(delivery.date.toISOString().split('T')[0]);
+    });
+    
     return Array.from(dates).sort();
   };
 
@@ -250,7 +371,7 @@ export default function DispatchScheduleView() {
     </Button>
   );
 
-  if (loading && schedules.length === 0) {
+  if (loading && schedules.length === 0 && !recurringLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -325,74 +446,148 @@ export default function DispatchScheduleView() {
             
             {uniqueDates.length > 0 ? (
               <div className="space-y-8">
-                {uniqueDates.map(date => (
-                  <div key={date} className="space-y-4">
-                    <h3 className="text-md font-semibold border-b pb-2">
-                      {formatDisplayDate(date)}
-                    </h3>
-                    
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Client Name</TableHead>
-                          <TableHead>Client Phone</TableHead>
-                          <TableHead>Items</TableHead>
-                          <TableHead>Address</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {schedules
-                          .filter(schedule => schedule.delivery_date === date)
-                          .map(schedule => (
-                            <TableRow key={schedule.id}>
-                              <TableCell className="font-medium">
-                                {schedule.customers?.name || "Unknown"}
-                              </TableCell>
-                              <TableCell>
-                                {schedule.customers?.phone || "-"}
-                              </TableCell>
-                              <TableCell className="max-w-[200px] truncate">
-                                {schedule.items || "-"}
-                              </TableCell>
-                              <TableCell className="max-w-[200px] truncate">
-                                {schedule.customers?.address || "-"}
-                              </TableCell>
-                              <TableCell>
-                                <span className={`inline-flex px-2 py-1 rounded-full text-xs ${
-                                  schedule.status === "submitted" 
-                                    ? "bg-green-100 text-green-800" 
-                                    : "bg-yellow-100 text-yellow-800"
-                                }`}>
-                                  {schedule.status === "submitted" ? "Submitted" : "Draft"}
-                                </span>
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex justify-end gap-2">
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm" 
-                                    onClick={() => handleDownloadPDF(schedule.master_schedule_id)}
-                                  >
-                                    <Download className="h-4 w-4" />
-                                  </Button>
-                                  <Button 
-                                    variant="default" 
-                                    size="sm" 
-                                    className="bg-[#2A4131] hover:bg-[#2A4131]/90"
-                                    onClick={() => handleViewSchedule(schedule.master_schedule_id)}
-                                  >
-                                    View
-                                  </Button>
+                {uniqueDates.map(date => {
+                  // Get scheduled deliveries for this date
+                  const dateSchedules = schedules.filter(schedule => schedule.delivery_date === date);
+                  
+                  // Get recurring deliveries for this date
+                  const dateRecurringDeliveries = upcomingRecurringDeliveries.filter(
+                    delivery => delivery.date.toISOString().split('T')[0] === date
+                  );
+                  
+                  // Filter out recurring deliveries that already have a scheduled delivery
+                  const scheduledCustomerIds = new Set(dateSchedules.map(s => s.customer_id));
+                  const filteredRecurringDeliveries = dateRecurringDeliveries.filter(
+                    delivery => !scheduledCustomerIds.has(delivery.customer_id)
+                  );
+                  
+                  const hasUnscheduledRecurring = filteredRecurringDeliveries.length > 0;
+                  
+                  return (
+                    <div key={date} className="space-y-4">
+                      <div className="flex justify-between items-center border-b pb-2">
+                        <h3 className="text-md font-semibold">
+                          {formatDisplayDate(date)}
+                        </h3>
+                        
+                        {hasUnscheduledRecurring && (
+                          <Button 
+                            size="sm"
+                            onClick={() => handleCreateScheduleForDeliveries(date)}
+                            className="bg-[#2A4131] hover:bg-[#2A4131]/90"
+                          >
+                            <CalendarCheck className="mr-2 h-4 w-4" />
+                            Create Schedule with Recurring Orders
+                          </Button>
+                        )}
+                      </div>
+                      
+                      {/* Scheduled deliveries */}
+                      {dateSchedules.length > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-medium text-muted-foreground">Scheduled Deliveries</h4>
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Client Name</TableHead>
+                                <TableHead>Client Phone</TableHead>
+                                <TableHead>Items</TableHead>
+                                <TableHead>Address</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {dateSchedules.map(schedule => (
+                                <TableRow key={schedule.id}>
+                                  <TableCell className="font-medium">
+                                    {schedule.customers?.name || "Unknown"}
+                                  </TableCell>
+                                  <TableCell>
+                                    {schedule.customers?.phone || "-"}
+                                  </TableCell>
+                                  <TableCell className="max-w-[200px] truncate">
+                                    {schedule.items || "-"}
+                                  </TableCell>
+                                  <TableCell className="max-w-[200px] truncate">
+                                    {schedule.customers?.address || "-"}
+                                  </TableCell>
+                                  <TableCell>
+                                    <span className={`inline-flex px-2 py-1 rounded-full text-xs ${
+                                      schedule.status === "submitted" 
+                                        ? "bg-green-100 text-green-800" 
+                                        : "bg-yellow-100 text-yellow-800"
+                                    }`}>
+                                      {schedule.status === "submitted" ? "Submitted" : "Draft"}
+                                    </span>
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <div className="flex justify-end gap-2">
+                                      <Button 
+                                        variant="outline" 
+                                        size="sm" 
+                                        onClick={() => handleDownloadPDF(schedule.master_schedule_id)}
+                                      >
+                                        <Download className="h-4 w-4" />
+                                      </Button>
+                                      <Button 
+                                        variant="default" 
+                                        size="sm" 
+                                        className="bg-[#2A4131] hover:bg-[#2A4131]/90"
+                                        onClick={() => handleViewSchedule(schedule.master_schedule_id)}
+                                      >
+                                        View
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )}
+                      
+                      {/* Unscheduled recurring deliveries */}
+                      {hasUnscheduledRecurring && (
+                        <div className="space-y-2 mt-4">
+                          <h4 className="text-sm font-medium text-muted-foreground flex items-center">
+                            <AlertCircle className="h-4 w-4 mr-2 text-amber-500" />
+                            Upcoming Recurring Orders Not Yet Scheduled
+                          </h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-2">
+                            {filteredRecurringDeliveries.map(delivery => {
+                              const timeWindow = parsePreferredTimeToWindow(delivery.preferred_time);
+                              const formattedTimeWindow = formatTimeWindow(timeWindow);
+                              
+                              return (
+                                <div 
+                                  key={`${delivery.id}-${date}`} 
+                                  className="border p-4 rounded-md bg-amber-50 border-amber-200"
+                                >
+                                  <div className="flex justify-between items-start mb-2">
+                                    <h5 className="font-medium">{delivery.customer_name}</h5>
+                                    <Badge variant="outline" className="bg-amber-100 border-amber-300 text-amber-800">
+                                      {delivery.frequency}
+                                    </Badge>
+                                  </div>
+                                  <div className="text-sm space-y-1">
+                                    <p>{formattedTimeWindow}</p>
+                                  </div>
                                 </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                ))}
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {dateSchedules.length === 0 && !hasUnscheduledRecurring && (
+                        <div className="text-center py-4 text-muted-foreground border rounded-md">
+                          No deliveries scheduled for this date.
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-8 text-gray-500 border rounded-md">

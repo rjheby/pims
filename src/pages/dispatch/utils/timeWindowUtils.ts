@@ -201,7 +201,6 @@ export const calculateRecurringDates = (
   let currentDate = new Date(startDate);
   
   // First, find the first occurrence of the preferred day on or after the start date
-  // Fix here: Changed from "lowercase" to "long" and then convert to lowercase manually
   const currentDayName = currentDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
   if (preferredDay.toLowerCase() !== currentDayName) {
     currentDate = getNextDayOccurrence(preferredDay, startDate);
@@ -300,3 +299,76 @@ export const getTimeSlotColor = (timeWindow: TimeWindow): string => {
   }
 };
 
+/**
+ * Get all future occurrences of recurring orders for a specified number of days
+ * @param frequency 'weekly', 'biweekly', or 'monthly'
+ * @param preferredDay Day of week
+ * @param daysAhead Number of days to look ahead
+ * @returns Array of dates for all occurrences
+ */
+export const getFutureRecurringDates = (
+  frequency: string,
+  preferredDay: string, 
+  daysAhead: number = 30
+): Date[] => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const endDate = new Date(today);
+  endDate.setDate(endDate.getDate() + daysAhead);
+  
+  return calculateRecurringDates(frequency, preferredDay, today, endDate);
+};
+
+/**
+ * Determines if a date falls on a specific day of the week
+ * @param date The date to check
+ * @param dayName The day name (e.g., 'monday', 'tuesday')
+ * @returns Boolean indicating if the date falls on the specified day
+ */
+export const isDateOnDay = (date: Date, dayName: string): boolean => {
+  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const dayIndex = dayNames.indexOf(dayName.toLowerCase());
+  
+  if (dayIndex === -1) {
+    console.error(`Invalid day name: ${dayName}`);
+    return false;
+  }
+  
+  return date.getDay() === dayIndex;
+};
+
+/**
+ * Get next occurrence of a specific day of week after a given date
+ * @param date The reference date
+ * @param dayName The target day name (e.g., 'tuesday')
+ * @returns Date of the next occurrence of the specified day
+ */
+export const getNextSpecificDay = (date: Date, dayName: string): Date => {
+  // Create a new date to avoid modifying the original
+  const nextDate = new Date(date);
+  nextDate.setHours(0, 0, 0, 0);
+  
+  // Get the target day's index (0 = Sunday, 1 = Monday, etc.)
+  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const targetDayIndex = dayNames.indexOf(dayName.toLowerCase());
+  
+  if (targetDayIndex === -1) {
+    console.error(`Invalid day name: ${dayName}`);
+    return nextDate;
+  }
+  
+  // Get the current day index
+  const currentDayIndex = nextDate.getDay();
+  
+  // Calculate days until next occurrence
+  let daysToAdd = targetDayIndex - currentDayIndex;
+  if (daysToAdd <= 0) {
+    // If the target day is today or earlier in the week, get next week's occurrence
+    daysToAdd += 7;
+  }
+  
+  // Add the calculated days
+  nextDate.setDate(nextDate.getDate() + daysToAdd);
+  return nextDate;
+};
