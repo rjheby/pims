@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { addWeeks, addMonths, format, parse, isAfter, isBefore, isEqual, startOfDay, endOfDay, isSameDay } from "date-fns";
 
@@ -655,6 +656,7 @@ export const checkDateForRecurringOrders = async (date: Date): Promise<boolean> 
         5 // Look ahead a few occurrences
       );
       
+      // Fixed: Now properly checking each occurrence individually
       for (const occurrence of occurrences) {
         if (isSameDay(occurrence, date)) {
           return true;
