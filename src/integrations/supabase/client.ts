@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize the Supabase client
@@ -14,8 +13,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     storageKey: 'woodbourne-supabase-auth',
     detectSessionInUrl: true,
     flowType: 'pkce',
-    // Set long session duration (1 week = 604800 seconds)
-    sessionExpiryTime: 604800,
   },
   realtime: {
     params: {
