@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { addWeeks, addMonths, format, parse, isAfter, isBefore, isEqual, startOfDay, endOfDay, isSameDay } from "date-fns";
 
@@ -496,7 +495,7 @@ export const getUpcomingSchedulesForRecurringOrder = async (
 };
 
 /**
- * Find all schedules (both regular and recurring) for a specific date
+ * Find schedules (both regular and recurring) for a specific date
  */
 export const findSchedulesForDate = async (date: Date): Promise<any[]> => {
   try {
@@ -695,6 +694,92 @@ export const checkDateForRecurringOrders = async (date: Date): Promise<boolean> 
   } catch (error) {
     console.error('Error checking recurring orders for date:', error);
     return false;
+  }
+};
+
+/**
+ * Helper function to find schedules for a specific date (returns basic schedule info)
+ */
+export const findSchedulesForDateBasic = async (dateStr: string): Promise<Array<{
+  id: string;
+  schedule_date: string;
+  status: string;
+  schedule_number: string;
+}>> => {
+  try {
+    const { data, error } = await supabase
+      .from('dispatch_schedules')
+      .select('id, schedule_date, status, schedule_number')
+      .eq('schedule_date', dateStr);
+    
+    if (error) {
+      console.error("Error finding schedules:", error);
+      return [];
+    }
+    
+    return data || [];
+  } catch (err) {
+    console.error("Error in findSchedulesForDateBasic:", err);
+    return [];
+  }
+};
+
+/**
+ * Create a new schedule for a specific date
+ */
+export const createScheduleForDate = async (dateStr: string) => {
+  const scheduleNumber = `SCH-${dateStr.replace(/-/g, '')}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
+  
+  const { data, error } = await supabase
+    .from('dispatch_schedules')
+    .insert({
+      schedule_date: dateStr,
+      status: 'draft',
+      schedule_number: scheduleNumber,
+      notes: `Schedule for ${dateStr}`
+    })
+    .select()
+    .single();
+    
+  if (error) {
+    console.error("Error creating schedule:", error);
+    throw error;
+  }
+  
+  return data;
+};
+
+/**
+ * Consolidate recurring orders to a single schedule for a date
+ */
+export const consolidateRecurringOrders = async (dateStr: string) => {
+  try {
+    // Get existing schedules for this date
+    const existingSchedules = await findSchedulesForDateBasic(dateStr);
+    
+    // Check if we have any existing schedules
+    if (existingSchedules.length > 0) {
+      // Use the first schedule found for this date
+      const schedule = existingSchedules[0];
+      return {
+        scheduleId: schedule.id,
+        scheduleDateFormatted: format(new Date(schedule.schedule_date), 'yyyy-MM-dd'),
+        scheduleStatus: schedule.status,
+        scheduleNumber: schedule.schedule_number
+      };
+    } else {
+      // No existing schedule found, create a new one
+      const newSchedule = await createScheduleForDate(dateStr);
+      return {
+        scheduleId: newSchedule.id,
+        scheduleDateFormatted: format(new Date(newSchedule.schedule_date), 'yyyy-MM-dd'),
+        scheduleStatus: newSchedule.status,
+        scheduleNumber: newSchedule.schedule_number
+      };
+    }
+  } catch (error) {
+    console.error("Error consolidating recurring orders:", error);
+    return null;
   }
 };
 
