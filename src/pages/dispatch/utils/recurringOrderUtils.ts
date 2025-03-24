@@ -761,6 +761,12 @@ export const consolidateRecurringOrders = async (dateStr: string) => {
     if (existingSchedules.length > 0) {
       // Use the first schedule found for this date
       const firstSchedule = existingSchedules[0];
+      
+      // Ensure we have a valid schedule object
+      if (!firstSchedule) {
+        throw new Error("Schedule exists but couldn't be retrieved");
+      }
+      
       return {
         scheduleId: firstSchedule.id,
         scheduleDateFormatted: format(new Date(firstSchedule.schedule_date), 'yyyy-MM-dd'),
