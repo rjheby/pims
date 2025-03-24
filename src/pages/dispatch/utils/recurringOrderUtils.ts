@@ -760,12 +760,12 @@ export const consolidateRecurringOrders = async (dateStr: string) => {
     // Check if we have any existing schedules
     if (existingSchedules.length > 0) {
       // Use the first schedule found for this date
-      const schedule = existingSchedules[0];
+      const firstSchedule = existingSchedules[0];
       return {
-        scheduleId: schedule.id,
-        scheduleDateFormatted: format(new Date(schedule.schedule_date), 'yyyy-MM-dd'),
-        scheduleStatus: schedule.status,
-        scheduleNumber: schedule.schedule_number
+        scheduleId: firstSchedule.id,
+        scheduleDateFormatted: format(new Date(firstSchedule.schedule_date), 'yyyy-MM-dd'),
+        scheduleStatus: firstSchedule.status,
+        scheduleNumber: firstSchedule.schedule_number
       };
     } else {
       // No existing schedule found, create a new one
@@ -782,6 +782,3 @@ export const consolidateRecurringOrders = async (dateStr: string) => {
     return null;
   }
 };
-
-// Remove or modify createScheduleForRecurringOrder as it's creating separate schedules
-// which we're now handling in findSchedulesForDate
