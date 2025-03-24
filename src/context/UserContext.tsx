@@ -227,6 +227,9 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
+        options: {
+          data: keepSignedIn ? { session_duration: 604800 } : undefined
+        }
       });
       
       if (error) {

@@ -12,7 +12,10 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     storage: localStorage,
     storageKey: 'woodbourne-supabase-auth',
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    flowType: 'pkce',
+    // Set long session duration (1 week = 604800 seconds)
+    sessionExpiryTime: 604800,
   },
   realtime: {
     params: {

@@ -70,6 +70,13 @@ export function Auth() {
         const { error } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            // Set session duration to 7 days (in seconds)
+            // This will be used when the user verifies their email
+            data: {
+              session_duration: 604800
+            }
+          }
         });
         
         if (error) throw error;
@@ -83,6 +90,11 @@ export function Auth() {
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
+          options: {
+            // Set long session duration (7 days) if rememberMe is true
+            // This applies to the current session being created
+            data: rememberMe ? { session_duration: 604800 } : undefined
+          }
         });
         
         if (error) throw error;

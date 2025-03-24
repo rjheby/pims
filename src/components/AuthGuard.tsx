@@ -25,6 +25,9 @@ export function AuthGuard({ children, requiredRole }: AuthGuardProps) {
     if (location.pathname === '/auth') return;
     
     if (!user) {
+      // Store current location to redirect back after login
+      const currentPath = location.pathname;
+      
       // Show a toast notification about the redirect
       toast({
         title: "Authentication required",
@@ -33,7 +36,7 @@ export function AuthGuard({ children, requiredRole }: AuthGuardProps) {
       
       // Redirect to login if not authenticated, preserving current location
       navigate('/auth', { 
-        state: { from: location.pathname },
+        state: { from: currentPath },
         replace: true  // Use replace to avoid building up history stack
       });
     } else if (requiredRole && !hasPermission(requiredRole)) {
