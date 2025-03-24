@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { addWeeks, addMonths, format, parse, isAfter, isBefore, isEqual, startOfDay, endOfDay, isSameDay } from "date-fns";
 
@@ -529,6 +530,10 @@ export const findSchedulesForDate = async (date: Date): Promise<any[]> => {
     if (recurringError) throw recurringError;
     
     if (recurringOrders && recurringOrders.length > 0) {
+      // Consolidate all recurring orders for this date into a single schedule
+      let consolidatedSchedule = null;
+      const recurringOrdersForDate: any[] = [];
+      
       // For each recurring order, check if it should occur on this date
       for (const order of recurringOrders) {
         // Calculate if this recurring order applies to the selected date
@@ -540,17 +545,105 @@ export const findSchedulesForDate = async (date: Date): Promise<any[]> => {
         );
         
         if (occurrences.length > 0 && isSameDay(occurrences[0], date)) {
-          // Check if we already have a schedule for this recurring order on this date
-          const existingScheduleForRecurring = schedules.find(schedule => 
-            schedule.recurring_schedules && 
-            schedule.recurring_schedules.some((rs: any) => rs.recurring_order_id === order.id)
-          );
+          recurringOrdersForDate.push(order);
+        }
+      }
+      
+      // If we have recurring orders for this date but no existing schedule
+      if (recurringOrdersForDate.length > 0 && schedules.length === 0) {
+        // Create a single consolidated schedule for this date
+        const { data: newSchedule, error: createError } = await supabase
+          .from('dispatch_schedules')
+          .insert({
+            schedule_date: dateStr,
+            status: 'draft',
+            schedule_number: `SCH-${dateStr.replace(/-/g, '')}-REC-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
+            notes: `Auto-generated for recurring orders on ${dateStr}`
+          })
+          .select()
+          .single();
           
-          if (!existingScheduleForRecurring) {
-            // We need to create a schedule for this recurring order
-            const newSchedule = await createScheduleForRecurringOrder(order, dateStr);
-            if (newSchedule) {
-              schedules.push(newSchedule);
+        if (createError) {
+          console.error('Error creating consolidated schedule:', createError);
+        } else if (newSchedule) {
+          consolidatedSchedule = newSchedule;
+          schedules.push(newSchedule);
+          
+          // Add all recurring orders to this consolidated schedule
+          for (const order of recurringOrdersForDate) {
+            // Link the recurring order to this schedule
+            await supabase
+              .from('recurring_order_schedules')
+              .insert({
+                recurring_order_id: order.id,
+                schedule_id: newSchedule.id,
+                status: 'active'
+              });
+              
+            // Create a delivery stop for this customer
+            if (order.customer) {
+              await supabase
+                .from('delivery_stops')
+                .insert({
+                  master_schedule_id: newSchedule.id,
+                  customer_id: order.customer.id,
+                  customer_name: order.customer.name,
+                  customer_address: order.customer.address || '',
+                  customer_phone: order.customer.phone || '',
+                  status: 'pending',
+                  is_recurring: true,
+                  recurring_id: order.id,
+                  notes: `Auto-generated from recurring order (${order.frequency})`
+                });
+            }
+          }
+        }
+      } else if (recurringOrdersForDate.length > 0 && schedules.length > 0) {
+        // We have existing schedules, add recurring orders to the first one
+        const targetSchedule = schedules[0];
+        
+        for (const order of recurringOrdersForDate) {
+          // Check if this recurring order is already in this schedule
+          const { data: existingLinks } = await supabase
+            .from('recurring_order_schedules')
+            .select('*')
+            .eq('recurring_order_id', order.id)
+            .eq('schedule_id', targetSchedule.id);
+            
+          if (!existingLinks || existingLinks.length === 0) {
+            // Link the recurring order to this schedule
+            await supabase
+              .from('recurring_order_schedules')
+              .insert({
+                recurring_order_id: order.id,
+                schedule_id: targetSchedule.id,
+                status: 'active'
+              });
+          }
+          
+          // Check if a stop already exists for this customer
+          const { data: existingStops } = await supabase
+            .from('delivery_stops')
+            .select('*')
+            .eq('master_schedule_id', targetSchedule.id)
+            .eq('customer_id', order.customer.id);
+            
+          if (!existingStops || existingStops.length === 0) {
+            // Create a delivery stop for this customer
+            if (order.customer) {
+              await supabase
+                .from('delivery_stops')
+                .insert({
+                  master_schedule_id: targetSchedule.id,
+                  customer_id: order.customer.id,
+                  customer_name: order.customer.name,
+                  customer_address: order.customer.address || '',
+                  customer_phone: order.customer.phone || '',
+                  status: 'pending',
+                  is_recurring: true,
+                  recurring_id: order.id,
+                  notes: `Auto-generated from recurring order (${order.frequency})`
+                });
             }
           }
         }
@@ -561,71 +654,6 @@ export const findSchedulesForDate = async (date: Date): Promise<any[]> => {
   } catch (error) {
     console.error('Error finding schedules for date:', error);
     return [];
-  }
-};
-
-/**
- * Create a schedule for a recurring order on a specific date
- */
-const createScheduleForRecurringOrder = async (recurringOrder: any, dateStr: string): Promise<any | null> => {
-  try {
-    // Create a new schedule
-    const scheduleNumber = `SCH-${dateStr.replace(/-/g, '')}-REC-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
-    
-    const { data: newSchedule, error: scheduleError } = await supabase
-      .from('dispatch_schedules')
-      .insert({
-        schedule_date: dateStr,
-        status: 'draft',
-        schedule_number: scheduleNumber,
-        notes: `Auto-generated from recurring order for ${recurringOrder.customer?.name || 'unknown customer'}`
-      })
-      .select()
-      .single();
-      
-    if (scheduleError) throw scheduleError;
-    
-    if (!newSchedule) {
-      throw new Error('Failed to create new schedule');
-    }
-    
-    // Link the recurring order to this schedule
-    const { error: linkError } = await supabase
-      .from('recurring_order_schedules')
-      .insert({
-        recurring_order_id: recurringOrder.id,
-        schedule_id: newSchedule.id,
-        status: 'active'
-      });
-      
-    if (linkError) throw linkError;
-    
-    // Create a delivery stop for this customer in the schedule
-    if (recurringOrder.customer) {
-      const { error: stopError } = await supabase
-        .from('delivery_stops')
-        .insert({
-          master_schedule_id: newSchedule.id,
-          customer_id: recurringOrder.customer.id,
-          customer_name: recurringOrder.customer.name,
-          customer_address: recurringOrder.customer.address || '',
-          customer_phone: recurringOrder.customer.phone || '',
-          status: 'pending',
-          notes: `Auto-generated from recurring order (${recurringOrder.frequency})`
-        });
-        
-      if (stopError) throw stopError;
-    }
-    
-    // Add recurring_schedules property to match the format expected by the component
-    newSchedule.recurring_schedules = [{
-      recurring_order_id: recurringOrder.id
-    }];
-    
-    return newSchedule;
-  } catch (error) {
-    console.error('Error creating schedule for recurring order:', error);
-    return null;
   }
 };
 
@@ -669,3 +697,6 @@ export const checkDateForRecurringOrders = async (date: Date): Promise<boolean> 
     return false;
   }
 };
+
+// Remove or modify createScheduleForRecurringOrder as it's creating separate schedules
+// which we're now handling in findSchedulesForDate
