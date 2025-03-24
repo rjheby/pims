@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -13,7 +12,11 @@ import { supabase, fetchWithFallback, handleSupabaseError } from "@/integrations
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
-import { findSchedulesForDate, checkDateForRecurringOrders } from "../utils/recurringOrderUtils";
+import { 
+  findSchedulesForDate, 
+  checkDateForRecurringOrders,
+  syncAllRecurringOrders
+} from "../utils/recurringOrderUtils";
 
 interface DispatchSchedule {
   id: string;
@@ -420,6 +423,39 @@ export function DispatchScheduleManager({
     fetchSchedules();
   };
 
+  // New function to sync all recurring orders
+  const handleSyncRecurringOrders = async () => {
+    try {
+      setLoading(true);
+      const result = await syncAllRecurringOrders();
+      
+      if (result.success) {
+        toast({
+          title: 'Recurring Orders Synced',
+          description: `Successfully processed ${result.processed} recurring orders.`,
+        });
+        
+        // Refresh the schedule list
+        fetchSchedules();
+      } else {
+        toast({
+          title: 'Error',
+          description: `Failed to sync recurring orders: ${result.error}`,
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Error syncing recurring orders:', error);
+      toast({
+        title: 'Error',
+        description: `Failed to sync recurring orders: ${handleSupabaseError(error)}`,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Header with search and filters */}
@@ -445,13 +481,24 @@ export function DispatchScheduleManager({
             )}
           </div>
 
-          <Button 
-            onClick={handleCreateSchedule}
-            className="bg-[#2A4131] hover:bg-[#2A4131]/90"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            New Schedule
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={handleSyncRecurringOrders}
+              variant="outline"
+              disabled={loading}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Sync Recurring Orders
+            </Button>
+            
+            <Button 
+              onClick={handleCreateSchedule}
+              className="bg-[#2A4131] hover:bg-[#2A4131]/90"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              New Schedule
+            </Button>
+          </div>
         </div>
       )}
 
@@ -498,13 +545,27 @@ export function DispatchScheduleManager({
                 ? `There are no delivery schedules for ${format(selectedDate, "MMMM d, yyyy")}.`
                 : "No schedules match your search criteria."}
             </p>
-            <Button 
-              onClick={handleCreateSchedule}
-              className="bg-[#2A4131] hover:bg-[#2A4131]/90"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Create New Schedule
-            </Button>
+            
+            <div className="flex gap-2">
+              {selectedDate && (
+                <Button
+                  onClick={handleSyncRecurringOrders}
+                  variant="outline"
+                  className="mr-2"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Sync Recurring Orders
+                </Button>
+              )}
+              
+              <Button 
+                onClick={handleCreateSchedule}
+                className="bg-[#2A4131] hover:bg-[#2A4131]/90"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create New Schedule
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : (

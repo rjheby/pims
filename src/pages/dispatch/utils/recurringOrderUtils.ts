@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { addWeeks, addMonths, format, parse, isAfter, isBefore, isEqual, startOfDay, endOfDay, isSameDay } from "date-fns";
 
@@ -492,5 +491,180 @@ export const getUpcomingSchedulesForRecurringOrder = async (
   } catch (error) {
     console.error('Error fetching upcoming schedules:', error);
     return [];
+  }
+};
+
+/**
+ * Find all schedules (both regular and recurring) for a specific date
+ */
+export const findSchedulesForDate = async (date: Date): Promise<any[]> => {
+  try {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    
+    // First, find regular schedules for this date
+    const { data: regularSchedules, error: scheduleError } = await supabase
+      .from('dispatch_schedules')
+      .select(`
+        *,
+        recurring_schedules:recurring_order_schedules(recurring_order_id)
+      `)
+      .eq('schedule_date', dateStr);
+      
+    if (scheduleError) throw scheduleError;
+    
+    const schedules = regularSchedules || [];
+    
+    // Now check for recurring orders that should occur on this date
+    // but don't have a schedule created yet
+    const { data: recurringOrders, error: recurringError } = await supabase
+      .from('recurring_orders')
+      .select(`
+        *,
+        customer:customer_id (
+          id, name, address, phone, email
+        )
+      `)
+      .eq('active_status', true);
+      
+    if (recurringError) throw recurringError;
+    
+    if (recurringOrders && recurringOrders.length > 0) {
+      // For each recurring order, check if it should occur on this date
+      for (const order of recurringOrders) {
+        // Calculate if this recurring order applies to the selected date
+        const occurrences = calculateNextOccurrences(
+          new Date(dateStr),
+          order.frequency,
+          order.preferred_day,
+          1 // We just need to check if today is a match
+        );
+        
+        if (occurrences.length > 0 && isSameDay(occurrences[0], date)) {
+          // Check if we already have a schedule for this recurring order on this date
+          const existingScheduleForRecurring = schedules.find(schedule => 
+            schedule.recurring_schedules && 
+            schedule.recurring_schedules.some((rs: any) => rs.recurring_order_id === order.id)
+          );
+          
+          if (!existingScheduleForRecurring) {
+            // We need to create a schedule for this recurring order
+            const newSchedule = await createScheduleForRecurringOrder(order, dateStr);
+            if (newSchedule) {
+              schedules.push(newSchedule);
+            }
+          }
+        }
+      }
+    }
+    
+    return schedules;
+  } catch (error) {
+    console.error('Error finding schedules for date:', error);
+    return [];
+  }
+};
+
+/**
+ * Create a schedule for a recurring order on a specific date
+ */
+const createScheduleForRecurringOrder = async (recurringOrder: any, dateStr: string): Promise<any | null> => {
+  try {
+    // Create a new schedule
+    const scheduleNumber = `SCH-${dateStr.replace(/-/g, '')}-REC-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
+    
+    const { data: newSchedule, error: scheduleError } = await supabase
+      .from('dispatch_schedules')
+      .insert({
+        schedule_date: dateStr,
+        status: 'draft',
+        schedule_number: scheduleNumber,
+        notes: `Auto-generated from recurring order for ${recurringOrder.customer?.name || 'unknown customer'}`
+      })
+      .select()
+      .single();
+      
+    if (scheduleError) throw scheduleError;
+    
+    if (!newSchedule) {
+      throw new Error('Failed to create new schedule');
+    }
+    
+    // Link the recurring order to this schedule
+    const { error: linkError } = await supabase
+      .from('recurring_order_schedules')
+      .insert({
+        recurring_order_id: recurringOrder.id,
+        schedule_id: newSchedule.id,
+        status: 'active'
+      });
+      
+    if (linkError) throw linkError;
+    
+    // Create a delivery stop for this customer in the schedule
+    if (recurringOrder.customer) {
+      const { error: stopError } = await supabase
+        .from('delivery_stops')
+        .insert({
+          master_schedule_id: newSchedule.id,
+          customer_id: recurringOrder.customer.id,
+          customer_name: recurringOrder.customer.name,
+          customer_address: recurringOrder.customer.address || '',
+          customer_phone: recurringOrder.customer.phone || '',
+          status: 'pending',
+          notes: `Auto-generated from recurring order (${recurringOrder.frequency})`
+        });
+        
+      if (stopError) throw stopError;
+    }
+    
+    // Add recurring_schedules property to match the format expected by the component
+    newSchedule.recurring_schedules = [{
+      recurring_order_id: recurringOrder.id
+    }];
+    
+    return newSchedule;
+  } catch (error) {
+    console.error('Error creating schedule for recurring order:', error);
+    return null;
+  }
+};
+
+/**
+ * Check if a specific date has any recurring orders
+ */
+export const checkDateForRecurringOrders = async (date: Date): Promise<boolean> => {
+  try {
+    // Get all active recurring orders
+    const { data: recurringOrders, error } = await supabase
+      .from('recurring_orders')
+      .select('*')
+      .eq('active_status', true);
+      
+    if (error) throw error;
+    
+    if (!recurringOrders || recurringOrders.length === 0) {
+      return false;
+    }
+    
+    // Check if any recurring order matches this date
+    for (const order of recurringOrders) {
+      const occurrences = calculateNextOccurrences(
+        new Date(),
+        order.frequency,
+        order.preferred_day,
+        5 // Look ahead a few occurrences
+      );
+      
+      for (const occurrence of occurrences) {
+        if (isSameDay(occurrence, date)) {
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('Error checking recurring orders for date:', error);
+    return false;
   }
 };
