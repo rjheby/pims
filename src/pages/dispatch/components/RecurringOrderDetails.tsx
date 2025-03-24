@@ -50,6 +50,7 @@ export function RecurringOrderDetails({
       if (error) throw error;
       
       setOrderDetails(data);
+      console.log("Fetched recurring order details:", data);
       
       // Calculate future occurrences
       if (data) {
@@ -92,6 +93,9 @@ export function RecurringOrderDetails({
         .eq('id', orderId);
         
       if (error) throw error;
+      
+      // After updating the recurring order, we need to update the recurring schedules
+      await updateRecurringSchedule(orderId);
       
       toast({
         title: "Success",

@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
   Plus, CalendarDays, MoreHorizontal, Pencil, Trash2, 
-  CheckCircle, XCircle, Clock, User, Repeat
+  CheckCircle, XCircle, Clock, User, Repeat, RefreshCw
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -30,12 +30,13 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { RecurringOrderForm } from "./RecurringOrderForm";
 import { RecurringOrderDetails } from "./RecurringOrderDetails";
-import { calculateNextOccurrences } from "../utils/recurringOrderUtils";
+import { calculateNextOccurrences, syncAllRecurringOrders } from "../utils/recurringOrderUtils";
 
 export function RecurringOrderManager() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [recurringOrders, setRecurringOrders] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -118,6 +119,17 @@ export function RecurringOrderManager() {
       
       setShowAddForm(false);
       fetchRecurringOrders();
+      
+      // After creating a recurring order, sync it with dispatch schedules
+      if (newOrder) {
+        syncAllRecurringOrders().then(result => {
+          if (result.success) {
+            console.log(`Synced ${result.processed} recurring orders`);
+          } else {
+            console.error('Failed to sync recurring orders:', result.error);
+          }
+        });
+      }
     } catch (error: any) {
       console.error('Error creating recurring order:', error);
       toast({
@@ -202,6 +214,16 @@ export function RecurringOrderManager() {
         description: `Recurring order ${newStatus ? 'activated' : 'deactivated'} successfully`,
       });
       
+      // If activating, sync the order
+      if (newStatus) {
+        syncAllRecurringOrders().then(result => {
+          if (result.success) {
+            console.log(`Synced ${result.processed} recurring orders`);
+          } else {
+            console.error('Failed to sync recurring orders:', result.error);
+          }
+        });
+      }
     } catch (error: any) {
       console.error('Error updating order status:', error);
       toast({
@@ -209,6 +231,36 @@ export function RecurringOrderManager() {
         description: `Failed to update status: ${error.message}`,
         variant: "destructive"
       });
+    }
+  };
+
+  const handleSyncOrders = async () => {
+    try {
+      setSyncing(true);
+      
+      const result = await syncAllRecurringOrders();
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: `Synchronized ${result.processed} recurring orders with dispatch schedules`,
+        });
+      } else {
+        toast({
+          title: "Warning",
+          description: `Synchronization completed with errors: ${result.error}`,
+          variant: "destructive"
+        });
+      }
+    } catch (error: any) {
+      console.error('Error syncing orders:', error);
+      toast({
+        title: "Error",
+        description: `Failed to sync orders: ${error.message}`,
+        variant: "destructive"
+      });
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -247,17 +299,33 @@ export function RecurringOrderManager() {
     }
   };
 
+  const handleDetailsDialogClosed = () => {
+    setShowDetailsDialog(false);
+    fetchRecurringOrders();
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-lg font-semibold">Recurring Orders</h2>
-        <Button 
-          onClick={() => setShowAddForm(true)}
-          className="bg-[#2A4131] hover:bg-[#2A4131]/90"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          New Recurring Order
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={handleSyncOrders}
+            variant="outline"
+            disabled={syncing}
+            className="flex items-center gap-1"
+          >
+            <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Syncing...' : 'Sync Orders'}
+          </Button>
+          <Button 
+            onClick={() => setShowAddForm(true)}
+            className="bg-[#2A4131] hover:bg-[#2A4131]/90"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            New Recurring Order
+          </Button>
+        </div>
       </div>
       
       {loading ? (
@@ -416,10 +484,13 @@ export function RecurringOrderManager() {
       
       {/* Order Details Dialog */}
       {selectedOrderId && (
-        <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <Dialog open={showDetailsDialog} onOpenChange={handleDetailsDialogClosed}>
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
               <DialogTitle>Recurring Order Details</DialogTitle>
+              <DialogDescription>
+                View and edit recurring order settings
+              </DialogDescription>
             </DialogHeader>
             
             <RecurringOrderDetails 
