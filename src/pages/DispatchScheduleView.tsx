@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { format, isToday, parseISO, startOfWeek, addDays } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +20,7 @@ export default function DispatchScheduleView() {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const urlUpdatedRef = useRef(false);
   
   useEffect(() => {
     // Check if the WebSocket connection is working
@@ -51,17 +52,29 @@ export default function DispatchScheduleView() {
       try {
         const parsedDate = parseISO(dateParam);
         setSelectedDate(parsedDate);
+        urlUpdatedRef.current = true; // Mark that we've already processed the URL param
       } catch (error) {
         console.error("Invalid date parameter:", error);
       }
     }
   }, [location.search]);
   
-  // Update URL when selected date changes
+  // Update URL when selected date changes - with throttling to prevent excessive history.replaceState() calls
   useEffect(() => {
+    // Skip the first update if we just processed the URL parameter
+    if (urlUpdatedRef.current) {
+      urlUpdatedRef.current = false;
+      return;
+    }
+    
     const dateString = format(selectedDate, 'yyyy-MM-dd');
-    navigate(`/dispatch-schedule?date=${dateString}`, { replace: true });
-  }, [selectedDate, navigate]);
+    const currentParams = new URLSearchParams(location.search);
+    
+    // Only update URL if the date has actually changed
+    if (currentParams.get('date') !== dateString) {
+      navigate(`/dispatch-schedule?date=${dateString}`, { replace: true });
+    }
+  }, [selectedDate, navigate, location.search]);
   
   const handlePreviousWeek = () => {
     const newWeekStart = new Date(weekStart);
