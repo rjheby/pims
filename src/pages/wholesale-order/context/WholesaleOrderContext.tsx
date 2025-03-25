@@ -1,5 +1,6 @@
+
 import { createContext, useContext, useState, ReactNode, Dispatch, SetStateAction, useEffect, useCallback } from "react";
-import { OrderItem, DropdownOptions, initialOptions } from "../types";
+import { OrderItem, DropdownOptions } from "../types";
 import { useToast } from "@/hooks/use-toast";
 import { useAdmin } from "@/context/AdminContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -42,6 +43,15 @@ interface WholesaleOrderProviderProps {
   initialItems?: OrderItem[];
 }
 
+// Default empty options structure - this will be filled from the database
+const emptyOptions: DropdownOptions = {
+  species: [],
+  length: [],
+  bundleType: [],
+  thickness: [],
+  packaging: []
+};
+
 // Helper type for the Supabase wholesale_order_options table row
 type WholesaleOrderOptionsRow = {
   id: number;
@@ -68,8 +78,8 @@ export function WholesaleOrderProvider({ children, initialItems }: WholesaleOrde
   const [deliveryDate, setDeliveryDate] = useState("");
   const [isAdmin, setIsAdmin] = useState(true); // Default to true for easier testing
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [options, setOptions] = useState<DropdownOptions>(initialOptions);
-  const [optionsHistory, setOptionsHistory] = useState<DropdownOptions[]>([initialOptions]);
+  const [options, setOptions] = useState<DropdownOptions>(emptyOptions);
+  const [optionsHistory, setOptionsHistory] = useState<DropdownOptions[]>([emptyOptions]);
   const [editingField, setEditingField] = useState<keyof DropdownOptions | null>(null);
   const [newOption, setNewOption] = useState("");
   const [items, setItems] = useState<OrderItem[]>(initialItems || [{
@@ -91,44 +101,61 @@ export function WholesaleOrderProvider({ children, initialItems }: WholesaleOrde
   const loadOptions = useCallback(async () => {
     setIsLoadingOptions(true);
     try {
-      // Using the `.from('table_name')` syntax instead of the schema-typed version
-      // because the table was just created
-      const { data, error } = await supabase
+      // First try to get options from wholesale_order_options table
+      const { data: optionsData, error: optionsError } = await supabase
         .from('wholesale_order_options')
         .select('*')
         .eq('id', 1)
         .single();
 
-      if (error) {
-        if (error.code === 'PGRST116') {
-          // No data found, use initial options
-          console.log('No options found in database, using default options');
-          // Save initial options to database for future use
-          await saveOptionsToSupabase(initialOptions);
-        } else {
-          console.error('Error loading options:', error);
-          toast({
-            title: "Error loading options",
-            description: error.message,
-            variant: "destructive"
-          });
-        }
-      } else if (data) {
-        console.log('Options loaded from database:', data);
-        const optionsData = data as WholesaleOrderOptionsRow;
-        // Convert the DB row to our DropdownOptions type
-        const loadedOptions: DropdownOptions = {
-          species: optionsData.species || initialOptions.species,
-          length: optionsData.length || initialOptions.length,
-          bundleType: optionsData.bundleType || initialOptions.bundleType,
-          thickness: optionsData.thickness || initialOptions.thickness,
-          packaging: optionsData.packaging || initialOptions.packaging
-        };
-        setOptions(loadedOptions);
-        setOptionsHistory([loadedOptions]);
+      // Initialize options object that will be populated with real data
+      const loadedOptions: DropdownOptions = { ...emptyOptions };
+
+      // Fetch unique attribute values from wood_products table
+      const { data: woodProducts, error: woodProductsError } = await supabase
+        .from('wood_products')
+        .select('species, length, bundle_type, thickness');
+
+      if (woodProductsError) {
+        console.error('Error loading wood products:', woodProductsError);
+        throw woodProductsError;
       }
+
+      if (woodProducts && woodProducts.length > 0) {
+        // Extract unique values for each attribute
+        const uniqueSpecies = [...new Set(woodProducts.map(p => p.species))];
+        const uniqueLength = [...new Set(woodProducts.map(p => p.length))];
+        const uniqueBundleType = [...new Set(woodProducts.map(p => p.bundle_type))];
+        const uniqueThickness = [...new Set(woodProducts.map(p => p.thickness))];
+
+        // Populate options with values from wood_products
+        loadedOptions.species = uniqueSpecies;
+        loadedOptions.length = uniqueLength;
+        loadedOptions.bundleType = uniqueBundleType;
+        loadedOptions.thickness = uniqueThickness;
+      }
+
+      // Add packaging options from the options table if available
+      if (optionsData) {
+        loadedOptions.packaging = optionsData.packaging || ['Pallets', 'Crates', 'Boxes', '12x10" Boxes'];
+      } else {
+        loadedOptions.packaging = ['Pallets', 'Crates', 'Boxes', '12x10" Boxes'];
+        
+        // If options table doesn't exist, create it with the current options
+        await saveOptionsToSupabase(loadedOptions);
+      }
+
+      console.log('Options loaded from database:', loadedOptions);
+      setOptions(loadedOptions);
+      setOptionsHistory([loadedOptions]);
+
     } catch (err) {
       console.error('Error in loadOptions:', err);
+      toast({
+        title: "Error loading options",
+        description: "Failed to load product options from the database",
+        variant: "destructive"
+      });
     } finally {
       setIsLoadingOptions(false);
     }
@@ -137,8 +164,7 @@ export function WholesaleOrderProvider({ children, initialItems }: WholesaleOrde
   // Save options to Supabase
   const saveOptionsToSupabase = async (optionsToSave: DropdownOptions) => {
     try {
-      // Using the `.from('table_name')` syntax instead of the schema-typed version
-      // because the table was just created
+      // Using the `.from('table_name')` syntax 
       const { error } = await supabase
         .from('wholesale_order_options')
         .upsert({ 

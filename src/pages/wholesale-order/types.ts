@@ -1,3 +1,4 @@
+
 import { SupabaseClient } from "@supabase/supabase-js";
 import { Json } from "@/integrations/supabase/types";
 
@@ -43,13 +44,13 @@ export interface DropdownOptions {
   packaging: string[];
 }
 
-// Initial dropdown options
-export const initialOptions: DropdownOptions = {
-  species: ["Pine", "Oak", "Maple", "Cherry", "Mixed Hardwood"],
-  length: ["16\"", "18\"", "24\"", "36\"", "48\""],
-  bundleType: ["Standard", "Premium", "Loose"],
-  thickness: ["1\"", "2\"", "3\"", "4\""],
-  packaging: ["Pallets", "Crates", "Boxes", "12x10\" Boxes"]
+// Empty options object for initial state
+export const emptyOptions: DropdownOptions = {
+  species: [],
+  length: [],
+  bundleType: [],
+  thickness: [],
+  packaging: []
 };
 
 // Utility functions for OrderTable

@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { DropdownOptions } from "../types";
 import { handleOptionOperation } from "../utils/optionManagement";
+import { useToast } from "@/hooks/use-toast";
 
 interface OrderTableDropdownCellProps {
   fieldName: keyof DropdownOptions;
@@ -44,6 +45,7 @@ export function OrderTableDropdownCell({
   isAdmin,
   readOnly = false,
 }: OrderTableDropdownCellProps) {
+  const { toast } = useToast();
   const isEditing = editingField === fieldName;
   const [showNewOptionInput, setShowNewOptionInput] = useState(false);
   const [editableOption, setEditableOption] = useState("");
@@ -121,8 +123,19 @@ export function OrderTableDropdownCell({
       
       setShowNewOptionInput(false);
       onNewOptionChange(""); // Clear the input after saving
+      
+      toast({
+        title: "Success",
+        description: `${operation === 'add' ? 'Added' : 'Updated'} ${fieldName} option`,
+      });
+      
     } catch (error) {
       console.error("Error saving option:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save option",
+        variant: "destructive"
+      });
     } finally {
       setIsProcessing(false);
     }

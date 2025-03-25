@@ -47,7 +47,16 @@ export const addOption = async (
     // Add the new option
     updatedOptions[field] = [...updatedOptions[field], newOption];
     
-    // Update the database
+    // If adding a value that should be in wood_products table, add it there too
+    if (field === 'species' || field === 'length' || field === 'bundleType' || field === 'thickness') {
+      // For bundleType, we need to map to bundle_type column in the database
+      const columnName = field === 'bundleType' ? 'bundle_type' : field;
+      
+      // We don't need to add to wood_products here as that would create an incomplete product.
+      // These values will be used when creating complete products through the product form.
+    }
+    
+    // Update the options in the wholesale_order_options table
     const { error } = await supabase
       .from('wholesale_order_options')
       .update({ [field]: updatedOptions[field] })
@@ -126,7 +135,23 @@ export const updateOption = async (
     // Update the option
     updatedOptions[field][optionIndex] = newOption;
     
-    // Update the database
+    // Update existing products in wood_products with this attribute if it's a core field
+    if (field === 'species' || field === 'length' || field === 'bundleType' || field === 'thickness') {
+      // For bundleType, we need to map to bundle_type column in the database
+      const columnName = field === 'bundleType' ? 'bundle_type' : field;
+      
+      // Update products in wood_products table that use this option
+      const { error: productUpdateError } = await supabase
+        .from('wood_products')
+        .update({ [columnName]: newOption })
+        .eq(columnName, oldOption);
+      
+      if (productUpdateError) {
+        console.error('Error updating products in database:', productUpdateError);
+      }
+    }
+    
+    // Update the options in wholesale_order_options table
     const { error } = await supabase
       .from('wholesale_order_options')
       .update({ [field]: updatedOptions[field] })
