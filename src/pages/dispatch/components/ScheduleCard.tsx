@@ -117,12 +117,13 @@ export function ScheduleCard({
       }
       
       // Make sure we're parsing the date correctly from the database's yyyy-MM-dd format
-      const parsedDate = parse(schedule.schedule_date, 'yyyy-MM-dd', new Date());
+      // This ensures consistent display regardless of how the schedule_number was generated
+      const parsedDate = parse(String(schedule.schedule_date).trim(), 'yyyy-MM-dd', new Date());
       return format(parsedDate, "EEEE, MMMM d, yyyy");
     } catch (error) {
       console.error("Date parsing error:", error, schedule.schedule_date);
       // Fallback to displaying the raw date if parsing fails
-      return schedule.schedule_date;
+      return String(schedule.schedule_date);
     }
   })();
   

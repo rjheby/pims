@@ -238,7 +238,7 @@ export const syncAllRecurringOrders = async (): Promise<{
       return { success: true, processed: 0 };
     }
     
-    // Group orders by date first to consolidate schedules
+    // Group orders by customer first to consolidate schedules
     const ordersByCustomer: Record<string, any[]> = {};
     activeOrders.forEach(order => {
       if (!ordersByCustomer[order.customer_id]) {
@@ -302,13 +302,30 @@ export const getUpcomingSchedulesForRecurringOrder = async (
     // Filter out schedules in the past
     const today = startOfDay(new Date());
     
-    return links
+    // Fix TypeScript error with a more robust approach
+    const upcomingSchedules = (links || [])
       .filter(link => {
-        if (!link.schedule || !link.schedule.schedule_date) return false;
-        const scheduleDate = parse(link.schedule.schedule_date, 'yyyy-MM-dd', new Date());
-        return !isBefore(scheduleDate, today);
+        // Ensure the schedule object exists and has a schedule_date property
+        if (!link || !link.schedule || typeof link.schedule !== 'object' || !('schedule_date' in link.schedule)) {
+          console.warn('Invalid schedule data found:', link);
+          return false;
+        }
+        
+        try {
+          const scheduleDate = parse(
+            link.schedule.schedule_date as string, 
+            'yyyy-MM-dd', 
+            new Date()
+          );
+          return !isBefore(scheduleDate, today);
+        } catch (error) {
+          console.error('Date parsing error:', error, link.schedule);
+          return false;
+        }
       })
       .map(link => link.schedule);
+      
+    return upcomingSchedules;
   } catch (error) {
     console.error('Error fetching upcoming schedules:', error);
     return [];
