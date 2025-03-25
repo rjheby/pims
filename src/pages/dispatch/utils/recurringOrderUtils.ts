@@ -752,13 +752,18 @@ export const createScheduleForDate = async (dateStr: string) => {
 /**
  * Consolidate recurring orders to a single schedule for a date
  */
-export const consolidateRecurringOrders = async (dateStr: string) => {
+export const consolidateRecurringOrders = async (dateStr: string): Promise<{
+  scheduleId: string;
+  scheduleDateFormatted: string;
+  scheduleStatus: string;
+  scheduleNumber: string;
+} | null> => {
   try {
     // Get existing schedules for this date
     const existingSchedules = await findSchedulesForDateBasic(dateStr);
     
     // Check if we have any existing schedules
-    if (existingSchedules.length > 0) {
+    if (existingSchedules && existingSchedules.length > 0) {
       // Use the first schedule found for this date
       const firstSchedule = existingSchedules[0];
       
