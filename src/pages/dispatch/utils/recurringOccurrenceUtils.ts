@@ -1,4 +1,5 @@
 import { addWeeks, addMonths, format, parse, isAfter, isBefore, isEqual, startOfDay, endOfDay, isSameDay } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Convert a day name to its index (0 = Sunday, 1 = Monday, etc.)
@@ -171,4 +172,45 @@ export const calculateNextOccurrences = (
   }
   
   return occurrences;
+};
+
+/**
+ * Check if a specific date has any recurring orders
+ */
+export const checkDateForRecurringOrders = async (date: Date): Promise<boolean> => {
+  try {
+    // Get all active recurring orders
+    const { data: recurringOrders, error } = await supabase
+      .from('recurring_orders')
+      .select('*')
+      .eq('active_status', true);
+      
+    if (error) throw error;
+    
+    if (!recurringOrders || recurringOrders.length === 0) {
+      return false;
+    }
+    
+    // Check if any recurring order matches this date
+    for (const order of recurringOrders) {
+      const occurrences = calculateNextOccurrences(
+        new Date(),
+        order.frequency,
+        order.preferred_day,
+        5 // Look ahead a few occurrences
+      );
+      
+      // Fixed: Now properly checking each occurrence individually
+      for (const occurrence of occurrences) {
+        if (isSameDay(occurrence, date)) {
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('Error checking recurring orders for date:', error);
+    return false;
+  }
 };
