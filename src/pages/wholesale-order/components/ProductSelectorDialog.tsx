@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useState } from "react";
-import { OrderItem } from "../types";
+import { OrderItem, emptyOptions } from "../types";
 import { useToast } from "@/hooks/use-toast";
 
 interface ProductSelectorDialogProps {
@@ -76,9 +76,17 @@ export function ProductSelectorDialog({
     if (!newOption.trim()) return;
     
     try {
+      // Get current options with a fallback to empty array
+      const safeOptions = { ...emptyOptions, ...options };
+      
+      // Ensure the field exists as an array
+      const currentFieldOptions = Array.isArray(safeOptions[field]) 
+        ? safeOptions[field] 
+        : [];
+      
       // Add new option to the appropriate options array
-      const updatedOptions = { ...options };
-      updatedOptions[field] = [...options[field], newOption];
+      const updatedOptions = { ...safeOptions };
+      updatedOptions[field] = [...currentFieldOptions, newOption];
       
       // Update options in context
       setOptions(updatedOptions);
