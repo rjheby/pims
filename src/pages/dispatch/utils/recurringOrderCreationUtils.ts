@@ -144,12 +144,14 @@ export const updateRecurringSchedule = async (recurringOrderId: string): Promise
       
       if (!existingSchedules || existingSchedules.length === 0) {
         // Create a new dispatch schedule for this date
+        // Use the occurrence date for both schedule_date and the schedule_number
+        const formattedDate = format(occurrenceDate, 'yyyyMMdd');
         const { data: newSchedule, error: createError } = await supabase
           .from('dispatch_schedules')
           .insert({
             schedule_date: dateStr,
             status: 'draft',
-            schedule_number: `SCH-${format(occurrenceDate, 'yyyyMMdd')}-${Math.floor(Math.random() * 1000)}`,
+            schedule_number: `SCH-${formattedDate}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
             notes: `Auto-generated from recurring order ${recurringOrderId}`
           })
           .select()
@@ -219,6 +221,8 @@ export const updateRecurringSchedule = async (recurringOrderId: string): Promise
               customer_address: customer.address,
               customer_phone: customer.phone,
               status: 'pending',
+              is_recurring: true,
+              recurring_id: recurringOrderId,
               notes: `Auto-generated from recurring order (${recurringOrder.frequency})`
             });
             

@@ -1,8 +1,7 @@
-
 import { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
+import { format, parse } from "date-fns";
 import { 
   CalendarIcon, 
   ClipboardCheck, 
@@ -108,8 +107,18 @@ export function ScheduleCard({
     }
   };
 
-  // Format date for display
-  const formattedDate = format(new Date(schedule.schedule_date), "EEEE, MMMM d, yyyy");
+  // Format date for display, ensuring we parse it correctly from the database format
+  const formattedDate = (() => {
+    try {
+      // Make sure we're parsing the date correctly from the database's yyyy-MM-dd format
+      const parsedDate = parse(schedule.schedule_date, 'yyyy-MM-dd', new Date());
+      return format(parsedDate, "EEEE, MMMM d, yyyy");
+    } catch (error) {
+      console.error("Date parsing error:", error, schedule.schedule_date);
+      // Fallback to displaying the raw date if parsing fails
+      return schedule.schedule_date;
+    }
+  })();
   
   return (
     <Card className="overflow-hidden">

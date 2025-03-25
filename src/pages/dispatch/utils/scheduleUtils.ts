@@ -42,7 +42,7 @@ export const findSchedulesForDate = async (date: Date): Promise<any[]> => {
       let consolidatedSchedule = null;
       const recurringOrdersForDate: any[] = [];
       
-      // For each recurring order, check if it should occur on this date
+      // For each recurring order, check if it should occur on the selected date
       for (const order of recurringOrders) {
         // Calculate if this recurring order applies to the selected date
         const occurrences = calculateNextOccurrences(
@@ -60,13 +60,15 @@ export const findSchedulesForDate = async (date: Date): Promise<any[]> => {
       // If we have recurring orders for this date but no existing schedule
       if (recurringOrdersForDate.length > 0 && schedules.length === 0) {
         // Create a single consolidated schedule for this date
+        // Ensure schedule_number uses the correct date that matches schedule_date
+        const formattedDate = format(new Date(dateStr), 'yyyyMMdd');
         const { data: newSchedule, error: createError } = await supabase
           .from('dispatch_schedules')
           .insert({
             schedule_date: dateStr,
             status: 'draft',
-            schedule_number: `SCH-${dateStr.replace(/-/g, '')}-REC-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
-            notes: `Auto-generated for recurring orders on ${dateStr}`
+            schedule_number: `SCH-${formattedDate}-REC-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
+            notes: `Auto-generated for recurring orders on ${format(new Date(dateStr), 'MMMM d, yyyy')}`
           })
           .select()
           .single();
@@ -196,7 +198,9 @@ export const findSchedulesForDateBasic = async (dateStr: string): Promise<Array<
  * Create a new schedule for a specific date
  */
 export const createScheduleForDate = async (dateStr: string) => {
-  const scheduleNumber = `SCH-${dateStr.replace(/-/g, '')}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
+  // Use the dateStr to generate the schedule number, ensuring consistency
+  const formattedDate = format(new Date(dateStr), 'yyyyMMdd');
+  const scheduleNumber = `SCH-${formattedDate}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
   
   const { data, error } = await supabase
     .from('dispatch_schedules')
@@ -204,7 +208,7 @@ export const createScheduleForDate = async (dateStr: string) => {
       schedule_date: dateStr,
       status: 'draft',
       schedule_number: scheduleNumber,
-      notes: `Schedule for ${dateStr}`
+      notes: `Schedule for ${format(new Date(dateStr), 'MMMM d, yyyy')}`
     })
     .select()
     .single();
@@ -245,7 +249,7 @@ export const consolidateRecurringOrders = async (dateStr: string) => {
       
       return {
         scheduleId: firstSchedule.id,
-        scheduleDateFormatted: format(new Date(firstSchedule.schedule_date), 'yyyy-MM-dd'),
+        scheduleDateFormatted: dateStr,
         scheduleStatus: firstSchedule.status,
         scheduleNumber: firstSchedule.schedule_number
       };
@@ -254,7 +258,7 @@ export const consolidateRecurringOrders = async (dateStr: string) => {
       const newSchedule = await createScheduleForDate(dateStr);
       return {
         scheduleId: newSchedule.id,
-        scheduleDateFormatted: format(new Date(newSchedule.schedule_date), 'yyyy-MM-dd'),
+        scheduleDateFormatted: dateStr,
         scheduleStatus: newSchedule.status,
         scheduleNumber: newSchedule.schedule_number
       };
