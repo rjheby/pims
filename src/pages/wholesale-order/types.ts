@@ -4,22 +4,30 @@ import { Json } from "@/integrations/supabase/types";
 
 // Define types for Wholesale Order Form
 export interface WholesaleOrderItem {
-  wood_product_id: string;
-  product_description: string;
+  id: string;
+  wood_product_id?: string;
+  product_description?: string;
   unitCost: number;
   pallets: number;
+  species: string;
+  length: string;
+  bundleType: string;
+  thickness: string;
+  packaging: string;
 }
 
 export interface WholesaleOrder {
   id?: string;
-  customer_id: string;
+  customer_id?: string;
   order_date: string;
-  delivery_date: string;
+  delivery_date?: string | null;
   items: WholesaleOrderItem[];
   notes?: string;
   submitted_at?: string | null;
   created_at?: string;
   updated_at?: string;
+  order_number: string;
+  status?: string;
 }
 
 // OrderItem type for OrderTable

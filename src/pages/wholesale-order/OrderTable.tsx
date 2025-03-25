@@ -1,14 +1,14 @@
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { OrderTableRow } from "./components/OrderTableRow";
 import { OrderTableMobileRow } from "./components/OrderTableMobileRow";
 import { BaseOrderTable } from "@/components/templates/BaseOrderTable";
 import { Button } from "@/components/ui/button";
-import { useOrderTable } from "./hooks/useOrderTable";
+import { useWholesaleOrder } from "./context/WholesaleOrderContext";
+import { useOrderActions } from "./hooks/orderTable/useOrderActions";
 import { OrderItem, DropdownOptions } from "./types";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
 import { ProductSelectorDialog } from "./components/ProductSelectorDialog";
 
 interface OrderTableProps {
@@ -19,37 +19,71 @@ interface OrderTableProps {
 export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps) {
   const { toast } = useToast();
   const [productSelectorOpen, setProductSelectorOpen] = useState(false);
+  const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
+  const [filterValue, setFilterValue] = useState("");
   
   const {
     items,
     options,
-    isAdmin,
     editingField,
     editingRowId,
     newOption,
-    optionFields,
-    handleKeyPress,
-    handleUpdateItem,
-    handleRemoveRow,
-    handleCopyRow,
-    handleAddItem,
-    generateItemName,
-    handleUpdateOptions,
-    handleStartEditingField,
-    toggleCompressed,
     setNewOption,
     setEditingRowId,
-    sortConfig,
-    setSortConfig,
-    filterValue,
-    setFilterValue,
-  } = useOrderTable();
+    isAdmin
+  } = useWholesaleOrder();
+
+  const {
+    handleUpdateItemValue,
+    handleAddItem,
+    handleRemoveItem,
+    handleDuplicateItem,
+    handleOptionChange,
+    handleKeyPressOnNewOption,
+    handleUpdateOptions,
+    handleStartEditing
+  } = useOrderActions();
+
+  // Define option fields based on the options object
+  const optionFields = Object.keys(options) as Array<keyof DropdownOptions>;
 
   useEffect(() => {
     if (onItemsChange) {
       onItemsChange(items);
     }
   }, [items, onItemsChange]);
+
+  const generateItemName = (item: OrderItem): string => {
+    return [item.species, item.length, item.bundleType, item.thickness]
+      .filter(Boolean)
+      .join(' - ');
+  };
+
+  const handleUpdateItem = (item: OrderItem) => {
+    const updatedItems = items.map(i => i.id === item.id ? item : i);
+    handleUpdateItemValue(item.id, 'all', item);
+  };
+
+  const handleRemoveRow = (id: number) => {
+    handleRemoveItem(id);
+  };
+
+  const handleCopyRow = (item: OrderItem) => {
+    handleDuplicateItem(item.id);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>, field: string) => {
+    handleKeyPressOnNewOption(e);
+  };
+
+  const handleStartEditingField = (field: keyof DropdownOptions, rowId: number) => {
+    handleStartEditing(rowId, field);
+  };
+
+  const toggleCompressed = (id: number) => {
+    // This functionality appears to be unused but is referenced
+    console.log('Toggle compressed for item', id);
+  };
 
   const headers = [
     { key: 'name', label: 'Name', sortable: true, className: 'w-[22%] text-center px-4' },
@@ -81,7 +115,7 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
 
   const handleProductSelect = (product: Partial<OrderItem>) => {
     try {
-      handleAddItem(product);
+      handleAddItem();
       toast({
         title: "Success",
         description: "New product added successfully",
@@ -190,7 +224,7 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
               editingRowId={editingRowId}
               newOption={newOption}
               onNewOptionChange={setNewOption}
-              onKeyPress={(e) => handleKeyPress(e, editingField || "")}
+              onKeyPress={handleKeyPress}
               onUpdateItem={handleUpdateItem}
               onRemoveRow={handleRemoveRow}
               onCopyRow={handleCopyRow}
@@ -221,7 +255,7 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
               isCompressed={false}
               optionFields={optionFields as string[]}
               onNewOptionChange={setNewOption}
-              onKeyPress={(e) => handleKeyPress(e, editingField || "")}
+              onKeyPress={handleKeyPress}
               onUpdateItem={handleUpdateItem}
               onUpdateOptions={handleUpdateOptions}
               onStartEditing={handleStartEditingField}

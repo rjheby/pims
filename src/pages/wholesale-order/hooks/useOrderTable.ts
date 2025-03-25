@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { OrderItem, DropdownOptions, WholesaleOrderItem, WholesaleOrder } from '../types';
 import { useNavigate } from 'react-router-dom';
@@ -169,7 +168,8 @@ export const useOrderTable = ({ initialItems = [] }: UseOrderTableProps = {}) =>
         bundleType: item.bundleType,
         thickness: item.thickness,
         packaging: item.packaging,
-        quantity: item.quantity
+        pallets: item.pallets,
+        unitCost: item.unitCost
       }));
 
       // Create order in database
@@ -242,7 +242,8 @@ export const useOrderTable = ({ initialItems = [] }: UseOrderTableProps = {}) =>
         bundleType: item.bundleType,
         thickness: item.thickness,
         packaging: item.packaging,
-        quantity: item.quantity
+        pallets: item.pallets,
+        unitCost: item.unitCost
       }));
 
       // Create order in database

@@ -19,9 +19,9 @@ export const useOrderActions = () => {
   } = useWholesaleOrder();
 
   const handleUpdateItemValue = useCallback((id: number, field: string, value: any) => {
-    setItems((prevItems: OrderItem[]) => {
+    setItems((prevItems) => {
       return prevItems.map(item =>
-        item.id === id ? { ...item, [field]: value } : item
+        item.id === id ? (field === 'all' ? value : { ...item, [field]: value }) : item
       );
     });
   }, [setItems]);
@@ -35,43 +35,40 @@ export const useOrderActions = () => {
       bundleType: '',
       thickness: '',
       packaging: '',
-      quantity: 1,
+      pallets: 1,
+      unitCost: 0
     };
     
     setItems([...items, newItem]);
   }, [items, setItems]);
 
   const handleRemoveItem = useCallback((id: number) => {
-    setItems((prevItems: OrderItem[]) => prevItems.filter(item => item.id !== id));
-  }, [setItems]);
+    setItems(items.filter(item => item.id !== id));
+  }, [items, setItems]);
 
   const handleDuplicateItem = useCallback((id: number) => {
     const itemToDuplicate = items.find(item => item.id === id);
     if (itemToDuplicate) {
       const newId = Math.max(...items.map(item => item.id)) + 1;
       const newItem = { ...itemToDuplicate, id: newId };
-      setItems((prevItems: OrderItem[]) => [...prevItems, newItem]);
+      setItems([...items, newItem]);
     }
   }, [items, setItems]);
 
   const handleQuantityChange = useCallback((id: number, value: string) => {
-    const quantity = parseInt(value, 10);
-    if (!isNaN(quantity) && quantity > 0) {
-      setItems((prevItems: OrderItem[]) => {
-        return prevItems.map(item =>
-          item.id === id ? { ...item, quantity } : item
-        );
-      });
+    const pallets = parseInt(value, 10);
+    if (!isNaN(pallets) && pallets > 0) {
+      setItems(items.map(item =>
+        item.id === id ? { ...item, pallets } : item
+      ));
     }
-  }, [setItems]);
+  }, [items, setItems]);
 
   const handleOptionChange = useCallback((id: number, field: keyof DropdownOptions, value: string) => {
-    setItems((prevItems: OrderItem[]) => {
-      return prevItems.map(item =>
-        item.id === id ? { ...item, [field]: value } : item
-      );
-    });
-  }, [setItems]);
+    setItems(items.map(item =>
+      item.id === id ? { ...item, [field]: value } : item
+    ));
+  }, [items, setItems]);
 
   const handleNewOptionChange = useCallback((value: string) => {
     setNewOption(value);
@@ -90,18 +87,16 @@ export const useOrderActions = () => {
       }
       
       if (editingRowId !== null) {
-        setItems((prevItems: OrderItem[]) => {
-          return prevItems.map(item =>
-            item.id === editingRowId ? { ...item, [editingField]: newOption } : item
-          );
-        });
+        setItems(items.map(item =>
+          item.id === editingRowId ? { ...item, [editingField]: newOption } : item
+        ));
       }
       
       setNewOption('');
       setEditingField(null);
       setEditingRowId(null);
     }
-  }, [newOption, editingField, editingRowId, options, setOptions, setItems, setNewOption, setEditingField, setEditingRowId]);
+  }, [newOption, editingField, editingRowId, items, options, setOptions, setItems, setNewOption, setEditingField, setEditingRowId]);
 
   const handleUpdateOptions = useCallback((option: string) => {
     if (option.trim() && editingField) {
@@ -115,18 +110,16 @@ export const useOrderActions = () => {
       }
       
       if (editingRowId !== null) {
-        setItems((prevItems: OrderItem[]) => {
-          return prevItems.map(item =>
-            item.id === editingRowId ? { ...item, [editingField]: option } : item
-          );
-        });
+        setItems(items.map(item =>
+          item.id === editingRowId ? { ...item, [editingField]: option } : item
+        ));
       }
       
       setNewOption('');
       setEditingField(null);
       setEditingRowId(null);
     }
-  }, [editingField, editingRowId, options, setOptions, setItems, setNewOption, setEditingField, setEditingRowId]);
+  }, [editingField, editingRowId, items, options, setOptions, setItems, setNewOption, setEditingField, setEditingRowId]);
 
   const handleStartEditing = useCallback((id: number, field: keyof DropdownOptions) => {
     setEditingField(field);
