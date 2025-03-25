@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { serializeOrderItems, safeNumber } from "./wholesale-order/types";
-import { useState } from "react";
+import { useState, ChangeEvent } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 function WholesaleOrderContent() {
@@ -38,6 +38,10 @@ function WholesaleOrderContent() {
       day: 'numeric', 
       year: 'numeric' 
     });
+  };
+
+  const handleDeliveryDateChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setDeliveryDate(e.target.value);
   };
 
   const headerDetails = [
@@ -198,7 +202,7 @@ function WholesaleOrderContent() {
               orderDate={orderDate}
               deliveryDate={deliveryDate}
               onOrderDateChange={handleOrderDateChange}
-              onDeliveryDateChange={(e) => setDeliveryDate(e.target.value)}
+              onDeliveryDateChange={handleDeliveryDateChange}
             />
             <div className="w-full overflow-x-auto pb-4">
               <OrderTable />

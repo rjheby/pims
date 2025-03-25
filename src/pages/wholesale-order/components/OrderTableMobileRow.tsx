@@ -1,36 +1,32 @@
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Copy, Trash, ChevronDown, ChevronUp } from "lucide-react";
-import { OrderItem, DropdownOptions, WoodProduct, safeNumber } from "../types";
-import { cn } from "@/lib/utils";
-import { useState } from "react";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { ProductSelector } from "./ProductSelector";
+import { Copy, MoreHorizontal, Trash2 } from "lucide-react";
+import { OrderItem, DropdownOptions } from "../types";
+import { Card, CardContent } from "@/components/ui/card";
 import { OrderTableDropdownCell } from "./OrderTableDropdownCell";
-import { useWholesaleOrder } from "../context/WholesaleOrderContext";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 
 interface OrderTableMobileRowProps {
   item: OrderItem;
   options: DropdownOptions;
   isAdmin: boolean;
-  editingField: string | null;
+  editingField: keyof DropdownOptions | null;
+  editingRowId: number | null;
   newOption: string;
   isCompressed: boolean;
   optionFields: string[];
-  onNewOptionChange: (value: string) => void;
-  onKeyPress: (event: any, fieldName: string) => void;
+  readOnly?: boolean;
+  onNewOptionChange: (option: string) => void;
+  onKeyPress: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   onUpdateItem: (item: OrderItem) => void;
-  onUpdateOptions: (field: keyof DropdownOptions, option: string) => void;
-  onStartEditing?: (field: keyof DropdownOptions) => void;
+  onUpdateOptions: (option: string) => void;
+  onStartEditing: (field: keyof DropdownOptions, rowId: number) => void;
   onRemoveRow: (id: number) => void;
   onCopyRow: (item: OrderItem) => void;
-  onAddItem: () => void;
+  onAddItem: (item?: Partial<OrderItem>) => void;
   onToggleCompressed: (id: number) => void;
   generateItemName: (item: OrderItem) => string;
-  readOnly?: boolean;
 }
 
 export function OrderTableMobileRow({
@@ -42,6 +38,7 @@ export function OrderTableMobileRow({
   newOption,
   isCompressed,
   optionFields,
+  readOnly = false,
   onNewOptionChange,
   onKeyPress,
   onUpdateItem,
@@ -52,170 +49,97 @@ export function OrderTableMobileRow({
   onAddItem,
   onToggleCompressed,
   generateItemName,
-  readOnly = false,
 }: OrderTableMobileRowProps) {
-  const [showProductSelector, setShowProductSelector] = useState(false);
-  const { setOptions } = useWholesaleOrder();
-
-  const handleProductSelect = (product: WoodProduct) => {
-    onUpdateItem({
-      ...item,
-      species: product.species,
-      length: product.length,
-      bundleType: product.bundle_type,
-      thickness: product.thickness,
-      unitCost: product.unit_cost,
-      productId: product.id
-    });
-    setShowProductSelector(false);
-  };
-  
-  // Function to handle opening the product selector
-  const openProductSelector = () => {
-    if (!readOnly) {
-      setShowProductSelector(true);
-    }
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    const updatedItem = { ...item, [name]: value };
+    onUpdateItem(updatedItem);
   };
 
-  const handleOptionsUpdated = (updatedOptions: DropdownOptions) => {
-    console.log("Options updated in OrderTableMobileRow:", updatedOptions);
-    setOptions(updatedOptions);
+  const handleDropdownChange = (field: keyof OrderItem, value: string) => {
+    const updatedItem = { ...item, [field]: value };
+    onUpdateItem(updatedItem);
   };
-  
+
   return (
-    <Card className="w-full">
-      <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0">
-        <div
-          className="flex items-start gap-2 cursor-pointer w-full"
-          onClick={() => onToggleCompressed(item.id)}
-        >
-          <div className="flex-shrink-0 mt-1">
-            {isCompressed ? (
-              <ChevronDown className="h-4 w-4" />
-            ) : (
-              <ChevronUp className="h-4 w-4" />
-            )}
-          </div>
-          <div className="font-medium break-words w-full text-center">
-            <div 
-              className="cursor-pointer hover:underline text-blue-600 whitespace-normal break-words" 
-              onClick={(e) => {
-                e.stopPropagation();
-                openProductSelector();
-              }}
-            >
-              {generateItemName(item) || "Select product"}
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center space-x-1 flex-shrink-0 ml-2">
-          {!readOnly && (
-            <>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onCopyRow(item)}
-                aria-label="Copy row"
-              >
-                <Copy className="h-4 w-4" />
+    <Card className="overflow-hidden shadow-sm">
+      <CardContent className="grid gap-4">
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-semibold">{generateItemName(item)}</h3>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onRemoveRow(item.id)}
-                aria-label="Remove row"
-              >
-                <Trash className="h-4 w-4" />
-              </Button>
-            </>
-          )}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onCopyRow(item)}>
+                <Copy className="mr-2 h-4 w-4" />
+                <span>Copy</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onRemoveRow(item.id)}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                <span>Delete</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-      </CardHeader>
-      
-      {!isCompressed && (
-        <CardContent className="p-4 pt-0 grid gap-3">
-          {optionFields.map((field) => (
-            <div key={field} className="grid grid-cols-2 gap-2 items-center">
-              <Label htmlFor={`${field}-${item.id}`} className="text-center">{field}</Label>
-              <div className="w-full">
-                <OrderTableDropdownCell
-                  rowId={item.id}
-                  fieldName={field as keyof DropdownOptions}
-                  value={item[field as keyof OrderItem] as string}
-                  options={options[field as keyof DropdownOptions]}
-                  editingField={editingField as keyof DropdownOptions}
-                  editingRowId={editingRowId}
-                  newOption={newOption}
-                  onNewOptionChange={onNewOptionChange}
-                  onUpdateItem={(value) => onUpdateItem({ ...item, [field]: value })}
-                  onUpdateOptions={(option) => onUpdateOptions(field as keyof DropdownOptions, option)}
-                  onOptionsUpdated={handleOptionsUpdated}
-                  onPress={(e) => onKeyPress(e, field)}
-                  onStartEditing={onStartEditing}
-                  isAdmin={isAdmin}
-                  readOnly={readOnly}
-                />
-              </div>
-            </div>
-          ))}
 
-          <div className="grid grid-cols-2 gap-2 items-center">
-            <Label htmlFor={`pallets-${item.id}`} className="text-center">QTY</Label>
-            <Input
-              id={`pallets-${item.id}`}
-              type="number"
-              min="0"
-              step="1"
-              value={item.pallets || ""}
-              onChange={(e) =>
-                onUpdateItem({ ...item, pallets: Number(e.target.value) })
-              }
-              className="h-8 w-full text-center"
-              disabled={readOnly}
+        {optionFields.map(field => (
+          <div key={field} className="grid gap-1">
+            <label htmlFor={field} className="text-sm font-medium">
+              {field.charAt(0).toUpperCase() + field.slice(1)}
+            </label>
+            <OrderTableDropdownCell
+              id={field}
+              field={field as keyof DropdownOptions}
+              value={item[field as keyof OrderItem] as string}
+              options={options[field as keyof DropdownOptions] || []}
+              editingField={editingField}
+              editingRowId={editingRowId}
+              newOption={newOption}
+              onNewOptionChange={onNewOptionChange}
+              onKeyPress={onKeyPress}
+              onUpdateOptions={onUpdateOptions}
+              onDropdownChange={handleDropdownChange}
+              onStartEditing={onStartEditing}
+              rowId={item.id}
+              readOnly={readOnly}
             />
           </div>
+        ))}
 
-          <div className="grid grid-cols-2 gap-2 items-center">
-            <Label htmlFor={`unitCost-${item.id}`} className="text-center">Unit Cost</Label>
-            <Input
-              id={`unitCost-${item.id}`}
-              type="number"
-              min="0"
-              step="0.01"
-              value={item.unitCost || ""}
-              onChange={(e) =>
-                onUpdateItem({ ...item, unitCost: Number(e.target.value) })
-              }
-              className="h-8 w-full text-center"
-              disabled={readOnly}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 items-center">
-            <Label className="text-center">Total Cost</Label>
-            <div className="text-center font-medium">
-              ${(safeNumber(item.pallets) * safeNumber(item.unitCost)).toFixed(2)}
-            </div>
-          </div>
-        </CardContent>
-      )}
-      
-      {/* Product Selector Dialog */}
-      <Dialog open={showProductSelector} onOpenChange={setShowProductSelector}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogTitle>Select Product</DialogTitle>
-          <ProductSelector 
-            onSelect={handleProductSelect}
-            onCancel={() => setShowProductSelector(false)}
-            initialValues={{
-              species: item.species,
-              length: item.length,
-              bundleType: item.bundleType,
-              thickness: item.thickness
-            }}
+        <div className="grid gap-1">
+          <label htmlFor="pallets" className="text-sm font-medium">
+            QTY
+          </label>
+          <Input
+            type="number"
+            id="pallets"
+            name="pallets"
+            value={String(item.pallets)}
+            onChange={handleInputChange}
+            className="text-right"
+            readOnly={readOnly}
           />
-        </DialogContent>
-      </Dialog>
+        </div>
+
+        <div className="grid gap-1">
+          <label htmlFor="unitCost" className="text-sm font-medium">
+            Unit Cost
+          </label>
+          <Input
+            type="number"
+            id="unitCost"
+            name="unitCost"
+            value={String(item.unitCost)}
+            onChange={handleInputChange}
+            className="text-right"
+            readOnly={readOnly}
+          />
+        </div>
+      </CardContent>
     </Card>
   );
 }

@@ -6,7 +6,7 @@ import { OrderTableMobileRow } from "./components/OrderTableMobileRow";
 import { BaseOrderTable } from "@/components/templates/BaseOrderTable";
 import { Button } from "@/components/ui/button";
 import { useOrderTable } from "./hooks/useOrderTable";
-import { OrderItem } from "./types";
+import { OrderItem, DropdownOptions } from "./types";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { ProductSelectorDialog } from "./components/ProductSelectorDialog";

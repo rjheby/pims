@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, PropsWithChildren } from "react";
+
+import { createContext, useContext, useState, PropsWithChildren, ChangeEvent } from "react";
 import { OrderItem, DropdownOptions, emptyOptions } from "../types";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
@@ -24,7 +25,7 @@ interface WholesaleOrderContextProps {
   isAdmin: boolean;
   loadOptions: () => Promise<void>;
   isLoadingOptions: boolean;
-  handleOrderDateChange: (date: string) => void;
+  handleOrderDateChange: (e: ChangeEvent<HTMLInputElement>) => void;
   generateOrderNumber: (date: string) => Promise<string>;
 }
 
@@ -89,8 +90,8 @@ export function WholesaleOrderProvider({ children, initialItems = [] }: PropsWit
     }
   };
 
-  const handleOrderDateChange = (date: string) => {
-    setOrderDate(date);
+  const handleOrderDateChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setOrderDate(e.target.value);
   };
 
   const generateOrderNumber = async (date: string): Promise<string> => {

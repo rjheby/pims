@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from "react";
 import { useWholesaleOrder } from "../../context/WholesaleOrderContext";
 import { DropdownOptions, OrderItem, emptyOptions, safeNumber, generateEmptyOrderItem } from "../../types";
@@ -22,7 +23,7 @@ export function useOrderActions() {
   const handleUpdateItem = useCallback((updatedItem: OrderItem) => {
     try {
       console.log('Updating item:', updatedItem);
-      setItems(prevItems => 
+      setItems((prevItems: OrderItem[]) => 
         prevItems.map(item => (item.id === updatedItem.id ? updatedItem : item))
       );
     } catch (error) {
@@ -35,7 +36,7 @@ export function useOrderActions() {
   const handleRemoveRow = useCallback((id: number) => {
     try {
       console.log('Removing row:', id);
-      setItems(prevItems => prevItems.filter(item => item.id !== id));
+      setItems((prevItems: OrderItem[]) => prevItems.filter(item => item.id !== id));
       toast.success("Row removed");
     } catch (error) {
       console.error('Error removing row:', error);
@@ -52,7 +53,7 @@ export function useOrderActions() {
         id: Date.now(), // Ensure unique ID
       };
       
-      setItems(prevItems => [...prevItems, newItem]);
+      setItems((prevItems: OrderItem[]) => [...prevItems, newItem]);
       toast.success("Row copied");
     } catch (error) {
       console.error('Error copying row:', error);
@@ -70,7 +71,7 @@ export function useOrderActions() {
       console.log('Generated new item:', newItem);
       
       // Use functional update to ensure we're working with the latest state
-      setItems(prevItems => {
+      setItems((prevItems: OrderItem[]) => {
         console.log('Previous items count:', prevItems.length);
         const updatedItems = [...prevItems, newItem];
         console.log('New items count:', updatedItems.length);

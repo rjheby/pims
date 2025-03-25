@@ -1,4 +1,5 @@
 
+
 import { useWholesaleOrder } from "../context/WholesaleOrderContext";
 import { OrderItem, emptyOptions, safeNumber } from "../types";
 import { useOrderActions } from "./orderTable/useOrderActions";
@@ -68,7 +69,7 @@ export function useOrderTable() {
         unitCost: productData?.unitCost || 250,
       };
       
-      setItems(prevItems => [...prevItems, newItem]);
+      setItems((prevItems: OrderItem[]) => [...prevItems, newItem]);
       
     } catch (error) {
       console.error("Error in handleAddItem:", error);
