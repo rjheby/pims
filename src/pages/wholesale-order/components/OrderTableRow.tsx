@@ -52,6 +52,7 @@ export function OrderTableRow({
   options,
   isAdmin,
   editingField,
+  editingRowId,
   newOption,
   onNewOptionChange,
   onKeyPress,
@@ -134,10 +135,12 @@ export function OrderTableRow({
         optionFields.map((field) => (
           <TableCell key={field} className="p-1 text-center">
             <OrderTableDropdownCell
+              rowId={item.id}
               fieldName={field}
               value={item[field] as string}
               options={options[field]}
               editingField={editingField}
+              editingRowId={editingRowId}
               newOption={newOption}
               onNewOptionChange={onNewOptionChange}
               onUpdateItem={(value) => onUpdateItem({ ...item, [field]: value })}

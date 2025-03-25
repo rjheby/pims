@@ -15,26 +15,30 @@ import { handleOptionOperation } from "../utils/optionManagement";
 import { useToast } from "@/hooks/use-toast";
 
 interface OrderTableDropdownCellProps {
+  rowId: number;
   fieldName: keyof DropdownOptions;
   value: string;
   options: string[];
   editingField: keyof DropdownOptions | null;
+  editingRowId: number | null;
   newOption: string;
   onNewOptionChange: (value: string) => void;
   onUpdateItem: (value: string) => void;
   onUpdateOptions: (option: string) => void;
   onPress: (event: any) => void;
-  onStartEditing?: (fieldName: keyof DropdownOptions) => void;
+  onStartEditing?: (fieldName: keyof DropdownOptions, rowId: number) => void;
   onOptionsUpdated?: (updatedOptions: DropdownOptions) => void;
   isAdmin: boolean;
   readOnly?: boolean;
 }
 
 export function OrderTableDropdownCell({
+  rowId,
   fieldName,
   value,
   options,
   editingField,
+  editingRowId,
   newOption,
   onNewOptionChange,
   onUpdateItem,
@@ -46,7 +50,7 @@ export function OrderTableDropdownCell({
   readOnly = false,
 }: OrderTableDropdownCellProps) {
   const { toast } = useToast();
-  const isEditing = editingField === fieldName;
+  const isEditing = editingField === fieldName && editingRowId === rowId;
   const [showNewOptionInput, setShowNewOptionInput] = useState(false);
   const [editableOption, setEditableOption] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -64,7 +68,7 @@ export function OrderTableDropdownCell({
     setShowNewOptionInput(true);
     setEditableOption("");
     if (onStartEditing) {
-      onStartEditing(fieldName);
+      onStartEditing(fieldName, rowId);
     }
   };
 
@@ -75,7 +79,7 @@ export function OrderTableDropdownCell({
     setEditableOption(option);
     onNewOptionChange(option);
     if (onStartEditing) {
-      onStartEditing(fieldName);
+      onStartEditing(fieldName, rowId);
     }
   };
 

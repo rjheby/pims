@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from "react";
 import { useWholesaleOrder } from "../../context/WholesaleOrderContext";
 import { DropdownOptions, OrderItem, emptyOptions, safeNumber, generateEmptyOrderItem } from "../../types";
@@ -12,10 +11,12 @@ export function useOrderActions() {
     options = emptyOptions,
     setOptions, 
     setEditingField,
+    setEditingRowId,
     setNewOption
   } = useWholesaleOrder();
 
   const [lastOptionField, setLastOptionField] = useState<keyof DropdownOptions | null>(null);
+  const [lastRowId, setLastRowId] = useState<number | null>(null);
 
   // Update an item in the order - rebuilt with better error handling
   const handleUpdateItem = useCallback((updatedItem: OrderItem) => {
@@ -100,17 +101,20 @@ export function useOrderActions() {
       if (fieldName && value && lastOptionField) {
         handleUpdateOptions(value);
         setLastOptionField(null);
+        setLastRowId(null);
       }
     }
-  }, [lastOptionField]);
+  }, [lastOptionField, lastRowId]);
 
   // Start editing a dropdown field
-  const handleStartEditingField = useCallback((field: keyof DropdownOptions) => {
-    console.log("Starting to edit field:", field);
+  const handleStartEditingField = useCallback((field: keyof DropdownOptions, rowId: number) => {
+    console.log("Starting to edit field:", field, "on row:", rowId);
     setEditingField(field);
+    setEditingRowId(rowId);
     setLastOptionField(field);
+    setLastRowId(rowId);
     setNewOption(""); // Reset the new option input value
-  }, [setEditingField, setNewOption]);
+  }, [setEditingField, setEditingRowId, setNewOption]);
 
   // Update dropdown options
   const handleUpdateOptions = useCallback(async (option: string) => {

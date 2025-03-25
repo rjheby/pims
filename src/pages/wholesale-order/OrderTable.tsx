@@ -25,6 +25,7 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
     options,
     isAdmin,
     editingField,
+    editingRowId,
     newOption,
     optionFields,
     handleKeyPress,
@@ -37,6 +38,7 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
     handleStartEditingField,
     toggleCompressed,
     setNewOption,
+    setEditingRowId,
     sortConfig,
     setSortConfig,
     filterValue,
@@ -185,6 +187,7 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
               options={options}
               isAdmin={isAdmin}
               editingField={editingField}
+              editingRowId={editingRowId}
               newOption={newOption}
               onNewOptionChange={setNewOption}
               onKeyPress={(e) => handleKeyPress(e, editingField || "")}
@@ -213,6 +216,7 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
               options={options}
               isAdmin={isAdmin}
               editingField={editingField}
+              editingRowId={editingRowId}
               newOption={newOption}
               isCompressed={false}
               optionFields={optionFields as string[]}

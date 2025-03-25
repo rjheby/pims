@@ -38,6 +38,7 @@ export function OrderTableMobileRow({
   options,
   isAdmin,
   editingField,
+  editingRowId,
   newOption,
   isCompressed,
   optionFields,
@@ -138,10 +139,12 @@ export function OrderTableMobileRow({
               <Label htmlFor={`${field}-${item.id}`} className="text-center">{field}</Label>
               <div className="w-full">
                 <OrderTableDropdownCell
+                  rowId={item.id}
                   fieldName={field as keyof DropdownOptions}
                   value={item[field as keyof OrderItem] as string}
                   options={options[field as keyof DropdownOptions]}
                   editingField={editingField as keyof DropdownOptions}
+                  editingRowId={editingRowId}
                   newOption={newOption}
                   onNewOptionChange={onNewOptionChange}
                   onUpdateItem={(value) => onUpdateItem({ ...item, [field]: value })}
