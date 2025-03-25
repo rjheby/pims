@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Copy, MoreHorizontal, Trash2 } from "lucide-react";
@@ -68,7 +69,12 @@ export function OrderTableMobileRow({
           <h3 className="text-lg font-semibold">{generateItemName(item)}</h3>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
+              <Button 
+                variant="ghost" 
+                className="h-8 w-8 p-0"
+                id={`mobile-row-${item.id}-actions`}
+                name={`mobile-row-${item.id}-actions`}
+              >
                 <span className="sr-only">Open menu</span>
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
@@ -88,35 +94,33 @@ export function OrderTableMobileRow({
 
         {optionFields.map(field => (
           <div key={field} className="grid gap-1">
-            <label htmlFor={field} className="text-sm font-medium">
+            <label htmlFor={`mobile-${item.id}-${field}`} className="text-sm font-medium">
               {field.charAt(0).toUpperCase() + field.slice(1)}
             </label>
             <OrderTableDropdownCell
-              id={field}
+              id={`mobile-${item.id}-${field}`}
               field={field as keyof DropdownOptions}
               value={item[field as keyof OrderItem] as string}
               options={options[field as keyof DropdownOptions] || []}
-              editingField={editingField}
-              editingRowId={editingRowId}
+              isEditing={editingField === field as keyof DropdownOptions && editingRowId === item.id}
               newOption={newOption}
               onNewOptionChange={onNewOptionChange}
               onKeyPress={onKeyPress}
+              onUpdate={(value) => handleDropdownChange(field as keyof OrderItem, value)}
               onUpdateOptions={onUpdateOptions}
-              onDropdownChange={handleDropdownChange}
-              onStartEditing={onStartEditing}
-              rowId={item.id}
+              onStartEditing={() => onStartEditing(field as keyof DropdownOptions, item.id)}
               readOnly={readOnly}
             />
           </div>
         ))}
 
         <div className="grid gap-1">
-          <label htmlFor="pallets" className="text-sm font-medium">
+          <label htmlFor={`mobile-${item.id}-pallets`} className="text-sm font-medium">
             QTY
           </label>
           <Input
             type="number"
-            id="pallets"
+            id={`mobile-${item.id}-pallets`}
             name="pallets"
             value={String(item.pallets)}
             onChange={handleInputChange}
@@ -126,12 +130,12 @@ export function OrderTableMobileRow({
         </div>
 
         <div className="grid gap-1">
-          <label htmlFor="unitCost" className="text-sm font-medium">
+          <label htmlFor={`mobile-${item.id}-unitCost`} className="text-sm font-medium">
             Unit Cost
           </label>
           <Input
             type="number"
-            id="unitCost"
+            id={`mobile-${item.id}-unitCost`}
             name="unitCost"
             value={String(item.unitCost)}
             onChange={handleInputChange}

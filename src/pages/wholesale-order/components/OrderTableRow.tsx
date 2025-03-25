@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Copy, MoreHorizontal, Trash2 } from "lucide-react";
@@ -52,6 +53,7 @@ export function OrderTableRow({
       <td className="text-center px-4">{generateItemName(item)}</td>
       <OrderTableDropdownCell
         field="species"
+        id={`row-${item.id}-species`}
         value={item.species}
         options={options.species}
         isEditing={editingField === "species" && editingRowId === item.id}
@@ -65,6 +67,7 @@ export function OrderTableRow({
       />
       <OrderTableDropdownCell
         field="length"
+        id={`row-${item.id}-length`}
         value={item.length}
         options={options.length}
         isEditing={editingField === "length" && editingRowId === item.id}
@@ -78,6 +81,7 @@ export function OrderTableRow({
       />
       <OrderTableDropdownCell
         field="bundleType"
+        id={`row-${item.id}-bundleType`}
         value={item.bundleType}
         options={options.bundleType}
         isEditing={editingField === "bundleType" && editingRowId === item.id}
@@ -91,6 +95,7 @@ export function OrderTableRow({
       />
       <OrderTableDropdownCell
         field="thickness"
+        id={`row-${item.id}-thickness`}
         value={item.thickness}
         options={options.thickness}
         isEditing={editingField === "thickness" && editingRowId === item.id}
@@ -104,6 +109,7 @@ export function OrderTableRow({
       />
       <OrderTableDropdownCell
         field="packaging"
+        id={`row-${item.id}-packaging`}
         value={item.packaging}
         options={options.packaging}
         isEditing={editingField === "packaging" && editingRowId === item.id}
@@ -118,6 +124,8 @@ export function OrderTableRow({
       <td className="text-center px-2">
         <input
           type="number"
+          id={`row-${item.id}-pallets`}
+          name={`row-${item.id}-pallets`}
           className="w-20 text-center border rounded-md py-2 px-3"
           value={item.pallets}
           onChange={(e) =>
@@ -129,6 +137,8 @@ export function OrderTableRow({
       <td className="text-center px-2">
         <input
           type="number"
+          id={`row-${item.id}-unitCost`}
+          name={`row-${item.id}-unitCost`}
           className="w-20 text-center border rounded-md py-2 px-3"
           value={item.unitCost}
           onChange={(e) =>
@@ -141,7 +151,12 @@ export function OrderTableRow({
       <td className="text-center px-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
+            <Button 
+              variant="ghost" 
+              className="h-8 w-8 p-0"
+              id={`row-${item.id}-actions`}
+              name={`row-${item.id}-actions`}
+            >
               <span className="sr-only">Open menu</span>
               <MoreHorizontal className="h-4 w-4" />
             </Button>

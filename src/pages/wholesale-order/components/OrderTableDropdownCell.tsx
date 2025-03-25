@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect, KeyboardEvent } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Plus, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,6 +43,8 @@ export function OrderTableDropdownCell({
 }: OrderTableDropdownCellProps) {
   const [open, setOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Generate a unique ID for the field if one is not provided
+  const fieldId = id || `${field}-${Math.random().toString(36).substring(2, 9)}`;
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -60,6 +62,8 @@ export function OrderTableDropdownCell({
         <Input
           ref={inputRef}
           type="text"
+          id={`${fieldId}-input`}
+          name={`${fieldId}-input`}
           value={newOption}
           onChange={(e) => onNewOptionChange(e.target.value)}
           onKeyDown={onKeyPress}
@@ -85,6 +89,8 @@ export function OrderTableDropdownCell({
         <Button
           variant="ghost"
           className="h-8 justify-start px-2 text-left font-normal w-full hover:bg-transparent"
+          id={`${fieldId}-trigger`}
+          name={`${fieldId}-trigger`}
         >
           <span className="truncate">{value || `Select ${field}`}</span>
           <ChevronDown className="ml-auto h-4 w-4 opacity-50" />
