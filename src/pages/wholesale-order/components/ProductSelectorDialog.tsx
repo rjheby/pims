@@ -3,7 +3,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useWholesaleOrder } from "../context/WholesaleOrderContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Pencil } from "lucide-react";
+import { Plus } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { OrderItem, emptyOptions } from "../types";
 import { useToast } from "@/hooks/use-toast";
 
@@ -28,7 +28,7 @@ export function ProductSelectorDialog({
 }: ProductSelectorDialogProps) {
   const { toast } = useToast();
   const { 
-    options, 
+    options = emptyOptions, 
     isAdmin, 
     setOptions,
     setEditingField,
@@ -49,12 +49,14 @@ export function ProductSelectorDialog({
   const safeOptions = {
     ...emptyOptions,
     ...options,
-    species: Array.isArray(options?.species) ? options.species : [],
-    length: Array.isArray(options?.length) ? options.length : [],
-    thickness: Array.isArray(options?.thickness) ? options.thickness : [],
-    bundleType: Array.isArray(options?.bundleType) ? options.bundleType : [],
-    packaging: Array.isArray(options?.packaging) ? options.packaging : ["Pallets"]
   };
+
+  // Reset form when dialog is closed
+  useEffect(() => {
+    if (!open) {
+      resetForm();
+    }
+  }, [open]);
 
   const handleSelect = () => {
     const product: Partial<OrderItem> = {
@@ -68,7 +70,6 @@ export function ProductSelectorDialog({
     };
     onSelect(product);
     onOpenChange(false);
-    resetForm();
   };
 
   const resetForm = () => {
@@ -87,14 +88,19 @@ export function ProductSelectorDialog({
     if (!newOption.trim()) return;
     
     try {
-      // Ensure the field exists as an array
-      const currentFieldOptions = Array.isArray(safeOptions[field]) 
-        ? safeOptions[field] 
-        : [];
+      // Get the current options for this field, ensuring it's an array
+      const currentOptions = Array.isArray(safeOptions[field]) ? 
+        safeOptions[field] : 
+        [];
       
-      // Add new option to the appropriate options array
-      const updatedOptions = { ...safeOptions };
-      updatedOptions[field] = [...currentFieldOptions, newOption];
+      // Create a new array with all existing options plus the new one
+      const updatedFieldOptions = [...currentOptions, newOption];
+      
+      // Update the entire options object
+      const updatedOptions = {
+        ...safeOptions,
+        [field]: updatedFieldOptions
+      };
       
       // Update options in context
       setOptions(updatedOptions);
@@ -107,9 +113,6 @@ export function ProductSelectorDialog({
         title: "Success",
         description: `Added new ${field}: ${newOption}`,
       });
-      
-      console.log("Successfully added option", newOption, "to field", field);
-      console.log("Updated options:", updatedOptions);
     } catch (error) {
       console.error("Failed to add option:", error);
       toast({
@@ -124,10 +127,11 @@ export function ProductSelectorDialog({
     label: string,
     value: string,
     onChange: (value: string) => void,
-    optionsArray: string[]
+    optionsArray: string[] | undefined
   ) => {
     // Ensure optionsArray is always an array
     const safeOptionsArray = Array.isArray(optionsArray) ? optionsArray : [];
+    const fieldKey = label.toLowerCase() as keyof typeof safeOptions;
     
     return (
       <div className="space-y-2">
@@ -149,13 +153,13 @@ export function ProductSelectorDialog({
             <Button
               variant="outline"
               size="icon"
-              onClick={() => setEditingField(label.toLowerCase() as any)}
+              onClick={() => setEditingField(fieldKey)}
             >
               <Plus className="h-4 w-4" />
             </Button>
           )}
         </div>
-        {editingField === label.toLowerCase() && (
+        {editingField === fieldKey && (
           <div className="flex gap-2 mt-2">
             <Input
               value={newOption}
@@ -163,7 +167,7 @@ export function ProductSelectorDialog({
               placeholder={`Add new ${label.toLowerCase()}`}
               className="flex-1"
             />
-            <Button onClick={() => handleAddOption(label.toLowerCase() as any)}>
+            <Button onClick={() => handleAddOption(fieldKey)}>
               Add
             </Button>
           </div>
@@ -174,10 +178,13 @@ export function ProductSelectorDialog({
 
   // Capacity explanation based on packaging type
   const getCapacityInfo = () => {
-    if (selectedPackaging === "12x10\" Boxes") {
+    if (selectedPackaging && selectedPackaging.includes('Box')) {
+      const boxType = selectedPackaging.includes('16x12') ? '16x12"' : '12x10"';
+      const boxesPerPallet = boxType === '16x12"' ? 48 : 60;
+      
       return (
         <div className="text-sm text-amber-600 mt-2">
-          Note: 60 boxes (12x10") = 1 pallet equivalent for capacity calculations
+          Note: {boxesPerPallet} boxes ({boxType}) = 1 pallet equivalent for capacity calculations
         </div>
       );
     }

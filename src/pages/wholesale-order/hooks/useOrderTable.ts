@@ -37,6 +37,9 @@ export function useOrderTable() {
     calculateTotalPallets, 
     calculateTotalCost, 
     calculateTotalPalletEquivalents,
+    calculateDetailedItemSummary,
+    calculatePackagingSummary,
+    generateCompactSummary,
     formatCurrency 
   } = useOrderCalculations();
   const orderFiltering = useOrderFiltering();
@@ -75,6 +78,14 @@ export function useOrderTable() {
     return calculateTotalPalletEquivalents(items);
   };
 
+  const getItemSummary = () => {
+    return {
+      detailedItems: calculateDetailedItemSummary(items),
+      packagingSummary: calculatePackagingSummary(items),
+      compactSummary: generateCompactSummary(items)
+    };
+  };
+
   return {
     items: processedItems,
     options: safeOptions,
@@ -98,6 +109,7 @@ export function useOrderTable() {
     calculateTotalCost,
     calculateTotalCapacity,
     calculateTotalPalletEquivalents,
+    getItemSummary,
     formatCurrency,
     sortConfig: orderFiltering.sortConfig,
     setSortConfig: orderFiltering.setSortConfig,

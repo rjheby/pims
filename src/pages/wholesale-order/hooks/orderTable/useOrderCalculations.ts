@@ -1,3 +1,4 @@
+
 import { OrderItem, safeNumber } from "../../types";
 
 // Object defining the packaging type conversions
@@ -9,7 +10,8 @@ export const PACKAGING_CONVERSIONS = {
   '16x12" Boxes': { unitsPerPallet: 48, palletEquivalent: 1/48 },
   'Packages': { unitsPerPallet: 500, palletEquivalent: 1/500 },
   'Crates': { unitsPerPallet: 1, palletEquivalent: 1.5 },
-  'Boxes': { unitsPerPallet: 30, palletEquivalent: 1/30 } // Legacy fallback
+  'Boxes': { unitsPerPallet: 30, palletEquivalent: 1/30 }, // Legacy fallback
+  'Cardboard Boxes': { unitsPerPallet: 48, palletEquivalent: 1/48 } // Added for cardboard boxes
 };
 
 // Helper function to get packaging conversion info
@@ -100,6 +102,57 @@ export function useOrderCalculations() {
     return groups;
   };
 
+  // Enhanced function to generate a detailed summary of items by all attributes
+  const calculateDetailedItemSummary = (items: OrderItem[]) => {
+    const detailedSummary: Record<string, number> = {};
+    
+    items.forEach(item => {
+      // Create a detailed key that includes all important attributes
+      const key = [
+        item.species || 'Unspecified',
+        item.bundleType || 'Unspecified',
+        item.packaging || 'Pallets',
+        item.length || 'Unspecified',
+        item.thickness || 'Unspecified'
+      ].join(' - ');
+      
+      if (detailedSummary[key]) {
+        detailedSummary[key] += safeNumber(item.pallets);
+      } else {
+        detailedSummary[key] = safeNumber(item.pallets);
+      }
+    });
+    
+    return detailedSummary;
+  };
+
+  // New function to get summary by packaging type
+  const calculatePackagingSummary = (items: OrderItem[]) => {
+    const packagingSummary: Record<string, number> = {};
+    
+    items.forEach(item => {
+      const packaging = item.packaging || 'Pallets';
+      const quantity = safeNumber(item.pallets);
+      
+      if (packagingSummary[packaging]) {
+        packagingSummary[packaging] += quantity;
+      } else {
+        packagingSummary[packaging] = quantity;
+      }
+    });
+    
+    return packagingSummary;
+  };
+
+  // Generate a compact summary string (e.g., "20 Pallets, 180 16x12\" Boxes")
+  const generateCompactSummary = (items: OrderItem[]): string => {
+    const packagingSummary = calculatePackagingSummary(items);
+    
+    return Object.entries(packagingSummary)
+      .map(([packaging, count]) => `${count} ${packaging}`)
+      .join(', ');
+  };
+
   // Added function to generate item name
   const generateItemName = (item: OrderItem): string => {
     const nameParts = [
@@ -125,6 +178,9 @@ export function useOrderCalculations() {
     calculateTotalPalletEquivalents,
     calculateCapacityPercentage,
     calculateItemGroups,
+    calculateDetailedItemSummary,
+    calculatePackagingSummary,
+    generateCompactSummary,
     safeNumber,
     getPackagingConversion,
     isOverCapacity,
