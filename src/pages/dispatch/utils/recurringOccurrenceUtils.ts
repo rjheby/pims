@@ -1,3 +1,4 @@
+
 import { addWeeks, addMonths, format, parse, isAfter, isBefore, isEqual, startOfDay, endOfDay, isSameDay } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -6,7 +7,13 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export const getDayOfWeekIndex = (day: string): number => {
   const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  return days.indexOf(day);
+  const index = days.indexOf(day.toLowerCase());
+  
+  if (index === -1) {
+    console.warn(`Invalid day name: ${day}`);
+  }
+  
+  return index;
 };
 
 /**
@@ -14,7 +21,17 @@ export const getDayOfWeekIndex = (day: string): number => {
  */
 export const getNextDayOfWeek = (date: Date, dayOfWeek: number): Date => {
   const resultDate = new Date(date);
-  resultDate.setDate(date.getDate() + (7 + dayOfWeek - date.getDay()) % 7);
+  const currentDay = resultDate.getDay();
+  
+  // If target day is same as current day, return current date
+  if (currentDay === dayOfWeek) {
+    return resultDate;
+  }
+  
+  // Calculate days to add - if target day is before current day, add days to get to next week
+  const daysToAdd = (7 + dayOfWeek - currentDay) % 7;
+  resultDate.setDate(date.getDate() + daysToAdd);
+  
   return resultDate;
 };
 
@@ -95,13 +112,15 @@ export const calculateNextOccurrences = (
   preferredDay: string,
   count: number
 ): Date[] => {
+  console.log(`Calculating next ${count} occurrences of ${frequency} on ${preferredDay} starting from ${startDate.toISOString()}`);
+  
   const occurrences: Date[] = [];
   
   // Make sure we're working with the start of the day
   startDate = startOfDay(startDate);
   
   try {
-    if (frequency === 'weekly' || frequency === 'bi-weekly') {
+    if (frequency.toLowerCase() === 'weekly' || frequency.toLowerCase() === 'bi-weekly' || frequency.toLowerCase() === 'biweekly') {
       // Parse day of week
       const dayIndex = getDayOfWeekIndex(preferredDay.toLowerCase());
       
@@ -110,22 +129,28 @@ export const calculateNextOccurrences = (
         return [];
       }
       
+      console.log(`Day index for ${preferredDay} is ${dayIndex}, current day is ${startDate.getDay()}`);
+      
       // Get the next occurrence of this weekday
       let currentDate = getNextDayOfWeek(startDate, dayIndex);
+      console.log(`Next occurrence of ${preferredDay} after ${startDate.toISOString()} is ${currentDate.toISOString()}`);
       
       // Check if we need to add this date
-      if (isEqual(startDate, currentDate) || isAfter(currentDate, startDate)) {
+      if (isEqual(startOfDay(startDate), startOfDay(currentDate)) || isAfter(currentDate, startDate)) {
         occurrences.push(currentDate);
+        console.log(`Added date: ${currentDate.toISOString()}`);
       }
       
       // Calculate future occurrences
-      const interval = frequency === 'weekly' ? 1 : 2;
+      const interval = (frequency.toLowerCase() === 'weekly') ? 1 : 2;
+      console.log(`Using interval of ${interval} weeks for ${frequency}`);
       
       while (occurrences.length < count) {
         currentDate = addWeeks(currentDate, interval);
         occurrences.push(currentDate);
+        console.log(`Added date: ${currentDate.toISOString()}`);
       }
-    } else if (frequency === 'monthly') {
+    } else if (frequency.toLowerCase() === 'monthly') {
       // Check if preferredDay is a pattern like "first monday"
       if (preferredDay.includes(' ')) {
         const [position, day] = preferredDay.toLowerCase().split(' ');
@@ -134,7 +159,7 @@ export const calculateNextOccurrences = (
         let currentDate = getNextMonthlyOccurrence(startDate, position, day);
         
         // Check if we need to add this date
-        if (isEqual(startDate, currentDate) || isAfter(currentDate, startDate)) {
+        if (isEqual(startOfDay(startDate), startOfDay(currentDate)) || isAfter(currentDate, startDate)) {
           occurrences.push(currentDate);
         }
         
@@ -156,7 +181,7 @@ export const calculateNextOccurrences = (
         let currentDate = getNextDayOfMonth(startDate, dayOfMonth);
         
         // Check if we need to add this date
-        if (isEqual(startDate, currentDate) || isAfter(currentDate, startDate)) {
+        if (isEqual(startOfDay(startDate), startOfDay(currentDate)) || isAfter(currentDate, startDate)) {
           occurrences.push(currentDate);
         }
         
@@ -171,6 +196,7 @@ export const calculateNextOccurrences = (
     console.error('Error calculating occurrences:', error);
   }
   
+  console.log(`Calculated ${occurrences.length} occurrences`);
   return occurrences;
 };
 
@@ -188,26 +214,44 @@ export const checkDateForRecurringOrders = async (date: Date): Promise<boolean> 
     if (error) throw error;
     
     if (!recurringOrders || recurringOrders.length === 0) {
+      console.log("No active recurring orders found");
       return false;
     }
     
+    console.log(`Checking ${recurringOrders.length} recurring orders for date ${date.toISOString()}`);
+    
     // Check if any recurring order matches this date
     for (const order of recurringOrders) {
+      if (!order.preferred_day) {
+        console.warn(`Order ${order.id} missing preferred_day`);
+        continue;
+      }
+      
+      console.log(`Checking order ${order.id} (${order.frequency} on ${order.preferred_day})`);
+      
       const occurrences = calculateNextOccurrences(
-        new Date(),
+        new Date(), // Start from today
         order.frequency,
         order.preferred_day,
         5 // Look ahead a few occurrences
       );
       
+      if (occurrences.length === 0) {
+        console.warn(`No occurrences calculated for order ${order.id}`);
+        continue;
+      }
+      
       // Fixed: Now properly checking each occurrence individually
       for (const occurrence of occurrences) {
+        console.log(`Comparing ${occurrence.toISOString()} with ${date.toISOString()}`);
         if (isSameDay(occurrence, date)) {
+          console.log(`Match found for date ${date.toISOString()}`);
           return true;
         }
       }
     }
     
+    console.log(`No matching recurring orders for date ${date.toISOString()}`);
     return false;
   } catch (error) {
     console.error('Error checking recurring orders for date:', error);

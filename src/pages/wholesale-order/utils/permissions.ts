@@ -2,31 +2,32 @@
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Utility function to check if the current user has admin privileges
- * @returns Promise<boolean> indicating whether the current user is an admin
+ * Checks if the current user has admin privileges
+ * @returns {Promise<boolean>} True if the user is an admin, false otherwise
  */
 export const checkIsAdmin = async (): Promise<boolean> => {
   try {
-    // First check local storage for previously cached admin status
-    const cachedAdminStatus = localStorage.getItem('isAdmin');
-    if (cachedAdminStatus) {
-      return cachedAdminStatus === 'true';
-    }
+    const { data: { user } } = await supabase.auth.getUser();
     
-    // If no cached status, check with Supabase
-    const { data, error } = await supabase.rpc('is_admin');
-    
-    if (error) {
-      console.error('Error checking admin status:', error);
+    if (!user) {
       return false;
     }
     
-    // Cache the result for future checks
-    localStorage.setItem('isAdmin', data ? 'true' : 'false');
+    // Query the profiles table to check if the user has admin role
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+      
+    if (error || !data) {
+      console.error("Error checking admin status:", error);
+      return false;
+    }
     
-    return !!data;
+    return data.role === 'ADMIN' || data.role === 'SUPER_ADMIN';
   } catch (error) {
-    console.error('Error in checkIsAdmin:', error);
+    console.error("Error checking admin status:", error);
     return false;
   }
 };

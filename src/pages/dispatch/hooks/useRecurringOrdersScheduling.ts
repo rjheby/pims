@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { calculateNextOccurrences } from '../utils/recurringOccurrenceUtils';
@@ -97,35 +97,58 @@ export function useRecurringOrdersScheduling(startDate?: Date, endDate?: Date) {
     start: Date = new Date(), 
     end: Date = new Date(new Date().setDate(new Date().getDate() + 30))
   ): ScheduledOccurrence[] => {
+    if (!start || !end) {
+      console.warn("Invalid date range provided to generateOccurrences");
+      return [];
+    }
+    
     console.log(`Generating occurrences from ${start.toISOString()} to ${end.toISOString()}`);
+    console.log(`Processing ${orders.length} recurring orders`);
+    
     const occurrences: ScheduledOccurrence[] = [];
 
     orders.forEach(order => {
-      if (!order.preferred_day) return;
+      if (!order.preferred_day) {
+        console.warn(`Order ${order.id} has no preferred_day, skipping`);
+        return;
+      }
       
-      // Use calculateNextOccurrences to get dates for this recurring order
-      const dates = calculateNextOccurrences(
-        new Date(),
-        order.frequency,
-        order.preferred_day,
-        30 // Look ahead 30 occurrences to ensure we catch all in the range
-      );
+      // Log the order details for debugging
+      console.log(`Processing order: ${order.id}, Frequency: ${order.frequency}, Day: ${order.preferred_day}, Customer: ${order.customer?.name}`);
       
-      // Filter dates to only include those in the specified range
-      const datesInRange = dates.filter(date => {
-        return date >= start && date <= end;
-      });
-      
-      console.log(`Found ${datesInRange.length} occurrences for order ${order.id} (${order.customer?.name}) within range`);
-      
-      // Create an occurrence for each date
-      datesInRange.forEach(date => {
-        occurrences.push({
-          date: new Date(date),
-          recurringOrder: order,
-          isAutoScheduled: true
+      try {
+        // Use calculateNextOccurrences to get dates for this recurring order
+        const dates = calculateNextOccurrences(
+          start,
+          order.frequency,
+          order.preferred_day,
+          30 // Look ahead 30 occurrences to ensure we catch all in the range
+        );
+        
+        console.log(`calculateNextOccurrences returned ${dates.length} dates for order ${order.id}`);
+        
+        // Filter dates to only include those in the specified range
+        const datesInRange = dates.filter(date => {
+          const isInRange = date >= start && date <= end;
+          if (!isInRange) {
+            console.log(`Date ${date.toISOString()} is outside range: ${start.toISOString()} - ${end.toISOString()}`);
+          }
+          return isInRange;
         });
-      });
+        
+        console.log(`Found ${datesInRange.length} occurrences for order ${order.id} (${order.customer?.name}) within range`);
+        
+        // Create an occurrence for each date
+        datesInRange.forEach(date => {
+          occurrences.push({
+            date: new Date(date),
+            recurringOrder: order,
+            isAutoScheduled: true
+          });
+        });
+      } catch (error) {
+        console.error(`Error generating occurrences for order ${order.id}:`, error);
+      }
     });
     
     // Sort by date
@@ -172,8 +195,8 @@ export function useRecurringOrdersScheduling(startDate?: Date, endDate?: Date) {
     }
   }, []);
 
-  // Initialize
-  useCallback(() => {
+  // Initialize when date range changes
+  useEffect(() => {
     if (startDate && endDate) {
       console.log("Initializing recurring order scheduling with date range");
       fetchRecurringOrders()

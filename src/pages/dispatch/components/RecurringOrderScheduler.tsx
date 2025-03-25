@@ -52,14 +52,28 @@ export function RecurringOrderScheduler({
       .then(orders => {
         console.log(`RecurringOrderScheduler: Fetched ${orders.length} recurring orders`);
         if (orders.length > 0) {
+          console.log("Generating occurrences with these orders:", orders);
           generateOccurrences(orders, scheduleDate, endDate);
         }
+      })
+      .catch(err => {
+        console.error("Error fetching recurring orders:", err);
       });
   }, [scheduleDate, endDate, fetchRecurringOrders, generateOccurrences]);
 
   // Filter occurrences that occur on the schedule date
   const currentDateOccurrences = scheduledOccurrences.filter(occurrence => {
-    const isSameDate = occurrence.date.toDateString() === scheduleDate.toDateString();
+    const occurrenceDate = new Date(occurrence.date);
+    const scheduleDateObj = new Date(scheduleDate);
+    
+    // Check if the dates match (ignore time)
+    const isSameDate = 
+      occurrenceDate.getFullYear() === scheduleDateObj.getFullYear() && 
+      occurrenceDate.getMonth() === scheduleDateObj.getMonth() && 
+      occurrenceDate.getDate() === scheduleDateObj.getDate();
+      
+    console.log(`Comparing dates: ${occurrenceDate.toDateString()} and ${scheduleDateObj.toDateString()} - match: ${isSameDate}`);
+    
     return isSameDate;
   });
 
@@ -68,6 +82,9 @@ export function RecurringOrderScheduler({
   // Filter out customers already in the schedule
   const availableOccurrences = currentDateOccurrences.filter(occurrence => {
     const isAvailable = !existingCustomerIds.includes(occurrence.recurringOrder.customer_id);
+    if (!isAvailable) {
+      console.log(`Customer ${occurrence.recurringOrder.customer_id} already exists in schedule`);
+    }
     return isAvailable;
   });
 
@@ -104,10 +121,15 @@ export function RecurringOrderScheduler({
         const order = occurrence.recurringOrder;
         const customer = order.customer;
         
-        if (!customer) return null;
+        if (!customer) {
+          console.warn(`No customer data for recurring order ${order.id}`);
+          return null;
+        }
         
         const timeWindow = parsePreferredTimeToWindow(order.preferred_time);
         const formattedTimeWindow = formatTimeWindow(timeWindow);
+        
+        console.log(`Creating stop for customer ${customer.name} (${customer.id})`);
         
         return {
           stop_number: existingCustomerIds.length + index + 1,
