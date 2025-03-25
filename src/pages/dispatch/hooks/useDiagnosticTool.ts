@@ -22,11 +22,12 @@ export function useDiagnosticTool() {
   const runDiagnostics = async () => {
     setIsRunning(true);
     setResults({});
-
-    const diagnosticResults: DiagnosticResults = {};
     let hasIssues = false;
     
     try {
+      console.log("Starting diagnostic tests...");
+      const diagnosticResults: DiagnosticResults = {};
+      
       // 1. Test Supabase connection
       try {
         console.log("Testing Supabase connection...");
@@ -41,9 +42,14 @@ export function useDiagnosticTool() {
           error: error || null
         };
         
-        if (error) hasIssues = true;
-        console.log(`Connection test: ${!error ? 'Success' : 'Failed'} (${connectionTime}ms)`);
+        if (error) {
+          console.error("Supabase connection test failed:", error);
+          hasIssues = true;
+        } else {
+          console.log(`Connection test: Success (${connectionTime}ms)`);
+        }
       } catch (err: any) {
+        console.error("Exception in connection test:", err);
         hasIssues = true;
         diagnosticResults.supabaseConnection = {
           success: false,
@@ -63,8 +69,14 @@ export function useDiagnosticTool() {
           error: error || null
         };
         
-        if (error || !session) hasIssues = true;
+        if (error || !session) {
+          console.log("Authentication test:", error ? "Error" : "No session");
+          hasIssues = true;
+        } else {
+          console.log("Authentication test: Success");
+        }
       } catch (err: any) {
+        console.error("Exception in authentication test:", err);
         hasIssues = true;
         diagnosticResults.authentication = {
           success: false,
@@ -73,86 +85,70 @@ export function useDiagnosticTool() {
         };
       }
 
-      // 3. Test drivers table
+      // 3. Test database tables access
+      // Test wholesale_order_options table specifically since it was causing issues
       try {
-        console.log("Testing drivers table...");
-        const driversStart = performance.now();
-        const { data, error, count } = await supabase
-          .from("drivers")
-          .select('*', { count: 'exact' })
+        console.log("Testing wholesale_order_options table...");
+        const optionsStart = performance.now();
+        const { data, error } = await supabase
+          .from("wholesale_order_options")
+          .select('*')
           .limit(1);
-        const driversTime = Math.round(performance.now() - driversStart);
+        const optionsTime = Math.round(performance.now() - optionsStart);
         
-        diagnosticResults.driversTable = {
+        diagnosticResults.orderOptionsTable = {
           success: !error,
-          time: driversTime,
-          count: count ?? 0,
-          message: error ? error.message : `Found ${count} drivers (${driversTime}ms)`,
+          time: optionsTime,
+          message: error ? error.message : `Options table access successful (${optionsTime}ms)`,
           error: error || null
         };
         
-        if (error) hasIssues = true;
+        if (error) {
+          console.error("wholesale_order_options table test failed:", error);
+          hasIssues = true;
+        } else {
+          console.log(`wholesale_order_options table test: Success (${optionsTime}ms)`);
+        }
       } catch (err: any) {
+        console.error("Exception in wholesale_order_options table test:", err);
         hasIssues = true;
-        diagnosticResults.driversTable = {
+        diagnosticResults.orderOptionsTable = {
           success: false,
-          message: `Drivers table test failed: ${err.message}`,
+          message: `wholesale_order_options table test failed: ${err.message}`,
           error: err
         };
       }
 
-      // 4. Test recurring orders table
+      // 4. Test wood_products table
       try {
-        console.log("Testing recurring_orders table...");
-        const ordersStart = performance.now();
+        console.log("Testing wood_products table...");
+        const productsStart = performance.now();
         const { data, error, count } = await supabase
-          .from("recurring_orders")
-          .select('*', { count: 'exact' })
-          .limit(1);
-        const ordersTime = Math.round(performance.now() - ordersStart);
-        
-        diagnosticResults.recurringOrdersTable = {
-          success: !error,
-          time: ordersTime,
-          count: count ?? 0,
-          message: error ? error.message : `Found ${count} recurring orders (${ordersTime}ms)`,
-          error: error || null
-        };
-        
-        if (error) hasIssues = true;
-      } catch (err: any) {
-        hasIssues = true;
-        diagnosticResults.recurringOrdersTable = {
-          success: false,
-          message: `Recurring orders table test failed: ${err.message}`,
-          error: err
-        };
-      }
-
-      // 5. Test profiles table
-      try {
-        console.log("Testing profiles table...");
-        const profileStart = performance.now();
-        const { data, error, count } = await supabase
-          .from("profiles")
+          .from("wood_products")
           .select('*', { count: 'exact' })
           .limit(5);
-        const profileTime = Math.round(performance.now() - profileStart);
+        const productsTime = Math.round(performance.now() - productsStart);
         
-        diagnosticResults.profilesTable = {
+        diagnosticResults.woodProductsTable = {
           success: !error,
-          time: profileTime,
+          time: productsTime,
           count: count ?? 0,
-          message: error ? error.message : `Found ${count} profiles (${profileTime}ms)`,
+          message: error ? error.message : `Found ${count} wood products (${productsTime}ms)`,
           error: error || null
         };
         
-        if (error) hasIssues = true;
+        if (error) {
+          console.error("wood_products table test failed:", error);
+          hasIssues = true;
+        } else {
+          console.log(`wood_products table test: Success, found ${count} records (${productsTime}ms)`);
+        }
       } catch (err: any) {
+        console.error("Exception in wood_products table test:", err);
         hasIssues = true;
-        diagnosticResults.profilesTable = {
+        diagnosticResults.woodProductsTable = {
           success: false,
-          message: `Profiles table test failed: ${err.message}`,
+          message: `wood_products table test failed: ${err.message}`,
           error: err
         };
       }
