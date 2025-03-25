@@ -27,8 +27,18 @@ import {
   consolidateRecurringOrders
 } from './scheduleUtils';
 
-// Re-export all the recurring occurrence utility functions
+// Re-export all the utility functions
 export {
+  // Core date-fns exports that might be needed
+  format,
+  parse,
+  isAfter,
+  isBefore,
+  isEqual,
+  startOfDay,
+  endOfDay,
+  isSameDay,
+  
   // From recurringOccurrenceUtils.ts
   calculateNextOccurrences,
   getDayOfWeekIndex,
