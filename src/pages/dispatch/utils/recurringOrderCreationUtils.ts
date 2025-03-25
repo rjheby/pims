@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { calculateNextOccurrences } from "./recurringOccurrenceUtils";
 import { format, parse, isBefore, isAfter, isEqual, startOfDay, endOfDay, isSameDay } from "date-fns";
@@ -312,7 +313,6 @@ export const getUpcomingSchedulesForRecurringOrder = async (
     return links
       .filter(link => {
         if (!link.schedule || !link.schedule.schedule_date) return false;
-        // Fix: Access schedule_date from the individual link.schedule object, not from the links array
         const scheduleDate = parse(link.schedule.schedule_date, 'yyyy-MM-dd', new Date());
         return !isBefore(scheduleDate, today);
       })

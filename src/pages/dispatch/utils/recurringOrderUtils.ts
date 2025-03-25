@@ -1,8 +1,7 @@
 
-import { supabase } from "@/integrations/supabase/client";
 import { format, parse, isAfter, isBefore, isEqual, startOfDay, endOfDay, isSameDay } from "date-fns";
 
-// Import and re-export from our utility modules
+// Import from utility modules - make sure each function is imported from exactly one place
 import { 
   calculateNextOccurrences,
   getDayOfWeekIndex,
