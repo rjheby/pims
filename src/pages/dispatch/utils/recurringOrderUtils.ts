@@ -1,7 +1,7 @@
 
 import { format, parse, isAfter, isBefore, isEqual, startOfDay, endOfDay, isSameDay } from "date-fns";
 
-// Import from utility modules - make sure each function is imported from exactly one place
+// Import from utility modules - make sure each function is imported from exactly one source file
 import { 
   calculateNextOccurrences,
   getDayOfWeekIndex,
@@ -11,34 +11,15 @@ import {
   checkDateForRecurringOrders
 } from './recurringOccurrenceUtils';
 
-import {
-  createRecurringOrderFromSchedule,
-  updateRecurringSchedule,
-  syncAllRecurringOrders,
-  getUpcomingSchedulesForRecurringOrder
-} from './recurringOrderCreationUtils';
-
-import {
-  findSchedulesForDate,
-  findSchedulesForDateBasic,
-  createScheduleForDate,
-  consolidateRecurringOrders
-} from './scheduleUtils';
-
-// Re-export all the functions
+// Re-export all the recurring occurrence utility functions
 export {
   calculateNextOccurrences,
   getDayOfWeekIndex,
   getNextDayOfWeek,
   getNextDayOfMonth,
   getNextMonthlyOccurrence,
-  checkDateForRecurringOrders,
-  createRecurringOrderFromSchedule,
-  updateRecurringSchedule,
-  syncAllRecurringOrders,
-  getUpcomingSchedulesForRecurringOrder,
-  findSchedulesForDate,
-  findSchedulesForDateBasic,
-  createScheduleForDate,
-  consolidateRecurringOrders
+  checkDateForRecurringOrders
 };
+
+// No need to re-export functions from other files since they're already
+// exported through index.ts, which will prevent circular dependencies

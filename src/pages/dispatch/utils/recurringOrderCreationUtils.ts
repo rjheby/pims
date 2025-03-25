@@ -2,6 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { calculateNextOccurrences } from "./recurringOccurrenceUtils";
 import { format, parse, isBefore, isAfter, isEqual, startOfDay, endOfDay, isSameDay } from "date-fns";
+import { consolidateRecurringOrders, findSchedulesForDateBasic } from "./scheduleUtils";
 
 /**
  * Create a recurring order from a dispatch schedule
@@ -128,46 +129,24 @@ export const updateRecurringSchedule = async (recurringOrderId: string): Promise
       return false;
     }
     
-    // For each occurrence, check if we need to create a dispatch schedule
-    for (const occurrenceDate of nextOccurrences) {
-      const dateStr = format(occurrenceDate, 'yyyy-MM-dd');
+    // Group occurrences by date to avoid creating multiple schedules for the same day
+    const dateMap = new Map<string, Date>();
+    for (const date of nextOccurrences) {
+      const dateStr = format(date, 'yyyy-MM-dd');
+      dateMap.set(dateStr, date);
+    }
+    
+    // For each unique date, find or create a schedule and add this recurring order to it
+    for (const [dateStr, occurrenceDate] of dateMap.entries()) {
+      // Instead of creating the schedule directly, use the consolidation function
+      const scheduleInfo = await consolidateRecurringOrders(dateStr);
       
-      // Check if a dispatch schedule already exists for this date
-      const { data: existingSchedules, error: scheduleError } = await supabase
-        .from('dispatch_schedules')
-        .select('id')
-        .eq('schedule_date', dateStr);
-        
-      if (scheduleError) throw scheduleError;
-      
-      let scheduleId: string;
-      
-      if (!existingSchedules || existingSchedules.length === 0) {
-        // Create a new dispatch schedule for this date
-        // Use the occurrence date for both schedule_date and the schedule_number
-        const formattedDate = format(occurrenceDate, 'yyyyMMdd');
-        const { data: newSchedule, error: createError } = await supabase
-          .from('dispatch_schedules')
-          .insert({
-            schedule_date: dateStr,
-            status: 'draft',
-            schedule_number: `SCH-${formattedDate}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
-            notes: `Auto-generated from recurring order ${recurringOrderId}`
-          })
-          .select()
-          .single();
-          
-        if (createError) throw createError;
-        
-        if (!newSchedule) {
-          console.error('Failed to create new schedule');
-          continue;
-        }
-        
-        scheduleId = newSchedule.id;
-      } else {
-        scheduleId = existingSchedules[0].id;
+      if (!scheduleInfo) {
+        console.error(`Failed to consolidate schedule for date ${dateStr}`);
+        continue;
       }
+      
+      const scheduleId = scheduleInfo.scheduleId;
       
       // Check if this recurring order is already linked to this schedule
       const { data: existingLinks, error: linkError } = await supabase
@@ -258,6 +237,15 @@ export const syncAllRecurringOrders = async (): Promise<{
     if (!activeOrders || activeOrders.length === 0) {
       return { success: true, processed: 0 };
     }
+    
+    // Group orders by date first to consolidate schedules
+    const ordersByCustomer: Record<string, any[]> = {};
+    activeOrders.forEach(order => {
+      if (!ordersByCustomer[order.customer_id]) {
+        ordersByCustomer[order.customer_id] = [];
+      }
+      ordersByCustomer[order.customer_id].push(order);
+    });
     
     // For each recurring order, update its schedule
     let processedCount = 0;

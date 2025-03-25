@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -110,6 +111,11 @@ export function ScheduleCard({
   // Format date for display, ensuring we parse it correctly from the database format
   const formattedDate = (() => {
     try {
+      if (!schedule.schedule_date) {
+        console.warn("Missing schedule_date in schedule:", schedule);
+        return "Unknown date";
+      }
+      
       // Make sure we're parsing the date correctly from the database's yyyy-MM-dd format
       const parsedDate = parse(schedule.schedule_date, 'yyyy-MM-dd', new Date());
       return format(parsedDate, "EEEE, MMMM d, yyyy");
