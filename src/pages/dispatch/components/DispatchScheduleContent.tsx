@@ -82,6 +82,7 @@ export function DispatchScheduleContent() {
         }));
         
         setCustomers(processedCustomers);
+        console.log(`DispatchScheduleContent: Loaded ${processedCustomers.length} customers`);
         
         // Fetch drivers
         const { data: driversData, error: driversError } = await supabase
@@ -93,6 +94,7 @@ export function DispatchScheduleContent() {
         if (driversError) throw driversError;
         
         setDrivers(driversData || []);
+        console.log(`DispatchScheduleContent: Loaded ${driversData?.length || 0} drivers`);
       } catch (error: any) {
         console.error("Error fetching data:", error);
         toast({
@@ -132,6 +134,8 @@ export function DispatchScheduleContent() {
     
     setIsSaving(true);
     try {
+      console.log(`DispatchScheduleContent: Saving schedule with ${stops.length} stops`);
+      
       // Create the master schedule record
       const { data: masterData, error: masterError } = await supabase
         .from('dispatch_schedules')
@@ -145,6 +149,7 @@ export function DispatchScheduleContent() {
       if (masterError) throw masterError;
       
       const masterScheduleId = masterData[0].id;
+      console.log(`DispatchScheduleContent: Created master schedule with ID ${masterScheduleId}`);
       
       // Create all delivery stops with the master schedule ID
       const stopsWithMasterId = stops.map((stop, index) => ({
@@ -161,9 +166,13 @@ export function DispatchScheduleContent() {
         
       if (stopsError) throw stopsError;
       
+      console.log(`DispatchScheduleContent: Added ${stopsWithMasterId.length} stops to the schedule`);
+      
       // For recurring orders, also create entries in delivery_schedules
       const recurringStops = stops.filter(stop => stop.is_recurring);
       if (recurringStops.length > 0) {
+        console.log(`DispatchScheduleContent: Processing ${recurringStops.length} recurring stops`);
+        
         const deliverySchedulesData = recurringStops.map(stop => ({
           customer_id: stop.customer_id,
           master_schedule_id: masterScheduleId,
@@ -206,12 +215,18 @@ export function DispatchScheduleContent() {
   // Handle date change
   const handleDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newDate = new Date(event.target.value);
+    console.log(`DispatchScheduleContent: Date changed to ${newDate.toISOString()}`);
     setScheduleDate(newDate);
+    
+    // When date changes, automatically trigger recurring orders tab to show
+    setShowRecurringTab(true);
   };
 
   // Handle adding recurring order stops
   const handleAddRecurringStops = (newStops: any[]) => {
     if (newStops.length === 0) return;
+    
+    console.log(`DispatchScheduleContent: Adding ${newStops.length} recurring stops`);
     
     // Add the new stops to the existing stops
     setStops([...stops, ...newStops]);
@@ -280,7 +295,7 @@ export function DispatchScheduleContent() {
           </div>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="stops" className="w-full">
+          <Tabs defaultValue="recurring" className="w-full">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-medium">Delivery Stops</h3>
               <div className="flex items-center gap-2">
@@ -296,7 +311,7 @@ export function DispatchScheduleContent() {
                 <TabsList>
                   <TabsTrigger value="stops" className="flex items-center gap-1">
                     <Truck className="h-4 w-4" />
-                    <span className="hidden md:inline">Delivery</span> Stops
+                    <span className="hidden md:inline">Delivery</span> Stops ({stops.length})
                   </TabsTrigger>
                   <TabsTrigger 
                     value="recurring" 
@@ -311,44 +326,26 @@ export function DispatchScheduleContent() {
             </div>
             
             <TabsContent value="stops" className="mt-0">
-              <div className="mb-4 flex flex-wrap gap-2">
-                <div className="flex-1 min-w-[200px] bg-muted rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Calendar className="h-5 w-5 text-primary" />
-                    <span className="font-medium">Schedule Date</span>
-                  </div>
-                  <p className="text-sm">{format(scheduleDate, "EEEE, MMMM d, yyyy")}</p>
-                </div>
-                
-                <div className="flex-1 min-w-[200px] bg-muted rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <User className="h-5 w-5 text-primary" />
-                    <span className="font-medium">Customers</span>
-                  </div>
-                  <p className="text-sm">{stops.length} stops planned</p>
-                </div>
-                
-                <div className="flex-1 min-w-[200px] bg-muted rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Truck className="h-5 w-5 text-primary" />
-                    <span className="font-medium">Drivers</span>
-                  </div>
-                  <p className="text-sm">{drivers.length} drivers available</p>
-                </div>
-              </div>
-              
               <StopsTable 
                 stops={stops} 
                 onStopsChange={setStops}
-                useMobileLayout={false}
+                useMobileLayout={false} 
                 readOnly={false}
+                masterScheduleId=""
                 customers={customers}
                 drivers={drivers}
               />
+              
+              {stops.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p className="mb-4">No stops have been added to this schedule yet.</p>
+                  <p>Add stops by selecting the "Recurring" tab to view and add recurring orders.</p>
+                </div>
+              )}
             </TabsContent>
             
             <TabsContent value="recurring" className="mt-0">
-              {showRecurringTab && scheduleDate && (
+              {showRecurringTab && (
                 <RecurringOrderScheduler
                   scheduleDate={scheduleDate}
                   onAddStops={handleAddRecurringStops}
@@ -357,68 +354,6 @@ export function DispatchScheduleContent() {
               )}
             </TabsContent>
           </Tabs>
-          
-          {stops.length > 0 && (
-            <div className="mt-6 border-t pt-6">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-medium">Schedule Summary</h3>
-              </div>
-              
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <User className="h-5 w-5 text-primary" />
-                        <span className="font-medium">Total Stops</span>
-                      </div>
-                      <span className="text-xl font-semibold">{stops.length}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <CalendarDays className="h-5 w-5 text-primary" />
-                        <span className="font-medium">Recurring Orders</span>
-                      </div>
-                      <span className="text-xl font-semibold">{recurringStopsCount}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <CheckCircle className="h-5 w-5 text-primary" />
-                        <span className="font-medium">Schedule Status</span>
-                      </div>
-                      <Badge className="bg-amber-500">Draft</Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-              
-              <div className="mt-6 flex justify-end">
-                <Button onClick={handleSaveSchedule} disabled={isSaving} className="bg-[#2A4131] hover:bg-[#2A4131]/90">
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="mr-2 h-4 w-4" />
-                      Save Schedule
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>

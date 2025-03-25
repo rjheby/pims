@@ -44,20 +44,34 @@ export function RecurringOrderScheduler({
 
   // Get occurrences for the selected date range
   useEffect(() => {
-    if (recurringOrders.length > 0) {
-      generateOccurrences(recurringOrders, scheduleDate, endDate);
-    }
-  }, [recurringOrders, scheduleDate, endDate, generateOccurrences]);
+    console.log(`RecurringOrderScheduler: scheduleDate=${scheduleDate.toISOString()}, endDate=${endDate.toISOString()}`);
+    console.log(`RecurringOrderScheduler: existingCustomerIds=${JSON.stringify(existingCustomerIds)}`);
+    
+    // Initial load of recurring orders
+    fetchRecurringOrders()
+      .then(orders => {
+        console.log(`RecurringOrderScheduler: Fetched ${orders.length} recurring orders`);
+        if (orders.length > 0) {
+          generateOccurrences(orders, scheduleDate, endDate);
+        }
+      });
+  }, [scheduleDate, endDate, fetchRecurringOrders, generateOccurrences]);
 
   // Filter occurrences that occur on the schedule date
   const currentDateOccurrences = scheduledOccurrences.filter(occurrence => {
-    return occurrence.date.toDateString() === scheduleDate.toDateString();
+    const isSameDate = occurrence.date.toDateString() === scheduleDate.toDateString();
+    return isSameDate;
   });
+
+  console.log(`RecurringOrderScheduler: Found ${currentDateOccurrences.length} occurrences on ${scheduleDate.toDateString()}`);
 
   // Filter out customers already in the schedule
   const availableOccurrences = currentDateOccurrences.filter(occurrence => {
-    return !existingCustomerIds.includes(occurrence.recurringOrder.customer_id);
+    const isAvailable = !existingCustomerIds.includes(occurrence.recurringOrder.customer_id);
+    return isAvailable;
   });
+
+  console.log(`RecurringOrderScheduler: ${availableOccurrences.length} available occurrences after filtering out existing customers`);
 
   // Get occurrences for the next 7 days for the planning tab
   const getPlanningOccurrences = () => {
@@ -110,6 +124,7 @@ export function RecurringOrderScheduler({
         };
       }).filter(Boolean) as any[];
       
+      console.log(`RecurringOrderScheduler: Adding ${newStops.length} stops to schedule`);
       onAddStops(newStops);
       
       toast({

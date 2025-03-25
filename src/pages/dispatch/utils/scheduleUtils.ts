@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { format, parse, isSameDay, startOfDay } from "date-fns";
 import { calculateNextOccurrences } from "./recurringOccurrenceUtils";
@@ -234,6 +233,8 @@ export const createScheduleForDate = async (dateStr: string) => {
  */
 export const consolidateRecurringOrders = async (dateStr: string) => {
   try {
+    console.log(`Consolidating recurring orders for date ${dateStr}`);
+    
     // Get existing schedules for this date
     const existingSchedules = await findSchedulesForDateBasic(dateStr);
     
@@ -247,6 +248,8 @@ export const consolidateRecurringOrders = async (dateStr: string) => {
         throw new Error("Schedule exists but couldn't be retrieved");
       }
       
+      console.log(`Found existing schedule for ${dateStr}: ${firstSchedule.schedule_number}`);
+      
       return {
         scheduleId: firstSchedule.id,
         scheduleDateFormatted: dateStr,
@@ -255,6 +258,8 @@ export const consolidateRecurringOrders = async (dateStr: string) => {
       };
     } else {
       // No existing schedule found, create a new one
+      console.log(`No existing schedule found for ${dateStr}, creating new one`);
+      
       const parsedDate = parse(dateStr, 'yyyy-MM-dd', new Date());
       const formattedDate = format(parsedDate, 'yyyyMMdd');
       const scheduleNumber = `SCH-${formattedDate}-REC-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
@@ -274,6 +279,8 @@ export const consolidateRecurringOrders = async (dateStr: string) => {
         console.error("Error creating consolidated schedule:", error);
         throw error;
       }
+      
+      console.log(`Created new schedule for ${dateStr}: ${newSchedule.schedule_number}`);
       
       return {
         scheduleId: newSchedule.id,

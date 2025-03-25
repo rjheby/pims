@@ -1,8 +1,9 @@
 
 import { useState, useCallback } from 'react';
-import { supabase, fetchWithFallback, handleSupabaseError } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { calculateRecurringDates, getFutureRecurringDates, isDateOnDay, getNextSpecificDay } from '../utils/timeWindowUtils';
+import { calculateNextOccurrences } from '../utils/recurringOccurrenceUtils';
+import { format } from 'date-fns';
 
 export interface RecurringOrder {
   id: string;
@@ -41,25 +42,29 @@ export function useRecurringOrdersScheduling(startDate?: Date, endDate?: Date) {
       setLoading(true);
       setError(null);
       
-      // Use fetchWithFallback to handle WebSocket connection issues
-      const { data, error } = await fetchWithFallback(
-        "recurring_orders",
-        (query) => query
-          .select(`
-            *,
-            customer:customer_id (
-              id,
-              name,
-              address,
-              phone,
-              email
-            )
-          `)
-          .eq('active_status', true)
-          .order("created_at", { ascending: false })
-      );
+      console.log("Fetching recurring orders...");
+      
+      // Direct Supabase query instead of using fetchWithFallback
+      const { data, error } = await supabase
+        .from('recurring_orders')
+        .select(`
+          *,
+          customer:customer_id (
+            id,
+            name,
+            address,
+            phone,
+            email
+          )
+        `)
+        .eq('active_status', true)
+        .order("created_at", { ascending: false });
         
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching recurring orders:", error);
+        setError(`Failed to load recurring orders: ${error.message}`);
+        return [];
+      }
       
       // Validate that necessary data is present
       const validOrders = (data || []).filter(order => 
@@ -74,11 +79,10 @@ export function useRecurringOrdersScheduling(startDate?: Date, endDate?: Date) {
       return validOrders;
     } catch (error: any) {
       console.error("Error fetching recurring orders:", error);
-      const errorMessage = handleSupabaseError(error);
-      setError(errorMessage);
+      setError(`Failed to load recurring orders: ${error.message}`);
       toast({
         title: "Error",
-        description: "Failed to load recurring orders: " + errorMessage,
+        description: "Failed to load recurring orders: " + error.message,
         variant: "destructive"
       });
       return [];
@@ -87,7 +91,7 @@ export function useRecurringOrdersScheduling(startDate?: Date, endDate?: Date) {
     }
   }, [toast]);
 
-  // Generate schedule occurrences for a date range using the time window utilities
+  // Generate schedule occurrences for a date range using the recurring occurrence utils
   const generateOccurrences = useCallback((
     orders: RecurringOrder[], 
     start: Date = new Date(), 
@@ -99,18 +103,23 @@ export function useRecurringOrdersScheduling(startDate?: Date, endDate?: Date) {
     orders.forEach(order => {
       if (!order.preferred_day) return;
       
-      // Use the calculateRecurringDates utility to get all dates in the range
-      const dates = calculateRecurringDates(
+      // Use calculateNextOccurrences to get dates for this recurring order
+      const dates = calculateNextOccurrences(
+        new Date(),
         order.frequency,
         order.preferred_day,
-        start,
-        end
+        30 // Look ahead 30 occurrences to ensure we catch all in the range
       );
       
-      console.log(`Found ${dates.length} occurrences for order ${order.id} (${order.customer?.name})`);
+      // Filter dates to only include those in the specified range
+      const datesInRange = dates.filter(date => {
+        return date >= start && date <= end;
+      });
+      
+      console.log(`Found ${datesInRange.length} occurrences for order ${order.id} (${order.customer?.name}) within range`);
       
       // Create an occurrence for each date
-      dates.forEach(date => {
+      datesInRange.forEach(date => {
         occurrences.push({
           date: new Date(date),
           recurringOrder: order,
@@ -122,254 +131,21 @@ export function useRecurringOrdersScheduling(startDate?: Date, endDate?: Date) {
     // Sort by date
     const sortedOccurrences = occurrences.sort((a, b) => a.date.getTime() - b.date.getTime());
     setScheduledOccurrences(sortedOccurrences);
+    
+    // Add additional debug info
+    if (sortedOccurrences.length === 0) {
+      console.warn("No occurrences found in the date range");
+    } else {
+      console.log(`Generated ${sortedOccurrences.length} total occurrences in date range`);
+      // Log the first few occurrences for debugging
+      sortedOccurrences.slice(0, 3).forEach(occurrence => {
+        console.log(`Occurrence: ${format(occurrence.date, 'yyyy-MM-dd')} - ${occurrence.recurringOrder.customer?.name} (${occurrence.recurringOrder.frequency})`);
+      });
+    }
+    
     return sortedOccurrences;
   }, []);
 
-  // Get occurrences specifically for a day of the week (e.g., "tuesday")
-  const getOccurrencesForDay = useCallback((dayName: string, daysAhead: number = 30): ScheduledOccurrence[] => {
-    const occurrences: ScheduledOccurrence[] = [];
-    
-    recurringOrders.forEach(order => {
-      if (order.preferred_day?.toLowerCase() === dayName.toLowerCase()) {
-        // Get all future occurrences for this day
-        const dates = getFutureRecurringDates(order.frequency, order.preferred_day, daysAhead);
-        
-        dates.forEach(date => {
-          occurrences.push({
-            date: new Date(date),
-            recurringOrder: order,
-            isAutoScheduled: true
-          });
-        });
-      }
-    });
-    
-    return occurrences.sort((a, b) => a.date.getTime() - b.date.getTime());
-  }, [recurringOrders]);
-
-  // Get occurrences for a specific date
-  const getOccurrencesForDate = useCallback((targetDate: Date): ScheduledOccurrence[] => {
-    // Format the target date to YYYY-MM-DD for comparison
-    const formattedTargetDate = targetDate.toISOString().split('T')[0];
-    console.log(`Getting occurrences for specific date: ${formattedTargetDate}`);
-    
-    const occurrences: ScheduledOccurrence[] = [];
-    
-    recurringOrders.forEach(order => {
-      if (!order.preferred_day) return;
-      
-      // Get the day name (e.g., "monday", "tuesday") from the targetDate
-      const dayName = targetDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-      
-      // Check if this order is scheduled for this day of the week
-      if (order.preferred_day.toLowerCase() === dayName) {
-        // For weekly orders, they occur every week on this day
-        if (order.frequency.toLowerCase() === 'weekly') {
-          occurrences.push({
-            date: new Date(targetDate),
-            recurringOrder: order,
-            isAutoScheduled: true
-          });
-        }
-        // For biweekly orders, check if this is an occurrence week
-        else if (order.frequency.toLowerCase() === 'biweekly') {
-          const orderCreationDate = new Date(order.created_at);
-          const weeksSinceCreation = Math.floor(
-            (targetDate.getTime() - orderCreationDate.getTime()) / (7 * 24 * 60 * 60 * 1000)
-          );
-          
-          if (weeksSinceCreation % 2 === 0) {
-            occurrences.push({
-              date: new Date(targetDate),
-              recurringOrder: order,
-              isAutoScheduled: true
-            });
-          }
-        }
-        // For monthly orders, check if this is the first occurrence in the month
-        else if (order.frequency.toLowerCase() === 'monthly') {
-          const firstDayOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
-          let firstOccurrence = null;
-          
-          // Find the first occurrence of this day in the current month
-          for (let day = 1; day <= 31; day++) {
-            const currentDate = new Date(targetDate.getFullYear(), targetDate.getMonth(), day);
-            
-            // Break if we've gone into the next month
-            if (currentDate.getMonth() !== targetDate.getMonth()) break;
-            
-            if (isDateOnDay(currentDate, order.preferred_day)) {
-              firstOccurrence = currentDate;
-              break;
-            }
-          }
-          
-          // If this is the first occurrence of the day in the month, add it
-          if (firstOccurrence && 
-              firstOccurrence.getDate() === targetDate.getDate()) {
-            occurrences.push({
-              date: new Date(targetDate),
-              recurringOrder: order,
-              isAutoScheduled: true
-            });
-          }
-        }
-      }
-    });
-    
-    console.log(`Found ${occurrences.length} occurrences for date ${formattedTargetDate}`);
-    return occurrences;
-  }, [recurringOrders]);
-
-  // Get the next occurrence of a specific day (e.g., get next Tuesday)
-  const getNextDayOccurrences = useCallback((dayName: string): ScheduledOccurrence[] => {
-    const occurrences: ScheduledOccurrence[] = [];
-    const today = new Date();
-    
-    // Get the next date that falls on the specified day
-    const nextDate = getNextSpecificDay(today, dayName);
-    
-    recurringOrders.forEach(order => {
-      if (order.preferred_day?.toLowerCase() === dayName.toLowerCase()) {
-        // Check if this order would occur on the next instance of the day
-        const shouldOccur = isOrderDueOnDate(order, nextDate);
-        
-        if (shouldOccur) {
-          occurrences.push({
-            date: new Date(nextDate),
-            recurringOrder: order,
-            isAutoScheduled: true
-          });
-        }
-      }
-    });
-    
-    return occurrences;
-  }, [recurringOrders]);
-
-  // Check if an order is due on a specific date based on its frequency
-  const isOrderDueOnDate = useCallback((order: RecurringOrder, date: Date): boolean => {
-    if (!order.preferred_day || !isDateOnDay(date, order.preferred_day)) {
-      return false;
-    }
-    
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    // For weekly orders, it occurs every week on the preferred day
-    if (order.frequency.toLowerCase() === 'weekly') {
-      return true;
-    }
-    
-    // For biweekly orders, check if this is the right week
-    if (order.frequency.toLowerCase() === 'biweekly') {
-      // Calculate weeks since order creation
-      const orderCreationDate = new Date(order.created_at);
-      const weeksSinceCreation = Math.floor(
-        (date.getTime() - orderCreationDate.getTime()) / (7 * 24 * 60 * 60 * 1000)
-      );
-      
-      // If weeks since creation is even, it's a biweekly occurrence
-      return weeksSinceCreation % 2 === 0;
-    }
-    
-    // For monthly orders, check if this is the first occurrence of the day in the month
-    if (order.frequency.toLowerCase() === 'monthly') {
-      // Get all occurrences of this day in the current month
-      const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
-      const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-      
-      let firstOccurrence = null;
-      for (let day = 1; day <= daysInMonth; day++) {
-        const currentDate = new Date(date.getFullYear(), date.getMonth(), day);
-        if (isDateOnDay(currentDate, order.preferred_day)) {
-          firstOccurrence = currentDate;
-          break;
-        }
-      }
-      
-      // Check if the current date is the first occurrence
-      return firstOccurrence !== null && 
-             firstOccurrence.getDate() === date.getDate();
-    }
-    
-    return false;
-  }, []);
-
-  // Add recurring order occurrence to a schedule
-  const addOccurrenceToSchedule = useCallback(async (
-    occurrence: ScheduledOccurrence, 
-    scheduleId: string
-  ) => {
-    try {
-      const { recurringOrder, date } = occurrence;
-      const customer = recurringOrder.customer;
-      
-      if (!customer) {
-        throw new Error("Customer information not available");
-      }
-      
-      // Create a delivery stop for the recurring order
-      const { data, error } = await supabase
-        .from("delivery_stops")
-        .insert({
-          master_schedule_id: scheduleId,
-          customer_id: customer.id,
-          customer_name: customer.name,
-          customer_address: customer.address || '',
-          customer_phone: customer.phone || '',
-          notes: `Recurring ${recurringOrder.frequency} order`, 
-          status: 'pending',
-          is_recurring: true,
-          recurring_id: recurringOrder.id
-        })
-        .select();
-        
-      if (error) throw error;
-      
-      // Now also create an entry in the recurring_order_schedules join table
-      const { error: joinError } = await supabase
-        .from("recurring_order_schedules")
-        .insert({
-          recurring_order_id: recurringOrder.id,
-          schedule_id: scheduleId,
-          status: 'active',
-          modified_from_template: false
-        });
-        
-      if (joinError) {
-        console.error("Warning: Failed to create join table entry:", joinError);
-      }
-      
-      // Also create an entry in delivery_schedules to maintain proper relationships
-      const { error: scheduleError } = await supabase
-        .from("delivery_schedules")
-        .insert({
-          customer_id: customer.id,
-          master_schedule_id: scheduleId,
-          delivery_date: date.toISOString(),
-          schedule_type: 'recurring',
-          recurring_day: recurringOrder.preferred_day,
-          status: 'pending',
-          notes: `Auto-generated from recurring ${recurringOrder.frequency} order`
-        });
-        
-      if (scheduleError) {
-        console.error("Warning: Failed to create delivery schedule entry:", scheduleError);
-      }
-      
-      return data?.[0];
-    } catch (error: any) {
-      console.error("Error adding occurrence to schedule:", error);
-      toast({
-        title: "Error",
-        description: "Failed to add recurring order to schedule: " + handleSupabaseError(error),
-        variant: "destructive"
-      });
-      return null;
-    }
-  }, [toast]);
-  
   // Check for conflicts with existing schedules
   const checkForScheduleConflicts = useCallback(async (occurrence: ScheduledOccurrence): Promise<boolean> => {
     try {
@@ -396,9 +172,10 @@ export function useRecurringOrdersScheduling(startDate?: Date, endDate?: Date) {
     }
   }, []);
 
-  // Initialize and generate occurrences when component mounts or date range changes
+  // Initialize
   useCallback(() => {
     if (startDate && endDate) {
+      console.log("Initializing recurring order scheduling with date range");
       fetchRecurringOrders()
         .then(orders => {
           generateOccurrences(orders, startDate, endDate);
@@ -413,11 +190,6 @@ export function useRecurringOrdersScheduling(startDate?: Date, endDate?: Date) {
     error,
     fetchRecurringOrders,
     generateOccurrences,
-    addOccurrenceToSchedule,
-    checkForScheduleConflicts,
-    getOccurrencesForDay,
-    getNextDayOccurrences,
-    getOccurrencesForDate,
-    isOrderDueOnDate
+    checkForScheduleConflicts
   };
 }
