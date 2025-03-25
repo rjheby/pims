@@ -1,6 +1,6 @@
 
 import { useWholesaleOrder } from "../context/WholesaleOrderContext";
-import { OrderItem, initialOptions, safeNumber } from "../types";
+import { OrderItem, emptyOptions, safeNumber } from "../types";
 import { useOrderActions } from "./orderTable/useOrderActions";
 import { useOrderCalculations } from "./orderTable/useOrderCalculations";
 import { useOrderFiltering } from "./orderTable/useOrderFiltering";
@@ -14,7 +14,7 @@ export function useOrderTable() {
   
   const { 
     items = [], 
-    options = initialOptions,
+    options = emptyOptions,
     isAdmin = false, 
     editingField, 
     newOption = "", 
@@ -27,7 +27,7 @@ export function useOrderTable() {
   } = useWholesaleOrder();
   
   const safeOptions = {
-    ...initialOptions,
+    ...emptyOptions,
     ...options
   };
 

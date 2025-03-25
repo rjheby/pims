@@ -1,8 +1,7 @@
 
 import { useState, useCallback } from "react";
 import { useWholesaleOrder } from "../../context/WholesaleOrderContext";
-import { DropdownOptions, OrderItem, initialOptions, safeNumber } from "../../types";
-import { generateEmptyOrderItem } from "../../utils";
+import { DropdownOptions, OrderItem, emptyOptions, safeNumber, generateEmptyOrderItem } from "../../types";
 import { handleOptionOperation } from "../../utils/optionManagement";
 import { toast } from "sonner";
 
@@ -10,7 +9,7 @@ export function useOrderActions() {
   const { 
     items = [], 
     setItems, 
-    options = initialOptions,
+    options = emptyOptions,
     setOptions, 
     setEditingField,
     setNewOption
@@ -111,7 +110,7 @@ export function useOrderActions() {
     setEditingField(field);
     setLastOptionField(field);
     setNewOption(""); // Reset the new option input value
-  }, [setEditingField, setLastOptionField, setNewOption]);
+  }, [setEditingField, setNewOption]);
 
   // Update dropdown options
   const handleUpdateOptions = useCallback(async (option: string) => {

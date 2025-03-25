@@ -53,6 +53,15 @@ export const emptyOptions: DropdownOptions = {
   packaging: []
 };
 
+// Initial options with some default values for fallback
+export const initialOptions: DropdownOptions = {
+  species: [],
+  length: [],
+  bundleType: [],
+  thickness: [],
+  packaging: ["Pallets", "Crates", "Boxes", "12x10\" Boxes"]
+};
+
 // Utility functions for OrderTable
 export const safeNumber = (value: any): number => {
   const num = parseFloat(value);
@@ -183,3 +192,18 @@ export function supabaseSafeRpc<T>(
 ) {
   return client.rpc(procedure, params);
 }
+
+// Helper function to generate an empty OrderItem with a unique ID
+export const generateEmptyOrderItem = (): OrderItem => {
+  const uniqueId = Date.now() + Math.floor(Math.random() * 1000);
+  return {
+    id: uniqueId,
+    species: "",
+    length: "",
+    bundleType: "",
+    thickness: "",
+    packaging: "Pallets",
+    pallets: 0,
+    unitCost: 250
+  };
+};

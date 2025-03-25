@@ -52,8 +52,8 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
   const headers = [
     { key: 'name', label: 'Name', sortable: true, className: 'w-[22%] text-center px-4' },
     ...optionFields.map(field => ({
-      key: field,
-      label: field.charAt(0).toUpperCase() + field.slice(1),
+      key: field as string,
+      label: typeof field === 'string' ? field.charAt(0).toUpperCase() + field.slice(1) : String(field),
       sortable: true,
       className: 'w-[10%] text-center px-2'
     })),
@@ -215,7 +215,7 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
               editingField={editingField}
               newOption={newOption}
               isCompressed={false}
-              optionFields={optionFields}
+              optionFields={optionFields as string[]}
               onNewOptionChange={setNewOption}
               onKeyPress={(e) => handleKeyPress(e, editingField || "")}
               onUpdateItem={handleUpdateItem}
