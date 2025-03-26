@@ -19,12 +19,12 @@ export const useOrderActions = () => {
   } = useWholesaleOrder();
 
   const handleUpdateItemValue = useCallback((id: number, field: string, value: any) => {
-    setItems((prevItems) => {
-      return prevItems.map(item =>
-        item.id === id ? (field === 'all' ? value : { ...item, [field]: value }) : item
-      );
-    });
-  }, [setItems]);
+    // Fix: Use the spread operator to create a new array correctly
+    const updatedItems = items.map(item =>
+      item.id === id ? (field === 'all' ? value : { ...item, [field]: value }) : item
+    );
+    setItems(updatedItems);
+  }, [items, setItems]);
 
   const handleAddItem = useCallback(() => {
     const newId = items.length > 0 ? Math.max(...items.map(item => item.id)) + 1 : 1;
@@ -43,7 +43,8 @@ export const useOrderActions = () => {
   }, [items, setItems]);
 
   const handleRemoveItem = useCallback((id: number) => {
-    setItems(items.filter(item => item.id !== id));
+    const filteredItems = items.filter(item => item.id !== id);
+    setItems(filteredItems);
   }, [items, setItems]);
 
   const handleDuplicateItem = useCallback((id: number) => {
@@ -58,16 +59,18 @@ export const useOrderActions = () => {
   const handleQuantityChange = useCallback((id: number, value: string) => {
     const pallets = parseInt(value, 10);
     if (!isNaN(pallets) && pallets > 0) {
-      setItems(items.map(item =>
+      const updatedItems = items.map(item =>
         item.id === id ? { ...item, pallets } : item
-      ));
+      );
+      setItems(updatedItems);
     }
   }, [items, setItems]);
 
   const handleOptionChange = useCallback((id: number, field: keyof DropdownOptions, value: string) => {
-    setItems(items.map(item =>
+    const updatedItems = items.map(item =>
       item.id === id ? { ...item, [field]: value } : item
-    ));
+    );
+    setItems(updatedItems);
   }, [items, setItems]);
 
   const handleNewOptionChange = useCallback((value: string) => {
@@ -87,9 +90,10 @@ export const useOrderActions = () => {
       }
       
       if (editingRowId !== null) {
-        setItems(items.map(item =>
+        const updatedItems = items.map(item =>
           item.id === editingRowId ? { ...item, [editingField]: newOption } : item
-        ));
+        );
+        setItems(updatedItems);
       }
       
       setNewOption('');
@@ -110,9 +114,10 @@ export const useOrderActions = () => {
       }
       
       if (editingRowId !== null) {
-        setItems(items.map(item =>
+        const updatedItems = items.map(item =>
           item.id === editingRowId ? { ...item, [editingField]: option } : item
-        ));
+        );
+        setItems(updatedItems);
       }
       
       setNewOption('');

@@ -60,7 +60,6 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
   };
 
   const handleUpdateItem = (item: OrderItem) => {
-    const updatedItems = items.map(i => i.id === item.id ? item : i);
     handleUpdateItemValue(item.id, 'all', item);
   };
 
@@ -72,7 +71,8 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
     handleDuplicateItem(item.id);
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>, field: string) => {
+  // Updated to match the expected signature without the field parameter
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     handleKeyPressOnNewOption(e);
   };
 
