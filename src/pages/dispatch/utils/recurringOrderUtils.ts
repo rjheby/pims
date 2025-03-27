@@ -1,4 +1,3 @@
-
 import { format, parse, isAfter, isBefore, isEqual, startOfDay, endOfDay, isSameDay } from "date-fns";
 
 // Import from utility modules
@@ -40,20 +39,6 @@ export const forceSyncForDate = async (date: Date): Promise<{
     const dateStr = format(date, 'yyyy-MM-dd');
     console.log(`Force syncing recurring orders for date: ${dateStr}`);
     
-    // Get or create a schedule for this date
-    let scheduleInfo = await consolidateRecurringOrders(dateStr);
-    
-    if (!scheduleInfo) {
-      console.error("Failed to get or create schedule for date:", dateStr);
-      return {
-        success: false,
-        stopsCreated: 0,
-        error: "Failed to create or find schedule for the specified date"
-      };
-    }
-    
-    console.log(`Using schedule ID ${scheduleInfo.scheduleId} for sync operation`);
-    
     // Import from Supabase (can't be at top level due to circular dependencies)
     const { supabase } = await import("@/integrations/supabase/client");
     
@@ -89,6 +74,8 @@ export const forceSyncForDate = async (date: Date): Promise<{
     
     // Find orders that should occur on this date
     const matchingOrders = [];
+    const targetDate = startOfDay(date);
+    
     for (const order of activeOrders) {
       if (!order.preferred_day) {
         console.warn(`Order ${order.id} has no preferred_day, skipping`);
@@ -100,29 +87,76 @@ export const forceSyncForDate = async (date: Date): Promise<{
       
       // Calculate if this recurring order applies to the selected date
       const occurrences = calculateNextOccurrences(
-        startOfDay(date),
+        new Date(dateStr), // Use exact date
         order.frequency,
         order.preferred_day,
         1
       );
       
+      // Debug the occurrences calculation
       if (occurrences.length > 0) {
         const occurrenceDate = occurrences[0];
-        const isMatch = isSameDay(occurrenceDate, date);
-        console.log(`Calculated occurrence: ${occurrenceDate.toISOString()}, is match: ${isMatch}`);
+        console.log(`Calculated occurrence: ${format(occurrenceDate, 'yyyy-MM-dd')} for order ${order.id}`);
+        console.log(`Target date: ${format(targetDate, 'yyyy-MM-dd')}`);
+        
+        // For weekly/bi-weekly orders, we need to check if the day of week matches
+        let isMatch = false;
+        
+        if (order.frequency.toLowerCase().includes('weekly')) {
+          // For weekly/bi-weekly, check if day of week matches
+          const orderDayIndex = getDayOfWeekIndex(order.preferred_day);
+          const targetDayIndex = date.getDay();
+          isMatch = orderDayIndex === targetDayIndex;
+          console.log(`Weekly order: Day of week match? ${isMatch} (${orderDayIndex} vs ${targetDayIndex})`);
+        } else {
+          // For other frequencies, use isSameDay
+          isMatch = isSameDay(occurrenceDate, targetDate);
+          console.log(`Non-weekly order: Date match? ${isMatch}`);
+        }
         
         if (isMatch) {
           console.log(`Order ${order.id} (${order.customer?.name}) MATCHES date ${dateStr}`);
           matchingOrders.push(order);
+        } else {
+          console.log(`Order ${order.id} (${order.customer?.name}) does NOT match date ${dateStr}`);
         }
+      } else {
+        console.log(`No occurrences found for order ${order.id} from date ${dateStr}`);
       }
     }
     
     console.log(`Found ${matchingOrders.length} orders that match date ${dateStr}`);
     
+    if (matchingOrders.length === 0) {
+      return {
+        success: true,
+        stopsCreated: 0
+      };
+    }
+    
+    // Get or create a schedule for this date
+    let scheduleInfo = await consolidateRecurringOrders(dateStr);
+    
+    if (!scheduleInfo) {
+      console.error("Failed to get or create schedule for date:", dateStr);
+      return {
+        success: false,
+        stopsCreated: 0,
+        error: "Failed to create or find schedule for the specified date"
+      };
+    }
+    
+    console.log(`Using schedule ID ${scheduleInfo.scheduleId} for sync operation`);
+    
     // Process each matching order
     let stopsCreated = 0;
+    
     for (const order of matchingOrders) {
+      if (!order.customer || !order.customer.id) {
+        console.warn(`Order ${order.id} has no customer data, skipping stop creation`);
+        continue;
+      }
+      
       // First ensure the order is linked to the schedule
       const { data: existingLinks, error: linkQueryError } = await supabase
         .from('recurring_order_schedules')
@@ -150,14 +184,11 @@ export const forceSyncForDate = async (date: Date): Promise<{
           console.error(`Error linking order to schedule: ${linkError.message}`);
           continue;
         }
+      } else {
+        console.log(`Order ${order.id} already linked to schedule ${scheduleInfo.scheduleId}`);
       }
       
       // Then check if a stop already exists for this customer
-      if (!order.customer || !order.customer.id) {
-        console.warn(`Order ${order.id} has no customer data, skipping stop creation`);
-        continue;
-      }
-      
       const { data: existingStops, error: stopQueryError } = await supabase
         .from('delivery_stops')
         .select('id')

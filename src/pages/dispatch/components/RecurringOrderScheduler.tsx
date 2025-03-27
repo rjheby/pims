@@ -191,12 +191,20 @@ export function RecurringOrderScheduler({
           description: `Successfully synchronized recurring orders. ${result.stopsCreated} stops created.`,
         });
         
-        // Refresh recurring orders and occurrences
-        await fetchRecurringOrders().then(orders => {
-          if (orders.length > 0) {
-            generateOccurrences(orders, scheduleDate, endDate);
-          }
-        });
+        // Refresh the page to show newly created stops if any were created
+        if (result.stopsCreated > 0) {
+          // Give the database a moment to update
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+        } else {
+          // Just refresh recurring orders and occurrences
+          await fetchRecurringOrders().then(orders => {
+            if (orders.length > 0) {
+              generateOccurrences(orders, scheduleDate, endDate);
+            }
+          });
+        }
       } else {
         toast({
           title: "Sync Failed",
@@ -389,4 +397,53 @@ export function RecurringOrderScheduler({
       </CardContent>
     </Card>
   );
+}
+
+function renderOccurrenceItem(occurrence: any) {
+  const timeWindow = parsePreferredTimeToWindow(occurrence.recurringOrder.preferred_time);
+  const formattedTimeWindow = formatTimeWindow(timeWindow);
+  
+  return (
+    <div key={`${occurrence.recurringOrder.id}-${occurrence.date.toISOString()}`} 
+         className="flex justify-between items-center p-3 bg-muted/40 rounded-md border border-gray-100 hover:border-primary/20 transition-colors">
+      <div>
+        <p className="font-medium">{occurrence.recurringOrder.customer?.name}</p>
+        <div className="text-sm text-muted-foreground space-y-1">
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="capitalize bg-primary/10 text-primary">
+              {occurrence.recurringOrder.frequency}
+            </Badge>
+            {occurrence.recurringOrder.preferred_time && (
+              <Badge variant="secondary" className="font-normal">
+                {formattedTimeWindow}
+              </Badge>
+            )}
+          </div>
+          {occurrence.activeTab === "planning" && (
+            <p className="text-xs flex items-center gap-1 mt-1">
+              <CalendarDays className="h-3 w-3" />
+              {format(occurrence.date, "EEE, MMM d")}
+            </p>
+          )}
+        </div>
+      </div>
+      {occurrence.activeTab === "today" ? (
+        <CheckCircle className="h-4 w-4 text-primary/70" />
+      ) : (
+        <Clock className="h-4 w-4 text-muted-foreground" />
+      )}
+    </div>
+  );
+}
+
+function renderSkeletonItems() {
+  return Array(3).fill(0).map((_, i) => (
+    <div key={i} className="p-3 bg-muted/40 rounded-md">
+      <Skeleton className="h-5 w-40 mb-2" />
+      <div className="flex gap-2">
+        <Skeleton className="h-4 w-16" />
+        <Skeleton className="h-4 w-24" />
+      </div>
+    </div>
+  ));
 }
