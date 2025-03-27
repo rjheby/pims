@@ -1,3 +1,4 @@
+
 import { format, parse, isAfter, isBefore, isEqual, startOfDay, endOfDay, isSameDay } from "date-fns";
 
 // Import from utility modules
@@ -203,6 +204,21 @@ export const forceSyncForDate = async (date: Date): Promise<{
       if (!existingStops || existingStops.length === 0) {
         console.log(`Creating stop for customer ${order.customer.name} in schedule ${scheduleInfo.scheduleId}`);
         
+        // Get the items from the recurring order
+        const { data: orderItems, error: itemsError } = await supabase
+          .from('recurring_orders')
+          .select('items')
+          .eq('id', order.id)
+          .single();
+
+        let items = '';
+        if (!itemsError && orderItems && orderItems.items) {
+          items = orderItems.items;
+          console.log(`Found items for recurring order: ${items}`);
+        } else {
+          console.log(`No items found for recurring order ${order.id}, using empty items`);
+        }
+        
         const { error: stopError } = await supabase
           .from('delivery_stops')
           .insert({
@@ -214,6 +230,7 @@ export const forceSyncForDate = async (date: Date): Promise<{
             status: 'pending',
             is_recurring: true,
             recurring_id: order.id,
+            items: items, // Include the items from the recurring order
             notes: `Auto-generated from recurring order (${order.frequency})`
           });
           
@@ -223,7 +240,7 @@ export const forceSyncForDate = async (date: Date): Promise<{
         }
         
         stopsCreated++;
-        console.log(`Successfully created stop for ${order.customer.name}`);
+        console.log(`Successfully created stop for ${order.customer.name} with items: ${items}`);
       } else {
         console.log(`Stop for customer ${order.customer.name} already exists`);
       }

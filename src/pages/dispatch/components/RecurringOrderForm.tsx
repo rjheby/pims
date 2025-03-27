@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -10,7 +9,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Calendar, Clock } from "lucide-react";
+import { Calendar, Clock, Package } from "lucide-react";
+import { ItemSelector } from "./stops/ItemSelector";
 
 interface RecurringOrderFormProps {
   customers: any[];
@@ -21,6 +21,7 @@ interface RecurringOrderFormProps {
     frequency?: string;
     preferred_day?: string;
     preferred_time?: string;
+    items?: string;
   };
 }
 
@@ -35,9 +36,11 @@ export function RecurringOrderForm({
     frequency: initialValues.frequency || 'weekly',
     preferred_day: initialValues.preferred_day || 'monday',
     preferred_time: initialValues.preferred_time || '',
+    items: initialValues.items || '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isItemSelectorOpen, setIsItemSelectorOpen] = useState(false);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -80,7 +83,6 @@ export function RecurringOrderForm({
         { value: 'sunday', label: 'Sunday' },
       ];
     } else if (formData.frequency === 'monthly') {
-      // For monthly, we'll offer both day-of-month and pattern options
       const daysOfMonth = Array.from({ length: 28 }, (_, i) => ({
         value: `${i + 1}`,
         label: `${i + 1}${getDaySuffix(i + 1)} of the month`,
@@ -128,6 +130,11 @@ export function RecurringOrderForm({
     }
   };
 
+  const handleSelectItems = (items: string, itemsData?: any[]) => {
+    setFormData(prev => ({ ...prev, items }));
+    setIsItemSelectorOpen(false);
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4 py-4">
       <div className="space-y-2">
@@ -160,7 +167,6 @@ export function RecurringOrderForm({
             setFormData({
               ...formData,
               frequency: value,
-              // Reset preferred day when frequency changes
               preferred_day: value === 'monthly' ? '1' : 'monday'
             });
           }}
@@ -226,6 +232,24 @@ export function RecurringOrderForm({
         </p>
       </div>
       
+      <div className="space-y-2">
+        <Label htmlFor="items">Order Items</Label>
+        <div className="flex gap-2">
+          <Button 
+            type="button" 
+            variant="outline" 
+            className="w-full justify-start text-left font-normal"
+            onClick={() => setIsItemSelectorOpen(true)}
+          >
+            <Package className="mr-2 h-4 w-4" />
+            {formData.items ? formData.items : "Select items..."}
+          </Button>
+        </div>
+        <p className="text-sm text-gray-500">
+          Items to be included in each recurring delivery
+        </p>
+      </div>
+      
       <div className="flex justify-end gap-2 pt-4">
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancel
@@ -234,6 +258,14 @@ export function RecurringOrderForm({
           Create Recurring Order
         </Button>
       </div>
+
+      <ItemSelector
+        open={isItemSelectorOpen}
+        onOpenChange={setIsItemSelectorOpen}
+        onSelect={handleSelectItems}
+        onCancel={() => setIsItemSelectorOpen(false)}
+        initialItems={formData.items}
+      />
     </form>
   );
 }

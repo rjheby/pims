@@ -2,12 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Button } from "@/components/ui/button";
-import { Loader2, Calendar } from "lucide-react";
+import { Loader2, Calendar, Package } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Separator } from "@/components/ui/separator";
 import { RecurringOrderForm } from './RecurringOrderForm';
 import { calculateNextOccurrences, updateRecurringSchedule } from '../utils/recurringOrderUtils';
+import { ItemSelector } from "./stops/ItemSelector";
 
 interface RecurringOrderDetailsProps {
   orderId: string;
@@ -27,6 +28,7 @@ export function RecurringOrderDetails({
   const [saving, setSaving] = useState(false);
   const [orderDetails, setOrderDetails] = useState<any>(null);
   const [futureOccurrences, setFutureOccurrences] = useState<Date[]>([]);
+  const [isItemSelectorOpen, setIsItemSelectorOpen] = useState(false);
 
   useEffect(() => {
     fetchOrderDetails();
@@ -88,6 +90,7 @@ export function RecurringOrderDetails({
           frequency: formData.frequency,
           preferred_day: formData.preferred_day,
           preferred_time: formData.preferred_time,
+          items: formData.items, // Include items in the update
           updated_at: new Date().toISOString()
         })
         .eq('id', orderId);
@@ -113,6 +116,16 @@ export function RecurringOrderDetails({
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSelectItems = (items: string) => {
+    if (orderDetails) {
+      setOrderDetails({
+        ...orderDetails,
+        items
+      });
+    }
+    setIsItemSelectorOpen(false);
   };
 
   if (loading) {
@@ -146,6 +159,7 @@ export function RecurringOrderDetails({
           frequency: orderDetails.frequency,
           preferred_day: orderDetails.preferred_day,
           preferred_time: orderDetails.preferred_time,
+          items: orderDetails.items, // Include items in initial values
         }}
       />
       
@@ -190,6 +204,7 @@ export function RecurringOrderDetails({
             frequency: orderDetails.frequency,
             preferred_day: orderDetails.preferred_day,
             preferred_time: orderDetails.preferred_time,
+            items: orderDetails.items,
           })}
           className="bg-[#2A4131] hover:bg-[#2A4131]/90"
         >
@@ -203,6 +218,15 @@ export function RecurringOrderDetails({
           )}
         </Button>
       </div>
+
+      {/* Item Selector Dialog */}
+      <ItemSelector
+        open={isItemSelectorOpen}
+        onOpenChange={setIsItemSelectorOpen}
+        onSelect={handleSelectItems}
+        onCancel={() => setIsItemSelectorOpen(false)}
+        initialItems={orderDetails.items}
+      />
     </div>
   );
 }
