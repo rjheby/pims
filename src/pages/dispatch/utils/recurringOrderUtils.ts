@@ -1,4 +1,3 @@
-
 import { format, parse, isAfter, isBefore, isEqual, startOfDay, endOfDay, isSameDay } from "date-fns";
 
 // Import from utility modules
@@ -205,19 +204,8 @@ export const forceSyncForDate = async (date: Date): Promise<{
         console.log(`Creating stop for customer ${order.customer.name} in schedule ${scheduleInfo.scheduleId}`);
         
         // Get the items from the recurring order
-        const { data: orderItems, error: itemsError } = await supabase
-          .from('recurring_orders')
-          .select('items')
-          .eq('id', order.id)
-          .single();
-
-        let items = '';
-        if (!itemsError && orderItems && orderItems.items) {
-          items = orderItems.items;
-          console.log(`Found items for recurring order: ${items}`);
-        } else {
-          console.log(`No items found for recurring order ${order.id}, using empty items`);
-        }
+        const items = order.items || '';
+        console.log(`Using items for recurring order: ${items}`);
         
         const { error: stopError } = await supabase
           .from('delivery_stops')

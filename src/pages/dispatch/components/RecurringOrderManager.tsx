@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
@@ -105,6 +104,7 @@ export function RecurringOrderManager() {
           frequency: formData.frequency,
           preferred_day: formData.preferred_day,
           preferred_time: formData.preferred_time,
+          items: formData.items,
           active_status: true
         })
         .select()

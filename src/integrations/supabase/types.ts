@@ -575,6 +575,7 @@ export type Database = {
           customer_id: string
           frequency: string
           id: string
+          items: string | null
           preferred_day: string | null
           preferred_time: string | null
           updated_at: string | null
@@ -585,6 +586,7 @@ export type Database = {
           customer_id: string
           frequency: string
           id?: string
+          items?: string | null
           preferred_day?: string | null
           preferred_time?: string | null
           updated_at?: string | null
@@ -595,6 +597,7 @@ export type Database = {
           customer_id?: string
           frequency?: string
           id?: string
+          items?: string | null
           preferred_day?: string | null
           preferred_time?: string | null
           updated_at?: string | null

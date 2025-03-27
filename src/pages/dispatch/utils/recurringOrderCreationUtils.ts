@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { calculateNextOccurrences } from "./recurringOccurrenceUtils";
 import { format, parse, isBefore, isAfter, isEqual, startOfDay, endOfDay, isSameDay } from "date-fns";
@@ -190,7 +189,7 @@ export const updateRecurringSchedule = async (recurringOrderId: string): Promise
         if (customerError) throw customerError;
         
         if (customer) {
-          // Create a delivery stop
+          // Create a delivery stop with items from the recurring order
           const { error: createStopError } = await supabase
             .from('delivery_stops')
             .insert({
@@ -202,6 +201,7 @@ export const updateRecurringSchedule = async (recurringOrderId: string): Promise
               status: 'pending',
               is_recurring: true,
               recurring_id: recurringOrderId,
+              items: recurringOrder.items || '', // Include items from recurring order
               notes: `Auto-generated from recurring order (${recurringOrder.frequency})`
             });
             
@@ -378,7 +378,8 @@ export const syncAllRecurringOrders = async (): Promise<{
               status: 'pending',
               is_recurring: true,
               recurring_id: order.id,
-              notes: `Auto-generated from recurring order (${order.frequency})`
+              notes: `Auto-generated from recurring order (${order.frequency})`,
+              items: order.items || ''
             });
             
           if (createStopError) {
