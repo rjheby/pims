@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { forceSyncForDate } from '../utils/recurringOrderUtils';
 
 interface RecurringOrderSchedulerProps {
   scheduleDate: Date;
@@ -24,6 +25,7 @@ export function RecurringOrderScheduler({
   existingCustomerIds = []
 }: RecurringOrderSchedulerProps) {
   const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("today");
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -166,6 +168,54 @@ export function RecurringOrderScheduler({
     }
   };
 
+  const handleForceSyncForDate = async () => {
+    if (!scheduleDate) {
+      toast({
+        title: "Error",
+        description: "No schedule date selected",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setSyncing(true);
+    
+    try {
+      console.log(`Force syncing recurring orders for date: ${scheduleDate.toISOString()}`);
+      
+      const result = await forceSyncForDate(scheduleDate);
+      
+      if (result.success) {
+        toast({
+          title: "Sync Complete",
+          description: `Successfully synchronized recurring orders. ${result.stopsCreated} stops created.`,
+        });
+        
+        // Refresh recurring orders and occurrences
+        await fetchRecurringOrders().then(orders => {
+          if (orders.length > 0) {
+            generateOccurrences(orders, scheduleDate, endDate);
+          }
+        });
+      } else {
+        toast({
+          title: "Sync Failed",
+          description: result.error || "Failed to synchronize recurring orders",
+          variant: "destructive"
+        });
+      }
+    } catch (error: any) {
+      console.error("Error syncing recurring orders:", error);
+      toast({
+        title: "Error",
+        description: "Failed to sync recurring orders: " + error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const handleRetry = () => {
     setConnectionError(null);
     fetchRecurringOrders();
@@ -228,13 +278,25 @@ export function RecurringOrderScheduler({
             <Calendar className="h-5 w-5" />
             Recurring Orders for {format(scheduleDate, "EEEE, MMMM d, yyyy")}
           </CardTitle>
-          <Badge variant="outline" className={activeTab === "today" 
-            ? "ml-2 bg-primary/10 text-primary" 
-            : "ml-2"}>
-            {activeTab === "today" 
-              ? `${availableOccurrences.length} Available` 
-              : `${planningOccurrences.length} Upcoming`}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center gap-1"
+              onClick={handleForceSyncForDate}
+              disabled={syncing}
+            >
+              <RefreshCw className={`h-3 w-3 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? 'Syncing...' : 'Force Sync'}
+            </Button>
+            <Badge variant="outline" className={activeTab === "today" 
+              ? "ml-2 bg-primary/10 text-primary" 
+              : "ml-2"}>
+              {activeTab === "today" 
+                ? `${availableOccurrences.length} Available` 
+                : `${planningOccurrences.length} Upcoming`}
+            </Badge>
+          </div>
         </div>
       </CardHeader>
       <CardContent>

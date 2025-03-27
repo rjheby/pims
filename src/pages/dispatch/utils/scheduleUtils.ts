@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { format, parse, isSameDay, startOfDay } from "date-fns";
 import { calculateNextOccurrences } from "./recurringOccurrenceUtils";
@@ -8,6 +9,7 @@ import { calculateNextOccurrences } from "./recurringOccurrenceUtils";
 export const findSchedulesForDate = async (date: Date): Promise<any[]> => {
   try {
     const dateStr = format(date, 'yyyy-MM-dd');
+    console.log(`Finding schedules for date: ${dateStr}`);
     
     // First, find regular schedules for this date
     const { data: regularSchedules, error: scheduleError } = await supabase
@@ -18,9 +20,13 @@ export const findSchedulesForDate = async (date: Date): Promise<any[]> => {
       `)
       .eq('schedule_date', dateStr);
       
-    if (scheduleError) throw scheduleError;
+    if (scheduleError) {
+      console.error("Error finding regular schedules:", scheduleError);
+      throw scheduleError;
+    }
     
     const schedules = regularSchedules || [];
+    console.log(`Found ${schedules.length} regular schedules for date ${dateStr}`);
     
     // Now check for recurring orders that should occur on this date
     // but don't have a schedule created yet
@@ -34,30 +40,56 @@ export const findSchedulesForDate = async (date: Date): Promise<any[]> => {
       `)
       .eq('active_status', true);
       
-    if (recurringError) throw recurringError;
+    if (recurringError) {
+      console.error("Error finding recurring orders:", recurringError);
+      throw recurringError;
+    }
     
     if (recurringOrders && recurringOrders.length > 0) {
+      console.log(`Found ${recurringOrders.length} active recurring orders to check for date ${dateStr}`);
+      
       // For automatic schedule creation - if needed and no schedules exist yet
       if (schedules.length === 0) {
+        console.log("No existing schedules for this date, checking for recurring orders that apply");
         const recurringOrdersForDate: any[] = [];
         
         // For each recurring order, check if it should occur on the selected date
         for (const order of recurringOrders) {
+          if (!order.preferred_day) {
+            console.warn(`Order ${order.id} has no preferred_day, skipping`);
+            continue;
+          }
+          
+          console.log(`Checking if recurring order ${order.id} (${order.customer?.name}) applies to ${dateStr}`);
+          console.log(`Order details: Frequency=${order.frequency}, Preferred day=${order.preferred_day}`);
+          
           // Calculate if this recurring order applies to the selected date
           const occurrences = calculateNextOccurrences(
-            new Date(dateStr),
+            startOfDay(new Date(dateStr)),
             order.frequency,
             order.preferred_day,
             1 // We just need to check if today is a match
           );
           
-          if (occurrences.length > 0 && isSameDay(occurrences[0], date)) {
-            recurringOrdersForDate.push(order);
+          if (occurrences.length > 0) {
+            const occurrenceDate = occurrences[0];
+            const isMatch = isSameDay(occurrenceDate, new Date(dateStr));
+            console.log(`Calculated occurrence date: ${occurrenceDate.toISOString()}, is match for ${dateStr}: ${isMatch}`);
+            
+            if (isMatch) {
+              console.log(`Recurring order ${order.id} (${order.customer?.name}) MATCHES date ${dateStr}`);
+              recurringOrdersForDate.push(order);
+            }
+          } else {
+            console.log(`No occurrences found for order ${order.id} from date ${dateStr}`);
           }
         }
         
+        console.log(`Found ${recurringOrdersForDate.length} recurring orders for date ${dateStr}`);
+        
         // If we have recurring orders for this date but no existing schedule
         if (recurringOrdersForDate.length > 0) {
+          console.log("Creating a consolidated schedule for recurring orders");
           // Create a consolidated schedule for this date
           const scheduleInfo = await consolidateRecurringOrders(dateStr);
           
@@ -71,11 +103,14 @@ export const findSchedulesForDate = async (date: Date): Promise<any[]> => {
               
             if (!fetchError && newSchedule) {
               schedules.push(newSchedule);
+              console.log(`Added new schedule ID ${newSchedule.id} to results`);
               
               // Create recurring order links and delivery stops for each order
               for (const order of recurringOrdersForDate) {
+                console.log(`Processing recurring order ${order.id} (${order.customer?.name}) for schedule ${newSchedule.id}`);
+                
                 // Link the recurring order to this schedule
-                await supabase
+                const { error: linkError } = await supabase
                   .from('recurring_order_schedules')
                   .insert({
                     recurring_order_id: order.id,
@@ -83,9 +118,16 @@ export const findSchedulesForDate = async (date: Date): Promise<any[]> => {
                     status: 'active'
                   });
                   
+                if (linkError) {
+                  console.error(`Error linking recurring order to schedule: ${linkError.message}`);
+                  continue;
+                }
+                
                 // Add a delivery stop for this customer
                 if (order.customer) {
-                  await supabase
+                  console.log(`Creating delivery stop for ${order.customer.name}`);
+                  
+                  const { error: stopError } = await supabase
                     .from('delivery_stops')
                     .insert({
                       master_schedule_id: scheduleInfo.scheduleId,
@@ -98,71 +140,128 @@ export const findSchedulesForDate = async (date: Date): Promise<any[]> => {
                       recurring_id: order.id,
                       notes: `Auto-generated from recurring order (${order.frequency})`
                     });
+                    
+                  if (stopError) {
+                    console.error(`Error creating delivery stop: ${stopError.message}`);
+                  } else {
+                    console.log(`Successfully created delivery stop for ${order.customer.name}`);
+                  }
                 }
               }
+            } else {
+              console.error("Failed to fetch newly created schedule:", fetchError);
             }
+          } else {
+            console.error("Failed to consolidate recurring orders into a schedule");
           }
         }
       } else {
+        console.log(`Using existing schedule for date ${dateStr}`);
         // We have existing schedules - check if any recurring orders should be added to them
         const targetSchedule = schedules[0]; // Use the first schedule
+        console.log(`Target schedule ID: ${targetSchedule.id}`);
         
         for (const order of recurringOrders) {
+          if (!order.preferred_day) {
+            console.warn(`Order ${order.id} has no preferred_day, skipping`);
+            continue;
+          }
+          
+          console.log(`Checking if recurring order ${order.id} (${order.customer?.name}) applies to ${dateStr}`);
+          
           // Check if this recurring order applies to the selected date
           const occurrences = calculateNextOccurrences(
-            new Date(dateStr),
+            startOfDay(new Date(dateStr)),
             order.frequency,
             order.preferred_day,
             1
           );
           
-          if (occurrences.length > 0 && isSameDay(occurrences[0], date)) {
+          if (occurrences.length > 0 && isSameDay(occurrences[0], new Date(dateStr))) {
+            console.log(`Recurring order ${order.id} MATCHES date ${dateStr}`);
+            
             // Check if this recurring order is already linked to this schedule
-            const { data: existingLinks } = await supabase
+            const { data: existingLinks, error: linkQueryError } = await supabase
               .from('recurring_order_schedules')
               .select('*')
               .eq('recurring_order_id', order.id)
               .eq('schedule_id', targetSchedule.id);
               
+            if (linkQueryError) {
+              console.error(`Error checking for existing links: ${linkQueryError.message}`);
+              continue;
+            }
+            
             if (!existingLinks || existingLinks.length === 0) {
+              console.log(`Linking recurring order ${order.id} to schedule ${targetSchedule.id}`);
+              
               // Link the recurring order to this schedule
-              await supabase
+              const { error: linkError } = await supabase
                 .from('recurring_order_schedules')
                 .insert({
                   recurring_order_id: order.id,
                   schedule_id: targetSchedule.id,
                   status: 'active'
                 });
+                
+              if (linkError) {
+                console.error(`Error linking order to schedule: ${linkError.message}`);
+                continue;
+              }
+            } else {
+              console.log(`Recurring order ${order.id} is already linked to schedule ${targetSchedule.id}`);
+            }
+            
+            if (!order.customer || !order.customer.id) {
+              console.warn(`No customer data for recurring order ${order.id}, skipping stop creation`);
+              continue;
             }
             
             // Check if a stop already exists for this customer
-            const { data: existingStops } = await supabase
+            const { data: existingStops, error: stopQueryError } = await supabase
               .from('delivery_stops')
               .select('*')
               .eq('master_schedule_id', targetSchedule.id)
               .eq('customer_id', order.customer.id);
               
-            if (!existingStops || existingStops.length === 0) {
-              // Create a delivery stop for this customer
-              if (order.customer) {
-                await supabase
-                  .from('delivery_stops')
-                  .insert({
-                    master_schedule_id: targetSchedule.id,
-                    customer_id: order.customer.id,
-                    customer_name: order.customer.name,
-                    customer_address: order.customer.address || '',
-                    customer_phone: order.customer.phone || '',
-                    status: 'pending',
-                    is_recurring: true,
-                    recurring_id: order.id,
-                    notes: `Auto-generated from recurring order (${order.frequency})`
-                  });
-              }
+            if (stopQueryError) {
+              console.error(`Error checking for existing stops: ${stopQueryError.message}`);
+              continue;
             }
+            
+            if (!existingStops || existingStops.length === 0) {
+              console.log(`Creating delivery stop for ${order.customer.name} in schedule ${targetSchedule.id}`);
+              
+              // Create a delivery stop for this customer
+              const { error: stopError } = await supabase
+                .from('delivery_stops')
+                .insert({
+                  master_schedule_id: targetSchedule.id,
+                  customer_id: order.customer.id,
+                  customer_name: order.customer.name,
+                  customer_address: order.customer.address || '',
+                  customer_phone: order.customer.phone || '',
+                  status: 'pending',
+                  is_recurring: true,
+                  recurring_id: order.id,
+                  notes: `Auto-generated from recurring order (${order.frequency})`
+                });
+                
+              if (stopError) {
+                console.error(`Error creating delivery stop: ${stopError.message}`);
+              } else {
+                console.log(`Successfully created delivery stop for ${order.customer.name}`);
+              }
+            } else {
+              console.log(`Delivery stop for ${order.customer.name} already exists in schedule ${targetSchedule.id}`);
+            }
+          } else {
+            console.log(`Recurring order ${order.id} does NOT match date ${dateStr}`);
           }
         }
       }
+    } else {
+      console.log("No active recurring orders found");
     }
     
     return schedules;

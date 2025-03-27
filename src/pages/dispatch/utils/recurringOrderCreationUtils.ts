@@ -1,7 +1,8 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { calculateNextOccurrences } from "./recurringOccurrenceUtils";
 import { format, parse, isBefore, isAfter, isEqual, startOfDay, endOfDay, isSameDay } from "date-fns";
-import { consolidateRecurringOrders, findSchedulesForDateBasic } from "./scheduleUtils";
+import { consolidateRecurringOrders, findSchedulesForDateBasic, createScheduleForDate } from "./scheduleUtils";
 
 /**
  * Create a recurring order from a dispatch schedule
@@ -196,8 +197,8 @@ export const updateRecurringSchedule = async (recurringOrderId: string): Promise
               master_schedule_id: scheduleId,
               customer_id: recurringOrder.customer_id,
               customer_name: customer.name,
-              customer_address: customer.address,
-              customer_phone: customer.phone,
+              customer_address: customer.address || '',
+              customer_phone: customer.phone || '',
               status: 'pending',
               is_recurring: true,
               recurring_id: recurringOrderId,
@@ -225,34 +226,174 @@ export const syncAllRecurringOrders = async (): Promise<{
   error?: string;
 }> => {
   try {
+    console.log("Starting syncAllRecurringOrders process");
+    
     // Fetch all active recurring orders
     const { data: activeOrders, error: ordersError } = await supabase
       .from('recurring_orders')
-      .select('*')
+      .select(`
+        *,
+        customer:customer_id (
+          id, name, address, phone, email
+        )
+      `)
       .eq('active_status', true);
       
-    if (ordersError) throw ordersError;
+    if (ordersError) {
+      console.error("Error fetching recurring orders:", ordersError);
+      throw ordersError;
+    }
     
     if (!activeOrders || activeOrders.length === 0) {
+      console.log("No active recurring orders found");
       return { success: true, processed: 0 };
     }
     
-    // Group orders by customer first to consolidate schedules
-    const ordersByCustomer: Record<string, any[]> = {};
-    activeOrders.forEach(order => {
-      if (!ordersByCustomer[order.customer_id]) {
-        ordersByCustomer[order.customer_id] = [];
-      }
-      ordersByCustomer[order.customer_id].push(order);
-    });
+    console.log(`Found ${activeOrders.length} active recurring orders to process`);
     
-    // For each recurring order, update its schedule
+    // Group orders by date to consolidate schedules
+    const ordersByDate: Record<string, any[]> = {};
+    const today = startOfDay(new Date());
     let processedCount = 0;
     
+    // Calculate the next occurrence for each order and group by date
     for (const order of activeOrders) {
-      const updated = await updateRecurringSchedule(order.id);
-      if (updated) processedCount++;
+      console.log(`Processing recurring order ID: ${order.id}, Customer: ${order.customer?.name}, Frequency: ${order.frequency}, Preferred day: ${order.preferred_day}`);
+      
+      try {
+        const occurrences = calculateNextOccurrences(
+          today,
+          order.frequency,
+          order.preferred_day,
+          5 // Look ahead 5 occurrences
+        );
+        
+        if (occurrences.length === 0) {
+          console.warn(`No occurrences found for order ID: ${order.id}`);
+          continue;
+        }
+        
+        console.log(`Found ${occurrences.length} upcoming occurrences for order ID: ${order.id}`);
+        
+        // Add to date groups
+        for (const occurrence of occurrences) {
+          const dateStr = format(occurrence, 'yyyy-MM-dd');
+          
+          if (!ordersByDate[dateStr]) {
+            ordersByDate[dateStr] = [];
+          }
+          
+          ordersByDate[dateStr].push(order);
+        }
+      } catch (error) {
+        console.error(`Error processing recurring order ${order.id}:`, error);
+      }
     }
+    
+    console.log(`Grouped recurring orders by ${Object.keys(ordersByDate).length} unique dates`);
+    
+    // Process each date and create/update schedules
+    for (const [dateStr, orders] of Object.entries(ordersByDate)) {
+      console.log(`Processing date: ${dateStr} with ${orders.length} recurring orders`);
+      
+      // Find or create a schedule for this date
+      let scheduleId: string;
+      
+      // Check if a schedule already exists
+      const existingSchedules = await findSchedulesForDateBasic(dateStr);
+      
+      if (existingSchedules.length > 0) {
+        console.log(`Found existing schedule for date ${dateStr}: ID ${existingSchedules[0].id}`);
+        scheduleId = existingSchedules[0].id;
+      } else {
+        // Create a new schedule
+        try {
+          const newSchedule = await createScheduleForDate(dateStr);
+          console.log(`Created new schedule for date ${dateStr}: ID ${newSchedule.id}`);
+          scheduleId = newSchedule.id;
+        } catch (error) {
+          console.error(`Error creating schedule for date ${dateStr}:`, error);
+          continue;
+        }
+      }
+      
+      // Add each order to the schedule
+      for (const order of orders) {
+        // Check if the order is already linked to this schedule
+        const { data: existingLinks, error: linkError } = await supabase
+          .from('recurring_order_schedules')
+          .select('id')
+          .eq('recurring_order_id', order.id)
+          .eq('schedule_id', scheduleId);
+          
+        if (linkError) {
+          console.error(`Error checking for existing links: ${linkError.message}`);
+          continue;
+        }
+        
+        // Link the recurring order to this schedule if not already linked
+        if (!existingLinks || existingLinks.length === 0) {
+          console.log(`Linking recurring order ${order.id} to schedule ${scheduleId}`);
+          
+          const { error: insertError } = await supabase
+            .from('recurring_order_schedules')
+            .insert({
+              recurring_order_id: order.id,
+              schedule_id: scheduleId,
+              status: 'active'
+            });
+            
+          if (insertError) {
+            console.error(`Error creating link: ${insertError.message}`);
+            continue;
+          }
+        } else {
+          console.log(`Recurring order ${order.id} already linked to schedule ${scheduleId}`);
+        }
+        
+        // Create a delivery stop for this customer if not exists
+        const { data: existingStops, error: stopError } = await supabase
+          .from('delivery_stops')
+          .select('id')
+          .eq('master_schedule_id', scheduleId)
+          .eq('customer_id', order.customer_id);
+          
+        if (stopError) {
+          console.error(`Error checking for existing stops: ${stopError.message}`);
+          continue;
+        }
+        
+        if (!existingStops || existingStops.length === 0) {
+          console.log(`Creating delivery stop for customer ${order.customer.name} in schedule ${scheduleId}`);
+          
+          // Create a delivery stop
+          const { error: createStopError } = await supabase
+            .from('delivery_stops')
+            .insert({
+              master_schedule_id: scheduleId,
+              customer_id: order.customer_id,
+              customer_name: order.customer?.name || '',
+              customer_address: order.customer?.address || '',
+              customer_phone: order.customer?.phone || '',
+              status: 'pending',
+              is_recurring: true,
+              recurring_id: order.id,
+              notes: `Auto-generated from recurring order (${order.frequency})`
+            });
+            
+          if (createStopError) {
+            console.error(`Error creating stop: ${createStopError.message}`);
+            continue;
+          }
+          
+          processedCount++;
+        } else {
+          console.log(`Delivery stop for customer ${order.customer?.name} already exists in schedule ${scheduleId}`);
+        }
+      }
+    }
+    
+    console.log(`Completed syncAllRecurringOrders process. Processed ${processedCount} orders`);
     
     return {
       success: true,
