@@ -6,6 +6,17 @@ import './index.css'
 import ErrorBoundary from './pages/dispatch/components/stops/ErrorBoundary'
 import { Loader2 } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+
+// Create a client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      retry: 1,
+    },
+  },
+})
 
 // Custom component to handle initial connection diagnostics
 function AppWithDiagnostics() {
@@ -81,7 +92,9 @@ function AppWithDiagnostics() {
   return (
     <StrictMode>
       <ErrorBoundary>
-        <App />
+        <QueryClientProvider client={queryClient}>
+          <App />
+        </QueryClientProvider>
       </ErrorBoundary>
     </StrictMode>
   );
