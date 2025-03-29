@@ -5,7 +5,7 @@ import { BaseOrderDetails } from "@/components/templates/BaseOrderDetails";
 import { BaseOrderSummary } from "@/components/templates/BaseOrderSummary";
 import { BaseOrderActions } from "@/components/templates/BaseOrderActions";
 import { OrderTable } from "./wholesale-order/OrderTable";
-import { WholesaleOrderProvider, useWholesaleOrder } from "./wholesale-order/context/WholesaleOrderContext";
+import { WholesaleOrderProvider, useWholesaleOrder, WholesaleOrderQueryProvider } from "./wholesale-order/context/WholesaleOrderContext";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -230,8 +230,10 @@ function WholesaleOrderContent() {
 
 export function WholesaleOrder() {
   return (
-    <WholesaleOrderProvider>
-      <WholesaleOrderContent />
-    </WholesaleOrderProvider>
+    <WholesaleOrderQueryProvider>
+      <WholesaleOrderProvider>
+        <WholesaleOrderContent />
+      </WholesaleOrderProvider>
+    </WholesaleOrderQueryProvider>
   );
 }

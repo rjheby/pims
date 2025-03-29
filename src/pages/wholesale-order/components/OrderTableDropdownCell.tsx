@@ -96,19 +96,23 @@ export function OrderTableDropdownCell({
           <ChevronDown className="ml-auto h-4 w-4 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-[200px] bg-white" align="start">
-        {options.map((option) => (
-          <DropdownMenuItem
-            key={option}
-            className="cursor-pointer"
-            onClick={() => {
-              onUpdate(option);
-              setOpen(false);
-            }}
-          >
-            {option}
-          </DropdownMenuItem>
-        ))}
+      <DropdownMenuContent className="w-[200px] bg-white z-50" align="start">
+        {options && options.length > 0 ? (
+          options.map((option) => (
+            <DropdownMenuItem
+              key={option}
+              className="cursor-pointer"
+              onClick={() => {
+                onUpdate(option);
+                setOpen(false);
+              }}
+            >
+              {option}
+            </DropdownMenuItem>
+          ))
+        ) : (
+          <DropdownMenuItem disabled>No options available</DropdownMenuItem>
+        )}
         <DropdownMenuItem
           className="cursor-pointer flex items-center text-primary"
           onClick={() => {

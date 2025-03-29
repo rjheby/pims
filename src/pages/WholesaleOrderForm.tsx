@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { WholesaleOrderProvider } from "./wholesale-order/context/WholesaleOrderContext";
+import { WholesaleOrderProvider, WholesaleOrderQueryProvider } from "./wholesale-order/context/WholesaleOrderContext";
 import { BaseOrderDetails } from "@/components/templates/BaseOrderDetails";
 import { OrderTable } from "./wholesale-order/OrderTable";
 import { BaseOrderActions } from "@/components/templates/BaseOrderActions";
@@ -69,12 +69,14 @@ export function WholesaleOrderForm() {
                 disabled={false}
               />
               
-              <WholesaleOrderProvider initialItems={orderData.items}>
-                <OrderTable 
-                  readOnly={false}
-                  onItemsChange={handleOrderItemsChange} 
-                />
-              </WholesaleOrderProvider>
+              <WholesaleOrderQueryProvider>
+                <WholesaleOrderProvider initialItems={orderData.items}>
+                  <OrderTable 
+                    readOnly={false}
+                    onItemsChange={handleOrderItemsChange} 
+                  />
+                </WholesaleOrderProvider>
+              </WholesaleOrderQueryProvider>
 
               <WholesaleOrderSummary items={orderData.items} />
 

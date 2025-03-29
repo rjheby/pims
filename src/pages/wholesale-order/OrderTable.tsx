@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { OrderTableRow } from "./components/OrderTableRow";
@@ -6,9 +7,10 @@ import { BaseOrderTable } from "@/components/templates/BaseOrderTable";
 import { Button } from "@/components/ui/button";
 import { useWholesaleOrder } from "./context/WholesaleOrderContext";
 import { useOrderActions } from "./hooks/orderTable/useOrderActions";
-import { OrderItem, DropdownOptions } from "./types";
+import { OrderItem, DropdownOptions, generateEmptyOrderItem } from "./types";
 import { useToast } from "@/hooks/use-toast";
 import { ProductSelectorDialog } from "./components/ProductSelectorDialog";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface OrderTableProps {
   readOnly?: boolean;
@@ -20,6 +22,7 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
   const [productSelectorOpen, setProductSelectorOpen] = useState(false);
   const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
   const [filterValue, setFilterValue] = useState("");
+  const isMobile = useIsMobile();
   
   const {
     items,
@@ -30,14 +33,13 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
     setNewOption,
     setEditingRowId,
     isAdmin,
-    loadOptions
+    loadOptions,
+    isLoadingOptions
   } = useWholesaleOrder();
 
   useEffect(() => {
-    if (!options.species.length) {
-      loadOptions();
-    }
-  }, [options.species.length, loadOptions]);
+    loadOptions();
+  }, [loadOptions]);
 
   const {
     handleUpdateItemValue,
@@ -61,7 +63,7 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
   const generateItemName = (item: OrderItem): string => {
     return [item.species, item.length, item.bundleType, item.thickness]
       .filter(Boolean)
-      .join(' - ');
+      .join(' - ') || 'New Item';
   };
 
   const handleUpdateItem = (item: OrderItem) => {
@@ -88,18 +90,23 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
     console.log('Toggle compressed for item', id);
   };
 
+  const addNewEmptyRow = () => {
+    const newItem = generateEmptyOrderItem();
+    handleAddItem(newItem);
+  };
+
   const headers = [
-    { key: 'name', label: 'Name', sortable: true, className: 'w-[22%] text-center px-4' },
+    { key: 'name', label: 'Name', sortable: true, className: 'w-[15%] text-center px-4' },
     ...optionFields.map(field => ({
       key: field as string,
       label: typeof field === 'string' ? field.charAt(0).toUpperCase() + field.slice(1) : String(field),
       sortable: true,
-      className: 'w-[10%] text-center px-2'
+      className: 'w-[12%] text-center px-2'
     })),
     { key: 'pallets', label: 'QTY', sortable: true, className: 'w-[8%] text-center px-2' },
     { key: 'unitCost', label: 'Unit Cost', sortable: true, className: 'w-[10%] text-center px-2' },
     { key: 'totalCost', label: 'Total Cost', sortable: true, className: 'w-[10%] text-center px-2' },
-    { key: 'actions', label: '', className: 'w-[10%] text-center px-2' }
+    { key: 'actions', label: '', className: 'w-[5%] text-center px-2' }
   ];
 
   const tableData = items.map(item => ({
@@ -108,13 +115,21 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
     totalCost: Number(item.pallets) * Number(item.unitCost)
   }));
 
+  if (isLoadingOptions) {
+    return (
+      <div className="text-center py-10 border rounded-md bg-gray-50">
+        <p className="text-gray-500 mb-4">Loading options...</p>
+      </div>
+    );
+  }
+
   if (items.length === 0 && !readOnly) {
     return (
       <div className="text-center py-10 border rounded-md bg-gray-50">
         <p className="text-gray-500 mb-4">No items added yet</p>
         <div className="flex justify-center gap-4">
           <Button 
-            onClick={handleAddItem}
+            onClick={addNewEmptyRow}
             className="bg-[#2A4131] hover:bg-[#2A4131]/90"
           >
             <Plus className="mr-2 h-4 w-4" />
@@ -137,7 +152,7 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
       {!readOnly && (
         <div className="flex justify-between mb-4">
           <Button 
-            onClick={handleAddItem}
+            onClick={addNewEmptyRow}
             className="bg-[#2A4131] hover:bg-[#2A4131]/90"
             disabled={readOnly}
           >
@@ -168,7 +183,7 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
           data={tableData}
           onSortChange={(key, direction) => setSortConfig({ key, direction })}
           onFilterChange={setFilterValue}
-          onAddRow={handleAddItem}
+          onAddRow={addNewEmptyRow}
         >
           {tableData.map(item => (
             <OrderTableRow

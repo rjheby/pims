@@ -1,9 +1,21 @@
 
-import { createContext, useContext, useState, PropsWithChildren, ChangeEvent } from "react";
+import { createContext, useContext, useState, PropsWithChildren, ChangeEvent, useCallback } from "react";
 import { OrderItem, DropdownOptions, emptyOptions } from "../types";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { checkIsAdmin } from "../utils/permissions";
+
+// Create a client
+const queryClient = new QueryClient();
+
+// Provider wrapper to ensure QueryClient is always available
+export function WholesaleOrderQueryProvider({ children }: PropsWithChildren) {
+  return (
+    <QueryClientProvider client={queryClient}>
+      {children}
+    </QueryClientProvider>
+  );
+}
 
 interface WholesaleOrderContextProps {
   items: OrderItem[];
@@ -60,21 +72,21 @@ export function WholesaleOrderProvider({ children, initialItems = [] }: PropsWit
   const { toast } = useToast();
   
   // Use React Query hook for admin status
-  const { data: isAdmin = false, isLoading: isLoadingAdmin } = useQuery({
+  const { data: isAdmin = false } = useQuery({
     queryKey: ['isAdmin'],
     queryFn: () => checkIsAdmin(),
   });
 
   // Load dropdown options
-  const loadOptions = async () => {
+  const loadOptions = useCallback(async () => {
     setIsLoadingOptions(true);
     try {
       // Simulate fetching options from API or database
-      const species = ["Pine", "Spruce", "Fir"];
-      const length = ["8", "10", "12", "16"];
-      const bundleType = ["2x4", "2x6", "2x8", "2x10", "2x12"];
-      const thickness = ["KD", "Green"];
-      const packaging = ["Pallets", "Bunks", "Banded"];
+      const species = ["Pine", "Spruce", "Fir", "Cedar", "Maple"];
+      const length = ["8'", "10'", "12'", "16'", "20'"];
+      const bundleType = ["2x4", "2x6", "2x8", "2x10", "2x12", "4x4", "6x6"];
+      const thickness = ["KD", "Green", "Treated"];
+      const packaging = ["Pallets", "Bunks", "Banded", "Loose"];
 
       setOptions({
         species,
@@ -92,7 +104,7 @@ export function WholesaleOrderProvider({ children, initialItems = [] }: PropsWit
     } finally {
       setIsLoadingOptions(false);
     }
-  };
+  }, [toast]);
 
   const handleOrderDateChange = (e: ChangeEvent<HTMLInputElement>) => {
     setOrderDate(e.target.value);

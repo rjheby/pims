@@ -53,11 +53,11 @@ export interface DropdownOptions {
 
 // Empty options object for initial state
 export const emptyOptions: DropdownOptions = {
-  species: [],
-  length: [],
-  bundleType: [],
-  thickness: [],
-  packaging: [],
+  species: ["Pine", "Spruce", "Fir"],
+  length: ["8'", "10'", "12'"],
+  bundleType: ["2x4", "2x6", "2x8"],
+  thickness: ["KD", "Green"],
+  packaging: ["Pallets", "Bunks", "Banded"]
 };
 
 // Initial options with some default values for fallback
@@ -210,7 +210,7 @@ export const generateEmptyOrderItem = (): OrderItem => {
     bundleType: "",
     thickness: "",
     packaging: "Pallets",
-    pallets: 0,
+    pallets: 1,
     unitCost: 250
   };
 };
