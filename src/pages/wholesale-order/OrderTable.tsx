@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { OrderTableRow } from "./components/OrderTableRow";
@@ -30,8 +29,15 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
     newOption,
     setNewOption,
     setEditingRowId,
-    isAdmin
+    isAdmin,
+    loadOptions
   } = useWholesaleOrder();
+
+  useEffect(() => {
+    if (!options.species.length) {
+      loadOptions();
+    }
+  }, [options.species.length, loadOptions]);
 
   const {
     handleUpdateItemValue,
@@ -44,7 +50,6 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
     handleStartEditing
   } = useOrderActions();
 
-  // Define option fields based on the options object
   const optionFields = Object.keys(options) as Array<keyof DropdownOptions>;
 
   useEffect(() => {
@@ -71,7 +76,6 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
     handleDuplicateItem(item.id);
   };
 
-  // Updated to match the expected signature without the field parameter
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     handleKeyPressOnNewOption(e);
   };
@@ -81,7 +85,6 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
   };
 
   const toggleCompressed = (id: number) => {
-    // This functionality appears to be unused but is referenced
     console.log('Toggle compressed for item', id);
   };
 
@@ -105,114 +108,67 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
     totalCost: Number(item.pallets) * Number(item.unitCost)
   }));
 
-  const handleSortChange = (key: string, direction: 'asc' | 'desc') => {
-    setSortConfig({ key, direction });
-  };
-
-  const handleFilterChange = (filter: string) => {
-    setFilterValue(filter);
-  };
-
-  const handleProductSelect = (product: Partial<OrderItem>) => {
-    try {
-      handleAddItem();
-      toast({
-        title: "Success",
-        description: "New product added successfully",
-      });
-    } catch (error) {
-      console.error("Error adding product:", error);
-      toast({
-        title: "Error",
-        description: "Failed to add product",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleAddEmptyRow = () => {
-    try {
-      handleAddItem();
-      toast({
-        title: "Success",
-        description: "New row added",
-      });
-    } catch (error) {
-      console.error("Error adding row:", error);
-      toast({
-        title: "Error",
-        description: "Failed to add row",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const TableActions = () => (
-    <div className="flex justify-between mb-4">
-      <Button 
-        onClick={handleAddEmptyRow}
-        className="bg-[#2A4131] hover:bg-[#2A4131]/90"
-        disabled={readOnly}
-      >
-        <Plus className="mr-2 h-4 w-4" />
-        Add Empty Row
-      </Button>
-      
-      <Button 
-        onClick={() => setProductSelectorOpen(true)}
-        className="bg-[#2A4131] hover:bg-[#2A4131]/90"
-        disabled={readOnly}
-      >
-        <Plus className="mr-2 h-4 w-4" />
-        Add New Product
-      </Button>
-    </div>
-  );
-
-  const EmptyState = () => (
-    <div className="text-center py-10 border rounded-md bg-gray-50">
-      <p className="text-gray-500 mb-4">No items added yet</p>
-      <div className="flex justify-center gap-4">
-        <Button 
-          onClick={handleAddEmptyRow}
-          className="bg-[#2A4131] hover:bg-[#2A4131]/90"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Add Empty Row
-        </Button>
-        <Button 
-          onClick={() => setProductSelectorOpen(true)}
-          className="bg-[#2A4131] hover:bg-[#2A4131]/90"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Add Product
-        </Button>
-      </div>
-    </div>
-  );
-
   if (items.length === 0 && !readOnly) {
-    return <EmptyState />;
+    return (
+      <div className="text-center py-10 border rounded-md bg-gray-50">
+        <p className="text-gray-500 mb-4">No items added yet</p>
+        <div className="flex justify-center gap-4">
+          <Button 
+            onClick={handleAddItem}
+            className="bg-[#2A4131] hover:bg-[#2A4131]/90"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add Empty Row
+          </Button>
+          <Button 
+            onClick={() => setProductSelectorOpen(true)}
+            className="bg-[#2A4131] hover:bg-[#2A4131]/90"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add Product
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-4">
-      {!readOnly && <TableActions />}
+      {!readOnly && (
+        <div className="flex justify-between mb-4">
+          <Button 
+            onClick={handleAddItem}
+            className="bg-[#2A4131] hover:bg-[#2A4131]/90"
+            disabled={readOnly}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add Empty Row
+          </Button>
+          
+          <Button 
+            onClick={() => setProductSelectorOpen(true)}
+            className="bg-[#2A4131] hover:bg-[#2A4131]/90"
+            disabled={readOnly}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add New Product
+          </Button>
+        </div>
+      )}
       
       <ProductSelectorDialog
         open={productSelectorOpen}
         onOpenChange={setProductSelectorOpen}
-        onSelect={handleProductSelect}
+        onSelect={handleAddItem}
       />
       
-      {/* Desktop View */}
       <div className="hidden md:block">
         <BaseOrderTable
           headers={headers}
           data={tableData}
-          onSortChange={handleSortChange}
-          onFilterChange={handleFilterChange}
-          onAddRow={handleAddEmptyRow}
+          onSortChange={(key, direction) => setSortConfig({ key, direction })}
+          onFilterChange={setFilterValue}
+          onAddRow={handleAddItem}
         >
           {tableData.map(item => (
             <OrderTableRow
@@ -240,7 +196,6 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
         </BaseOrderTable>
       </div>
 
-      {/* Mobile View */}
       <div className="md:hidden w-full">
         <div className="grid gap-4 w-full">
           {items.map(item => (

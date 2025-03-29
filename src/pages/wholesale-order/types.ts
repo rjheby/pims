@@ -1,4 +1,3 @@
-
 import { SupabaseClient } from "@supabase/supabase-js";
 import { Json } from "@/integrations/supabase/types";
 
@@ -58,7 +57,7 @@ export const emptyOptions: DropdownOptions = {
   length: [],
   bundleType: [],
   thickness: [],
-  packaging: []
+  packaging: [],
 };
 
 // Initial options with some default values for fallback

@@ -1,11 +1,11 @@
 
+import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { BaseOrderDetails } from "@/components/templates/BaseOrderDetails";
 import { BaseOrderSummary } from "@/components/templates/BaseOrderSummary";
 import { BaseOrderActions } from "@/components/templates/BaseOrderActions";
 import { OrderTable } from "./wholesale-order/OrderTable";
-import { WholesaleOrderProvider } from "./wholesale-order/context/WholesaleOrderContext";
-import { useWholesaleOrder } from "./wholesale-order/context/WholesaleOrderContext";
+import { WholesaleOrderProvider, useWholesaleOrder } from "./wholesale-order/context/WholesaleOrderContext";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,7 +21,8 @@ function WholesaleOrderContent() {
     handleOrderDateChange,
     setDeliveryDate,
     items,
-    generateOrderNumber
+    generateOrderNumber,
+    loadOptions
   } = useWholesaleOrder();
   
   const { toast } = useToast();
@@ -29,6 +30,11 @@ function WholesaleOrderContent() {
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isMobile = useIsMobile();
+
+  // Load options when component mounts
+  useEffect(() => {
+    loadOptions();
+  }, [loadOptions]);
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '';

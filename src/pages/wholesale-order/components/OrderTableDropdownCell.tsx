@@ -96,7 +96,7 @@ export function OrderTableDropdownCell({
           <ChevronDown className="ml-auto h-4 w-4 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-[200px]" align="start">
+      <DropdownMenuContent className="w-[200px] bg-white" align="start">
         {options.map((option) => (
           <DropdownMenuItem
             key={option}

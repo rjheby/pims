@@ -58,14 +58,18 @@ export function WholesaleOrderProvider({ children, initialItems = [] }: PropsWit
   const [deliveryDate, setDeliveryDate] = useState<string>("");
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
   const { toast } = useToast();
-  const { data: isAdmin = false } = useQuery({
+  
+  // Use React Query hook for admin status
+  const { data: isAdmin = false, isLoading: isLoadingAdmin } = useQuery({
     queryKey: ['isAdmin'],
     queryFn: () => checkIsAdmin(),
   });
 
+  // Load dropdown options
   const loadOptions = async () => {
     setIsLoadingOptions(true);
     try {
+      // Simulate fetching options from API or database
       const species = ["Pine", "Spruce", "Fir"];
       const length = ["8", "10", "12", "16"];
       const bundleType = ["2x4", "2x6", "2x8", "2x10", "2x12"];
