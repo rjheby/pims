@@ -1,4 +1,3 @@
-
 import { useCallback } from 'react';
 import { useWholesaleOrder } from '../../context/WholesaleOrderContext';
 import { OrderItem, DropdownOptions } from '../../types';
@@ -19,7 +18,6 @@ export const useOrderActions = () => {
   } = useWholesaleOrder();
 
   const handleUpdateItemValue = useCallback((id: number, field: string, value: any) => {
-    // Fix: Use the spread operator to create a new array correctly
     const updatedItems = items.map(item =>
       item.id === id ? (field === 'all' ? value : { ...item, [field]: value }) : item
     );
@@ -37,6 +35,23 @@ export const useOrderActions = () => {
       packaging: '',
       pallets: 1,
       unitCost: 0
+    };
+    
+    setItems([...items, newItem]);
+  }, [items, setItems]);
+
+  const handleAddItem2 = useCallback((item?: Partial<OrderItem>) => {
+    const newId = items.length > 0 ? Math.max(...items.map(item => item.id)) + 1 : 1;
+    const newItem: OrderItem = {
+      id: newId,
+      species: item?.species || '',
+      length: item?.length || '',
+      bundleType: item?.bundleType || '',
+      thickness: item?.thickness || '',
+      packaging: item?.packaging || 'Pallets',
+      pallets: item?.pallets || 1,
+      unitCost: item?.unitCost || 0,
+      productId: item?.productId
     };
     
     setItems([...items, newItem]);
@@ -138,7 +153,7 @@ export const useOrderActions = () => {
 
   return {
     handleUpdateItemValue,
-    handleAddItem,
+    handleAddItem: handleAddItem2,
     handleRemoveItem,
     handleDuplicateItem,
     handleQuantityChange,
