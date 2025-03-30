@@ -1,3 +1,4 @@
+import React from "react";
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { forceSyncForDate } from '../utils/recurringOrderUtils';
+import { RecurringOrder } from "../components/stops/types";
 
 interface RecurringOrderSchedulerProps {
   scheduleDate: Date;
@@ -29,10 +31,9 @@ export function RecurringOrderScheduler({
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const { toast } = useToast();
   
-  // Initialize with the current schedule date and a month from now
   const endDate = new Date(scheduleDate);
-  endDate.setDate(endDate.getDate() + 7); // Look at the next week
-  
+  endDate.setDate(endDate.getDate() + 7);
+
   const { 
     recurringOrders,
     scheduledOccurrences,
@@ -43,12 +44,10 @@ export function RecurringOrderScheduler({
     checkForScheduleConflicts
   } = useRecurringOrdersScheduling(scheduleDate, endDate);
 
-  // Get occurrences for the selected date range
   useEffect(() => {
     console.log(`RecurringOrderScheduler: scheduleDate=${scheduleDate.toISOString()}, endDate=${endDate.toISOString()}`);
     console.log(`RecurringOrderScheduler: existingCustomerIds=${JSON.stringify(existingCustomerIds)}`);
     
-    // Initial load of recurring orders
     fetchRecurringOrders()
       .then(orders => {
         console.log(`RecurringOrderScheduler: Fetched ${orders.length} recurring orders`);
@@ -63,12 +62,10 @@ export function RecurringOrderScheduler({
       });
   }, [scheduleDate, endDate, fetchRecurringOrders, generateOccurrences]);
 
-  // Filter occurrences that occur on the schedule date
   const currentDateOccurrences = scheduledOccurrences.filter(occurrence => {
     const occurrenceDate = new Date(occurrence.date);
     const scheduleDateObj = new Date(scheduleDate);
     
-    // Check if the dates match (ignore time)
     const isSameDate = 
       occurrenceDate.getFullYear() === scheduleDateObj.getFullYear() && 
       occurrenceDate.getMonth() === scheduleDateObj.getMonth() && 
@@ -81,7 +78,6 @@ export function RecurringOrderScheduler({
 
   console.log(`RecurringOrderScheduler: Found ${currentDateOccurrences.length} occurrences on ${scheduleDate.toDateString()}`);
 
-  // Filter out customers already in the schedule
   const availableOccurrences = currentDateOccurrences.filter(occurrence => {
     const isAvailable = !existingCustomerIds.includes(occurrence.recurringOrder.customer_id);
     if (!isAvailable) {
@@ -92,7 +88,6 @@ export function RecurringOrderScheduler({
 
   console.log(`RecurringOrderScheduler: ${availableOccurrences.length} available occurrences after filtering out existing customers`);
 
-  // Get occurrences for the next 7 days for the planning tab
   const getPlanningOccurrences = () => {
     const planEndDate = new Date(scheduleDate);
     planEndDate.setDate(planEndDate.getDate() + 7);
@@ -100,7 +95,7 @@ export function RecurringOrderScheduler({
     return scheduledOccurrences.filter(occurrence => {
       const occurrenceDate = new Date(occurrence.date);
       return occurrenceDate >= scheduleDate && occurrenceDate <= planEndDate;
-    }).sort((a, b) => a.date.getTime() - b.date.getTime()); // Sort by date
+    }).sort((a, b) => a.date.getTime() - b.date.getTime());
   };
 
   const planningOccurrences = getPlanningOccurrences();
@@ -118,7 +113,6 @@ export function RecurringOrderScheduler({
     setLoading(true);
     
     try {
-      // Convert occurrences to stop format
       const newStops = availableOccurrences.map((occurrence, index) => {
         const order = occurrence.recurringOrder;
         const customer = order.customer;
@@ -140,7 +134,7 @@ export function RecurringOrderScheduler({
           customer_name: customer.name,
           customer_address: customer.address || '',
           customer_phone: customer.phone || '',
-          items: order.items || '', // Include items from recurring order
+          items: order.items || '',
           notes: `Recurring ${order.frequency} order - ${formattedTimeWindow}`,
           price: 0,
           is_recurring: true,
@@ -194,8 +188,6 @@ export function RecurringOrderScheduler({
           description: `Successfully synchronized recurring orders. ${result.stopsCreated} stops created.`,
         });
         
-        // Always reload the page to show newly created stops, regardless of stopsCreated count
-        // This ensures we see stops that might have been created through another method
         setTimeout(() => {
           window.location.reload();
         }, 1500);
@@ -370,11 +362,9 @@ function renderOccurrenceItem(occurrence: any) {
               </Badge>
             )}
             {occurrence.recurringOrder.items && (
-              <span className="text-xs text-gray-500">
-                Items: {occurrence.recurringOrder.items.length > 20 
-                  ? occurrence.recurringOrder.items.substring(0, 20) + '...' 
-                  : occurrence.recurringOrder.items}
-              </span>
+              <div className="text-sm text-gray-600 line-clamp-2">
+                {getItemsLabel(occurrence.recurringOrder)}
+              </div>
             )}
           </div>
           {occurrence.activeTab === "planning" && (
@@ -405,3 +395,11 @@ function renderSkeletonItems() {
     </div>
   ));
 }
+
+const getItemsLabel = (order: RecurringOrder) => {
+  if (!order.items) return "No items specified";
+  
+  return order.items.length > 30 
+    ? `${order.items.substring(0, 30)}...` 
+    : order.items;
+};

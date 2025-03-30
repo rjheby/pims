@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter 
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { RecurrenceData } from "./RecurringOrderForm";
+import { RecurrenceData } from "./RecurrenceSettingsForm";
 import { useRetailInventory } from "@/pages/dispatch/hooks/useRetailInventory";
 import { Plus, Minus, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -35,14 +34,11 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
   const [selectionMode, setSelectionMode] = useState<'search' | 'attributes'>('search');
   const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
   
-  // For attribute selection mode
   const [selectedProductType, setSelectedProductType] = useState('');
   const [selectedSize, setSelectedSize] = useState('');
   
-  // Fetch inventory data once
   const inventoryItems = useMemo(() => getInventoryWithProductDetails(), [getInventoryWithProductDetails]);
   
-  // Parse initial items only when they change or dialog opens
   useEffect(() => {
     if (open && initialItems) {
       try {
@@ -78,10 +74,8 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
   
   console.log("Available inventory items:", inventoryItems.length);
   
-  // Sort inventory items - memoized to avoid recalculation on every render
   const sortedInventoryItems = useMemo(() => {
     return [...inventoryItems].sort((a, b) => {
-      // First sort by popularity (is_popular products with lower rank first)
       const popularityA = a.product?.is_popular ? (a.product?.popularity_rank || 999) : 999;
       const popularityB = b.product?.is_popular ? (b.product?.popularity_rank || 999) : 999;
       
@@ -89,20 +83,18 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
         return popularityA - popularityB;
       }
       
-      // Then by product name alphabetically when popularity is the same
       const nameA = a.product?.name?.toLowerCase() || '';
       const nameB = b.product?.name?.toLowerCase() || '';
       return nameA.localeCompare(nameB);
     });
   }, [inventoryItems]);
   
-  // Extract product types and sizes - memoized
   const productTypes = useMemo(() => {
     return [...new Set(inventoryItems
       .map(item => item.product?.sku || undefined)
       .filter(Boolean))];
   }, [inventoryItems]);
-    
+  
   const productSizes = useMemo(() => {
     return [...new Set(inventoryItems
       .map(item => {
@@ -115,7 +107,6 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
       .filter(Boolean))];
   }, [inventoryItems]);
   
-  // Update filtered products when search term changes
   useEffect(() => {
     if (searchTerm.length > 0) {
       const filtered = inventoryItems.filter(item => 
@@ -128,7 +119,6 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
     }
   }, [searchTerm, inventoryItems, selectionMode]);
   
-  // Update filtered products based on selected attributes
   useEffect(() => {
     if (selectionMode === 'attributes' && (selectedProductType || selectedSize)) {
       const filtered = inventoryItems.filter(item => {
@@ -204,7 +194,6 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
     }
   }, []);
   
-  // Format selected items for output - memoized
   const formatSelectedItemsForOutput = useCallback(() => {
     const formatted = selectedItems.map(item => 
       `${item.quantity}x ${item.name}${item.price ? ` @$${item.price}` : ''}`
