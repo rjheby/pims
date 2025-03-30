@@ -54,6 +54,12 @@ export const createRecurringOrderFromSchedule = async (
     const results: Array<{ customerId: string; recurringOrderId: string }> = [];
     
     for (const customerId in stopsByCustomer) {
+      // Get items from the customer's stops
+      const customerStops = stopsByCustomer[customerId];
+      const itemsFromStops = customerStops.map(stop => stop.items || '').filter(Boolean).join(', ');
+      
+      console.log(`Creating recurring order for customer ${customerId} with items: ${itemsFromStops}`);
+      
       // Create the recurring order
       const { data: recurringOrder, error: createError } = await supabase
         .from('recurring_orders')
@@ -62,6 +68,7 @@ export const createRecurringOrderFromSchedule = async (
           frequency,
           preferred_day: preferredDay,
           preferred_time: preferredTime,
+          items: itemsFromStops, // Include items from stops
           active_status: true
         })
         .select()
@@ -70,6 +77,7 @@ export const createRecurringOrderFromSchedule = async (
       if (createError) throw createError;
       
       if (recurringOrder) {
+        console.log(`Created recurring order ${recurringOrder.id} for customer ${customerId}`);
         results.push({
           customerId,
           recurringOrderId: recurringOrder.id
@@ -92,7 +100,7 @@ export const createRecurringOrderFromSchedule = async (
     console.error('Error creating recurring order:', error);
     return {
       success: false,
-      error: error.message || 'An error occurred'
+        error: error.message || 'An error occurred'
     };
   }
 };
@@ -102,6 +110,8 @@ export const createRecurringOrderFromSchedule = async (
  */
 export const updateRecurringSchedule = async (recurringOrderId: string): Promise<boolean> => {
   try {
+    console.log(`Updating recurring schedule for order ${recurringOrderId}`);
+    
     // Fetch the recurring order details
     const { data: recurringOrder, error: orderError } = await supabase
       .from('recurring_orders')
@@ -109,11 +119,17 @@ export const updateRecurringSchedule = async (recurringOrderId: string): Promise
       .eq('id', recurringOrderId)
       .single();
       
-    if (orderError) throw orderError;
+    if (orderError) {
+      console.error(`Error fetching recurring order: ${orderError.message}`);
+      throw orderError;
+    }
     
     if (!recurringOrder) {
+      console.error(`Recurring order ${recurringOrderId} not found`);
       throw new Error('Recurring order not found');
     }
+    
+    console.log(`Found recurring order: ${JSON.stringify(recurringOrder)}`);
     
     // Calculate the next few occurrences
     const nextOccurrences = calculateNextOccurrences(
@@ -124,9 +140,11 @@ export const updateRecurringSchedule = async (recurringOrderId: string): Promise
     );
     
     if (nextOccurrences.length === 0) {
-      console.warn('No future occurrences calculated for recurring order');
+      console.warn(`No future occurrences calculated for recurring order ${recurringOrderId}`);
       return false;
     }
+    
+    console.log(`Calculated ${nextOccurrences.length} future occurrences`);
     
     // Group occurrences by date to avoid creating multiple schedules for the same day
     const dateMap = new Map<string, Date>();
@@ -135,8 +153,12 @@ export const updateRecurringSchedule = async (recurringOrderId: string): Promise
       dateMap.set(dateStr, date);
     }
     
+    console.log(`Processing ${dateMap.size} unique dates`);
+    
     // For each unique date, find or create a schedule and add this recurring order to it
     for (const [dateStr, occurrenceDate] of dateMap.entries()) {
+      console.log(`Processing date ${dateStr}`);
+      
       // Instead of creating the schedule directly, use the consolidation function
       const scheduleInfo = await consolidateRecurringOrders(dateStr);
       
@@ -146,6 +168,7 @@ export const updateRecurringSchedule = async (recurringOrderId: string): Promise
       }
       
       const scheduleId = scheduleInfo.scheduleId;
+      console.log(`Using schedule ID ${scheduleId} for date ${dateStr}`);
       
       // Check if this recurring order is already linked to this schedule
       const { data: existingLinks, error: linkError } = await supabase
@@ -154,10 +177,15 @@ export const updateRecurringSchedule = async (recurringOrderId: string): Promise
         .eq('recurring_order_id', recurringOrderId)
         .eq('schedule_id', scheduleId);
         
-      if (linkError) throw linkError;
+      if (linkError) {
+        console.error(`Error checking for existing links: ${linkError.message}`);
+        throw linkError;
+      }
       
       if (!existingLinks || existingLinks.length === 0) {
         // Link the recurring order to this schedule
+        console.log(`Linking recurring order ${recurringOrderId} to schedule ${scheduleId}`);
+        
         const { error: insertError } = await supabase
           .from('recurring_order_schedules')
           .insert({
@@ -166,7 +194,14 @@ export const updateRecurringSchedule = async (recurringOrderId: string): Promise
             status: 'active'
           });
           
-        if (insertError) throw insertError;
+        if (insertError) {
+          console.error(`Error creating link: ${insertError.message}`);
+          throw insertError;
+        }
+        
+        console.log(`Successfully linked recurring order to schedule`);
+      } else {
+        console.log(`Recurring order already linked to schedule ${scheduleId}`);
       }
       
       // Create a delivery stop for this customer in the schedule if it doesn't exist
@@ -176,37 +211,63 @@ export const updateRecurringSchedule = async (recurringOrderId: string): Promise
         .eq('master_schedule_id', scheduleId)
         .eq('customer_id', recurringOrder.customer_id);
         
-      if (stopError) throw stopError;
+      if (stopError) {
+        console.error(`Error checking for existing stops: ${stopError.message}`);
+        throw stopError;
+      }
       
       if (!existingStops || existingStops.length === 0) {
         // Fetch customer details
+        console.log(`No existing stop found for customer ${recurringOrder.customer_id}, creating one`);
+        
         const { data: customer, error: customerError } = await supabase
           .from('customers')
           .select('*')
           .eq('id', recurringOrder.customer_id)
           .single();
           
-        if (customerError) throw customerError;
+        if (customerError) {
+          console.error(`Error fetching customer: ${customerError.message}`);
+          throw customerError;
+        }
         
         if (customer) {
+          // Get the items from the recurring order
+          const items = recurringOrder.items || '';
+          console.log(`Using items for recurring order: ${items}`);
+          
           // Create a delivery stop with items from the recurring order
-          const { error: createStopError } = await supabase
+          const stopData = {
+            master_schedule_id: scheduleId,
+            customer_id: recurringOrder.customer_id,
+            customer_name: customer.name,
+            customer_address: customer.address || '',
+            customer_phone: customer.phone || '',
+            status: 'pending',
+            is_recurring: true,
+            recurring_id: recurringOrderId,
+            items: items, // Include items from recurring order
+            notes: `Auto-generated from recurring order (${recurringOrder.frequency})`
+          };
+          
+          console.log(`Creating stop with data: ${JSON.stringify(stopData)}`);
+          
+          const { data: newStop, error: createStopError } = await supabase
             .from('delivery_stops')
-            .insert({
-              master_schedule_id: scheduleId,
-              customer_id: recurringOrder.customer_id,
-              customer_name: customer.name,
-              customer_address: customer.address || '',
-              customer_phone: customer.phone || '',
-              status: 'pending',
-              is_recurring: true,
-              recurring_id: recurringOrderId,
-              items: recurringOrder.items || '', // Include items from recurring order
-              notes: `Auto-generated from recurring order (${recurringOrder.frequency})`
-            });
+            .insert(stopData)
+            .select();
             
-          if (createStopError) throw createStopError;
+          if (createStopError) {
+            console.error(`Error creating stop: ${createStopError.message}`);
+            throw createStopError;
+          }
+          
+          console.log(`Successfully created stop with ID: ${newStop?.[0]?.id}`);
+        } else {
+          console.error(`Customer ${recurringOrder.customer_id} not found`);
         }
+      } else {
+        console.log(`Stop already exists for customer ${recurringOrder.customer_id} in schedule ${scheduleId}`);
       }
     }
     
@@ -258,7 +319,12 @@ export const syncAllRecurringOrders = async (): Promise<{
     
     // Calculate the next occurrence for each order and group by date
     for (const order of activeOrders) {
-      console.log(`Processing recurring order ID: ${order.id}, Customer: ${order.customer?.name}, Frequency: ${order.frequency}, Preferred day: ${order.preferred_day}`);
+      console.log(`Processing recurring order ID: ${order.id}, Customer: ${order.customer?.name || 'Unknown'}, Frequency: ${order.frequency}, Preferred day: ${order.preferred_day || 'None'}`);
+      
+      if (!order.preferred_day) {
+        console.warn(`Order ${order.id} has no preferred_day, skipping`);
+        continue;
+      }
       
       try {
         const occurrences = calculateNextOccurrences(
@@ -319,6 +385,11 @@ export const syncAllRecurringOrders = async (): Promise<{
       
       // Add each order to the schedule
       for (const order of orders) {
+        if (!order.customer || !order.customer.id) {
+          console.warn(`Order ${order.id} has no customer data, skipping`);
+          continue;
+        }
+        
         // Check if the order is already linked to this schedule
         const { data: existingLinks, error: linkError } = await supabase
           .from('recurring_order_schedules')
@@ -356,7 +427,7 @@ export const syncAllRecurringOrders = async (): Promise<{
           .from('delivery_stops')
           .select('id')
           .eq('master_schedule_id', scheduleId)
-          .eq('customer_id', order.customer_id);
+          .eq('customer_id', order.customer.id);
           
         if (stopError) {
           console.error(`Error checking for existing stops: ${stopError.message}`);
@@ -366,30 +437,40 @@ export const syncAllRecurringOrders = async (): Promise<{
         if (!existingStops || existingStops.length === 0) {
           console.log(`Creating delivery stop for customer ${order.customer.name} in schedule ${scheduleId}`);
           
+          // Get the items from the recurring order
+          const items = order.items || '';
+          console.log(`Using items for recurring order: ${items}`);
+          
           // Create a delivery stop
-          const { error: createStopError } = await supabase
+          const stopData = {
+            master_schedule_id: scheduleId,
+            customer_id: order.customer.id,
+            customer_name: order.customer.name,
+            customer_address: order.customer.address || '',
+            customer_phone: order.customer.phone || '',
+            status: 'pending',
+            is_recurring: true,
+            recurring_id: order.id,
+            notes: `Auto-generated from recurring order (${order.frequency})`,
+            items: items // Ensure items are included
+          };
+          
+          console.log(`Creating stop with data: ${JSON.stringify(stopData)}`);
+          
+          const { data: newStop, error: createStopError } = await supabase
             .from('delivery_stops')
-            .insert({
-              master_schedule_id: scheduleId,
-              customer_id: order.customer_id,
-              customer_name: order.customer?.name || '',
-              customer_address: order.customer?.address || '',
-              customer_phone: order.customer?.phone || '',
-              status: 'pending',
-              is_recurring: true,
-              recurring_id: order.id,
-              notes: `Auto-generated from recurring order (${order.frequency})`,
-              items: order.items || ''
-            });
+            .insert(stopData)
+            .select();
             
           if (createStopError) {
             console.error(`Error creating stop: ${createStopError.message}`);
             continue;
           }
           
+          console.log(`Successfully created stop with ID: ${newStop?.[0]?.id}`);
           processedCount++;
         } else {
-          console.log(`Delivery stop for customer ${order.customer?.name} already exists in schedule ${scheduleId}`);
+          console.log(`Delivery stop for customer ${order.customer.name} already exists in schedule ${scheduleId}`);
         }
       }
     }
@@ -434,9 +515,13 @@ export const getUpcomingSchedulesForRecurringOrder = async (
       .eq('recurring_order_id', recurringOrderId)
       .order('created_at', { ascending: false });
       
-    if (linkError) throw linkError;
+    if (linkError) {
+      console.error(`Error fetching schedule links: ${linkError.message}`);
+      throw linkError;
+    }
     
     if (!links || links.length === 0) {
+      console.log(`No linked schedules found for recurring order ${recurringOrderId}`);
       return [];
     }
     
@@ -466,6 +551,7 @@ export const getUpcomingSchedulesForRecurringOrder = async (
       })
       .map(link => link.schedule);
       
+    console.log(`Found ${upcomingSchedules.length} upcoming schedules for recurring order ${recurringOrderId}`);
     return upcomingSchedules;
   } catch (error) {
     console.error('Error fetching upcoming schedules:', error);
