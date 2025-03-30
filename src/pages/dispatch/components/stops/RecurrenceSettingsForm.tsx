@@ -23,7 +23,7 @@ export interface RecurrenceData {
   endDate?: string;
 }
 
-export interface RecurringOrderFormProps {
+export interface RecurrenceSettingsFormProps {
   recurrenceData: RecurrenceData;
   onRecurrenceChange: (recurrenceData: RecurrenceData) => void;
   initialRecurrence?: RecurrenceData;
@@ -48,11 +48,11 @@ export const dayOptions = [
   { value: 'sunday', label: 'Sunday' }
 ];
 
-export const RecurringOrderForm = ({ 
+export const RecurrenceSettingsForm = ({ 
   recurrenceData, 
   onRecurrenceChange,
   initialRecurrence 
-}: RecurringOrderFormProps) => {
+}: RecurrenceSettingsFormProps) => {
   // Use a summary state to display a human-readable description
   const [summary, setSummary] = useState<string>('');
   

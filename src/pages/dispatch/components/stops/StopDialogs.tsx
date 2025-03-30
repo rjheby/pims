@@ -1,11 +1,10 @@
-
 import React from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { CustomerDialog } from "./CustomerDialog";
 import { ItemSelector } from "./ItemSelector";
 import { Customer, RecurrenceData } from "./types";
-import { RecurringOrderForm } from "../RecurringOrderForm";
+import { RecurrenceSettingsForm } from "./RecurrenceSettingsForm";
 
 interface StopDialogsProps {
   customerDialogOpen: boolean;
