@@ -48,29 +48,54 @@ export const emptyOptions: DropdownOptions = {
   packaging: []
 };
 
-export const generateEmptyOrderItem = (): OrderItem => ({
-  id: Date.now(),
-  species: "",
-  length: "",
-  bundleType: "",
-  thickness: "",
-  packaging: "Pallets",
-  pallets: 0,
-  unitCost: 250,
-});
+// Inventory and product types
+export interface RetailInventoryItem {
+  id: string;
+  firewood_product_id: number;
+  packages_available: number;
+  packages_allocated: number;
+  total_packages: number;
+  last_updated: string;
+}
 
-export const serializeOrderItems = (items: OrderItem[]): string => {
-  return JSON.stringify(items.map(item => ({
-    ...item,
-    id: undefined,
-    isCompressed: undefined
-  })));
-};
+export interface FirewoodProduct {
+  id: number;
+  item_name: string;
+  item_full_name: string;
+  species: string;
+  length: string;
+  split_size: string;
+  package_size: string;
+  product_type: string;
+  minimum_quantity: number;
+  image_reference?: string;
+  is_popular?: boolean;
+  popularity_rank?: number;
+}
 
-export const safeNumber = (value: any): number => {
-  const num = Number(value);
-  return isNaN(num) ? 0 : num;
-};
+export interface ProcessingRecord {
+  id: string;
+  wood_product_id: string;
+  firewood_product_id: number;
+  wholesale_pallets_used: number;
+  retail_packages_created: number;
+  actual_conversion_ratio: number;
+  processed_date: string;
+  expected_ratio?: number;
+  processed_by: string;
+  notes?: string;
+}
+
+export interface InventoryItem {
+  id: string;
+  wood_product_id: string;
+  total_pallets: number;
+  pallets_available: number;
+  pallets_allocated: number;
+  last_updated: string;
+  location?: string;
+  notes?: string;
+}
 
 export interface WoodProduct {
   id: string;
@@ -96,3 +121,54 @@ export const PIZZA_WOOD_PRODUCT = {
   is_popular: true,
   full_description: "Premium oak pizza wood bundle - ideal for wood-fired ovens",
 };
+
+// Utility functions
+export const generateEmptyOrderItem = (): OrderItem => ({
+  id: Date.now(),
+  species: "",
+  length: "",
+  bundleType: "",
+  thickness: "",
+  packaging: "Pallets",
+  pallets: 0,
+  unitCost: 250,
+});
+
+export const serializeOrderItems = (items: OrderItem[]): string => {
+  return JSON.stringify(items.map(item => ({
+    ...item,
+    id: undefined,
+    isCompressed: undefined
+  })));
+};
+
+export const safeNumber = (value: any): number => {
+  const num = Number(value);
+  return isNaN(num) ? 0 : num;
+};
+
+// Supabase related constants and utility functions
+export enum supabaseTable {
+  inventory_items = 'inventory_items',
+  wood_products = 'wood_products',
+  retail_inventory = 'retail_inventory',
+  firewood_products = 'firewood_products',
+  processing_records = 'processing_records'
+}
+
+// Supabase safe-typing utilities
+export function supabaseSafeFrom<T>(
+  client: any,
+  table: string
+) {
+  return client.from(table);
+}
+
+export function supabaseSafeRpc<T>(
+  client: any,
+  procedure: string,
+  params?: Record<string, any>
+) {
+  return client.rpc(procedure, params);
+}
+

@@ -1,21 +1,4 @@
 
-// Main barrel file to re-export everything
-
-// Re-export from separate files
-export * from './orderTypes';
-export * from './productTypes';
-export * from './inventoryTypes';
-export * from './constants';
-
-// Re-export utility functions
-export { 
-  safeNumber, 
-  calculateItemTotal, 
-  serializeOrderItems, 
-  generateEmptyOrderItem 
-} from '../utils/orderUtils';
-
-export {
-  supabaseSafeFrom,
-  supabaseSafeRpc
-} from '../utils/supabaseUtils';
+// This file is now deprecated as we've moved all types to ../types.ts
+// Re-exporting everything from ../types.ts for backward compatibility
+export * from '../types';
