@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { forceSyncForDate } from '../utils/recurringOrderUtils';
-import { RecurringOrder } from "../components/stops/types";
+import { RecurringOrder, DeliveryStop } from "../components/stops/types";
 
 interface RecurringOrderSchedulerProps {
   scheduleDate: Date;

@@ -44,9 +44,10 @@ export interface Driver {
   vehicle_type?: string;
   capacity?: number;
   notes?: string;
+  status?: string;  // Added status property to fix build errors
 }
 
-export type DeliveryStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'failed';
+export type DeliveryStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'failed' | 'en_route' | 'arrived' | 'issue';
 
 export interface DeliveryStop {
   id: string;
@@ -91,7 +92,10 @@ export const DELIVERY_STATUS_OPTIONS = [
   { label: 'In Progress', value: 'in_progress' },
   { label: 'Completed', value: 'completed' },
   { label: 'Cancelled', value: 'cancelled' },
-  { label: 'Failed', value: 'failed' }
+  { label: 'Failed', value: 'failed' },
+  { label: 'En Route', value: 'en_route' },
+  { label: 'Arrived', value: 'arrived' },
+  { label: 'Issue', value: 'issue' }
 ];
 
 export const getStatusBadgeVariant = (status: DeliveryStatus) => {
@@ -99,13 +103,16 @@ export const getStatusBadgeVariant = (status: DeliveryStatus) => {
     case 'pending':
       return 'outline';
     case 'in_progress':
+    case 'en_route':
       return 'secondary';
     case 'completed':
       return 'default';
     case 'cancelled':
-      return 'destructive';
     case 'failed':
+    case 'issue':
       return 'destructive';
+    case 'arrived':
+      return 'success';
     default:
       return 'outline';
   }

@@ -5,7 +5,7 @@ import { Copy, MoreHorizontal, Trash2 } from "lucide-react";
 import { OrderItem, DropdownOptions } from "../types";
 import { OrderTableDropdownCell } from "./OrderTableDropdownCell";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { TableCell } from "@/components/ui/table";
+import { TableCell, TableRow } from "@/components/ui/table";
 
 interface OrderTableRowProps {
   item: OrderItem;
@@ -50,7 +50,7 @@ export function OrderTableRow({
 }: OrderTableRowProps) {
   
   return (
-    <tr className="align-middle">
+    <TableRow className="align-middle">
       <TableCell className="text-center px-4">
         {generateItemName(item)}
       </TableCell>
@@ -199,6 +199,6 @@ export function OrderTableRow({
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>
-    </tr>
+    </TableRow>
   );
 }

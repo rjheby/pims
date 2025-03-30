@@ -1,4 +1,3 @@
-
 // First few lines with imports
 import React from "react";
 import { Draggable } from "@hello-pangea/dnd";
@@ -105,9 +104,7 @@ const StopsMobileCards: React.FC<StopsMobileCardsProps> = ({
     window.open(`https://maps.google.com/maps?q=${encodedAddress}`, '_blank');
   };
 
-  // Format items for display
   const formatItemsList = (stop: DeliveryStop) => {
-    // If we have itemsData array with content, use it
     if (Array.isArray(stop.itemsData) && stop.itemsData.length > 0) {
       return (
         <div className="space-y-1">
@@ -121,12 +118,10 @@ const StopsMobileCards: React.FC<StopsMobileCardsProps> = ({
       );
     }
     
-    // Fallback to items string
     if (stop.items) {
       return <div className="text-sm break-words">{stop.items}</div>;
     }
     
-    // If nothing else, show "No items"
     return <div className="text-sm text-gray-500">No items</div>;
   };
 
@@ -205,7 +200,7 @@ const StopsMobileCards: React.FC<StopsMobileCardsProps> = ({
                           <Select
                             value={editForm.driver_id || "unassigned-driver"}
                             onValueChange={(value) => 
-                              onEditFormChange({ ...editForm, driver_id: value === "unassigned-driver" ? null : value })
+                              onEditFormChange({ ...editForm, driver_id: value === "unassigned-driver" ? undefined : value })
                             }
                           >
                             <SelectTrigger>
@@ -249,7 +244,7 @@ const StopsMobileCards: React.FC<StopsMobileCardsProps> = ({
                           <label className="text-sm font-medium mb-1 block">Status</label>
                           <Select
                             value={stop.status || "pending"}
-                            onValueChange={(value) => {
+                            onValueChange={(value: DeliveryStatus) => {
                               const newStop = {...stop, status: value};
                               stop.status = value;
                             }}
@@ -258,9 +253,9 @@ const StopsMobileCards: React.FC<StopsMobileCardsProps> = ({
                               <SelectValue placeholder="Select status" />
                             </SelectTrigger>
                             <SelectContent>
-                              {DELIVERY_STATUS_OPTIONS.map((status) => (
-                                <SelectItem key={status} value={status}>
-                                  {status}
+                              {DELIVERY_STATUS_OPTIONS.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                  {option.label}
                                 </SelectItem>
                               ))}
                             </SelectContent>
