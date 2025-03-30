@@ -22,23 +22,42 @@ export function useOrderOptions() {
   const loadOptions = useCallback(async () => {
     setIsLoadingOptions(true);
     try {
-      const { data, error } = await supabase
+      // First, try to get options from the wholesale_order_options table
+      const { data: optionsData, error: optionsError } = await supabase
         .from('wholesale_order_options')
         .select('*')
         .single();
 
-      if (error) {
-        throw error;
-      }
-
-      if (data) {
+      if (optionsData) {
         setOptions({
-          species: data.species || [],
-          length: data.length || [],
-          bundleType: data.bundleType || [],
-          thickness: data.thickness || [],
-          packaging: data.packaging || []
+          species: optionsData.species || [],
+          length: optionsData.length || [],
+          bundleType: optionsData.bundleType || [],
+          thickness: optionsData.thickness || [],
+          packaging: optionsData.packaging || []
         });
+      } else if (optionsError) {
+        // If that fails, extract unique values from wood_products
+        const { data: woodProducts, error: woodProductsError } = await supabase
+          .from('wood_products')
+          .select('species, length, bundle_type, thickness');
+
+        if (woodProductsError) throw woodProductsError;
+
+        if (woodProducts && woodProducts.length > 0) {
+          const species = [...new Set(woodProducts.map(p => p.species))];
+          const lengths = [...new Set(woodProducts.map(p => p.length))];
+          const bundleTypes = [...new Set(woodProducts.map(p => p.bundle_type))];
+          const thicknesses = [...new Set(woodProducts.map(p => p.thickness))];
+          
+          setOptions({
+            species,
+            length: lengths,
+            bundleType: bundleTypes,
+            thickness: thicknesses,
+            packaging: ['Pallets', 'Boxes (16x12")', 'Boxes (12x10")']
+          });
+        }
       }
     } catch (error) {
       console.error('Error loading options:', error);
@@ -47,13 +66,14 @@ export function useOrderOptions() {
         description: 'Failed to load options',
         variant: 'destructive'
       });
+      
       // Fallback to default options
       setOptions({
         species: ['Mixed Hardwood', 'Cherry', 'Oak', 'Hickory', 'Ash'],
         length: ['12"', '16"'],
         bundleType: ['Loose', 'Bundled'],
         thickness: ['Standard Split', 'Thick Split'],
-        packaging: ['Pallets']
+        packaging: ['Pallets', 'Boxes (16x12")', 'Boxes (12x10")']
       });
     } finally {
       setIsLoadingOptions(false);

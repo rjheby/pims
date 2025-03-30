@@ -1,130 +1,148 @@
 
 import { useState } from 'react';
-import { Customer, DeliveryStop, DeliveryStatus } from '../components/stops/types';
+import { Customer, DeliveryStop, DeliveryStatus, StopFormData, RecurrenceData } from '../components/stops/types';
 
-// Update this type to match how it's used in the file
+// Update this type to match how it's used in the StopsTable
 type UseStopsDialogsProps = {
-  onAddStop?: (stop: DeliveryStop) => void;
-  onUpdateStop?: (index: number, stop: DeliveryStop) => void;
+  stops?: DeliveryStop[];
+  onStopsChange?: (stops: DeliveryStop[]) => void;
+  customers?: Customer[];
+  drivers?: any[];
   initialItems?: string;
 }
 
 export const useStopsDialogs = ({
-  onAddStop,
-  onUpdateStop,
-  initialItems
+  stops = [],
+  onStopsChange,
+  customers = [],
+  drivers = [],
+  initialItems = ''
 }: UseStopsDialogsProps = {}) => {
   // Dialog states
-  const [showCustomerDialog, setShowCustomerDialog] = useState(false);
-  const [showItemsDialog, setShowItemsDialog] = useState(false);
-  const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
+  const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
+  const [itemsDialogOpen, setItemsDialogOpen] = useState(false);
+  const [isAddingNewStop, setIsAddingNewStop] = useState(false);
   
   // Current editing data
-  const [currentEditingIndex, setCurrentEditingIndex] = useState<number | null>(null);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [selectedItems, setSelectedItems] = useState<string>(initialItems || '');
-  const [selectedPrice, setSelectedPrice] = useState<number>(0);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState<StopFormData>({});
+  const [recurrenceData, setRecurrenceData] = useState<RecurrenceData>({
+    isRecurring: false,
+    frequency: 'weekly'
+  });
+  
+  const handleAddStop = () => {
+    setIsAddingNewStop(true);
+    setEditForm({
+      status: 'pending',
+    });
+    setCustomerDialogOpen(true);
+  };
+  
+  const handleEditStart = (index: number) => {
+    setEditingIndex(index);
+    const stop = stops[index];
+    setEditForm({
+      ...stop,
+    });
+  };
+  
+  const handleEditSave = () => {
+    if (editingIndex !== null && onStopsChange) {
+      const updatedStops = [...stops];
+      updatedStops[editingIndex] = {
+        ...updatedStops[editingIndex],
+        ...editForm,
+      } as DeliveryStop;
+      
+      onStopsChange(updatedStops);
+      setEditingIndex(null);
+    } else if (isAddingNewStop && onStopsChange) {
+      const newStop: DeliveryStop = {
+        id: crypto.randomUUID(),
+        stop_number: stops.length + 1,
+        ...editForm,
+      } as DeliveryStop;
+      
+      onStopsChange([...stops, newStop]);
+      setIsAddingNewStop(false);
+    }
+    
+    setEditForm({});
+  };
+  
+  const handleEditCancel = () => {
+    setEditingIndex(null);
+    setIsAddingNewStop(false);
+    setEditForm({});
+    setCustomerDialogOpen(false);
+    setItemsDialogOpen(false);
+  };
+  
+  const handleCustomerSelect = (customer: Customer) => {
+    setEditForm({
+      ...editForm,
+      customer_id: customer.id,
+      customer_name: customer.name,
+      customer_address: customer.address || `${customer.street_address || ''} ${customer.city || ''}, ${customer.state || ''} ${customer.zip_code || ''}`.trim(),
+      customer_phone: customer.phone || '',
+    });
+    setCustomerDialogOpen(false);
+    setItemsDialogOpen(true);
+  };
+  
+  const handleItemsSelect = (itemsString: string, price?: number) => {
+    setEditForm({
+      ...editForm,
+      items: itemsString,
+      price: price || 0,
+    });
+    setItemsDialogOpen(false);
+    handleEditSave();
+  };
   
   const openCustomerDialog = (index?: number) => {
     if (typeof index === 'number') {
-      setCurrentEditingIndex(index);
+      handleEditStart(index);
     }
-    setShowCustomerDialog(true);
+    setCustomerDialogOpen(true);
   };
   
   const openItemsDialog = (items?: string, price?: number) => {
     if (items) {
-      setSelectedItems(items);
+      setEditForm({
+        ...editForm,
+        items,
+        price: price || 0,
+      });
     }
-    if (typeof price === 'number') {
-      setSelectedPrice(price);
-    }
-    setShowItemsDialog(true);
-  };
-  
-  const handleCustomerSelect = (customer: Customer) => {
-    setSelectedCustomer(customer);
-    setShowCustomerDialog(false);
-    
-    // If we're editing an existing stop
-    if (typeof currentEditingIndex === 'number' && onUpdateStop) {
-      // This will be handled by the parent component using the selectedCustomer
-    } 
-    // If we're adding a new stop, open the items dialog next
-    else {
-      setShowItemsDialog(true);
-    }
-  };
-  
-  const handleItemsSelected = (itemsString: string, price: number) => {
-    setSelectedItems(itemsString);
-    setSelectedPrice(price);
-    setShowItemsDialog(false);
-    
-    // If editing an existing stop
-    if (typeof currentEditingIndex === 'number' && onUpdateStop) {
-      // This will be handled by the parent component
-    } 
-    // If adding a new stop and we have all the data
-    else if (selectedCustomer && onAddStop) {
-      const newStop: DeliveryStop = {
-        id: '', // Will be generated by the backend or parent component
-        stop_number: 1, // Will be set by the parent component
-        customer_id: selectedCustomer.id,
-        customer_name: selectedCustomer.name,
-        customer_address: selectedCustomer.address || '',
-        customer_phone: selectedCustomer.phone || '',
-        items: itemsString,
-        price: price,
-        notes: '',
-        is_recurring: true,
-        status: 'pending' as DeliveryStatus
-      };
-      
-      onAddStop(newStop);
-      resetDialogStates();
-    }
-  };
-  
-  const handleNewCustomerSubmit = (customer: Customer) => {
-    setSelectedCustomer(customer);
-    setShowNewCustomerForm(false);
-    setShowItemsDialog(true);
-  };
-  
-  const resetDialogStates = () => {
-    setShowCustomerDialog(false);
-    setShowItemsDialog(false);
-    setShowNewCustomerForm(false);
-    setCurrentEditingIndex(null);
-    setSelectedCustomer(null);
-    setSelectedItems(initialItems || '');
-    setSelectedPrice(0);
+    setItemsDialogOpen(true);
   };
   
   return {
     // Dialog visibility
-    showCustomerDialog,
-    showItemsDialog,
-    showNewCustomerForm,
+    customerDialogOpen,
+    itemsDialogOpen,
+    isAddingNewStop,
     
-    // Selected data
-    selectedCustomer,
-    selectedItems,
-    selectedPrice,
-    currentEditingIndex,
+    // Form data
+    editingIndex,
+    editForm,
+    recurrenceData,
     
-    // Dialog actions
+    // Dialog setters
+    setCustomerDialogOpen,
+    setItemsDialogOpen,
+    setEditForm,
+    
+    // Handlers
+    handleAddStop,
+    handleEditStart,
+    handleEditSave,
+    handleEditCancel,
+    handleCustomerSelect,
+    handleItemsSelect,
     openCustomerDialog,
     openItemsDialog,
-    setShowCustomerDialog,
-    setShowItemsDialog,
-    setShowNewCustomerForm,
-    
-    // Event handlers
-    handleCustomerSelect,
-    handleItemsSelected,
-    handleNewCustomerSubmit,
-    resetDialogStates,
   };
 };
