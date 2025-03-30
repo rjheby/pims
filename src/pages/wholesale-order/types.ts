@@ -1,3 +1,4 @@
+
 export interface OrderItem {
   id: number;
   species: string;
@@ -83,3 +84,15 @@ export interface WoodProduct {
   full_description: string;
   created_at?: string;
 }
+
+// Add missing "pizza wood" product definition
+export const PIZZA_WOOD_PRODUCT = {
+  id: "pizza-wood-001",
+  species: "Oak",
+  length: "16\"",
+  bundle_type: "Premium",
+  thickness: "Standard Split",
+  unit_cost: 45,
+  is_popular: true,
+  full_description: "Premium oak pizza wood bundle - ideal for wood-fired ovens",
+};

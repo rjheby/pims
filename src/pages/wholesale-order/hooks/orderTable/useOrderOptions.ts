@@ -29,14 +29,23 @@ export function useOrderOptions() {
         .single();
 
       if (optionsData) {
+        console.log("Loaded options from wholesale_order_options table:", optionsData);
+        
+        // Add "Pizza Wood Bundle" to species if not already present
+        let species = optionsData.species || [];
+        if (!species.includes('Pizza Wood')) {
+          species = [...species, 'Pizza Wood'];
+        }
+        
         setOptions({
-          species: optionsData.species || [],
+          species: species,
           length: optionsData.length || [],
           bundleType: optionsData.bundleType || [],
           thickness: optionsData.thickness || [],
           packaging: optionsData.packaging || []
         });
       } else if (optionsError) {
+        console.log("Couldn't load from options table, extracting from wood_products");
         // If that fails, extract unique values from wood_products
         const { data: woodProducts, error: woodProductsError } = await supabase
           .from('wood_products')
@@ -46,6 +55,11 @@ export function useOrderOptions() {
 
         if (woodProducts && woodProducts.length > 0) {
           const species = [...new Set(woodProducts.map(p => p.species))];
+          // Add "Pizza Wood" if not already present
+          if (!species.includes('Pizza Wood')) {
+            species.push('Pizza Wood');
+          }
+          
           const lengths = [...new Set(woodProducts.map(p => p.length))];
           const bundleTypes = [...new Set(woodProducts.map(p => p.bundle_type))];
           const thicknesses = [...new Set(woodProducts.map(p => p.thickness))];
@@ -57,6 +71,13 @@ export function useOrderOptions() {
             thickness: thicknesses,
             packaging: ['Pallets', 'Boxes (16x12")', 'Boxes (12x10")']
           });
+          
+          console.log("Created options from wood_products:", {
+            speciesCount: species.length,
+            lengthCount: lengths.length,
+            bundleTypeCount: bundleTypes.length,
+            thicknessCount: thicknesses.length
+          });
         }
       }
     } catch (error) {
@@ -67,11 +88,11 @@ export function useOrderOptions() {
         variant: 'destructive'
       });
       
-      // Fallback to default options
+      // Fallback to default options with "Pizza Wood"
       setOptions({
-        species: ['Mixed Hardwood', 'Cherry', 'Oak', 'Hickory', 'Ash'],
+        species: ['Mixed Hardwood', 'Cherry', 'Oak', 'Hickory', 'Ash', 'Pizza Wood'],
         length: ['12"', '16"'],
-        bundleType: ['Loose', 'Bundled'],
+        bundleType: ['Loose', 'Bundled', 'Premium'],
         thickness: ['Standard Split', 'Thick Split'],
         packaging: ['Pallets', 'Boxes (16x12")', 'Boxes (12x10")']
       });

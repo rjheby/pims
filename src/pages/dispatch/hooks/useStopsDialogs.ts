@@ -11,6 +11,16 @@ type UseStopsDialogsProps = {
   initialItems?: string;
 }
 
+// Define missing delivery status options to fix build errors
+export const DELIVERY_STATUS_OPTIONS = [
+  { value: 'pending', label: 'Pending' },
+  { value: 'en_route', label: 'En Route' },
+  { value: 'arrived', label: 'Arrived' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'issue', label: 'Issue' },
+  { value: 'cancelled', label: 'Cancelled' }
+];
+
 export const useStopsDialogs = ({
   stops = [],
   onStopsChange,
@@ -37,6 +47,51 @@ export const useStopsDialogs = ({
       status: 'pending',
     });
     setCustomerDialogOpen(true);
+  };
+  
+  // Function to manually add a stop for testing/logging purposes
+  const addManualStop = (customerId: string, customerName: string, customerAddress: string, customerPhone: string, items: string) => {
+    console.log("Manually adding stop with following details:");
+    console.log(`- Customer ID: ${customerId}`);
+    console.log(`- Customer Name: ${customerName}`);
+    console.log(`- Items: ${items}`);
+    
+    if (onStopsChange) {
+      const newStop: DeliveryStop = {
+        id: crypto.randomUUID(),
+        stop_number: stops.length + 1,
+        customer_id: customerId,
+        customer_name: customerName,
+        customer_address: customerAddress,
+        customer_phone: customerPhone,
+        items: items,
+        price: calculateItemsPrice(items),
+        status: 'pending'
+      } as DeliveryStop;
+      
+      console.log("Created new stop:", newStop);
+      onStopsChange([...stops, newStop]);
+      console.log(`Stop added to schedule, new total: ${stops.length + 1} stops`);
+      return true;
+    }
+    
+    console.log("Failed to add stop: onStopsChange callback not provided");
+    return false;
+  };
+  
+  // Helper function to calculate price based on items (simplified)
+  const calculateItemsPrice = (items: string): number => {
+    if (!items) return 0;
+    
+    // Simple logic to calculate price based on items
+    // For "pizza wood" specifically price it at $45 per bundle
+    if (items.toLowerCase().includes("pizza wood")) {
+      return 45;
+    }
+    
+    // Default calculation for other items
+    const itemsList = items.split(',').map(item => item.trim());
+    return itemsList.length * 10;
   };
   
   const handleEditStart = (index: number) => {
@@ -95,7 +150,7 @@ export const useStopsDialogs = ({
     setEditForm({
       ...editForm,
       items: itemsString,
-      price: price || 0,
+      price: price || calculateItemsPrice(itemsString),
     });
     setItemsDialogOpen(false);
     handleEditSave();
@@ -144,5 +199,6 @@ export const useStopsDialogs = ({
     handleItemsSelect,
     openCustomerDialog,
     openItemsDialog,
+    addManualStop, // Expose our manual add function for testing/logging
   };
 };
