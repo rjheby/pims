@@ -5,6 +5,7 @@ import { Copy, MoreHorizontal, Trash2 } from "lucide-react";
 import { OrderItem, DropdownOptions } from "../types";
 import { OrderTableDropdownCell } from "./OrderTableDropdownCell";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { TableCell } from "@/components/ui/table";
 
 interface OrderTableRowProps {
   item: OrderItem;
@@ -50,78 +51,96 @@ export function OrderTableRow({
   
   return (
     <tr className="align-middle">
-      <td className="text-center px-4">{generateItemName(item)}</td>
-      <OrderTableDropdownCell
-        field="species"
-        id={`row-${item.id}-species`}
-        value={item.species}
-        options={options.species}
-        isEditing={editingField === "species" && editingRowId === item.id}
-        newOption={newOption}
-        onNewOptionChange={onNewOptionChange}
-        onKeyPress={onKeyPress}
-        onUpdate={(value) => onUpdateItem({ ...item, species: value })}
-        onUpdateOptions={onUpdateOptions}
-        onStartEditing={() => onStartEditing("species", item.id)}
-        readOnly={readOnly}
-      />
-      <OrderTableDropdownCell
-        field="length"
-        id={`row-${item.id}-length`}
-        value={item.length}
-        options={options.length}
-        isEditing={editingField === "length" && editingRowId === item.id}
-        newOption={newOption}
-        onNewOptionChange={onNewOptionChange}
-        onKeyPress={onKeyPress}
-        onUpdate={(value) => onUpdateItem({ ...item, length: value })}
-        onUpdateOptions={onUpdateOptions}
-        onStartEditing={() => onStartEditing("length", item.id)}
-        readOnly={readOnly}
-      />
-      <OrderTableDropdownCell
-        field="bundleType"
-        id={`row-${item.id}-bundleType`}
-        value={item.bundleType}
-        options={options.bundleType}
-        isEditing={editingField === "bundleType" && editingRowId === item.id}
-        newOption={newOption}
-        onNewOptionChange={onNewOptionChange}
-        onKeyPress={onKeyPress}
-        onUpdate={(value) => onUpdateItem({ ...item, bundleType: value })}
-        onUpdateOptions={onUpdateOptions}
-        onStartEditing={() => onStartEditing("bundleType", item.id)}
-        readOnly={readOnly}
-      />
-      <OrderTableDropdownCell
-        field="thickness"
-        id={`row-${item.id}-thickness`}
-        value={item.thickness}
-        options={options.thickness}
-        isEditing={editingField === "thickness" && editingRowId === item.id}
-        newOption={newOption}
-        onNewOptionChange={onNewOptionChange}
-        onKeyPress={onKeyPress}
-        onUpdate={(value) => onUpdateItem({ ...item, thickness: value })}
-        onUpdateOptions={onUpdateOptions}
-        onStartEditing={() => onStartEditing("thickness", item.id)}
-        readOnly={readOnly}
-      />
-      <OrderTableDropdownCell
-        field="packaging"
-        id={`row-${item.id}-packaging`}
-        value={item.packaging}
-        options={options.packaging}
-        isEditing={editingField === "packaging" && editingRowId === item.id}
-        newOption={newOption}
-        onNewOptionChange={onNewOptionChange}
-        onKeyPress={onKeyPress}
-        onUpdate={(value) => onUpdateItem({ ...item, packaging: value })}
-        onUpdateOptions={onUpdateOptions}
-        onStartEditing={() => onStartEditing("packaging", item.id)}
-        readOnly={readOnly}
-      />
-      <td className="text-center px-2">
+      <TableCell className="text-center px-4">
+        {generateItemName(item)}
+      </TableCell>
+
+      <TableCell className="text-center px-2">
+        <OrderTableDropdownCell
+          field="species"
+          id={`row-${item.id}-species`}
+          value={item.species}
+          options={options.species}
+          isEditing={editingField === "species" && editingRowId === item.id}
+          newOption={newOption}
+          onNewOptionChange={onNewOptionChange}
+          onKeyPress={onKeyPress}
+          onUpdate={(value) => onUpdateItem({ ...item, species: value })}
+          onUpdateOptions={onUpdateOptions}
+          onStartEditing={() => onStartEditing("species", item.id)}
+          readOnly={readOnly}
+        />
+      </TableCell>
+
+      <TableCell className="text-center px-2">
+        <OrderTableDropdownCell
+          field="length"
+          id={`row-${item.id}-length`}
+          value={item.length}
+          options={options.length}
+          isEditing={editingField === "length" && editingRowId === item.id}
+          newOption={newOption}
+          onNewOptionChange={onNewOptionChange}
+          onKeyPress={onKeyPress}
+          onUpdate={(value) => onUpdateItem({ ...item, length: value })}
+          onUpdateOptions={onUpdateOptions}
+          onStartEditing={() => onStartEditing("length", item.id)}
+          readOnly={readOnly}
+        />
+      </TableCell>
+
+      <TableCell className="text-center px-2">
+        <OrderTableDropdownCell
+          field="bundleType"
+          id={`row-${item.id}-bundleType`}
+          value={item.bundleType}
+          options={options.bundleType}
+          isEditing={editingField === "bundleType" && editingRowId === item.id}
+          newOption={newOption}
+          onNewOptionChange={onNewOptionChange}
+          onKeyPress={onKeyPress}
+          onUpdate={(value) => onUpdateItem({ ...item, bundleType: value })}
+          onUpdateOptions={onUpdateOptions}
+          onStartEditing={() => onStartEditing("bundleType", item.id)}
+          readOnly={readOnly}
+        />
+      </TableCell>
+
+      <TableCell className="text-center px-2">
+        <OrderTableDropdownCell
+          field="thickness"
+          id={`row-${item.id}-thickness`}
+          value={item.thickness}
+          options={options.thickness}
+          isEditing={editingField === "thickness" && editingRowId === item.id}
+          newOption={newOption}
+          onNewOptionChange={onNewOptionChange}
+          onKeyPress={onKeyPress}
+          onUpdate={(value) => onUpdateItem({ ...item, thickness: value })}
+          onUpdateOptions={onUpdateOptions}
+          onStartEditing={() => onStartEditing("thickness", item.id)}
+          readOnly={readOnly}
+        />
+      </TableCell>
+
+      <TableCell className="text-center px-2">
+        <OrderTableDropdownCell
+          field="packaging"
+          id={`row-${item.id}-packaging`}
+          value={item.packaging}
+          options={options.packaging}
+          isEditing={editingField === "packaging" && editingRowId === item.id}
+          newOption={newOption}
+          onNewOptionChange={onNewOptionChange}
+          onKeyPress={onKeyPress}
+          onUpdate={(value) => onUpdateItem({ ...item, packaging: value })}
+          onUpdateOptions={onUpdateOptions}
+          onStartEditing={() => onStartEditing("packaging", item.id)}
+          readOnly={readOnly}
+        />
+      </TableCell>
+
+      <TableCell className="text-center px-2">
         <input
           type="number"
           id={`row-${item.id}-pallets`}
@@ -133,8 +152,9 @@ export function OrderTableRow({
           }
           disabled={readOnly}
         />
-      </td>
-      <td className="text-center px-2">
+      </TableCell>
+
+      <TableCell className="text-center px-2">
         <input
           type="number"
           id={`row-${item.id}-unitCost`}
@@ -146,9 +166,13 @@ export function OrderTableRow({
           }
           disabled={readOnly}
         />
-      </td>
-      <td className="text-center px-2">${Number(item.pallets) * Number(item.unitCost)}</td>
-      <td className="text-center px-2">
+      </TableCell>
+
+      <TableCell className="text-center px-2">
+        ${Number(item.pallets) * Number(item.unitCost)}
+      </TableCell>
+
+      <TableCell className="text-center px-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button 
@@ -174,7 +198,7 @@ export function OrderTableRow({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-      </td>
+      </TableCell>
     </tr>
   );
 }

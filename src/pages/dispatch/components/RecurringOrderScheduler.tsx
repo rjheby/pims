@@ -403,3 +403,24 @@ const getItemsLabel = (order: RecurringOrder) => {
     ? `${order.items.substring(0, 30)}...` 
     : order.items;
 };
+
+const formatItemsList = (stop: DeliveryStop) => {
+  if (Array.isArray(stop.itemsData) && stop.itemsData.length > 0) {
+    return (
+      <div>
+        {stop.itemsData.map((item, idx) => (
+          <div key={idx} className="text-sm mb-1">
+            {item.quantity}x {item.name} 
+            {item.price ? ` @$${item.price}` : ''}
+          </div>
+        ))}
+      </div>
+    );
+  }
+  
+  if (stop.items) {
+    return stop.items;
+  }
+  
+  return 'No items';
+};
