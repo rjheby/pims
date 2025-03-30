@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -60,6 +59,7 @@ export function RecurringOrderScheduler({
       })
       .catch(err => {
         console.error("Error fetching recurring orders:", err);
+        setConnectionError(err.message);
       });
   }, [scheduleDate, endDate, fetchRecurringOrders, generateOccurrences]);
 
@@ -132,6 +132,7 @@ export function RecurringOrderScheduler({
         const formattedTimeWindow = formatTimeWindow(timeWindow);
         
         console.log(`Creating stop for customer ${customer.name} (${customer.id})`);
+        console.log(`Using items from recurring order: ${order.items || 'None specified'}`);
         
         return {
           stop_number: existingCustomerIds.length + index + 1,
@@ -139,7 +140,7 @@ export function RecurringOrderScheduler({
           customer_name: customer.name,
           customer_address: customer.address || '',
           customer_phone: customer.phone || '',
-          items: '', // No default items
+          items: order.items || '', // Include items from recurring order
           notes: `Recurring ${order.frequency} order - ${formattedTimeWindow}`,
           price: 0,
           is_recurring: true,
@@ -149,6 +150,8 @@ export function RecurringOrderScheduler({
       }).filter(Boolean) as any[];
       
       console.log(`RecurringOrderScheduler: Adding ${newStops.length} stops to schedule`);
+      console.log('Stop data:', newStops);
+      
       onAddStops(newStops);
       
       toast({
@@ -191,20 +194,11 @@ export function RecurringOrderScheduler({
           description: `Successfully synchronized recurring orders. ${result.stopsCreated} stops created.`,
         });
         
-        // Refresh the page to show newly created stops if any were created
-        if (result.stopsCreated > 0) {
-          // Give the database a moment to update
-          setTimeout(() => {
-            window.location.reload();
-          }, 1500);
-        } else {
-          // Just refresh recurring orders and occurrences
-          await fetchRecurringOrders().then(orders => {
-            if (orders.length > 0) {
-              generateOccurrences(orders, scheduleDate, endDate);
-            }
-          });
-        }
+        // Always reload the page to show newly created stops, regardless of stopsCreated count
+        // This ensures we see stops that might have been created through another method
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
       } else {
         toast({
           title: "Sync Failed",
@@ -227,55 +221,6 @@ export function RecurringOrderScheduler({
   const handleRetry = () => {
     setConnectionError(null);
     fetchRecurringOrders();
-  };
-
-  const renderOccurrenceItem = (occurrence: any) => {
-    const timeWindow = parsePreferredTimeToWindow(occurrence.recurringOrder.preferred_time);
-    const formattedTimeWindow = formatTimeWindow(timeWindow);
-    
-    return (
-      <div key={`${occurrence.recurringOrder.id}-${occurrence.date.toISOString()}`} 
-           className="flex justify-between items-center p-3 bg-muted/40 rounded-md border border-gray-100 hover:border-primary/20 transition-colors">
-        <div>
-          <p className="font-medium">{occurrence.recurringOrder.customer?.name}</p>
-          <div className="text-sm text-muted-foreground space-y-1">
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="capitalize bg-primary/10 text-primary">
-                {occurrence.recurringOrder.frequency}
-              </Badge>
-              {occurrence.recurringOrder.preferred_time && (
-                <Badge variant="secondary" className="font-normal">
-                  {formattedTimeWindow}
-                </Badge>
-              )}
-            </div>
-            {activeTab === "planning" && (
-              <p className="text-xs flex items-center gap-1 mt-1">
-                <CalendarDays className="h-3 w-3" />
-                {format(occurrence.date, "EEE, MMM d")}
-              </p>
-            )}
-          </div>
-        </div>
-        {activeTab === "today" ? (
-          <CheckCircle className="h-4 w-4 text-primary/70" />
-        ) : (
-          <Clock className="h-4 w-4 text-muted-foreground" />
-        )}
-      </div>
-    );
-  };
-
-  const renderSkeletonItems = () => {
-    return Array(3).fill(0).map((_, i) => (
-      <div key={i} className="p-3 bg-muted/40 rounded-md">
-        <Skeleton className="h-5 w-40 mb-2" />
-        <div className="flex gap-2">
-          <Skeleton className="h-4 w-16" />
-          <Skeleton className="h-4 w-24" />
-        </div>
-      </div>
-    ));
   };
 
   return (
@@ -344,7 +289,10 @@ export function RecurringOrderScheduler({
             ) : (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  {availableOccurrences.map(renderOccurrenceItem)}
+                  {availableOccurrences.map(occurrence => renderOccurrenceItem({
+                    ...occurrence,
+                    activeTab
+                  }))}
                 </div>
                 
                 <div className="pt-2">
@@ -384,7 +332,10 @@ export function RecurringOrderScheduler({
             ) : (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  {planningOccurrences.map(renderOccurrenceItem)}
+                  {planningOccurrences.map(occurrence => renderOccurrenceItem({
+                    ...occurrence,
+                    activeTab: "planning"
+                  }))}
                 </div>
                 
                 <div className="pt-2 text-center text-sm text-muted-foreground">
@@ -417,6 +368,13 @@ function renderOccurrenceItem(occurrence: any) {
               <Badge variant="secondary" className="font-normal">
                 {formattedTimeWindow}
               </Badge>
+            )}
+            {occurrence.recurringOrder.items && (
+              <span className="text-xs text-gray-500">
+                Items: {occurrence.recurringOrder.items.length > 20 
+                  ? occurrence.recurringOrder.items.substring(0, 20) + '...' 
+                  : occurrence.recurringOrder.items}
+              </span>
             )}
           </div>
           {occurrence.activeTab === "planning" && (
