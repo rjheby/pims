@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
@@ -25,13 +24,13 @@ import {
 import { RecurringOrder, Customer } from './stops/types';
 
 interface RecurringOrderSchedulerProps {
-  selectedRecurringOrder: RecurringOrder | null;
-  onSave: (items: string, frequency: string, preferredDay: string | undefined, startDate: string | undefined, endDate: string | undefined) => void;
-  onCancel: () => void;
-  customers: Customer[];
-  scheduleDate?: Date; // Add scheduleDate prop
-  onAddStops?: (newStops: any[]) => void; // Add onAddStops prop
-  existingCustomerIds?: string[]; // Add existingCustomerIds prop
+  selectedRecurringOrder?: RecurringOrder | null;
+  onSave?: (items: string, frequency: string, preferredDay: string | undefined, startDate: string | undefined, endDate: string | undefined) => void;
+  onCancel?: () => void;
+  customers?: Customer[];
+  scheduleDate?: Date;
+  onAddStops?: (newStops: any[]) => void;
+  existingCustomerIds?: string[];
 }
 
 export function RecurringOrderScheduler({

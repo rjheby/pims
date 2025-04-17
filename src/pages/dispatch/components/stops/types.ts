@@ -20,27 +20,64 @@ export interface Driver {
   status: string;
 }
 
-export interface DeliveryStop {
+export interface Stop {
   id?: string;
-  master_schedule_id: string;
+  master_schedule_id?: string;
   customer_id: string;
-  customer_name: string;
-  customer_address: string;
-  customer_phone: string;
-  stop_number: number;
+  customer_name?: string;
+  customer_address?: string;
+  customer_phone?: string;
+  stop_number?: number;
   items: string;
   notes?: string;
   price?: number;
   driver_id?: string | null;
-  status: string;
-  created_at?: string;
-  updated_at?: string;
-  is_recurring?: boolean;
-  recurring_id?: string;
-  customers?: Customer;
-  drivers?: Driver;
-  itemsData?: any[];
+  status?: DeliveryStatus;
 }
+
+export interface DeliveryStop extends Stop {
+  master_schedule_id: string;
+  customer_name: string;
+  customer_address: string;
+  customer_phone: string;
+  stop_number: number;
+  status: DeliveryStatus;
+}
+
+export enum DeliveryStatus {
+  PENDING = 'PENDING',
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED'
+}
+
+export const DELIVERY_STATUS_OPTIONS = [
+  { value: DeliveryStatus.PENDING, label: 'Pending' },
+  { value: DeliveryStatus.IN_PROGRESS, label: 'In Progress' },
+  { value: DeliveryStatus.COMPLETED, label: 'Completed' },
+  { value: DeliveryStatus.CANCELLED, label: 'Cancelled' }
+];
+
+export interface RecurrenceData {
+  frequency: string;
+  preferredDay?: string;
+  preferredTime?: string;
+  startDate?: Date;
+  endDate?: Date;
+}
+
+export const getStatusBadgeVariant = (status: DeliveryStatus): 'default' | 'secondary' | 'destructive' | 'outline' => {
+  switch (status) {
+    case DeliveryStatus.COMPLETED:
+      return 'default';
+    case DeliveryStatus.IN_PROGRESS:
+      return 'secondary';
+    case DeliveryStatus.CANCELLED:
+      return 'destructive';
+    default:
+      return 'outline';
+  }
+};
 
 export interface StopFormData {
   customer_id: string;
