@@ -1,4 +1,3 @@
-
 import { addWeeks, addMonths, format, parse, isAfter, isBefore, isEqual, startOfDay, endOfDay, isSameDay } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -104,7 +103,63 @@ export const getNextMonthlyOccurrence = (date: Date, position: string, day: stri
 };
 
 /**
- * Calculate the next X occurrences of a recurring order
+ * Standardized function to get the next occurrence date for any frequency
+ */
+export const getNextOccurrence = (
+  date: Date,
+  frequency: string,
+  preferredDay: string
+): Date => {
+  const resultDate = new Date(date);
+  
+  // Normalize frequency
+  const normalizedFrequency = frequency.toLowerCase();
+  
+  // For weekly frequencies
+  if (normalizedFrequency === 'weekly' || normalizedFrequency === 'bi-weekly' || normalizedFrequency === 'biweekly') {
+    const dayIndex = getDayOfWeekIndex(preferredDay);
+    if (dayIndex === -1) {
+      throw new Error(`Invalid day of week: ${preferredDay}`);
+    }
+    
+    // Get days until next occurrence
+    const currentDay = resultDate.getDay();
+    const daysToAdd = (7 + dayIndex - currentDay) % 7;
+    
+    // For bi-weekly, ensure we're on the correct week
+    if (normalizedFrequency !== 'weekly') {
+      const weekDiff = Math.floor(daysToAdd / 7);
+      if (weekDiff % 2 !== 0) {
+        resultDate.setDate(resultDate.getDate() + 7); // Skip to next week
+      }
+    }
+    
+    resultDate.setDate(resultDate.getDate() + daysToAdd);
+    return resultDate;
+  }
+  
+  // For monthly frequencies
+  if (normalizedFrequency === 'monthly') {
+    // Check if preferredDay is a pattern (e.g., "first monday")
+    if (preferredDay.includes(' ')) {
+      const [position, day] = preferredDay.toLowerCase().split(' ');
+      return getNextMonthlyOccurrence(date, position, day);
+    }
+    
+    // Handle numeric day of month
+    const dayOfMonth = parseInt(preferredDay);
+    if (isNaN(dayOfMonth) || dayOfMonth < 1 || dayOfMonth > 31) {
+      throw new Error(`Invalid day of month: ${preferredDay}`);
+    }
+    
+    return getNextDayOfMonth(date, dayOfMonth);
+  }
+  
+  throw new Error(`Unsupported frequency: ${frequency}`);
+};
+
+/**
+ * Calculate the next X occurrences of a recurring order with improved date handling
  */
 export const calculateNextOccurrences = (
   startDate: Date,
@@ -115,89 +170,52 @@ export const calculateNextOccurrences = (
   console.log(`Calculating next ${count} occurrences of ${frequency} on ${preferredDay} starting from ${startDate.toISOString()}`);
   
   const occurrences: Date[] = [];
-  
-  // Make sure we're working with the start of the day
-  startDate = startOfDay(startDate);
+  const normalizedFrequency = frequency.toLowerCase();
   
   try {
-    if (frequency.toLowerCase() === 'weekly' || frequency.toLowerCase() === 'bi-weekly' || frequency.toLowerCase() === 'biweekly') {
-      // Parse day of week
-      const dayIndex = getDayOfWeekIndex(preferredDay.toLowerCase());
-      
-      if (dayIndex === -1) {
-        console.error('Invalid day of week:', preferredDay);
-        return [];
-      }
-      
-      console.log(`Day index for ${preferredDay} is ${dayIndex}, current day is ${startDate.getDay()}`);
-      
-      // Get the next occurrence of this weekday
-      let currentDate = getNextDayOfWeek(startDate, dayIndex);
-      console.log(`Next occurrence of ${preferredDay} after ${startDate.toISOString()} is ${currentDate.toISOString()}`);
-      
-      // Check if we need to add this date
-      if (isEqual(startOfDay(startDate), startOfDay(currentDate)) || isAfter(currentDate, startDate)) {
-        occurrences.push(currentDate);
-        console.log(`Added date: ${currentDate.toISOString()}`);
-      }
-      
-      // Calculate future occurrences
-      const interval = (frequency.toLowerCase() === 'weekly') ? 1 : 2;
-      console.log(`Using interval of ${interval} weeks for ${frequency}`);
-      
-      while (occurrences.length < count) {
-        currentDate = addWeeks(currentDate, interval);
-        occurrences.push(currentDate);
-        console.log(`Added date: ${currentDate.toISOString()}`);
-      }
-    } else if (frequency.toLowerCase() === 'monthly') {
-      // Check if preferredDay is a pattern like "first monday"
-      if (preferredDay.includes(' ')) {
-        const [position, day] = preferredDay.toLowerCase().split(' ');
-        
-        // Get the next occurrence based on pattern
-        let currentDate = getNextMonthlyOccurrence(startDate, position, day);
-        
-        // Check if we need to add this date
-        if (isEqual(startOfDay(startDate), startOfDay(currentDate)) || isAfter(currentDate, startDate)) {
-          occurrences.push(currentDate);
-        }
-        
-        // Calculate future occurrences
-        while (occurrences.length < count) {
-          currentDate = getNextMonthlyOccurrence(addMonths(currentDate, 1), position, day);
-          occurrences.push(currentDate);
-        }
-      } else {
-        // Assuming preferredDay is a number (day of month)
-        const dayOfMonth = parseInt(preferredDay);
-        
-        if (isNaN(dayOfMonth) || dayOfMonth < 1 || dayOfMonth > 31) {
-          console.error('Invalid day of month:', preferredDay);
-          return [];
-        }
-        
-        // Get the next occurrence of this day of month
-        let currentDate = getNextDayOfMonth(startDate, dayOfMonth);
-        
-        // Check if we need to add this date
-        if (isEqual(startOfDay(startDate), startOfDay(currentDate)) || isAfter(currentDate, startDate)) {
-          occurrences.push(currentDate);
-        }
-        
-        // Calculate future occurrences
-        while (occurrences.length < count) {
-          currentDate = getNextDayOfMonth(addMonths(currentDate, 1), dayOfMonth);
-          occurrences.push(currentDate);
-        }
+    // Validate inputs
+    if (!startDate || !frequency || !preferredDay || count < 1) {
+      console.error('Invalid inputs for calculateNextOccurrences');
+      return [];
+    }
+    
+    // Make sure we're working with the start of the day
+    let currentDate = startOfDay(new Date(startDate));
+    
+    // Get the first occurrence
+    let nextDate = getNextOccurrence(currentDate, frequency, preferredDay);
+    
+    // If the first occurrence is before the start date, get the next one
+    if (isBefore(nextDate, currentDate)) {
+      if (normalizedFrequency === 'weekly' || normalizedFrequency === 'bi-weekly' || normalizedFrequency === 'biweekly') {
+        nextDate = addWeeks(nextDate, normalizedFrequency === 'weekly' ? 1 : 2);
+      } else if (normalizedFrequency === 'monthly') {
+        nextDate = addMonths(nextDate, 1);
       }
     }
+    
+    // Add the first occurrence if it's valid
+    if (!isBefore(nextDate, currentDate)) {
+      occurrences.push(nextDate);
+    }
+    
+    // Calculate remaining occurrences
+    while (occurrences.length < count) {
+      if (normalizedFrequency === 'weekly' || normalizedFrequency === 'bi-weekly' || normalizedFrequency === 'biweekly') {
+        nextDate = addWeeks(nextDate, normalizedFrequency === 'weekly' ? 1 : 2);
+      } else if (normalizedFrequency === 'monthly') {
+        nextDate = getNextOccurrence(addMonths(nextDate, 1), frequency, preferredDay);
+      }
+      
+      occurrences.push(nextDate);
+    }
+    
+    console.log(`Generated ${occurrences.length} occurrences`);
+    return occurrences;
   } catch (error) {
     console.error('Error calculating occurrences:', error);
+    return [];
   }
-  
-  console.log(`Calculated ${occurrences.length} occurrences`);
-  return occurrences;
 };
 
 /**

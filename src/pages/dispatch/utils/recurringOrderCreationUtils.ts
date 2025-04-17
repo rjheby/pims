@@ -4,6 +4,65 @@ import { format, parse, isBefore, isAfter, isEqual, startOfDay, endOfDay, isSame
 import { consolidateRecurringOrders, findSchedulesForDateBasic, createScheduleForDate } from "./scheduleUtils";
 
 /**
+ * Validate recurring order data
+ */
+const validateRecurringOrderData = (
+  customerId: string,
+  frequency: string,
+  preferredDay: string,
+  items: string
+): { isValid: boolean; error?: string } => {
+  // Validate customer ID
+  if (!customerId) {
+    return { isValid: false, error: 'Customer ID is required' };
+  }
+
+  // Validate frequency
+  const validFrequencies = ['weekly', 'bi-weekly', 'biweekly', 'monthly'];
+  if (!validFrequencies.includes(frequency.toLowerCase())) {
+    return { isValid: false, error: `Invalid frequency. Must be one of: ${validFrequencies.join(', ')}` };
+  }
+
+  // Validate preferred day
+  if (!preferredDay) {
+    return { isValid: false, error: 'Preferred day is required' };
+  }
+
+  // For weekly/bi-weekly, validate day name
+  if (frequency.toLowerCase().includes('weekly')) {
+    const validDays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    if (!validDays.includes(preferredDay.toLowerCase())) {
+      return { isValid: false, error: `Invalid day name for weekly frequency. Must be one of: ${validDays.join(', ')}` };
+    }
+  }
+
+  // For monthly, validate day number or pattern
+  if (frequency.toLowerCase() === 'monthly') {
+    // Check if it's a number (1-31) or a pattern (first monday, last friday, etc.)
+    const isNumber = /^\d{1,2}$/.test(preferredDay);
+    const isPattern = /^(first|second|third|fourth|last)\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)$/i.test(preferredDay);
+    
+    if (!isNumber && !isPattern) {
+      return { isValid: false, error: 'Invalid preferred day for monthly frequency. Must be a number (1-31) or a pattern (e.g., "first monday")' };
+    }
+    
+    if (isNumber) {
+      const dayNum = parseInt(preferredDay);
+      if (dayNum < 1 || dayNum > 31) {
+        return { isValid: false, error: 'Day of month must be between 1 and 31' };
+      }
+    }
+  }
+
+  // Validate items
+  if (!items || items.trim() === '') {
+    return { isValid: false, error: 'Items are required' };
+  }
+
+  return { isValid: true };
+};
+
+/**
  * Create a recurring order from a dispatch schedule
  */
 export const createRecurringOrderFromSchedule = async (
@@ -60,6 +119,32 @@ export const createRecurringOrderFromSchedule = async (
       
       console.log(`Creating recurring order for customer ${customerId} with items: ${itemsFromStops}`);
       
+      // Validate the recurring order data
+      const validation = validateRecurringOrderData(customerId, frequency, preferredDay, itemsFromStops);
+      if (!validation.isValid) {
+        console.error(`Validation failed for customer ${customerId}: ${validation.error}`);
+        continue;
+      }
+      
+      // Check for existing recurring orders for this customer with the same frequency and preferred day
+      const { data: existingOrders, error: existingError } = await supabase
+        .from('recurring_orders')
+        .select('*')
+        .eq('customer_id', customerId)
+        .eq('frequency', frequency)
+        .eq('preferred_day', preferredDay)
+        .eq('active_status', true);
+        
+      if (existingError) {
+        console.error(`Error checking for existing orders: ${existingError.message}`);
+        continue;
+      }
+      
+      if (existingOrders && existingOrders.length > 0) {
+        console.warn(`Customer ${customerId} already has an active recurring order with the same frequency and preferred day`);
+        continue;
+      }
+      
       // Create the recurring order
       const { data: recurringOrder, error: createError } = await supabase
         .from('recurring_orders')
@@ -68,7 +153,7 @@ export const createRecurringOrderFromSchedule = async (
           frequency,
           preferred_day: preferredDay,
           preferred_time: preferredTime,
-          items: itemsFromStops, // Include items from stops
+          items: itemsFromStops,
           active_status: true
         })
         .select()
@@ -100,7 +185,7 @@ export const createRecurringOrderFromSchedule = async (
     console.error('Error creating recurring order:', error);
     return {
       success: false,
-        error: error.message || 'An error occurred'
+      error: error.message || 'An error occurred'
     };
   }
 };

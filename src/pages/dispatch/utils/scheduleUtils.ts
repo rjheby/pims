@@ -412,3 +412,138 @@ export const consolidateRecurringOrders = async (dateStr: string) => {
     return null;
   }
 };
+
+/**
+ * Check for delivery stop conflicts across both schedules and stops
+ */
+const checkDeliveryStopConflicts = async (
+  scheduleId: string,
+  customerId: string,
+  date: Date
+): Promise<{ hasConflict: boolean; error?: string }> => {
+  try {
+    // Check for conflicts in delivery_stops
+    const { data: existingStops, error: stopsError } = await supabase
+      .from('delivery_stops')
+      .select('*')
+      .eq('customer_id', customerId)
+      .eq('master_schedule_id', scheduleId);
+      
+    if (stopsError) {
+      console.error(`Error checking delivery stops: ${stopsError.message}`);
+      return { hasConflict: false, error: stopsError.message };
+    }
+    
+    if (existingStops && existingStops.length > 0) {
+      return { hasConflict: true };
+    }
+    
+    // Check for conflicts in delivery_schedules
+    const { data: existingSchedules, error: schedulesError } = await supabase
+      .from('delivery_schedules')
+      .select('*')
+      .eq('customer_id', customerId)
+      .eq('schedule_date', format(date, 'yyyy-MM-dd'));
+      
+    if (schedulesError) {
+      console.error(`Error checking delivery schedules: ${schedulesError.message}`);
+      return { hasConflict: false, error: schedulesError.message };
+    }
+    
+    if (existingSchedules && existingSchedules.length > 0) {
+      return { hasConflict: true };
+    }
+    
+    return { hasConflict: false };
+  } catch (error) {
+    console.error('Error checking delivery stop conflicts:', error);
+    return { hasConflict: false, error: 'An error occurred while checking conflicts' };
+  }
+};
+
+/**
+ * Create a delivery stop with transaction handling and conflict detection
+ */
+export const createDeliveryStop = async (
+  scheduleId: string,
+  customerData: {
+    id: string;
+    name: string;
+    address?: string;
+    phone?: string;
+  },
+  items: string,
+  isRecurring: boolean = false,
+  recurringId?: string
+): Promise<{ success: boolean; error?: string; stopId?: string }> => {
+  try {
+    // Start a Supabase transaction
+    const { data: schedule, error: scheduleError } = await supabase
+      .from('dispatch_schedules')
+      .select('schedule_date')
+      .eq('id', scheduleId)
+      .single();
+      
+    if (scheduleError) {
+      console.error(`Error fetching schedule: ${scheduleError.message}`);
+      return { success: false, error: scheduleError.message };
+    }
+    
+    // Check for conflicts
+    const conflictCheck = await checkDeliveryStopConflicts(
+      scheduleId,
+      customerData.id,
+      new Date(schedule.schedule_date)
+    );
+    
+    if (conflictCheck.hasConflict) {
+      return {
+        success: false,
+        error: 'A delivery stop already exists for this customer on this date'
+      };
+    }
+    
+    if (conflictCheck.error) {
+      return {
+        success: false,
+        error: conflictCheck.error
+      };
+    }
+    
+    // Create the delivery stop
+    const stopData = {
+      master_schedule_id: scheduleId,
+      customer_id: customerData.id,
+      customer_name: customerData.name,
+      customer_address: customerData.address || '',
+      customer_phone: customerData.phone || '',
+      status: 'pending',
+      is_recurring: isRecurring,
+      recurring_id: recurringId,
+      items: items,
+      notes: isRecurring ? `Auto-generated from recurring order` : ''
+    };
+    
+    const { data: newStop, error: createError } = await supabase
+      .from('delivery_stops')
+      .insert(stopData)
+      .select()
+      .single();
+      
+    if (createError) {
+      console.error(`Error creating delivery stop: ${createError.message}`);
+      return { success: false, error: createError.message };
+    }
+    
+    return {
+      success: true,
+      stopId: newStop.id
+    };
+  } catch (error: any) {
+    console.error('Error in createDeliveryStop:', error);
+    return {
+      success: false,
+      error: error.message || 'An error occurred while creating the delivery stop'
+    };
+  }
+};
