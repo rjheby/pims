@@ -1,7 +1,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { InventoryItem, WoodProduct, FirewoodProduct, ProductConversion } from "../types";
+import { InventoryItem, WoodProduct, FirewoodProduct } from "../types";
+import { ProductConversion } from "../types/productTypes";
 import { useToast } from "@/hooks/use-toast";
 
 export function useInventory() {

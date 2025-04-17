@@ -40,7 +40,7 @@ export const useOrderActions = () => {
     setItems([...items, newItem]);
   }, [items, setItems]);
 
-  const handleAddItem2 = useCallback((item?: Partial<OrderItem>) => {
+  const handleAddItem2 = useCallback((item?: Partial<OrderItem & { productId?: string }>) => {
     const newId = items.length > 0 ? Math.max(...items.map(item => item.id)) + 1 : 1;
     const newItem: OrderItem = {
       id: newId,

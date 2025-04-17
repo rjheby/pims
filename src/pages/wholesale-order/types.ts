@@ -1,4 +1,3 @@
-
 export interface OrderItem {
   id: number;
   species: string;
@@ -9,6 +8,7 @@ export interface OrderItem {
   pallets: number;
   unitCost: number;
   isCompressed?: boolean;
+  productId?: string; // Add productId property
 }
 
 export interface WholesaleOrderItem {
@@ -171,4 +171,3 @@ export function supabaseSafeRpc<T>(
 ) {
   return client.rpc(procedure, params);
 }
-
