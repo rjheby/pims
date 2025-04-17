@@ -3,23 +3,9 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Button } from "@/components/ui/button";
 import { CustomerDialog } from "./CustomerDialog";
 import { ItemSelector } from "./ItemSelector";
-import { Customer, RecurrenceData } from "./types";
+import { Customer, RecurrenceData, StopDialogsProps } from "./types";
 import { RecurrenceSettingsForm } from "./RecurrenceSettingsForm";
-
-interface StopDialogsProps {
-  customerDialogOpen: boolean;
-  setCustomerDialogOpen: (open: boolean) => void;
-  itemsDialogOpen: boolean;
-  setItemsDialogOpen: (open: boolean) => void;
-  onCustomerSelect: (customer: Customer) => void;
-  onItemsSelect: (items: string) => void;
-  onCancel: () => void;
-  initialCustomerId?: string;
-  initialItems?: string;
-  recurrenceData?: RecurrenceData;
-  onRecurrenceChange?: (data: RecurrenceData) => void;
-  customers: Customer[];
-}
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 export const StopDialogs: React.FC<StopDialogsProps> = ({
   customerDialogOpen,
@@ -42,23 +28,51 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
           <DialogHeader>
             <DialogTitle>Select Customer</DialogTitle>
           </DialogHeader>
-          <CustomerDialog
-            onSelect={onCustomerSelect}
-            onCancel={() => setCustomerDialogOpen(false)}
-            selectedCustomerId={initialCustomerId}
-            customers={customers}
-          />
+          <ErrorBoundary>
+            <CustomerDialog
+              onSelect={onCustomerSelect}
+              onCancel={() => setCustomerDialogOpen(false)}
+              selectedCustomerId={initialCustomerId}
+              customers={customers}
+            />
+          </ErrorBoundary>
         </DialogContent>
       </Dialog>
 
-      <ItemSelector
-        open={itemsDialogOpen}
-        onOpenChange={setItemsDialogOpen}
-        onSelect={onItemsSelect}
-        onCancel={() => setItemsDialogOpen(false)}
-        initialItems={initialItems}
-        recurrenceData={recurrenceData}
-      />
+      <Dialog open={itemsDialogOpen} onOpenChange={setItemsDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Select Items</DialogTitle>
+          </DialogHeader>
+          <ErrorBoundary>
+            <ItemSelector
+              open={itemsDialogOpen}
+              onOpenChange={setItemsDialogOpen}
+              onSelect={onItemsSelect}
+              onCancel={() => setItemsDialogOpen(false)}
+              initialItems={initialItems}
+              recurrenceData={recurrenceData}
+            />
+          </ErrorBoundary>
+        </DialogContent>
+      </Dialog>
+
+      {recurrenceData && onRecurrenceChange && (
+        <Dialog open={!!recurrenceData} onOpenChange={() => onRecurrenceChange(undefined)}>
+          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Recurrence Settings</DialogTitle>
+            </DialogHeader>
+            <ErrorBoundary>
+              <RecurrenceSettingsForm
+                recurrenceData={recurrenceData}
+                onRecurrenceChange={onRecurrenceChange}
+                onCancel={onCancel}
+              />
+            </ErrorBoundary>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 };

@@ -70,7 +70,7 @@ export function RecurringOrderScheduler({
   };
 
   const getCustomerName = useCallback((customerId: string | undefined) => {
-    if (!customerId) return 'N/A';
+    if (!customerId || !customers) return 'N/A';
     const customer = customers.find((c) => c.id === customerId);
     return customer ? customer.name : 'Unknown Customer';
   }, [customers]);

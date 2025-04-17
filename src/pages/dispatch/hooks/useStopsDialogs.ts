@@ -1,6 +1,36 @@
+import { useState, useCallback } from 'react';
+import { 
+  Customer, 
+  DeliveryStop, 
+  StopFormData, 
+  RecurrenceData, 
+  UseStopsDialogsReturn 
+} from '../components/stops/types';
+import { validateAgainstSchema } from '@/utils/schemaValidation';
 
-import { useState } from 'react';
-import { Customer, DeliveryStop, DeliveryStatus, StopFormData, RecurrenceData } from '../components/stops/types';
+// Define the schema for a DeliveryStop
+const deliveryStopSchema = {
+  id: { type: 'string', optional: true },
+  stop_number: { type: 'number' },
+  customer_id: { type: 'string' },
+  driver_id: { type: 'string', optional: true },
+  items: { type: 'string' },
+  notes: { type: 'string', optional: true },
+  status: { type: 'string', optional: true },
+  arrival_time: { type: 'string', optional: true },
+  departure_time: { type: 'string', optional: true },
+  master_schedule_id: { type: 'string', optional: true },
+  recurrence_id: { type: 'string', optional: true }
+};
+
+// Define the schema for a StopFormData
+const stopFormDataSchema = {
+  customer_id: { type: 'string' },
+  items: { type: 'string' },
+  notes: { type: 'string', optional: true },
+  status: { type: 'string', optional: true },
+  driver_id: { type: 'string', optional: true }
+};
 
 // Update this type to match how it's used in the StopsTable
 type UseStopsDialogsProps = {
@@ -11,14 +41,12 @@ type UseStopsDialogsProps = {
   initialItems?: string;
 }
 
-// Define missing delivery status options to fix build errors
+// Define delivery status options
 export const DELIVERY_STATUS_OPTIONS = [
-  { value: 'pending', label: 'Pending' },
-  { value: 'en_route', label: 'En Route' },
-  { value: 'arrived', label: 'Arrived' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'issue', label: 'Issue' },
-  { value: 'cancelled', label: 'Cancelled' }
+  { value: 'PENDING', label: 'Pending' },
+  { value: 'IN_PROGRESS', label: 'In Progress' },
+  { value: 'COMPLETED', label: 'Completed' },
+  { value: 'CANCELLED', label: 'Cancelled' }
 ];
 
 export const useStopsDialogs = ({
@@ -27,7 +55,7 @@ export const useStopsDialogs = ({
   customers = [],
   drivers = [],
   initialItems = ''
-}: UseStopsDialogsProps = {}) => {
+}: UseStopsDialogsProps = {}): UseStopsDialogsReturn => {
   // Dialog states
   const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
   const [itemsDialogOpen, setItemsDialogOpen] = useState(false);
@@ -35,162 +63,152 @@ export const useStopsDialogs = ({
   
   // Current editing data
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState<StopFormData>({});
+  const [editForm, setEditForm] = useState<StopFormData>({
+    customer_id: '',
+    items: initialItems || ''
+  });
   const [recurrenceData, setRecurrenceData] = useState<RecurrenceData>({
     isRecurring: false,
     frequency: 'weekly'
   });
   
-  const handleAddStop = () => {
+  const handleAddStop = useCallback(() => {
     setIsAddingNewStop(true);
     setEditForm({
-      status: 'pending',
+      customer_id: '',
+      items: initialItems || '',
+      status: 'PENDING'
     });
     setCustomerDialogOpen(true);
-  };
-  
-  // Function to manually add a stop for testing/logging purposes
-  const addManualStop = (customerId: string, customerName: string, customerAddress: string, customerPhone: string, items: string) => {
-    console.log("Manually adding stop with following details:");
-    console.log(`- Customer ID: ${customerId}`);
-    console.log(`- Customer Name: ${customerName}`);
-    console.log(`- Items: ${items}`);
-    
-    if (onStopsChange) {
-      const newStop: DeliveryStop = {
-        id: crypto.randomUUID(),
-        stop_number: stops.length + 1,
-        customer_id: customerId,
-        customer_name: customerName,
-        customer_address: customerAddress,
-        customer_phone: customerPhone,
-        items: items,
-        price: calculateItemsPrice(items),
-        status: 'pending'
-      } as DeliveryStop;
-      
-      console.log("Created new stop:", newStop);
-      onStopsChange([...stops, newStop]);
-      console.log(`Stop added to schedule, new total: ${stops.length + 1} stops`);
-      return true;
-    }
-    
-    console.log("Failed to add stop: onStopsChange callback not provided");
-    return false;
-  };
-  
-  // Helper function to calculate price based on items (simplified)
-  const calculateItemsPrice = (items: string): number => {
-    if (!items) return 0;
-    
-    // Simple logic to calculate price based on items
-    // For "pizza wood" specifically price it at $45 per bundle
-    if (items.toLowerCase().includes("pizza wood")) {
-      return 45;
-    }
-    
-    // Default calculation for other items
-    const itemsList = items.split(',').map(item => item.trim());
-    return itemsList.length * 10;
-  };
-  
-  const handleEditStart = (index: number) => {
-    setEditingIndex(index);
+  }, [initialItems]);
+
+  const handleEditStart = useCallback((index: number) => {
     const stop = stops[index];
-    setEditForm({
-      ...stop,
-    });
-  };
-  
-  const handleEditSave = () => {
-    if (editingIndex !== null && onStopsChange) {
-      const updatedStops = [...stops];
-      updatedStops[editingIndex] = {
-        ...updatedStops[editingIndex],
-        ...editForm,
-      } as DeliveryStop;
-      
-      onStopsChange(updatedStops);
-      setEditingIndex(null);
-    } else if (isAddingNewStop && onStopsChange) {
-      const newStop: DeliveryStop = {
-        id: crypto.randomUUID(),
-        stop_number: stops.length + 1,
-        ...editForm,
-      } as DeliveryStop;
-      
-      onStopsChange([...stops, newStop]);
-      setIsAddingNewStop(false);
+    if (!stop) return;
+    
+    // Validate the stop against the schema
+    const validation = validateAgainstSchema(stop, deliveryStopSchema);
+    if (!validation.isValid) {
+      console.error('Invalid stop data:', validation.errors);
+      // Continue with the data we have, but log the errors
     }
     
-    setEditForm({});
-  };
-  
-  const handleEditCancel = () => {
+    setEditingIndex(index);
+    setEditForm({
+      customer_id: stop.customer_id,
+      items: stop.items,
+      notes: stop.notes,
+      status: stop.status,
+      driver_id: stop.driver_id
+    });
+    setCustomerDialogOpen(true);
+  }, [stops]);
+
+  const handleEditSave = useCallback(() => {
+    if (!onStopsChange) return;
+    
+    // Validate the form data against the schema
+    const validation = validateAgainstSchema(editForm, stopFormDataSchema);
+    if (!validation.isValid) {
+      console.error('Invalid form data:', validation.errors);
+      // Continue with the data we have, but log the errors
+    }
+    
+    const newStops = [...stops];
+    
+    if (isAddingNewStop) {
+      // Add a new stop
+      const newStop: DeliveryStop = {
+        stop_number: stops.length + 1,
+        customer_id: editForm.customer_id,
+        items: editForm.items,
+        notes: editForm.notes,
+        status: editForm.status || 'PENDING',
+        driver_id: editForm.driver_id
+      };
+      
+      // Find the customer object
+      const customer = customers.find(c => c.id === editForm.customer_id);
+      if (customer) {
+        newStop.customer = customer;
+      }
+      
+      newStops.push(newStop);
+    } else if (editingIndex !== null) {
+      // Update an existing stop
+      const updatedStop = {
+        ...newStops[editingIndex],
+        customer_id: editForm.customer_id,
+        items: editForm.items,
+        notes: editForm.notes,
+        status: editForm.status,
+        driver_id: editForm.driver_id
+      };
+      
+      // Find the customer object
+      const customer = customers.find(c => c.id === editForm.customer_id);
+      if (customer) {
+        updatedStop.customer = customer;
+      }
+      
+      newStops[editingIndex] = updatedStop;
+    }
+    
+    onStopsChange(newStops);
+    handleEditCancel();
+  }, [stops, onStopsChange, editForm, isAddingNewStop, editingIndex, customers]);
+
+  const handleEditCancel = useCallback(() => {
     setEditingIndex(null);
     setIsAddingNewStop(false);
-    setEditForm({});
     setCustomerDialogOpen(false);
     setItemsDialogOpen(false);
-  };
-  
-  const handleCustomerSelect = (customer: Customer) => {
     setEditForm({
-      ...editForm,
-      customer_id: customer.id,
-      customer_name: customer.name,
-      customer_address: customer.address || `${customer.street_address || ''} ${customer.city || ''}, ${customer.state || ''} ${customer.zip_code || ''}`.trim(),
-      customer_phone: customer.phone || '',
+      customer_id: '',
+      items: initialItems || ''
     });
+  }, [initialItems]);
+
+  const handleCustomerSelect = useCallback((customer: Customer) => {
+    setEditForm(prev => ({
+      ...prev,
+      customer_id: customer.id
+    }));
     setCustomerDialogOpen(false);
     setItemsDialogOpen(true);
-  };
-  
-  const handleItemsSelect = (itemsString: string, price?: number) => {
-    setEditForm({
-      ...editForm,
-      items: itemsString,
-      price: price || calculateItemsPrice(itemsString),
-    });
+  }, []);
+
+  const handleItemsSelect = useCallback((items: string) => {
+    setEditForm(prev => ({
+      ...prev,
+      items
+    }));
     setItemsDialogOpen(false);
-    handleEditSave();
-  };
-  
-  const openCustomerDialog = (index?: number) => {
-    if (typeof index === 'number') {
-      handleEditStart(index);
+    
+    // If we're editing, save the changes
+    if (editingIndex !== null || isAddingNewStop) {
+      handleEditSave();
     }
+  }, [editingIndex, isAddingNewStop, handleEditSave]);
+
+  const openCustomerDialog = useCallback(() => {
     setCustomerDialogOpen(true);
-  };
-  
-  const openItemsDialog = (items?: string, price?: number) => {
-    if (items) {
-      setEditForm({
-        ...editForm,
-        items,
-        price: price || 0,
-      });
-    }
+  }, []);
+
+  const openItemsDialog = useCallback(() => {
     setItemsDialogOpen(true);
-  };
-  
+  }, []);
+
   return {
-    // Dialog visibility
-    customerDialogOpen,
-    itemsDialogOpen,
-    isAddingNewStop,
-    
-    // Form data
     editingIndex,
-    editForm,
-    recurrenceData,
-    
-    // Dialog setters
+    isAddingNewStop,
+    customerDialogOpen,
     setCustomerDialogOpen,
+    itemsDialogOpen,
     setItemsDialogOpen,
+    editForm,
     setEditForm,
-    
-    // Handlers
+    recurrenceData,
     handleAddStop,
     handleEditStart,
     handleEditSave,
@@ -198,7 +216,6 @@ export const useStopsDialogs = ({
     handleCustomerSelect,
     handleItemsSelect,
     openCustomerDialog,
-    openItemsDialog,
-    addManualStop, // Expose our manual add function for testing/logging
+    openItemsDialog
   };
 };

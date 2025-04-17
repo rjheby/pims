@@ -30,7 +30,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { Customer, DeliveryStop, Driver, StopFormData, DELIVERY_STATUS_OPTIONS, getStatusBadgeVariant, DeliveryStatus } from "./types";
+import { 
+  Customer, 
+  DeliveryStop, 
+  Driver, 
+  StopFormData, 
+  DeliveryStatus,
+  DELIVERY_STATUS_OPTIONS,
+  getStatusBadgeVariant 
+} from "./types/index";
 
 interface StopsMobileCardsProps {
   stops: DeliveryStop[];

@@ -7,19 +7,25 @@ import { supabase, handleSupabaseError } from "@/integrations/supabase/client";
 import StopsDesktopTable from "./StopsDesktopTable";
 import { StopsMobileCards } from "./StopsMobileCards";
 import { StopDialogs } from "./StopDialogs";
-import { Driver, DeliveryStop, StopFormData, Customer } from "./types";
+import { Driver, DeliveryStop, StopFormData, Customer, StopsTableProps } from "./types";
 import { useStopsDialogs } from "../../hooks/useStopsDialogs";
-import ErrorBoundary from "./ErrorBoundary";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import { validateAgainstSchema } from "@/utils/schemaValidation";
 
-interface StopsTableProps {
-  stops: DeliveryStop[];
-  onStopsChange: (newStops: DeliveryStop[]) => void;
-  useMobileLayout?: boolean;
-  readOnly?: boolean;
-  masterScheduleId?: string;
-  customers?: Customer[];
-  drivers?: Driver[];
-}
+// Define the schema for a DeliveryStop
+const deliveryStopSchema = {
+  id: { type: 'string', optional: true },
+  stop_number: { type: 'number' },
+  customer_id: { type: 'string' },
+  driver_id: { type: 'string', optional: true },
+  items: { type: 'string' },
+  notes: { type: 'string', optional: true },
+  status: { type: 'string', optional: true },
+  arrival_time: { type: 'string', optional: true },
+  departure_time: { type: 'string', optional: true },
+  master_schedule_id: { type: 'string', optional: true },
+  recurrence_id: { type: 'string', optional: true }
+};
 
 const StopsTable = ({ 
   stops, 
@@ -63,7 +69,13 @@ const StopsTable = ({
     handleItemsSelect,
     openCustomerDialog,
     openItemsDialog
-  } = useStopsDialogs(stops, onStopsChange, customers, drivers);
+  } = useStopsDialogs({
+    stops,
+    onStopsChange,
+    customers,
+    drivers,
+    initialItems: ''
+  });
 
   console.log("Current dialog states:", { 
     customerDialogOpen, 
@@ -149,7 +161,13 @@ const StopsTable = ({
   }, [fetchData]);
 
   useEffect(() => {
+    // Validate stops against schema
     stops.forEach((stop, index) => {
+      const validation = validateAgainstSchema(stop, deliveryStopSchema);
+      if (!validation.isValid) {
+        console.error(`Stop #${index} validation errors:`, validation.errors);
+      }
+      
       console.log(`Stop #${index} items:`, stop.items);
       console.log(`Stop #${index} itemsData:`, stop.itemsData);
     });
@@ -164,7 +182,7 @@ const StopsTable = ({
     updateStopNumbers(newStops);
   };
 
-  const updateStopNumbers = (updatedStops: any[]) => {
+  const updateStopNumbers = (updatedStops: DeliveryStop[]) => {
     console.log("Updating stop numbers for", updatedStops.length, "stops");
     const stopsWithNumbers = updatedStops.map((stop, index) => ({
       ...stop,
@@ -235,12 +253,12 @@ const StopsTable = ({
       if (sortBy === "stop_number") {
         return (a.stop_number || 0) - (b.stop_number || 0);
       } else if (sortBy === "customer") {
-        const customerA = customers.find(c => c.id === a.customer_id)?.name || "";
-        const customerB = customers.find(c => c.id === b.customer_id)?.name || "";
+        const customerA = customers.find(c => c.id === a?.customer_id)?.name || "";
+        const customerB = customers.find(c => c.id === b?.customer_id)?.name || "";
         return customerA.localeCompare(customerB);
       } else if (sortBy === "driver") {
-        const driverA = drivers.find(d => d.id === a.driver_id)?.name || "";
-        const driverB = drivers.find(d => d.id === b.driver_id)?.name || "";
+        const driverA = drivers.find(d => d.id === a?.driver_id)?.name || "";
+        const driverB = drivers.find(d => d.id === b?.driver_id)?.name || "";
         return driverA.localeCompare(driverB);
       }
       return 0;
