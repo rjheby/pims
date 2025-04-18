@@ -7,7 +7,7 @@ import { supabase, handleSupabaseError } from "@/integrations/supabase/client";
 import StopsDesktopTable from "./StopsDesktopTable";
 import { StopsMobileCards } from "./StopsMobileCards";
 import { StopDialogs } from "./StopDialogs";
-import { Driver, DeliveryStop, StopFormData, Customer, StopsTableProps } from "./types";
+import { Driver, DeliveryStop, StopFormData, Customer, StopsTableProps, RecurrenceData } from "./types";
 import { useStopsDialogs } from "../../hooks/useStopsDialogs";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { validateAgainstSchema } from "@/utils/schemaValidation";
@@ -16,7 +16,7 @@ import { validateAgainstSchema } from "@/utils/schemaValidation";
 const deliveryStopSchema = {
   id: { type: 'string', optional: true },
   stop_number: { type: 'number' },
-  customer_id: { type: 'string' },
+  client_id: { type: 'string' },
   driver_id: { type: 'string', optional: true },
   items: { type: 'string' },
   notes: { type: 'string', optional: true },
@@ -50,6 +50,10 @@ const StopsTable = ({
   const [selectedStops, setSelectedStops] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<string>("stop_number");
   const [filterByDriver, setFilterByDriver] = useState<string | null>(null);
+  const [recurrenceData, setRecurrenceData] = useState<RecurrenceData>({
+    isRecurring: false,
+    frequency: 'weekly'
+  });
   
   const {
     editingIndex,
@@ -60,7 +64,6 @@ const StopsTable = ({
     setItemsDialogOpen,
     editForm,
     setEditForm,
-    recurrenceData,
     handleAddStop,
     handleEditStart,
     handleEditSave,
@@ -74,7 +77,8 @@ const StopsTable = ({
     onStopsChange,
     customers,
     drivers,
-    initialItems: ''
+    initialItems: '',
+    masterScheduleId
   });
 
   console.log("Current dialog states:", { 
@@ -198,16 +202,12 @@ const StopsTable = ({
 
     if (mouseEvent.shiftKey) {
       if (selectedStops.includes(stopId)) {
-        setSelectedStops(selectedStops.filter((id) => id !== stopId));
+        setSelectedStops(selectedStops.filter(id => id !== stopId));
       } else {
         setSelectedStops([...selectedStops, stopId]);
       }
     } else {
-      if (selectedStops.includes(stopId)) {
-        setSelectedStops([]);
-      } else {
-        setSelectedStops([stopId]);
-      }
+      setSelectedStops([stopId]);
     }
   };
 
@@ -244,25 +244,28 @@ const StopsTable = ({
     onStopsChange(updatedStops);
   };
 
+  const sortStops = (a: DeliveryStop, b: DeliveryStop) => {
+    const customerA = customers.find(c => c.id === a?.client_id)?.name || "";
+    const customerB = customers.find(c => c.id === b?.client_id)?.name || "";
+    
+    switch (sortBy) {
+      case "stop_number":
+        return (a.stop_number || 0) - (b.stop_number || 0);
+      case "customer":
+        return customerA.localeCompare(customerB);
+      case "status":
+        return (a.status || "").localeCompare(b.status || "");
+      default:
+        return 0;
+    }
+  };
+
   const sortedAndFilteredStops = [...stops]
     .filter(stop => {
       if (!filterByDriver) return true;
       return stop.driver_id === filterByDriver;
     })
-    .sort((a, b) => {
-      if (sortBy === "stop_number") {
-        return (a.stop_number || 0) - (b.stop_number || 0);
-      } else if (sortBy === "customer") {
-        const customerA = customers.find(c => c.id === a?.customer_id)?.name || "";
-        const customerB = customers.find(c => c.id === b?.customer_id)?.name || "";
-        return customerA.localeCompare(customerB);
-      } else if (sortBy === "driver") {
-        const driverA = drivers.find(d => d.id === a?.driver_id)?.name || "";
-        const driverB = drivers.find(d => d.id === b?.driver_id)?.name || "";
-        return driverA.localeCompare(driverB);
-      }
-      return 0;
-    });
+    .sort(sortStops);
 
   const handleSortChange = (value: string) => {
     setSortBy(value);
@@ -306,7 +309,7 @@ const StopsTable = ({
             >
               <option value="stop_number">Stop Number</option>
               <option value="customer">Customer</option>
-              <option value="driver">Driver</option>
+              <option value="status">Status</option>
             </select>
           </div>
           <div className="flex items-center space-x-2">
@@ -338,9 +341,10 @@ const StopsTable = ({
           onCustomerSelect={handleCustomerSelect}
           onItemsSelect={handleItemsSelect}
           onCancel={handleEditCancel}
-          initialCustomerId={editForm.customer_id}
+          initialCustomerId={editForm.client_id}
           initialItems={editForm.items}
           recurrenceData={recurrenceData}
+          onRecurrenceChange={(data) => setRecurrenceData(data)}
           customers={customers}
         />
         

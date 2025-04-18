@@ -42,7 +42,7 @@ export interface Driver {
 export interface DeliveryStop {
   id?: string;
   stop_number: number;
-  customer_id: string;
+  client_id: string;
   customer?: Customer;
   driver_id?: string;
   driver?: Driver;
@@ -62,13 +62,17 @@ export interface DeliveryStop {
  * Form data for editing a stop
  */
 export interface StopFormData {
-  customer_id: string;
+  client_id: string;
   customer?: Customer;
   driver_id?: string;
   driver?: Driver;
   items: string;
   notes?: string;
   status?: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  stop_number?: number;
+  master_schedule_id?: string;
+  recurrence_id?: string;
+  itemsData?: any;
 }
 
 /**
@@ -80,7 +84,7 @@ export interface RecurrenceData {
   preferred_day?: string;
   start_date?: string;
   end_date?: string;
-  customer_id?: string;
+  client_id?: string;
   items?: string;
 }
 
@@ -89,13 +93,13 @@ export interface RecurrenceData {
  */
 export interface RecurringOrder {
   id: string;
-  customer_id: string;
+  client_id: string;
   customer?: Customer;
   items: string;
   frequency: 'daily' | 'weekly' | 'bi-weekly' | 'monthly';
   preferred_day?: 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
-  start_date?: string;
-  end_date?: string;
+  start_date: string;
+  end_date: string;
   is_active?: boolean;
   created_at?: string;
   updated_at?: string;

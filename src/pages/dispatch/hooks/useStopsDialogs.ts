@@ -12,7 +12,7 @@ import { validateAgainstSchema } from '@/utils/schemaValidation';
 const deliveryStopSchema = {
   id: { type: 'string', optional: true },
   stop_number: { type: 'number' },
-  customer_id: { type: 'string' },
+  client_id: { type: 'string' },
   driver_id: { type: 'string', optional: true },
   items: { type: 'string' },
   notes: { type: 'string', optional: true },
@@ -20,16 +20,21 @@ const deliveryStopSchema = {
   arrival_time: { type: 'string', optional: true },
   departure_time: { type: 'string', optional: true },
   master_schedule_id: { type: 'string', optional: true },
-  recurrence_id: { type: 'string', optional: true }
+  recurrence_id: { type: 'string', optional: true },
+  itemsData: { type: 'any', optional: true }
 };
 
 // Define the schema for a StopFormData
 const stopFormDataSchema = {
-  customer_id: { type: 'string' },
+  client_id: { type: 'string' },
   items: { type: 'string' },
   notes: { type: 'string', optional: true },
   status: { type: 'string', optional: true },
-  driver_id: { type: 'string', optional: true }
+  driver_id: { type: 'string', optional: true },
+  stop_number: { type: 'number', optional: true },
+  master_schedule_id: { type: 'string', optional: true },
+  recurrence_id: { type: 'string', optional: true },
+  itemsData: { type: 'any', optional: true }
 };
 
 // Update this type to match how it's used in the StopsTable
@@ -39,6 +44,7 @@ type UseStopsDialogsProps = {
   customers?: Customer[];
   drivers?: any[];
   initialItems?: string;
+  masterScheduleId?: string;
 }
 
 // Define delivery status options
@@ -54,17 +60,19 @@ export const useStopsDialogs = ({
   onStopsChange,
   customers = [],
   drivers = [],
-  initialItems = ''
+  initialItems = '',
+  masterScheduleId
 }: UseStopsDialogsProps = {}): UseStopsDialogsReturn => {
   // Dialog states
   const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [itemsDialogOpen, setItemsDialogOpen] = useState(false);
   const [isAddingNewStop, setIsAddingNewStop] = useState(false);
   
   // Current editing data
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<StopFormData>({
-    customer_id: '',
+    client_id: '',
     items: initialItems || ''
   });
   const [recurrenceData, setRecurrenceData] = useState<RecurrenceData>({
@@ -75,12 +83,13 @@ export const useStopsDialogs = ({
   const handleAddStop = useCallback(() => {
     setIsAddingNewStop(true);
     setEditForm({
-      customer_id: '',
+      client_id: '',
       items: initialItems || '',
-      status: 'PENDING'
+      status: 'PENDING',
+      master_schedule_id: masterScheduleId
     });
     setCustomerDialogOpen(true);
-  }, [initialItems]);
+  }, [initialItems, masterScheduleId]);
 
   const handleEditStart = useCallback((index: number) => {
     const stop = stops[index];
@@ -95,11 +104,12 @@ export const useStopsDialogs = ({
     
     setEditingIndex(index);
     setEditForm({
-      customer_id: stop.customer_id,
+      client_id: stop.client_id,
       items: stop.items,
       notes: stop.notes,
       status: stop.status,
-      driver_id: stop.driver_id
+      driver_id: stop.driver_id,
+      stop_number: stop.stop_number
     });
     setCustomerDialogOpen(true);
   }, [stops]);
@@ -114,23 +124,51 @@ export const useStopsDialogs = ({
       // Continue with the data we have, but log the errors
     }
     
+    // Check for required fields
+    if (!editForm.client_id) {
+      console.error('Missing required field: client_id');
+      return;
+    }
+    
+    if (!editForm.items) {
+      console.error('Missing required field: items');
+      return;
+    }
+    
     const newStops = [...stops];
     
     if (isAddingNewStop) {
       // Add a new stop
       const newStop: DeliveryStop = {
         stop_number: stops.length + 1,
-        customer_id: editForm.customer_id,
+        client_id: editForm.client_id,
         items: editForm.items,
         notes: editForm.notes,
         status: editForm.status || 'PENDING',
-        driver_id: editForm.driver_id
+        driver_id: editForm.driver_id,
+        master_schedule_id: masterScheduleId,
+        itemsData: editForm.itemsData
       };
       
       // Find the customer object
-      const customer = customers.find(c => c.id === editForm.customer_id);
+      const customer = customers.find(c => c.id === editForm.client_id);
       if (customer) {
         newStop.customer = customer;
+      }
+      
+      // Find the driver object if driver_id is provided
+      if (editForm.driver_id) {
+        const driver = drivers.find(d => d.id === editForm.driver_id);
+        if (driver) {
+          newStop.driver = driver;
+        }
+      }
+      
+      // Validate the new stop before adding it
+      const stopValidation = validateAgainstSchema(newStop, deliveryStopSchema);
+      if (!stopValidation.isValid) {
+        console.error('Invalid stop data:', stopValidation.errors);
+        // Continue with the data we have, but log the errors
       }
       
       newStops.push(newStop);
@@ -138,17 +176,26 @@ export const useStopsDialogs = ({
       // Update an existing stop
       const updatedStop = {
         ...newStops[editingIndex],
-        customer_id: editForm.customer_id,
+        client_id: editForm.client_id,
         items: editForm.items,
         notes: editForm.notes,
         status: editForm.status,
-        driver_id: editForm.driver_id
+        driver_id: editForm.driver_id,
+        itemsData: editForm.itemsData
       };
       
       // Find the customer object
-      const customer = customers.find(c => c.id === editForm.customer_id);
+      const customer = customers.find(c => c.id === editForm.client_id);
       if (customer) {
         updatedStop.customer = customer;
+      }
+      
+      // Find the driver object if driver_id is provided
+      if (editForm.driver_id) {
+        const driver = drivers.find(d => d.id === editForm.driver_id);
+        if (driver) {
+          updatedStop.driver = driver;
+        }
       }
       
       newStops[editingIndex] = updatedStop;
@@ -156,7 +203,7 @@ export const useStopsDialogs = ({
     
     onStopsChange(newStops);
     handleEditCancel();
-  }, [stops, onStopsChange, editForm, isAddingNewStop, editingIndex, customers]);
+  }, [stops, onStopsChange, editForm, isAddingNewStop, editingIndex, customers, drivers, masterScheduleId]);
 
   const handleEditCancel = useCallback(() => {
     setEditingIndex(null);
@@ -164,32 +211,31 @@ export const useStopsDialogs = ({
     setCustomerDialogOpen(false);
     setItemsDialogOpen(false);
     setEditForm({
-      customer_id: '',
-      items: initialItems || ''
+      client_id: '',
+      items: initialItems || '',
+      master_schedule_id: masterScheduleId
     });
-  }, [initialItems]);
+  }, [initialItems, masterScheduleId]);
 
   const handleCustomerSelect = useCallback((customer: Customer) => {
     setEditForm(prev => ({
       ...prev,
-      customer_id: customer.id
+      client_id: customer.id,
+      master_schedule_id: masterScheduleId
     }));
     setCustomerDialogOpen(false);
     setItemsDialogOpen(true);
-  }, []);
+  }, [masterScheduleId]);
 
   const handleItemsSelect = useCallback((items: string) => {
     setEditForm(prev => ({
       ...prev,
-      items
+      items,
+      master_schedule_id: masterScheduleId
     }));
     setItemsDialogOpen(false);
-    
-    // If we're editing, save the changes
-    if (editingIndex !== null || isAddingNewStop) {
-      handleEditSave();
-    }
-  }, [editingIndex, isAddingNewStop, handleEditSave]);
+    setEditDialogOpen(true);
+  }, [masterScheduleId]);
 
   const openCustomerDialog = useCallback(() => {
     setCustomerDialogOpen(true);

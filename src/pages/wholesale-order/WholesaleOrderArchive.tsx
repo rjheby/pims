@@ -23,10 +23,16 @@ export function WholesaleOrderArchive() {
       const { id, created_at, order_number, status, submitted_at, ...orderData } = order;
       const today = new Date().toISOString();
       
+      // Ensure items is properly formatted as JSON
+      const items = typeof orderData.items === 'string' 
+        ? orderData.items 
+        : JSON.stringify(orderData.items);
+      
       const { data: newOrder, error } = await supabase
         .from("wholesale_orders")
         .insert([{
           ...orderData,
+          items: items,
           order_date: today,
           delivery_date: null,
           order_number: `${order_number}-COPY`,

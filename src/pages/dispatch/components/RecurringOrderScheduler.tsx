@@ -21,16 +21,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { RecurringOrder, Customer } from './stops/types';
+import { RecurringOrder, Customer, DeliveryStop } from './stops/types';
 
 interface RecurringOrderSchedulerProps {
   selectedRecurringOrder?: RecurringOrder | null;
   onSave?: (items: string, frequency: string, preferredDay: string | undefined, startDate: string | undefined, endDate: string | undefined) => void;
   onCancel?: () => void;
   customers?: Customer[];
-  scheduleDate?: Date;
-  onAddStops?: (newStops: any[]) => void;
-  existingCustomerIds?: string[];
+  scheduleDate: Date;
+  onAddStops: (newStops: DeliveryStop[]) => void;
+  existingClientIds: string[];
 }
 
 export function RecurringOrderScheduler({
@@ -40,14 +40,14 @@ export function RecurringOrderScheduler({
   customers,
   scheduleDate,
   onAddStops,
-  existingCustomerIds = []
+  existingClientIds = []
 }: RecurringOrderSchedulerProps) {
-  const [frequency, setFrequency] = useState(selectedRecurringOrder?.frequency || 'weekly');
-  const [preferredDay, setPreferredDay] = useState(selectedRecurringOrder?.preferred_day || 'monday');
+  const [frequency, setFrequency] = useState<RecurringOrder['frequency']>(selectedRecurringOrder?.frequency || 'weekly');
+  const [preferredDay, setPreferredDay] = useState<RecurringOrder['preferred_day']>(selectedRecurringOrder?.preferred_day || 'monday');
   const [items, setItems] = useState(selectedRecurringOrder?.items || '');
   const [date, setDate] = useState<DateRange | undefined>({
-    from: selectedRecurringOrder?.startDate ? new Date(selectedRecurringOrder.startDate) : undefined,
-    to: selectedRecurringOrder?.endDate ? new Date(selectedRecurringOrder.endDate) : undefined,
+    from: selectedRecurringOrder?.start_date ? new Date(selectedRecurringOrder.start_date) : undefined,
+    to: selectedRecurringOrder?.end_date ? new Date(selectedRecurringOrder.end_date) : undefined,
   });
 
   const preferredDays = [
@@ -69,9 +69,9 @@ export function RecurringOrderScheduler({
     onSave(itemsString, frequency, preferredDay, startDate, endDate);
   };
 
-  const getCustomerName = useCallback((customerId: string | undefined) => {
-    if (!customerId || !customers) return 'N/A';
-    const customer = customers.find((c) => c.id === customerId);
+  const getCustomerName = useCallback((clientId: string | undefined) => {
+    if (!clientId || !customers) return 'N/A';
+    const customer = customers.find((c) => c.id === clientId);
     return customer ? customer.name : 'Unknown Customer';
   }, [customers]);
 
@@ -83,7 +83,7 @@ export function RecurringOrderScheduler({
     <div className="space-y-4">
       <div>
         <Label htmlFor="customer">Customer</Label>
-        <Input id="customer" value={getCustomerName(selectedRecurringOrder?.customer_id)} disabled />
+        <Input id="customer" value={getCustomerName(selectedRecurringOrder?.client_id)} disabled />
       </div>
       <div>
         <Label htmlFor="items">Items</Label>

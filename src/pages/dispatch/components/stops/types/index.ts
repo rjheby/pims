@@ -1,3 +1,6 @@
+/**
+ * Re-export types from the centralized types directory
+ */
 export type { 
   Stop, 
   DeliveryStop, 
@@ -6,8 +9,8 @@ export type {
   Customer,
   Driver,
   RecurringOrder,
-  RecurringOrderSchedule
-} from '../types';
+  RecurringOrderSchedule,
+  DeliveryStatus
+} from '@/types';
 
-export { DeliveryStatus } from '../types';
-export { DELIVERY_STATUS_OPTIONS, getStatusBadgeVariant } from '../types'; 
+export { DELIVERY_STATUS_OPTIONS, getStatusBadgeVariant } from '@/types'; 
