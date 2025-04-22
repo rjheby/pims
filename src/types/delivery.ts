@@ -26,6 +26,7 @@ export type BaseStop = {
   departure_time?: string;
   created_at?: string;
   updated_at?: string;
+  master_schedule_id?: string;
   
   // New recurring fields
   is_recurring?: boolean;
@@ -38,13 +39,16 @@ export type BaseStop = {
 
 /**
  * Delivery stop type - now just an alias for BaseStop since we've consolidated the fields
+ * Alias maintained for clarity in service and component signatures
  */
 export type DeliveryStop = BaseStop;
 
 /**
  * Stop form data for creating/editing stops
  */
-export type StopFormData = Omit<BaseStop, 'id' | 'created_at' | 'updated_at'>;
+export type StopFormData = Omit<BaseStop, 'id' | 'created_at' | 'updated_at'> & {
+  stop_number: number; // Ensure stop_number is required
+};
 
 /**
  * Stop search filters

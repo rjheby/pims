@@ -21,7 +21,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { RecurringOrder, Customer, DeliveryStop } from './stops/types';
+import { RecurringOrder, DeliveryStop } from './stops/types';
+import { Customer } from '@/types/customer';
+import { RecurringFrequency, PreferredDay } from '@/types/recurring';
 
 interface RecurringOrderSchedulerProps {
   selectedRecurringOrder?: RecurringOrder | null;
@@ -34,16 +36,16 @@ interface RecurringOrderSchedulerProps {
 }
 
 export function RecurringOrderScheduler({
-  selectedRecurringOrder,
-  onSave,
-  onCancel,
-  customers,
+  selectedRecurringOrder = null,
+  onSave = () => {},
+  onCancel = () => {},
+  customers = [],
   scheduleDate,
   onAddStops,
   existingClientIds = []
 }: RecurringOrderSchedulerProps) {
-  const [frequency, setFrequency] = useState<RecurringOrder['frequency']>(selectedRecurringOrder?.frequency || 'weekly');
-  const [preferredDay, setPreferredDay] = useState<RecurringOrder['preferred_day']>(selectedRecurringOrder?.preferred_day || 'monday');
+  const [frequency, setFrequency] = useState<RecurringFrequency>(selectedRecurringOrder?.frequency || 'weekly');
+  const [preferredDay, setPreferredDay] = useState<PreferredDay>(selectedRecurringOrder?.preferred_day || 'monday');
   const [items, setItems] = useState(selectedRecurringOrder?.items || '');
   const [date, setDate] = useState<DateRange | undefined>({
     from: selectedRecurringOrder?.start_date ? new Date(selectedRecurringOrder.start_date) : undefined,
@@ -58,16 +60,16 @@ export function RecurringOrderScheduler({
     { value: 'friday', label: 'Friday' },
     { value: 'saturday', label: 'Saturday' },
     { value: 'sunday', label: 'Sunday' },
-  ];
+  ] as const;
 
-  const handleSave = () => {
+  const handleSave = useCallback(() => {
     const startDate = date?.from ? format(date.from, 'yyyy-MM-dd') : undefined;
     const endDate = date?.to ? format(date.to, 'yyyy-MM-dd') : undefined;
     const itemsString = typeof selectedRecurringOrder?.items === 'string' 
       ? selectedRecurringOrder.items 
       : JSON.stringify(selectedRecurringOrder?.items || []);
     onSave(itemsString, frequency, preferredDay, startDate, endDate);
-  };
+  }, [date, frequency, preferredDay, selectedRecurringOrder, onSave]);
 
   const getCustomerName = useCallback((clientId: string | undefined) => {
     if (!clientId || !customers) return 'N/A';
@@ -75,9 +77,13 @@ export function RecurringOrderScheduler({
     return customer ? customer.name : 'Unknown Customer';
   }, [customers]);
 
-  const parsedItems = typeof selectedRecurringOrder?.items === 'string'
-  ? JSON.parse(selectedRecurringOrder.items)
-  : (selectedRecurringOrder?.items || []);
+  const handleFrequencyChange = useCallback((value: string) => {
+    setFrequency(value as RecurringFrequency);
+  }, []);
+
+  const handlePreferredDayChange = useCallback((value: string) => {
+    setPreferredDay(value as PreferredDay);
+  }, []);
 
   return (
     <div className="space-y-4">
@@ -96,7 +102,10 @@ export function RecurringOrderScheduler({
       </div>
       <div>
         <Label htmlFor="frequency">Frequency</Label>
-        <Select value={frequency} onValueChange={setFrequency}>
+        <Select 
+          value={frequency} 
+          onValueChange={handleFrequencyChange}
+        >
           <SelectTrigger className="w-full">
             <SelectValue placeholder="Select frequency" />
           </SelectTrigger>
@@ -110,7 +119,10 @@ export function RecurringOrderScheduler({
       {frequency === 'weekly' && (
         <div>
           <Label htmlFor="preferredDay">Preferred Day</Label>
-          <Select value={preferredDay} onValueChange={setPreferredDay}>
+          <Select 
+            value={preferredDay} 
+            onValueChange={handlePreferredDayChange}
+          >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Select preferred day" />
             </SelectTrigger>
