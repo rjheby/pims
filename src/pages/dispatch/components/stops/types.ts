@@ -6,7 +6,22 @@ import { Customer } from "@/pages/customers/types";
 import { Driver } from "@/types/driver";
 
 /**
+ * Represents a date range with start and end dates
+ * Used for filtering and querying date-based operations
+ */
+export type DateRange = {
+  start: string;
+  end: string;
+};
+
+/**
+ * Possible states for a delivery stop
+ */
+export type DeliveryStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+
+/**
  * Item data structure for delivery items
+ * Represents the detailed information about a single item in a delivery
  */
 export interface ItemData {
   quantity: number;
@@ -18,6 +33,7 @@ export interface ItemData {
 /**
  * DeliveryStop interface representing a stop in a delivery route
  * This is the hydrated version with full objects for customer and driver
+ * Alias maintained for clarity in service and component signatures
  */
 export interface DeliveryStop {
   id?: string;
@@ -29,13 +45,14 @@ export interface DeliveryStop {
   items: string;
   itemsData?: ItemData[];
   notes?: string;
-  status?: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  status?: DeliveryStatus;
   arrival_time?: string;
   departure_time?: string;
   created_at?: string;
   updated_at?: string;
   master_schedule_id?: string;
   recurrence_id?: string;
+  date_range?: DateRange;
 }
 
 /**
