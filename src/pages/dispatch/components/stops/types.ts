@@ -2,42 +2,22 @@
  * Type definitions for the dispatch stops components
  */
 
-/**
- * Customer interface representing a customer in the system
- */
-export interface Customer {
-  id: string;
-  name: string;
-  address?: string;
-  phone?: string;
-  email?: string;
-  notes?: string;
-  type?: 'RETAIL' | 'WHOLESALE' | 'OTHER';
-  street_address?: string;
-  city?: string;
-  state?: string;
-  zip_code?: string;
-  created_at?: string;
-  updated_at?: string;
-}
+import { Customer } from "@/pages/customers/types";
+import { Driver } from "@/types/driver";
 
 /**
- * Driver interface representing a delivery driver
+ * Item data structure for delivery items
  */
-export interface Driver {
-  id: string;
-  name: string;
-  phone?: string;
-  email?: string;
-  vehicle_type?: string;
-  license_number?: string;
-  is_active?: boolean;
-  created_at?: string;
-  updated_at?: string;
+export interface ItemData {
+  quantity: number;
+  unit: string;
+  product: string;
+  price: number;
 }
 
 /**
  * DeliveryStop interface representing a stop in a delivery route
+ * This is the hydrated version with full objects for customer and driver
  */
 export interface DeliveryStop {
   id?: string;
@@ -47,7 +27,7 @@ export interface DeliveryStop {
   driver_id?: string;
   driver?: Driver;
   items: string;
-  itemsData?: any;
+  itemsData?: ItemData[];
   notes?: string;
   status?: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
   arrival_time?: string;
@@ -60,19 +40,19 @@ export interface DeliveryStop {
 
 /**
  * Form data for editing a stop
+ * This version uses IDs for customer and driver instead of full objects
+ * for form handling and API submission
  */
 export interface StopFormData {
-  client_id: string;
-  customer?: Customer;
-  driver_id?: string;
-  driver?: Driver;
-  items: string;
-  notes?: string;
-  status?: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
-  stop_number?: number;
-  master_schedule_id?: string;
-  recurrence_id?: string;
-  itemsData?: any;
+  customer: string;
+  driver: string;
+  notes: string;
+  is_recurring: boolean;
+  recurrence_frequency: "weekly" | "bi-weekly" | "monthly";
+  preferred_day: "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday";
+  next_occurrence_date: Date | null;
+  recurrence_end_date: Date | null;
+  recurring_order_id?: string;
 }
 
 /**
