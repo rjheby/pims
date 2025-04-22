@@ -2,14 +2,17 @@
  * Type definitions for delivery-related entities
  */
 
+import type { Customer } from './customer';
+import type { Driver } from './driver';
+import type { DeliveryStatus } from './status';
+
 /**
- * DeliveryStop interface representing a stop in a delivery route
+ * Base stop type with common properties
  */
-export interface DeliveryStop {
+export type BaseStop = {
   id?: string;
   stop_number: number;
   client_id: string;
-  customer_id?: string;
   customer?: Customer;
   driver_id?: string;
   driver?: Driver;
@@ -21,52 +24,34 @@ export interface DeliveryStop {
   departure_time?: string;
   created_at?: string;
   updated_at?: string;
-  master_schedule_id?: string;
-  recurrence_id?: string;
-}
+};
 
 /**
- * Form data for editing a stop
+ * Delivery stop type extending base stop with delivery-specific properties
  */
-export interface StopFormData {
-  client_id: string;
-  customer_id?: string;
-  customer?: Customer;
-  driver_id?: string;
-  driver?: Driver;
-  items: string;
-  notes?: string;
-  status?: DeliveryStatus;
-  stop_number?: number;
-  master_schedule_id?: string;
+export type DeliveryStop = BaseStop & {
+  master_schedule_id: string;
   recurrence_id?: string;
-  itemsData?: any;
-}
+};
 
 /**
- * Stop interface for internal use
+ * Stop form data for creating/editing stops
  */
-export interface Stop {
-  id?: string;
-  stop_number: number;
-  client_id: string;
-  customer_id?: string;
-  customer?: Customer;
-  driver_id?: string;
-  driver?: Driver;
-  items: string;
-  itemsData?: any;
-  notes?: string;
-  status?: DeliveryStatus;
-  arrival_time?: string;
-  departure_time?: string;
-  created_at?: string;
-  updated_at?: string;
+export type StopFormData = Omit<BaseStop, 'id' | 'created_at' | 'updated_at'> & {
   master_schedule_id?: string;
   recurrence_id?: string;
-}
+};
 
-// Import these types to avoid circular dependencies
-import { Customer } from './customer';
-import { Driver } from './driver';
-import { DeliveryStatus } from './status'; 
+/**
+ * Stop search filters
+ */
+export type StopFilters = {
+  search?: string;
+  status?: DeliveryStatus;
+  driver_id?: string;
+  client_id?: string;
+  date_range?: {
+    start: string;
+    end: string;
+  };
+}; 
