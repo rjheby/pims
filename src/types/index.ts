@@ -8,4 +8,10 @@ export * from './status';
 export * from './customer';
 export * from './driver';
 export * from './delivery';
-export * from './recurring'; 
+export * from './recurring';
+export * from './fixtures';
+
+// Re-export commonly used type combinations
+export type { BaseStop, DeliveryStop, StopFormData, StopFilters } from './delivery';
+export type { RecurringOrder, RecurrenceData, RecurringFrequency, PreferredDay } from './recurring';
+export type { DeliveryStatus } from './status'; 

@@ -5,6 +5,7 @@
 import type { Customer } from './customer';
 import type { Driver } from './driver';
 import type { DeliveryStatus } from './status';
+import type { RecurringFrequency, PreferredDay } from './recurring';
 
 /**
  * Base stop type with common properties
@@ -16,31 +17,34 @@ export type BaseStop = {
   customer?: Customer;
   driver_id?: string;
   driver?: Driver;
+  driver_name?: string;
   items: string;
-  itemsData?: any;
+  itemsData?: Record<string, unknown>;
   notes?: string;
   status?: DeliveryStatus;
   arrival_time?: string;
   departure_time?: string;
   created_at?: string;
   updated_at?: string;
+  
+  // New recurring fields
+  is_recurring?: boolean;
+  recurrence_frequency?: RecurringFrequency;
+  preferred_day?: PreferredDay;
+  next_occurrence_date?: string | Date;
+  recurrence_end_date?: string | Date;
+  recurring_order_id?: string;
 };
 
 /**
- * Delivery stop type extending base stop with delivery-specific properties
+ * Delivery stop type - now just an alias for BaseStop since we've consolidated the fields
  */
-export type DeliveryStop = BaseStop & {
-  master_schedule_id: string;
-  recurrence_id?: string;
-};
+export type DeliveryStop = BaseStop;
 
 /**
  * Stop form data for creating/editing stops
  */
-export type StopFormData = Omit<BaseStop, 'id' | 'created_at' | 'updated_at'> & {
-  master_schedule_id?: string;
-  recurrence_id?: string;
-};
+export type StopFormData = Omit<BaseStop, 'id' | 'created_at' | 'updated_at'>;
 
 /**
  * Stop search filters
@@ -54,4 +58,5 @@ export type StopFilters = {
     start: string;
     end: string;
   };
+  is_recurring?: boolean;
 }; 
