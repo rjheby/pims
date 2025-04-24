@@ -1,4 +1,3 @@
-
 import { useParams, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -253,9 +252,13 @@ export default function DispatchForm() {
                   <TabsContent value="recurring" className="mt-0">
                     {showRecurringTab && masterSchedule.schedule_date && (
                       <RecurringOrderScheduler
-                        scheduleDate={new Date(masterSchedule.schedule_date)}
+                        scheduleDate={scheduleDate || new Date()}
                         onAddStops={handleAddRecurringStops}
-                        existingCustomerIds={existingCustomerIds}
+                        existingClientIds={existingCustomerIds}
+                        selectedRecurringOrder={null}
+                        onSave={() => {}}
+                        onCancel={() => setShowRecurringPanel(false)}
+                        customers={customers}
                       />
                     )}
                   </TabsContent>

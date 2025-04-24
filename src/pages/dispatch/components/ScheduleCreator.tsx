@@ -20,7 +20,7 @@ import { calculateTotals } from "../utils/inventoryUtils";
 import ScheduleSummary from "../components/ScheduleSummary";
 import { RecurringOrderScheduler } from "./RecurringOrderScheduler";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DeliveryStop } from "./stops/types";
+import { DeliveryStop } from "@/types";
 import { Stop } from "../context/types";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -154,7 +154,7 @@ export const ScheduleCreator = () => {
               driver_id: stop.driver_id,
               status: 'pending',
               is_recurring: !!stop.is_recurring,
-              recurring_id: stop.recurring_id
+              recurring_order_id: stop.recurring_id
             });
             
           if (stopError) {
@@ -225,10 +225,43 @@ export const ScheduleCreator = () => {
     }
   };
 
-  const handleAddRecurringStops = (newStops: any[]) => {
+  // Convert Stop[] to DeliveryStop[] for compatibility with StopsTable
+  const convertStopsToDeliveryStops = (stops: Stop[]): DeliveryStop[] => {
+    return stops.map(stop => ({
+      stop_number: stop.stop_number,
+      client_id: stop.customer_id,
+      customer_name: stop.customer_name,
+      driver_id: stop.driver_id || undefined,
+      driver_name: stop.driver_id ? undefined : undefined, // Will be populated by table component
+      items: stop.items || '',
+      notes: stop.notes || '',
+      is_recurring: stop.is_recurring,
+      recurring_order_id: stop.recurring_id,
+      status: stop.status as any,
+      master_schedule_id: '' // This is required for DeliveryStop but will be set on save
+    }));
+  };
+
+  const handleAddRecurringStops = (newStops: DeliveryStop[]) => {
     if (newStops.length === 0) return;
     
-    addStops(newStops);
+    // Convert DeliveryStop[] to Stop[] for dispatch context
+    const contextStops: Stop[] = newStops.map(stop => ({
+      customer_id: stop.client_id,
+      customer_name: stop.customer_name,
+      customer_address: stop.customer?.address,
+      customer_phone: stop.customer?.phone,
+      driver_id: stop.driver_id || null,
+      items: stop.items,
+      notes: stop.notes,
+      sequence: stop.stop_number,
+      is_recurring: true,
+      recurring_id: stop.recurring_order_id,
+      stop_number: stop.stop_number,
+      status: stop.status
+    }));
+    
+    addStops(contextStops);
     
     toast({
       title: "Success",
@@ -300,7 +333,7 @@ export const ScheduleCreator = () => {
                 
                 <TabsContent value="stops" className="mt-0">
                   <StopsTable 
-                    stops={stops as DeliveryStop[]} 
+                    stops={convertStopsToDeliveryStops(stops)} 
                     onStopsChange={() => {/* Handled by context */}}
                     useMobileLayout={isMobile}
                     customers={customers}
@@ -313,7 +346,11 @@ export const ScheduleCreator = () => {
                     <RecurringOrderScheduler
                       scheduleDate={scheduleData.date}
                       onAddStops={handleAddRecurringStops}
-                      existingCustomerIds={existingCustomerIds}
+                      existingClientIds={existingCustomerIds}
+                      selectedRecurringOrder={null}
+                      onSave={() => {}}
+                      onCancel={() => {}}
+                      customers={customers}
                     />
                   )}
                 </TabsContent>

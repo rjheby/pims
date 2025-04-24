@@ -1,11 +1,13 @@
+
 import React from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { CustomerDialog } from "./CustomerDialog";
 import { ItemSelector } from "./ItemSelector";
-import { Customer, RecurrenceData, StopDialogsProps } from "./types";
+import { Customer, StopDialogsProps } from "./types";
 import { RecurrenceSettingsForm } from "./RecurrenceSettingsForm";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { RecurrenceData } from "@/types/recurring";
 
 export const StopDialogs: React.FC<StopDialogsProps> = ({
   customerDialogOpen,
@@ -46,27 +48,27 @@ export const StopDialogs: React.FC<StopDialogsProps> = ({
           </DialogHeader>
           <ErrorBoundary>
             <ItemSelector
-              open={itemsDialogOpen}
-              onOpenChange={setItemsDialogOpen}
               onSelect={onItemsSelect}
               onCancel={() => setItemsDialogOpen(false)}
               initialItems={initialItems}
-              recurrenceData={recurrenceData}
+              open={itemsDialogOpen}
+              onOpenChange={setItemsDialogOpen}
+              recurrenceData={recurrenceData as RecurrenceData}
             />
           </ErrorBoundary>
         </DialogContent>
       </Dialog>
 
       {recurrenceData && onRecurrenceChange && (
-        <Dialog open={!!recurrenceData} onOpenChange={() => onRecurrenceChange(undefined)}>
+        <Dialog open={!!recurrenceData} onOpenChange={() => onRecurrenceChange(undefined as any)}>
           <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Recurrence Settings</DialogTitle>
             </DialogHeader>
             <ErrorBoundary>
               <RecurrenceSettingsForm
-                recurrenceData={recurrenceData}
-                onRecurrenceChange={onRecurrenceChange}
+                data={recurrenceData as any}
+                onChange={onRecurrenceChange as any}
                 onCancel={onCancel}
               />
             </ErrorBoundary>

@@ -186,10 +186,16 @@ export type Database = {
           driver_id: string | null
           driver_name: string | null
           id: string
+          is_recurring: boolean | null
           items: string | null
           master_schedule_id: string | null
+          next_occurrence_date: string | null
           notes: string | null
+          preferred_day: number | null
           price: number | null
+          recurrence_end_date: string | null
+          recurrence_frequency: string | null
+          recurring_order_id: string | null
           sequence: number | null
           status: string | null
           stop_number: number | null
@@ -204,10 +210,16 @@ export type Database = {
           driver_id?: string | null
           driver_name?: string | null
           id?: string
+          is_recurring?: boolean | null
           items?: string | null
           master_schedule_id?: string | null
+          next_occurrence_date?: string | null
           notes?: string | null
+          preferred_day?: number | null
           price?: number | null
+          recurrence_end_date?: string | null
+          recurrence_frequency?: string | null
+          recurring_order_id?: string | null
           sequence?: number | null
           status?: string | null
           stop_number?: number | null
@@ -222,10 +234,16 @@ export type Database = {
           driver_id?: string | null
           driver_name?: string | null
           id?: string
+          is_recurring?: boolean | null
           items?: string | null
           master_schedule_id?: string | null
+          next_occurrence_date?: string | null
           notes?: string | null
+          preferred_day?: number | null
           price?: number | null
+          recurrence_end_date?: string | null
+          recurrence_frequency?: string | null
+          recurring_order_id?: string | null
           sequence?: number | null
           status?: string | null
           stop_number?: number | null

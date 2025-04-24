@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { DragDropContext, Droppable } from "@hello-pangea/dnd";
 import { MapPinPlus, Search } from "lucide-react";
@@ -7,7 +8,8 @@ import { supabase, handleSupabaseError } from "@/integrations/supabase/client";
 import StopsDesktopTable from "./StopsDesktopTable";
 import { StopsMobileCards } from "./StopsMobileCards";
 import { StopDialogs } from "./StopDialogs";
-import { Driver, DeliveryStop, StopFormData, Customer, StopsTableProps, RecurrenceData } from "./types";
+import { Driver, DeliveryStop, StopFormData, Customer, StopsTableProps } from "./types";
+import { RecurrenceData } from "@/types/recurring";
 import { useStopsDialogs } from "../../hooks/useStopsDialogs";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { validateAgainstSchema } from "@/utils/schemaValidation";
@@ -50,10 +52,7 @@ const StopsTable = ({
   const [selectedStops, setSelectedStops] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<string>("stop_number");
   const [filterByDriver, setFilterByDriver] = useState<string | null>(null);
-  const [recurrenceData, setRecurrenceData] = useState<RecurrenceData>({
-    isRecurring: false,
-    frequency: 'weekly'
-  });
+  const [recurrenceData, setRecurrenceData] = useState<RecurrenceData | undefined>(undefined);
   
   const {
     editingIndex,
@@ -280,6 +279,10 @@ const StopsTable = ({
     handleAddStop();
   };
 
+  const handleRecurrenceChange = (data: RecurrenceData | undefined) => {
+    setRecurrenceData(data);
+  };
+
   return (
     <ErrorBoundary>
       <div className="space-y-6 max-w-6xl mx-auto">
@@ -344,7 +347,7 @@ const StopsTable = ({
           initialCustomerId={editForm.client_id}
           initialItems={editForm.items}
           recurrenceData={recurrenceData}
-          onRecurrenceChange={(data) => setRecurrenceData(data)}
+          onRecurrenceChange={handleRecurrenceChange}
           customers={customers}
         />
         

@@ -1,3 +1,4 @@
+
 /**
  * Type definitions for delivery-related entities
  */
@@ -47,6 +48,9 @@ export type DeliveryStop = BaseStop;
  * Stop form data for creating/editing stops
  */
 export type StopFormData = Omit<BaseStop, 'id' | 'created_at' | 'updated_at'> & {
+  customer: string;  // Changed from client_id for form usage
+  driver: string;    // Changed from driver_id for form usage
+  is_recurring: boolean;
   stop_number: number; // Ensure stop_number is required
 };
 

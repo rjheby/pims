@@ -1,9 +1,12 @@
+
 /**
  * Type definitions for the dispatch stops components
  */
 
-import { Customer } from "@/pages/customers/types";
+import { Customer } from "@/types/customer";
 import { Driver } from "@/types/driver";
+import { DeliveryStatus, DELIVERY_STATUS_OPTIONS, getStatusBadgeVariant } from "@/types/status";
+import { RecurringFrequency, PreferredDay } from "@/types/recurring";
 
 /**
  * Represents a date range with start and end dates
@@ -13,11 +16,6 @@ export type DateRange = {
   start: string;
   end: string;
 };
-
-/**
- * Possible states for a delivery stop
- */
-export type DeliveryStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 
 /**
  * Item data structure for delivery items
@@ -42,6 +40,7 @@ export interface DeliveryStop {
   customer?: Customer;
   driver_id?: string;
   driver?: Driver;
+  driver_name?: string;
   items: string;
   itemsData?: ItemData[];
   notes?: string;
@@ -51,8 +50,9 @@ export interface DeliveryStop {
   created_at?: string;
   updated_at?: string;
   master_schedule_id?: string;
+  is_recurring?: boolean;
   recurrence_id?: string;
-  date_range?: DateRange;
+  recurring_order_id?: string;
 }
 
 /**
@@ -65,11 +65,14 @@ export interface StopFormData {
   driver: string;
   notes: string;
   is_recurring: boolean;
-  recurrence_frequency: "weekly" | "bi-weekly" | "monthly";
-  preferred_day: "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday";
+  recurrence_frequency: RecurringFrequency;
+  preferred_day: PreferredDay;
   next_occurrence_date: Date | null;
   recurrence_end_date: Date | null;
   recurring_order_id?: string;
+  stop_number: number;
+  client_id?: string;
+  items?: string;
 }
 
 /**
@@ -77,10 +80,10 @@ export interface StopFormData {
  */
 export interface RecurrenceData {
   isRecurring: boolean;
-  frequency: string;
-  preferred_day?: string;
-  start_date?: string;
-  end_date?: string;
+  frequency: RecurringFrequency;
+  preferred_day?: PreferredDay;
+  start_date?: string | Date;
+  end_date?: string | Date;
   client_id?: string;
   items?: string;
 }
@@ -101,6 +104,9 @@ export interface RecurringOrder {
   created_at?: string;
   updated_at?: string;
 }
+
+// Export status options and variant helper function
+export { DELIVERY_STATUS_OPTIONS, getStatusBadgeVariant };
 
 /**
  * Props for the StopsTable component
