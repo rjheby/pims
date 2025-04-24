@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { format } from "date-fns";
@@ -115,11 +116,16 @@ export const ScheduleCreator = () => {
             
             toast({
               title: "Recurring Orders",
-              description: `Automatically added ${recurringStops.length} recurring orders for ${format(scheduleData.date, "EEEE, MMMM d")}`,
+              description: `Added ${recurringStops.length} recurring orders for ${format(scheduleData.date, "EEEE, MMMM d")}`,
             });
           }
         } catch (error) {
           console.error("Error loading recurring orders:", error);
+          toast({
+            title: "Error",
+            description: "Failed to load recurring orders",
+            variant: "destructive",
+          });
         }
       }
     };

@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Card, Typography } from "antd";
-import { DeliveryStop } from "./stops/types";
+import { DeliveryStop } from "@/types/delivery";
 import { StopsTable } from "./StopsTable";
 
 const { Title } = Typography;
@@ -15,13 +15,13 @@ export const TimeWindowGroups: React.FC<TimeWindowGroupsProps> = ({ stops }) => 
     (stop) => !stop.master_schedule_id
   );
   const morningStops = stops.filter(
-    (stop) => stop.time_window === "morning" && stop.master_schedule_id
+    (stop) => stop.time_window === 'morning' && stop.master_schedule_id
   );
   const afternoonStops = stops.filter(
-    (stop) => stop.time_window === "afternoon" && stop.master_schedule_id
+    (stop) => stop.time_window === 'afternoon' && stop.master_schedule_id
   );
   const eveningStops = stops.filter(
-    (stop) => stop.time_window === "evening" && stop.master_schedule_id
+    (stop) => stop.time_window === 'evening' && stop.master_schedule_id
   );
 
   return (

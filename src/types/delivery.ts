@@ -1,4 +1,3 @@
-
 /**
  * Type definitions for delivery-related entities
  */
@@ -59,6 +58,9 @@ export interface DeliveryStop extends BaseStop {
   driver_name?: string;
   status: DeliveryStatus;
   price?: number;
+  created_at?: string;
+  updated_at?: string;
+  time_window?: 'morning' | 'afternoon' | 'evening';
 }
 
 /**
