@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client'; 
-import { useStopsDialogs } from '../hooks/useStopsDialogs';
+import { useManualStopActions } from '@/services/stops/useManualStopActions';
+import { DeliveryStop } from '@/types';
 
 interface AddOrderLoggerProps {
   scheduleId?: string;
@@ -15,15 +15,15 @@ export function AddOrderLogger({ scheduleId, scheduleNumber }: AddOrderLoggerPro
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [customers, setCustomers] = useState<any[]>([]);
-  const [stops, setStops] = useState<any[]>([]);
+  const [stops, setStops] = useState<DeliveryStop[]>([]);
   const [scheduleData, setScheduleData] = useState<any>(null);
   const [orderAdded, setOrderAdded] = useState(false);
   const [logMessages, setLogMessages] = useState<string[]>([]);
 
-  const { addManualStop } = useStopsDialogs({
+  const { addManualStop } = useManualStopActions({
     stops,
     onStopsChange: setStops,
-    customers
+    masterScheduleId: scheduleId
   });
 
   // Add log message

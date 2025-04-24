@@ -39,9 +39,9 @@ export interface RecurringOrder {
 export interface RecurrenceData {
   isRecurring: boolean;
   frequency: RecurringFrequency;
-  preferred_day?: PreferredDay;
-  start_date?: string | Date;
-  end_date?: string | Date;
+  preferredDay?: PreferredDay;
+  startDate?: string | Date;
+  endDate?: string | Date;
   client_id?: string;
   items?: string;
 }

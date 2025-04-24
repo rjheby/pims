@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
@@ -24,9 +23,14 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { RecurringOrder, DeliveryStop } from './stops/types';
-import { Customer } from '@/types/customer';
-import { RecurringFrequency, PreferredDay } from '@/types/recurring';
+import { 
+  RecurringOrder, 
+  DeliveryStop, 
+  Customer, 
+  DeliveryStatus, 
+  RecurringFrequency, 
+  PreferredDay 
+} from '@/types';
 
 interface RecurringOrderSchedulerProps {
   selectedRecurringOrder?: RecurringOrder | null;
@@ -144,12 +148,15 @@ export function RecurringOrderScheduler({
     const newStops: DeliveryStop[] = availableRecurringOrders.map((order, index) => ({
       stop_number: index + 1,
       client_id: order.customer_id,
+      customer_name: order.customer?.name || 'Unknown Customer',
+      customer_address: order.customer?.address || '',
+      customer_phone: order.customer?.phone || '',
       customer: order.customer,
       driver_id: "",
       driver_name: "",
       items: order.items || "",
       notes: `Recurring order (${order.frequency})`,
-      status: "PENDING",
+      status: "PENDING" as DeliveryStatus,
       is_recurring: true,
       recurring_order_id: order.id,
       master_schedule_id: ""
