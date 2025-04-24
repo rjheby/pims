@@ -9,11 +9,14 @@ export type {
   Customer,
   Driver,
   DeliveryStatus,
-  RecurringOrder,
-  RecurrenceData,
   RecurringFrequency,
   PreferredDay
 } from '@/types';
+
+export type {
+  RecurringOrder,
+  RecurrenceData
+} from '@/types/recurring';
 
 export { DELIVERY_STATUS_OPTIONS, getStatusBadgeVariant } from '@/types/status';
 export { FREQUENCY_OPTIONS, PREFERRED_DAY_OPTIONS } from '@/types/recurring';

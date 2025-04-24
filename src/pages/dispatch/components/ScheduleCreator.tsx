@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { format } from "date-fns";
@@ -20,7 +19,7 @@ import { calculateTotals } from "../utils/inventoryUtils";
 import ScheduleSummary from "../components/ScheduleSummary";
 import { RecurringOrderScheduler } from "./RecurringOrderScheduler";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DeliveryStop } from "@/types";
+import { DeliveryStop } from "@/types/delivery";
 import { Stop } from "../context/types";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { TimeWindowGroups } from "./TimeWindowGroups";
@@ -47,7 +46,8 @@ const convertStopToDeliveryStop = (stop: Stop): DeliveryStop => ({
   status: stop.status as any,
   is_recurring: stop.is_recurring,
   recurring_order_id: stop.recurring_id,
-  master_schedule_id: ''
+  master_schedule_id: '',
+  time_window: undefined
 });
 
 const convertDeliveryStopToStop = (stop: DeliveryStop): Stop => ({
@@ -116,7 +116,7 @@ export const ScheduleCreator = () => {
             
             toast({
               title: "Recurring Orders",
-              description: `Added ${recurringStops.length} recurring orders for ${format(scheduleData.date, "EEEE, MMMM d")}`,
+              description: `Automatically added ${recurringStops.length} recurring orders for ${format(scheduleData.date, "EEEE, MMMM d")}`,
             });
           }
         } catch (error) {
@@ -355,13 +355,6 @@ export const ScheduleCreator = () => {
                 
                 <TabsContent value="stops" className="mt-0">
                   <TimeWindowGroups stops={stops} />
-                  <StopsTable 
-                    stops={stops} 
-                    onStopsChange={handleStopsChange}
-                    useMobileLayout={isMobile}
-                    customers={customers}
-                    drivers={drivers}
-                  />
                 </TabsContent>
                 
                 <TabsContent value="recurring" className="mt-0">

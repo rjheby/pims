@@ -1,9 +1,10 @@
+
 import { useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/store";
 import { startSync, syncSuccess, syncError, resetSyncState } from "@/store/slices/recurringOrderSyncSlice";
 import { UseRecurringOrderSyncReturn, SyncResult } from "@/pages/dispatch/components/stops/types";
-import { DeliveryStop } from "@/pages/dispatch/components/stops/types";
+import { DeliveryStop } from "@/types/delivery";
 import moment from "moment";
 
 export const useRecurringOrderSync = (): UseRecurringOrderSyncReturn => {
@@ -25,9 +26,11 @@ export const useRecurringOrderSync = (): UseRecurringOrderSyncReturn => {
 
         const result: SyncResult = await response.json();
         dispatch(syncSuccess({ result, date }));
+        return result;
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Unknown error occurred";
         dispatch(syncError(errorMessage));
+        throw err;
       }
     },
     [dispatch]
@@ -44,4 +47,4 @@ export const useRecurringOrderSync = (): UseRecurringOrderSyncReturn => {
     syncRecurringOrders,
     resetSyncState,
   };
-}; 
+};

@@ -1,3 +1,4 @@
+
 /**
  * Type definitions for the dispatch stops components
  */
@@ -11,9 +12,12 @@ import {
   StopFormData as BaseStopFormData,
   RecurringFrequency,
   PreferredDay,
+} from '@/types';
+
+import {
   RecurrenceData as BaseRecurrenceData,
   RecurringOrder as BaseRecurringOrder
-} from '@/types';
+} from '@/types/recurring';
 
 // Re-export status options and variant helper from centralized types
 import { DELIVERY_STATUS_OPTIONS, getStatusBadgeVariant } from '@/types/status';
@@ -30,17 +34,13 @@ export type DateRange = {
 /**
  * Time window for delivery stops
  */
-export interface TimeWindow {
-  start: string;
-  end: string;
-}
+export type TimeWindow = 'morning' | 'afternoon' | 'evening';
 
 /**
  * DeliveryStop interface - ensure compatibility with the centralized type
  * while adding any component-specific extensions
  */
 export interface DeliveryStop extends BaseDeliveryStop {
-  time_window?: TimeWindow;
   created_at: string;
   updated_at: string;
 }
