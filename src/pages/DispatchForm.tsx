@@ -1,3 +1,4 @@
+
 import { useParams, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,7 @@ import { useDispatchForm } from "./dispatch/hooks/useDispatchForm";
 import { calculateTotals } from "./dispatch/utils/inventoryUtils";
 import { AuthGuard } from "@/components/AuthGuard";
 import { useState, useEffect } from "react";
-import { Customer, Driver, DeliveryStop } from "./dispatch/components/stops/types";
+import { Customer, Driver } from "./dispatch/components/stops/types";
 import ScheduleSummary from "./dispatch/components/ScheduleSummary";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -141,9 +142,10 @@ export default function DispatchForm() {
   };
 
   // Handle adding stops from recurring order scheduler
-  const handleAddRecurringStops = (newStops: DeliveryStop[]) => {
+  const handleAddRecurringStops = (newStops: any[]) => {
     if (newStops.length === 0) return;
     
+    // Add the new stops to the existing stops
     setStops([...stops, ...newStops]);
     
     toast({
@@ -153,9 +155,10 @@ export default function DispatchForm() {
   };
 
   // Get list of customer IDs already in the schedule
-  const existingCustomerIds = stops.map(stop => stop.client_id);
+  const existingCustomerIds = stops.map(stop => stop.customer_id);
   
-  const [scheduleDate, setScheduleDate] = useState<Date | null>(null);
+  // Count recurring stops
+  const recurringStopsCount = stops.filter(stop => stop.is_recurring).length;
 
   return (
     <AuthGuard requiredRole="driver">
@@ -183,6 +186,11 @@ export default function DispatchForm() {
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-3">
                   <CardTitle>Dispatch Schedule #{masterSchedule.schedule_number}</CardTitle>
+                  {recurringStopsCount > 0 && (
+                    <Badge variant="outline" className="bg-primary/10 text-primary">
+                      {recurringStopsCount} Recurring
+                    </Badge>
+                  )}
                 </div>
                 {masterSchedule.status === 'submitted' && (
                   <div className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
@@ -206,15 +214,17 @@ export default function DispatchForm() {
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-medium">Delivery Stops</h3>
                     <div className="flex items-center gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => setShowRecurringTab(true)}
-                        className="flex items-center gap-2"
-                      >
-                        <CalendarClock className="h-4 w-4" />
-                        Manage Recurring Orders
-                      </Button>
+                      {masterSchedule.status !== 'submitted' && (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setShowRecurringTab(true)}
+                          className="flex items-center gap-2"
+                        >
+                          <CalendarClock className="h-4 w-4" />
+                          Manage Recurring Orders
+                        </Button>
+                      )}
                       <TabsList>
                         <TabsTrigger value="stops">All Stops</TabsTrigger>
                         <TabsTrigger 
@@ -241,15 +251,11 @@ export default function DispatchForm() {
                   </TabsContent>
                   
                   <TabsContent value="recurring" className="mt-0">
-                    {showRecurringTab && masterSchedule?.schedule_date && (
+                    {showRecurringTab && masterSchedule.schedule_date && (
                       <RecurringOrderScheduler
                         scheduleDate={new Date(masterSchedule.schedule_date)}
                         onAddStops={handleAddRecurringStops}
-                        existingClientIds={existingCustomerIds}
-                        selectedRecurringOrder={null}
-                        onSave={() => {}}
-                        onCancel={() => setShowRecurringTab(false)}
-                        customers={customers}
+                        existingCustomerIds={existingCustomerIds}
                       />
                     )}
                   </TabsContent>

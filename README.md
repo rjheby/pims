@@ -1,80 +1,69 @@
-# PIMS - Property Inventory Management System
+# Welcome to your Lovable project
 
-## Recent Improvements
+## Project info
 
-### Schema Validation
+**URL**: https://lovable.dev/projects/6645d2a9-f7ad-45df-bb3c-a0a289d32081
 
-We've implemented a schema validation utility that automatically checks field names against the database schema. This helps catch errors early and ensures data consistency.
+## How can I edit this code?
 
-Key features:
-- Field existence validation
-- Type validation
-- Integration with Zod for runtime validation
-- Detailed error reporting
+There are several ways of editing your application.
 
-### Error Boundaries
+**Use Lovable**
 
-We've added error boundaries throughout the application to gracefully handle rendering errors. This prevents the entire application from crashing when a component fails.
+Simply visit the [Lovable Project](https://lovable.dev/projects/6645d2a9-f7ad-45df-bb3c-a0a289d32081) and start prompting.
 
-Benefits:
-- Improved user experience
-- Better error reporting
-- Easier debugging
-- Graceful degradation
+Changes made via Lovable will be committed automatically to this repo.
 
-### TypeScript Type Safety
+**Use your preferred IDE**
 
-We've enhanced the TypeScript interfaces and type definitions to provide better compile-time type checking.
+If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
 
-Improvements:
-- Comprehensive interfaces for all data structures
-- Proper typing for component props
-- Consistent naming conventions
-- Documentation for all types
+The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
-## Getting Started
+Follow these steps:
 
-### Prerequisites
+```sh
+# Step 1: Clone the repository using the project's Git URL.
+git clone <YOUR_GIT_URL>
 
-- Node.js 16+
-- npm or yarn
+# Step 2: Navigate to the project directory.
+cd <YOUR_PROJECT_NAME>
 
-### Installation
+# Step 3: Install the necessary dependencies.
+npm i
 
-```bash
-# Install dependencies
-npm install
-
-# Start the development server
+# Step 4: Start the development server with auto-reloading and an instant preview.
 npm run dev
 ```
 
-### Building for Production
+**Edit a file directly in GitHub**
 
-```bash
-# Build the application
-npm run build
+- Navigate to the desired file(s).
+- Click the "Edit" button (pencil icon) at the top right of the file view.
+- Make your changes and commit the changes.
 
-# Start the production server
-npm start
-```
+**Use GitHub Codespaces**
 
-## Project Structure
+- Navigate to the main page of your repository.
+- Click on the "Code" button (green button) near the top right.
+- Select the "Codespaces" tab.
+- Click on "New codespace" to launch a new Codespace environment.
+- Edit files directly within the Codespace and commit and push your changes once you're done.
 
-- `src/components` - Reusable UI components
-- `src/pages` - Page components and routes
-- `src/hooks` - Custom React hooks
-- `src/utils` - Utility functions
-- `src/integrations` - External service integrations
+## What technologies are used for this project?
 
-## Contributing
+This project is built with .
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+- Vite
+- TypeScript
+- React
+- shadcn-ui
+- Tailwind CSS
 
-## License
+## How can I deploy this project?
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+Simply open [Lovable](https://lovable.dev/projects/6645d2a9-f7ad-45df-bb3c-a0a289d32081) and click on Share -> Publish.
+
+## I want to use a custom domain - is that possible?
+
+We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)

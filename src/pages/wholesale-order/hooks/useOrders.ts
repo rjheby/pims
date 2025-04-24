@@ -5,10 +5,11 @@ import {
   ProcessingRecord, 
   RetailInventoryItem, 
   InventoryItem,
-  supabaseTable
+  supabaseTable,
+  supabaseFunction,
+  supabaseSafeFrom,
+  supabaseSafeRpc
 } from "../types";
-import { supabaseFunction } from "../types/constants";
-import { supabaseSafeFrom, supabaseSafeRpc } from "../types";
 
 export function useOrders() {
   const [orders, setOrders] = useState([]);
@@ -18,7 +19,7 @@ export function useOrders() {
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from("wholesale_orders")
+        .from(supabaseTable.wholesale_orders)
         .select("id, order_number, order_date, delivery_date, items, status, submitted_at")
         .order('order_number', { ascending: false }); // Z to A sorting
 

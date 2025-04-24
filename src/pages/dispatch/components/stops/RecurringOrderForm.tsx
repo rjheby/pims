@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -13,12 +14,19 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { RecurrenceData } from '@/types';
 
-export interface RecurrenceSettingsFormProps {
-  data: RecurrenceData;
-  onChange: (recurrenceData: RecurrenceData) => void;
-  onCancel: () => void;
+export interface RecurrenceData {
+  isRecurring: boolean;
+  frequency: string;
+  preferredDay?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface RecurringOrderFormProps {
+  recurrenceData: RecurrenceData;
+  onRecurrenceChange: (recurrenceData: RecurrenceData) => void;
+  initialRecurrence?: RecurrenceData;
 }
 
 // Enhanced recurrence options with descriptions
@@ -40,40 +48,40 @@ export const dayOptions = [
   { value: 'sunday', label: 'Sunday' }
 ];
 
-export const RecurrenceSettingsForm = ({ 
-  data, 
-  onChange,
-  onCancel 
-}: RecurrenceSettingsFormProps) => {
+export const RecurringOrderForm = ({ 
+  recurrenceData, 
+  onRecurrenceChange,
+  initialRecurrence 
+}: RecurringOrderFormProps) => {
   // Use a summary state to display a human-readable description
   const [summary, setSummary] = useState<string>('');
   
   // Update summary whenever recurrence data changes
   useEffect(() => {
-    if (!data.isRecurring) {
+    if (!recurrenceData.isRecurring) {
       setSummary('');
       return;
     }
     
     let summaryText = '';
-    const frequency = recurrenceOptions.find(o => o.value === data.frequency)?.label || '';
-    const day = dayOptions.find(d => d.value === data.preferredDay)?.label || '';
+    const frequency = recurrenceOptions.find(o => o.value === recurrenceData.frequency)?.label || '';
+    const day = dayOptions.find(d => d.value === recurrenceData.preferredDay)?.label || '';
     
     if (frequency && day) {
       summaryText = `Delivers ${frequency.toLowerCase()} on ${day}`;
       
-      if (data.startDate) {
+      if (recurrenceData.startDate) {
         try {
-          const formattedDate = new Date(data.startDate).toLocaleDateString();
+          const formattedDate = new Date(recurrenceData.startDate).toLocaleDateString();
           summaryText += ` starting ${formattedDate}`;
         } catch (e) {
           // Invalid date, skip
         }
       }
       
-      if (data.endDate) {
+      if (recurrenceData.endDate) {
         try {
-          const formattedDate = new Date(data.endDate).toLocaleDateString();
+          const formattedDate = new Date(recurrenceData.endDate).toLocaleDateString();
           summaryText += ` until ${formattedDate}`;
         } catch (e) {
           // Invalid date, skip
@@ -82,10 +90,10 @@ export const RecurrenceSettingsForm = ({
     }
     
     setSummary(summaryText);
-  }, [data]);
+  }, [recurrenceData]);
 
   const handleChange = (field: keyof RecurrenceData, value: any) => {
-    const updatedData = { ...data, [field]: value };
+    const updatedData = { ...recurrenceData, [field]: value };
     
     // If toggling recurrence off, reset other fields
     if (field === 'isRecurring' && value === false) {
@@ -94,11 +102,11 @@ export const RecurrenceSettingsForm = ({
     }
     
     // If toggling recurrence on, set default frequency
-    if (field === 'isRecurring' && value === true && data.frequency === 'none') {
+    if (field === 'isRecurring' && value === true && recurrenceData.frequency === 'none') {
       updatedData.frequency = 'weekly';
     }
     
-    onChange(updatedData);
+    onRecurrenceChange(updatedData);
   };
 
   return (
@@ -107,7 +115,7 @@ export const RecurrenceSettingsForm = ({
         <Label htmlFor="isRecurring" className="font-medium">Recurring Delivery</Label>
         <Switch
           id="isRecurring"
-          checked={data.isRecurring}
+          checked={recurrenceData.isRecurring}
           onCheckedChange={(checked) => handleChange('isRecurring', checked)}
         />
       </div>
@@ -121,12 +129,12 @@ export const RecurrenceSettingsForm = ({
         </Card>
       )}
       
-      {data.isRecurring && (
+      {recurrenceData.isRecurring && (
         <div className="space-y-4 mt-2">
           <div>
             <Label htmlFor="frequency" className="text-sm font-medium">Frequency</Label>
             <Select
-              value={data.frequency}
+              value={recurrenceData.frequency}
               onValueChange={(value) => handleChange('frequency', value)}
             >
               <SelectTrigger id="frequency" className="w-full">
@@ -150,7 +158,7 @@ export const RecurrenceSettingsForm = ({
           <div>
             <Label htmlFor="preferredDay" className="text-sm font-medium">Preferred Day</Label>
             <Select
-              value={data.preferredDay}
+              value={recurrenceData.preferredDay}
               onValueChange={(value) => handleChange('preferredDay', value)}
             >
               <SelectTrigger id="preferredDay" className="w-full">
@@ -172,7 +180,7 @@ export const RecurrenceSettingsForm = ({
               <Input
                 id="startDate"
                 type="date"
-                value={data.startDate || ''}
+                value={recurrenceData.startDate || ''}
                 onChange={(e) => handleChange('startDate', e.target.value)}
               />
             </div>
@@ -181,7 +189,7 @@ export const RecurrenceSettingsForm = ({
               <Input
                 id="endDate"
                 type="date"
-                value={data.endDate || ''}
+                value={recurrenceData.endDate || ''}
                 onChange={(e) => handleChange('endDate', e.target.value)}
               />
             </div>

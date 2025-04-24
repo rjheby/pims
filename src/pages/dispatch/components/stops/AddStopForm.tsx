@@ -1,4 +1,5 @@
-import React, { useState, useCallback } from "react";
+
+import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -10,29 +11,30 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, UserPlus, Hash, ExternalLink, Edit, Calendar } from "lucide-react";
+import { Plus, UserPlus, Hash, ExternalLink, Edit } from "lucide-react";
 import { Customer } from "@/pages/customers/types";
-import { Driver } from "@/types/driver";
-import { StopFormData } from "./types";
+import { Driver, StopFormData } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { CustomerEditSheet } from "@/pages/customers/components/CustomerEditSheet";
-import { Switch } from "@/components/ui/switch";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
-import RecurrenceForm from "./RecurrenceForm";
-import { validateStopForm } from "./schemas";
 
 interface AddStopFormProps {
   customers: Customer[];
   drivers: Driver[];
-  onStopChange: (data: StopFormData) => void;
+  currentStop: StopFormData;
+  onStopChange: (value: StopFormData) => void;
+  onAddStop: () => void;
   readOnly?: boolean;
 }
 
-const AddStopForm: React.FC<AddStopFormProps> = ({ customers, drivers, onStopChange, readOnly = false }) => {
+export function AddStopForm({
+  customers,
+  drivers,
+  currentStop,
+  onStopChange,
+  onAddStop,
+  readOnly = false
+}: AddStopFormProps) {
   const { toast } = useToast();
   const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
   const [showEditCustomerSheet, setShowEditCustomerSheet] = useState(false);
@@ -44,21 +46,9 @@ const AddStopForm: React.FC<AddStopFormProps> = ({ customers, drivers, onStopCha
     email: '',
   });
 
-  const [currentStop, setCurrentStop] = useState<StopFormData>({
-    customer: "",
-    driver: "",
-    notes: "",
-    is_recurring: false,
-    recurrence_frequency: "weekly",
-    preferred_day: "monday",
-    next_occurrence_date: null,
-    recurrence_end_date: null,
-    stop_number: 1
-  });
+  const selectedCustomer = customers.find(c => c.id === currentStop.customer_id);
 
-  const selectedCustomer = customers.find(c => c.id === currentStop.customer);
-
-  const handleCreateCustomer = useCallback(async () => {
+  const handleCreateCustomer = async () => {
     if (!newCustomer.name) {
       toast({
         title: "Error",
@@ -89,7 +79,8 @@ const AddStopForm: React.FC<AddStopFormProps> = ({ customers, drivers, onStopCha
           description: "Customer created successfully"
         });
         
-        onStopChange({ ...currentStop, customer: data[0].id });
+        // Select the newly created customer
+        onStopChange({ ...currentStop, customer_id: data[0].id });
         setShowNewCustomerForm(false);
       }
     } catch (err) {
@@ -100,9 +91,9 @@ const AddStopForm: React.FC<AddStopFormProps> = ({ customers, drivers, onStopCha
         variant: "destructive"
       });
     }
-  }, [newCustomer, currentStop, onStopChange, toast]);
+  };
 
-  const handleUpdateCustomer = useCallback(async (customerData: Partial<Customer>) => {
+  const handleUpdateCustomer = async (customerData: Partial<Customer>) => {
     if (!selectedCustomer) return;
     
     try {
@@ -138,41 +129,7 @@ const AddStopForm: React.FC<AddStopFormProps> = ({ customers, drivers, onStopCha
         variant: "destructive"
       });
     }
-  }, [selectedCustomer, toast]);
-
-  const handleCustomerSelect = useCallback((customer: Customer) => {
-    onStopChange({
-      ...currentStop,
-      customer: customer.id
-    });
-  }, [currentStop, onStopChange]);
-
-  const handleDriverSelect = useCallback((driver: Driver) => {
-    onStopChange({
-      ...currentStop,
-      driver: driver.id
-    });
-  }, [currentStop, onStopChange]);
-
-  const handleSubmit = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validate form data using Zod schema
-    const validationResult = validateStopForm(currentStop);
-    
-    if (!validationResult.success) {
-      // Display validation errors
-      const errors = validationResult.error.errors;
-      toast({
-        title: "Validation Error",
-        description: errors.map(err => err.message).join(", "),
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    onStopChange(currentStop);
-  }, [currentStop, onStopChange, toast]);
+  };
 
   if (readOnly) return null;
 
@@ -182,11 +139,33 @@ const AddStopForm: React.FC<AddStopFormProps> = ({ customers, drivers, onStopCha
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
+          <Label>Stop Number</Label>
+          <div className="flex items-center">
+            <div className="relative flex-1">
+              <span className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-500">
+                <Hash className="h-4 w-4" />
+              </span>
+              <Input 
+                type="number"
+                min="1"
+                placeholder="Enter stop number" 
+                className="pl-10"
+                value={currentStop.stop_number || ''}
+                onChange={(e) => onStopChange({
+                  ...currentStop,
+                  stop_number: e.target.value ? parseInt(e.target.value, 10) : undefined
+                })}
+              />
+            </div>
+          </div>
+        </div>
+      
+        <div className="space-y-2">
           <Label>Customer</Label>
           <div className="flex gap-2">
             <Select 
-              value={currentStop.customer} 
-              onValueChange={(value) => onStopChange({ ...currentStop, customer: value })}
+              value={currentStop.customer_id} 
+              onValueChange={(value) => onStopChange({ ...currentStop, customer_id: value })}
             >
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Select a customer" />
@@ -275,8 +254,8 @@ const AddStopForm: React.FC<AddStopFormProps> = ({ customers, drivers, onStopCha
         <div className="space-y-2">
           <Label>Driver</Label>
           <Select 
-            value={currentStop.driver} 
-            onValueChange={(value) => onStopChange({ ...currentStop, driver: value })}
+            value={currentStop.driver_id} 
+            onValueChange={(value) => onStopChange({ ...currentStop, driver_id: value })}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select a driver" />
@@ -324,29 +303,29 @@ const AddStopForm: React.FC<AddStopFormProps> = ({ customers, drivers, onStopCha
         )}
         
         <div className="space-y-2">
-          <Label>Notes</Label>
-          <textarea
-            value={currentStop.notes}
-            onChange={(e) => onStopChange({ ...currentStop, notes: e.target.value })}
-            readOnly={readOnly}
-            className="w-full min-h-[100px] p-2 border rounded-md"
+          <Label>Items</Label>
+          <Input 
+            placeholder="Enter delivery items..."
+            value={currentStop.items}
+            onChange={(e) => onStopChange({ ...currentStop, items: e.target.value })}
           />
         </div>
-
-        <div className="md:col-span-2">
-          <RecurrenceForm 
-            data={currentStop} 
-            onChange={onStopChange} 
-            readOnly={readOnly} 
+        
+        <div className="space-y-2">
+          <Label>Notes</Label>
+          <Input 
+            placeholder="Enter delivery notes or special instructions..."
+            value={currentStop.notes}
+            onChange={(e) => onStopChange({ ...currentStop, notes: e.target.value })}
           />
         </div>
       </div>
       
       <div className="flex justify-end mt-4">
         <Button 
-          onClick={handleSubmit}
+          onClick={onAddStop}
           className="bg-[#2A4131] hover:bg-[#2A4131]/90"
-          disabled={!currentStop.customer}
+          disabled={!currentStop.customer_id}
         >
           <Plus className="mr-2 h-4 w-4" />
           Add Stop
@@ -364,6 +343,4 @@ const AddStopForm: React.FC<AddStopFormProps> = ({ customers, drivers, onStopCha
       )}
     </div>
   );
-};
-
-export default AddStopForm;
+}

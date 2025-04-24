@@ -1,194 +1,243 @@
 
 import { useState, useCallback } from "react";
-import { Customer, Driver, DeliveryStop } from "@/types";
-import { StopFormData } from "@/types/delivery";
-import { DeliveryStatus } from "@/types/status";
-import { RecurrenceData } from "@/types/recurring";
+import { Customer, DeliveryStop, Driver, StopFormData, RecurrenceData } from "../components/stops/types";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
-interface UseStopsDialogsProps {
-  stops: DeliveryStop[];
-  onStopsChange: (newStops: DeliveryStop[]) => void;
-  customers: Customer[];
-  drivers: Driver[];
-  initialCustomerId?: string;
-  initialItems?: string;
-  masterScheduleId?: string;
-}
-
-export const useStopsDialogs = ({
-  stops,
-  onStopsChange,
-  customers,
-  drivers,
-  initialCustomerId = "",
-  initialItems = "",
-  masterScheduleId,
-}: UseStopsDialogsProps) => {
+export function useStopsDialogs(
+  stops: DeliveryStop[],
+  onStopsChange: (stops: DeliveryStop[]) => void,
+  customers: Customer[],
+  drivers: Driver[]
+) {
+  const { toast } = useToast();
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [isAddingNewStop, setIsAddingNewStop] = useState(false);
   const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
   const [itemsDialogOpen, setItemsDialogOpen] = useState(false);
   const [editForm, setEditForm] = useState<StopFormData>({
-    customer: initialCustomerId || "",
-    client_id: initialCustomerId || "",
-    driver: "",
+    stop_number: 0,
+    customer_id: "",
+    customer_name: "",
+    customer_address: "",
+    driver_id: "",
+    driver_name: "",
+    items: "",
     notes: "",
+    price: "",
     is_recurring: false,
-    recurrence_frequency: "weekly",
-    preferred_day: "monday",
-    next_occurrence_date: null,
-    recurrence_end_date: null,
-    stop_number: stops.length + 1,
-    items: initialItems || "",
+    recurring_id: ""
   });
   
-  const resetForm = useCallback(() => {
-    setEditForm({
-      customer: "",
-      client_id: "",
-      driver: "",
-      notes: "",
-      is_recurring: false,
-      recurrence_frequency: "weekly",
-      preferred_day: "monday",
-      next_occurrence_date: null,
-      recurrence_end_date: null,
-      stop_number: stops.length + 1,
-      items: ""
-    });
-  }, [stops.length]);
+  const [recurrenceData, setRecurrenceData] = useState<RecurrenceData>({
+    isRecurring: false,
+    frequency: "weekly",
+    preferredDay: "monday"
+  });
 
   const handleAddStop = useCallback(() => {
-    console.log("Starting add new stop flow");
+    console.log("Adding new stop");
     setIsAddingNewStop(true);
-    resetForm();
+    setEditingIndex(null);
+    
+    const newStopNumber = stops.length > 0 
+      ? Math.max(...stops.map(s => s.stop_number || 0)) + 1 
+      : 1;
+      
+    setEditForm({
+      stop_number: newStopNumber,
+      customer_id: "",
+      customer_name: "",
+      customer_address: "",
+      driver_id: "",
+      driver_name: "",
+      items: "",
+      notes: "",
+      price: "",
+      is_recurring: false,
+      recurring_id: ""
+    });
+    
+    setRecurrenceData({
+      isRecurring: false,
+      frequency: "weekly",
+      preferredDay: "monday"
+    });
+    
     setCustomerDialogOpen(true);
-  }, [resetForm]);
+  }, [stops, setCustomerDialogOpen]);
 
   const handleEditStart = useCallback((index: number) => {
-    console.log(`Starting edit for stop at index: ${index}`);
+    console.log("Editing stop at index:", index);
     const stop = stops[index];
-    if (!stop) return;
-
-    const customerId = stop.client_id;
-    const driverId = stop.driver_id || "";
-    
     setEditingIndex(index);
+    setIsAddingNewStop(false);
+    
     setEditForm({
-      customer: customerId,
-      client_id: customerId,
-      driver: driverId,
-      notes: stop.notes || "",
-      is_recurring: stop.is_recurring || false,
-      recurrence_frequency: stop.recurrence_frequency || "weekly",
-      preferred_day: stop.preferred_day || "monday",
-      next_occurrence_date: stop.next_occurrence_date ? new Date(stop.next_occurrence_date) : null,
-      recurrence_end_date: stop.recurrence_end_date ? new Date(stop.recurrence_end_date) : null,
+      id: stop.id,
       stop_number: stop.stop_number,
+      customer_id: stop.customer_id || "",
+      customer_name: stop.customer_name || "",
+      customer_address: stop.customer_address || "",
+      driver_id: stop.driver_id || "",
+      driver_name: stop.driver_name || "",
       items: stop.items || "",
-      recurring_order_id: stop.recurring_order_id
+      notes: stop.notes || "",
+      price: stop.price || "",
+      is_recurring: stop.is_recurring || false,
+      recurring_id: stop.recurring_id || ""
     });
   }, [stops]);
 
   const handleEditSave = useCallback(() => {
-    if (editingIndex !== null && editingIndex >= 0 && editingIndex < stops.length) {
-      console.log(`Saving edits for stop at index: ${editingIndex}`, editForm);
-      
-      const updatedStop: DeliveryStop = {
-        ...stops[editingIndex],
-        client_id: editForm.customer,
-        driver_id: editForm.driver || undefined,
-        notes: editForm.notes,
-        is_recurring: editForm.is_recurring,
-        recurrence_frequency: editForm.recurrence_frequency,
-        preferred_day: editForm.preferred_day,
-        next_occurrence_date: editForm.next_occurrence_date,
-        recurrence_end_date: editForm.recurrence_end_date,
-        recurring_order_id: editForm.recurring_order_id,
-        stop_number: editForm.stop_number,
-        items: editForm.items || ""
-      };
-      
-      const updatedStops = [...stops];
-      updatedStops[editingIndex] = updatedStop;
-      onStopsChange(updatedStops);
-      
-      setEditingIndex(null);
-      resetForm();
-    } else if (isAddingNewStop) {
-      console.log("Adding new stop with data:", editForm);
-      
-      let clientId = editForm.customer;
-      let customerId = editForm.customer; // We want client_id to be the customer ID
-      
-      // Get customer details
-      const customer = customers.find((c) => c.id === customerId);
-      
-      // Create a new stop object
-      const newStop: DeliveryStop = {
-        stop_number: stops.length + 1,
-        client_id: clientId,
-        customer: customer,
-        driver_id: editForm.driver || undefined,
-        items: editForm.items || "",
-        notes: editForm.notes,
-        status: "PENDING",
-        is_recurring: editForm.is_recurring,
-        recurrence_frequency: editForm.recurrence_frequency,
-        preferred_day: editForm.preferred_day,
-        next_occurrence_date: editForm.next_occurrence_date,
-        recurrence_end_date: editForm.recurrence_end_date,
-        recurring_order_id: editForm.recurring_order_id,
-        master_schedule_id: masterScheduleId
-      };
-      
-      onStopsChange([...stops, newStop]);
-      
-      setIsAddingNewStop(false);
-      resetForm();
+    if (editForm.customer_id) {
+      if (editingIndex !== null) {
+        console.log("Saving edits to existing stop");
+        const newStops = [...stops];
+        newStops[editingIndex] = {
+          ...newStops[editingIndex],
+          ...editForm,
+          // If this is a recurring stop, update recurring_id and is_recurring flags
+          ...(recurrenceData.isRecurring && {
+            is_recurring: true
+          })
+        };
+        onStopsChange(newStops);
+      } else if (isAddingNewStop) {
+        console.log("Adding new stop to collection");
+        const newStop: DeliveryStop = {
+          ...editForm,
+          // If this is a recurring stop, add recurring properties
+          ...(recurrenceData.isRecurring && {
+            is_recurring: true
+          }),
+          stop_number: editForm.stop_number
+        };
+        
+        onStopsChange([...stops, newStop]);
+        
+        // If it's a recurring stop, save it to the recurring_orders table
+        if (recurrenceData.isRecurring) {
+          saveRecurringOrder();
+        }
+      }
     }
-  }, [editingIndex, editForm, stops, onStopsChange, isAddingNewStop, customers, masterScheduleId, resetForm]);
-
-  const handleEditCancel = useCallback(() => {
-    console.log("Cancelling edit/add operation");
+    
     setEditingIndex(null);
     setIsAddingNewStop(false);
-    resetForm();
+  }, [stops, editForm, editingIndex, isAddingNewStop, onStopsChange, recurrenceData]);
+
+  const saveRecurringOrder = async () => {
+    if (!editForm.customer_id || !recurrenceData.isRecurring) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("recurring_orders")
+        .insert({
+          customer_id: editForm.customer_id,
+          frequency: recurrenceData.frequency,
+          preferred_day: recurrenceData.preferredDay,
+          preferred_time: "morning" // Default to morning
+        })
+        .select();
+      
+      if (error) throw error;
+      
+      console.log("Created recurring order:", data);
+      
+      // Update the stop with the recurring_id
+      if (data && data[0].id) {
+        const updatedStops = stops.map(stop => {
+          if (stop.customer_id === editForm.customer_id) {
+            return {
+              ...stop,
+              recurring_id: data[0].id,
+              is_recurring: true
+            };
+          }
+          return stop;
+        });
+        
+        onStopsChange(updatedStops);
+        
+        toast({
+          title: "Success",
+          description: "Recurring order saved and linked to this stop",
+        });
+      }
+    } catch (error: any) {
+      console.error("Error saving recurring order:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save recurring order: " + error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleEditCancel = useCallback(() => {
+    console.log("Canceling edit");
+    setEditingIndex(null);
+    setIsAddingNewStop(false);
     setCustomerDialogOpen(false);
     setItemsDialogOpen(false);
-  }, [resetForm]);
+  }, []);
 
   const handleCustomerSelect = useCallback((customer: Customer) => {
     console.log("Selected customer:", customer);
     setEditForm(prev => ({
       ...prev,
-      customer: customer.id,
-      client_id: customer.id
+      customer_id: customer.id,
+      customer_name: customer.name,
+      customer_address: customer.address || 
+        [customer.street_address, customer.city, customer.state, customer.zip_code]
+          .filter(Boolean)
+          .join(", ")
     }));
+    
     setCustomerDialogOpen(false);
     setItemsDialogOpen(true);
   }, []);
 
-  const handleItemsSelect = useCallback((items: string) => {
+  const handleItemsSelect = useCallback((items: string, itemsData?: any[], recurrenceDataUpdate?: RecurrenceData) => {
     console.log("Selected items:", items);
+    
+    // If recurrence data was updated through the ItemSelector, update it here
+    if (recurrenceDataUpdate) {
+      setRecurrenceData(recurrenceDataUpdate);
+    }
+    
+    // Simple price calculation (can be enhanced)
+    const itemsArray = items.split(',').filter(Boolean);
+    const basePrice = 10;
+    const calculatedPrice = itemsArray.length * basePrice;
+    
     setEditForm(prev => ({
       ...prev,
-      items
+      items,
+      price: calculatedPrice
     }));
-    setItemsDialogOpen(false);
     
-    // If we're adding a new stop and have both customer and items, save it
-    if (isAddingNewStop) {
-      handleEditSave();
+    setItemsDialogOpen(false);
+    handleEditSave();
+  }, [handleEditSave]);
+
+  const openCustomerDialog = useCallback((index?: number) => {
+    if (index !== undefined) {
+      handleEditStart(index);
     }
-  }, [isAddingNewStop, handleEditSave]);
-
-  const openCustomerDialog = useCallback(() => {
     setCustomerDialogOpen(true);
-  }, []);
+  }, [handleEditStart]);
 
-  const openItemsDialog = useCallback(() => {
+  const openItemsDialog = useCallback((index?: number) => {
+    if (index !== undefined && editingIndex !== index) {
+      handleEditStart(index);
+    }
     setItemsDialogOpen(true);
+  }, [handleEditStart, editingIndex]);
+
+  const handleRecurrenceChange = useCallback((data: RecurrenceData) => {
+    setRecurrenceData(data);
   }, []);
 
   return {
@@ -200,7 +249,8 @@ export const useStopsDialogs = ({
     setItemsDialogOpen,
     editForm,
     setEditForm,
-    recurrenceData: undefined, // Define this properly if needed
+    recurrenceData,
+    handleRecurrenceChange,
     handleAddStop,
     handleEditStart,
     handleEditSave,
@@ -208,6 +258,6 @@ export const useStopsDialogs = ({
     handleCustomerSelect,
     handleItemsSelect,
     openCustomerDialog,
-    openItemsDialog,
+    openItemsDialog
   };
-};
+}

@@ -12,9 +12,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useState, useEffect } from "react";
-import { OrderItem, emptyOptions, WoodProduct } from "../types";
+import { OrderItem, emptyOptions } from "../types";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 interface ProductSelectorDialogProps {
   open: boolean;
@@ -44,9 +43,7 @@ export function ProductSelectorDialog({
   const [selectedBundleType, setSelectedBundleType] = useState("");
   const [selectedPackaging, setSelectedPackaging] = useState("Pallets");
   const [unitCost, setUnitCost] = useState(250);
-  const [quantity, setQuantity] = useState(1);
-  const [popularProducts, setPopularProducts] = useState<WoodProduct[]>([]);
-  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [quantity, setQuantity] = useState(0);
 
   // Create a safe options object that guarantees arrays for all option fields
   const safeOptions = {
@@ -58,36 +55,8 @@ export function ProductSelectorDialog({
   useEffect(() => {
     if (!open) {
       resetForm();
-    } else {
-      // Load popular products when dialog opens
-      loadPopularProducts();
     }
   }, [open]);
-
-  // Load popular products from Supabase
-  const loadPopularProducts = async () => {
-    setLoadingProducts(true);
-    try {
-      const { data, error } = await supabase
-        .from('wood_products')
-        .select('*')
-        .eq('is_popular', true)
-        .order('popularity_rank');
-      
-      if (error) throw error;
-      
-      setPopularProducts(data || []);
-    } catch (err) {
-      console.error('Error loading popular products:', err);
-      toast({
-        title: "Error",
-        description: "Failed to load popular products",
-        variant: "destructive"
-      });
-    } finally {
-      setLoadingProducts(false);
-    }
-  };
 
   const handleSelect = () => {
     const product: Partial<OrderItem> = {
@@ -103,14 +72,6 @@ export function ProductSelectorDialog({
     onOpenChange(false);
   };
 
-  const handlePopularProductSelect = (product: WoodProduct) => {
-    setSelectedSpecies(product.species);
-    setSelectedLength(product.length);
-    setSelectedThickness(product.thickness);
-    setSelectedBundleType(product.bundle_type);
-    setUnitCost(product.unit_cost || unitCost);
-  };
-
   const resetForm = () => {
     setSelectedSpecies("");
     setSelectedLength("");
@@ -118,7 +79,7 @@ export function ProductSelectorDialog({
     setSelectedBundleType("");
     setSelectedPackaging("Pallets");
     setUnitCost(250);
-    setQuantity(1);
+    setQuantity(0);
     setEditingField(null);
     setNewOption("");
   };
@@ -241,27 +202,6 @@ export function ProductSelectorDialog({
             </p>
           </div>
 
-          {popularProducts.length > 0 && (
-            <div className="space-y-2">
-              <label className="text-lg font-semibold">Popular Products</label>
-              <Select onValueChange={(value) => {
-                const product = popularProducts.find(p => p.id === value);
-                if (product) handlePopularProductSelect(product);
-              }}>
-                <SelectTrigger className="w-full bg-white">
-                  <SelectValue placeholder="Select a popular product" />
-                </SelectTrigger>
-                <SelectContent className="bg-white">
-                  {popularProducts.map((product) => (
-                    <SelectItem key={product.id} value={product.id}>
-                      {product.full_description}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
           <div className="grid gap-6">
             {renderSelect("Species", selectedSpecies, setSelectedSpecies, safeOptions.species)}
             {renderSelect("Length", selectedLength, setSelectedLength, safeOptions.length)}
@@ -287,7 +227,7 @@ export function ProductSelectorDialog({
                 value={quantity}
                 onChange={(e) => setQuantity(Number(e.target.value))}
                 placeholder="Enter quantity"
-                min={1}
+                min={0}
               />
               {getCapacityInfo()}
             </div>
