@@ -1,4 +1,3 @@
-
 /**
  * Type definitions for the dispatch stops components
  */
@@ -21,8 +20,7 @@ import { DELIVERY_STATUS_OPTIONS, getStatusBadgeVariant } from '@/types/status';
 export { DELIVERY_STATUS_OPTIONS, getStatusBadgeVariant };
 
 /**
- * Represents a date range with start and end dates
- * Used for filtering and querying date-based operations
+ * Date range type for scheduling
  */
 export type DateRange = {
   start: string;
@@ -30,11 +28,21 @@ export type DateRange = {
 };
 
 /**
+ * Time window for delivery stops
+ */
+export interface TimeWindow {
+  start: string;
+  end: string;
+}
+
+/**
  * DeliveryStop interface - ensure compatibility with the centralized type
  * while adding any component-specific extensions
  */
 export interface DeliveryStop extends BaseDeliveryStop {
-  // Any component-specific extensions can go here
+  time_window?: TimeWindow;
+  created_at: string;
+  updated_at: string;
 }
 
 /**
@@ -59,11 +67,21 @@ export interface RecurringOrder extends BaseRecurringOrder {
 }
 
 /**
+ * Sync result for recurring orders
+ */
+export interface SyncResult {
+  added: DeliveryStop[];
+  updated: DeliveryStop[];
+  removed: string[];
+  errors: string[];
+}
+
+/**
  * Props for the StopsTable component
  */
 export interface StopsTableProps {
   stops: DeliveryStop[];
-  onStopsChange: (newStops: DeliveryStop[]) => void;
+  onStopsChange: (stops: DeliveryStop[]) => void;
   useMobileLayout?: boolean;
   readOnly?: boolean;
   masterScheduleId?: string;
@@ -153,4 +171,37 @@ export interface UseStopsDialogsReturn {
   handleItemsSelect: (items: string) => void;
   openCustomerDialog: () => void;
   openItemsDialog: () => void;
+}
+
+/**
+ * Props for the RecurringOrderSync component
+ */
+export interface RecurringOrderSyncProps {
+  date: string;
+  onSyncComplete: (result: SyncResult) => void;
+  onSyncError: (error: string) => void;
+}
+
+/**
+ * Return type for the useRecurringOrderSync hook
+ */
+export interface UseRecurringOrderSyncReturn {
+  isSyncing: boolean;
+  syncResult: SyncResult | null;
+  syncError: string | null;
+  syncRecurringOrders: (date: string) => Promise<void>;
+  resetSyncState: () => void;
+}
+
+/**
+ * Props for the RecurringOrderScheduler component
+ */
+export interface RecurringOrderSchedulerProps {
+  selectedRecurringOrder?: RecurringOrder | null;
+  onSave?: (items: string, frequency: RecurringFrequency, preferredDay: PreferredDay | undefined, startDate: string | undefined, endDate: string | undefined) => void;
+  onCancel?: () => void;
+  customers?: Customer[];
+  scheduleDate: Date;
+  onAddStops: (newStops: DeliveryStop[]) => void;
+  existingCustomerIds: string[];
 }

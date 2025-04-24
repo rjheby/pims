@@ -23,23 +23,18 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { 
-  RecurringOrder, 
-  DeliveryStop, 
-  Customer, 
-  DeliveryStatus, 
-  RecurringFrequency, 
-  PreferredDay 
-} from '@/types';
+import { RecurringOrder, DeliveryStop } from './stops/types';
+import { Customer } from '@/pages/customers/types';
+import { RecurringFrequency, PreferredDay } from '@/types/recurring';
 
 interface RecurringOrderSchedulerProps {
   selectedRecurringOrder?: RecurringOrder | null;
-  onSave?: (items: string, frequency: string, preferredDay: string | undefined, startDate: string | undefined, endDate: string | undefined) => void;
+  onSave?: (items: string, frequency: RecurringFrequency, preferredDay: PreferredDay | undefined, startDate: string | undefined, endDate: string | undefined) => void;
   onCancel?: () => void;
   customers?: Customer[];
   scheduleDate: Date;
   onAddStops: (newStops: DeliveryStop[]) => void;
-  existingClientIds: string[];
+  existingCustomerIds: string[];
 }
 
 export function RecurringOrderScheduler({
@@ -49,10 +44,10 @@ export function RecurringOrderScheduler({
   customers = [],
   scheduleDate,
   onAddStops,
-  existingClientIds = []
+  existingCustomerIds = []
 }: RecurringOrderSchedulerProps) {
   const [frequency, setFrequency] = useState<RecurringFrequency>(selectedRecurringOrder?.frequency || 'weekly');
-  const [preferredDay, setPreferredDay] = useState<PreferredDay>(selectedRecurringOrder?.preferred_day || 'monday');
+  const [preferredDay, setPreferredDay] = useState<PreferredDay | undefined>(selectedRecurringOrder?.preferred_day);
   const [items, setItems] = useState(selectedRecurringOrder?.items || '');
   const [date, setDate] = useState<DateRange | undefined>({
     from: selectedRecurringOrder?.start_date ? new Date(selectedRecurringOrder.start_date) : undefined,
@@ -68,8 +63,6 @@ export function RecurringOrderScheduler({
     { value: 'wednesday', label: 'Wednesday' },
     { value: 'thursday', label: 'Thursday' },
     { value: 'friday', label: 'Friday' },
-    { value: 'saturday', label: 'Saturday' },
-    { value: 'sunday', label: 'Sunday' },
   ] as const;
 
   // Fetch recurring orders on component mount
@@ -81,21 +74,16 @@ export function RecurringOrderScheduler({
           .from('recurring_orders')
           .select(`
             *,
-            customer:customer_id (
-              id, name, address, phone, email
-            )
+            customer:customers(*)
           `)
-          .eq('active_status', true);
+          .eq('is_active', true);
 
         if (error) {
           throw error;
         }
 
-        // Filter out customers that are already in the current schedule
-        const filteredOrders = data?.filter(order => 
-          !existingClientIds.includes(order.customer_id)
-        ) || [];
-
+        // Filter out orders for customers that are already in the schedule
+        const filteredOrders = data.filter(order => !existingCustomerIds.includes(order.customer_id));
         setAvailableRecurringOrders(filteredOrders);
       } catch (error: any) {
         toast({
@@ -109,20 +97,17 @@ export function RecurringOrderScheduler({
     };
 
     fetchRecurringOrders();
-  }, [existingClientIds, toast]);
+  }, [existingCustomerIds, toast]);
 
   const handleSave = useCallback(() => {
     const startDate = date?.from ? format(date.from, 'yyyy-MM-dd') : undefined;
     const endDate = date?.to ? format(date.to, 'yyyy-MM-dd') : undefined;
-    const itemsString = typeof selectedRecurringOrder?.items === 'string' 
-      ? selectedRecurringOrder.items 
-      : JSON.stringify(selectedRecurringOrder?.items || []);
-    onSave(itemsString, frequency, preferredDay, startDate, endDate);
-  }, [date, frequency, preferredDay, selectedRecurringOrder, onSave]);
+    onSave(items, frequency, preferredDay, startDate, endDate);
+  }, [date, frequency, preferredDay, items, onSave]);
 
-  const getCustomerName = useCallback((clientId: string | undefined) => {
-    if (!clientId || !customers) return 'N/A';
-    const customer = customers.find((c) => c.id === clientId);
+  const getCustomerName = useCallback((customerId: string | undefined) => {
+    if (!customerId || !customers) return 'N/A';
+    const customer = customers.find((c) => c.id === customerId);
     return customer ? customer.name : 'Unknown Customer';
   }, [customers]);
 
@@ -156,7 +141,7 @@ export function RecurringOrderScheduler({
       driver_name: "",
       items: order.items || "",
       notes: `Recurring order (${order.frequency})`,
-      status: "PENDING" as DeliveryStatus,
+      status: "PENDING",
       is_recurring: true,
       recurring_order_id: order.id,
       master_schedule_id: ""
@@ -173,147 +158,144 @@ export function RecurringOrderScheduler({
 
   return (
     <div className="space-y-4">
-      <div className="bg-gray-50 p-4 rounded-lg mb-4">
-        <h3 className="text-lg font-medium mb-2">Available Recurring Orders</h3>
-        <p className="text-sm text-gray-500 mb-4">
-          {availableRecurringOrders.length === 0 
-            ? "No recurring orders available for this date or all customers already added to schedule." 
-            : `${availableRecurringOrders.length} recurring orders available to add to this schedule.`}
-        </p>
-        
-        {availableRecurringOrders.length > 0 && (
-          <>
-            <div className="border rounded-md overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-gray-100">
-                  <tr>
-                    <th className="px-4 py-2 text-left">Customer</th>
-                    <th className="px-4 py-2 text-left">Frequency</th>
-                    <th className="px-4 py-2 text-left">Preferred Day</th>
-                    <th className="px-4 py-2 text-left">Items</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {availableRecurringOrders.map(order => (
-                    <tr key={order.id} className="border-t">
-                      <td className="px-4 py-2">{order.customer?.name || 'Unknown'}</td>
-                      <td className="px-4 py-2">{order.frequency}</td>
-                      <td className="px-4 py-2">{order.preferred_day}</td>
-                      <td className="px-4 py-2">{order.items}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="mt-4 flex justify-end">
+      <div className="grid gap-4">
+        <div className="space-y-2">
+          <Label>Frequency</Label>
+          <Select value={frequency} onValueChange={handleFrequencyChange}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select frequency" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="weekly">Weekly</SelectItem>
+              <SelectItem value="bi-weekly">Bi-weekly</SelectItem>
+              <SelectItem value="monthly">Monthly</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Preferred Day</Label>
+          <Select value={preferredDay} onValueChange={handlePreferredDayChange}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select preferred day" />
+            </SelectTrigger>
+            <SelectContent>
+              {preferredDays.map((day) => (
+                <SelectItem key={day.value} value={day.value}>
+                  {day.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Date Range</Label>
+          <Popover>
+            <PopoverTrigger asChild>
               <Button
-                onClick={handleAddRecurringStops}
-                disabled={loading || availableRecurringOrders.length === 0}
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !date && "text-muted-foreground"
+                )}
               >
-                Add All Recurring Orders to Schedule
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {date?.from ? (
+                  date.to ? (
+                    <>
+                      {format(date.from, "LLL dd, y")} -{" "}
+                      {format(date.to, "LLL dd, y")}
+                    </>
+                  ) : (
+                    format(date.from, "LLL dd, y")
+                  )
+                ) : (
+                  <span>Pick a date range</span>
+                )}
               </Button>
-            </div>
-          </>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                initialFocus
+                mode="range"
+                defaultMonth={date?.from}
+                selected={date}
+                onSelect={setDate}
+                numberOfMonths={2}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Items</Label>
+          <Textarea
+            value={items}
+            onChange={(e) => setItems(e.target.value)}
+            placeholder="Enter items for this recurring order"
+          />
+        </div>
+      </div>
+
+      <div className="flex justify-end space-x-2">
+        <Button variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button onClick={handleSave}>Save</Button>
+      </div>
+
+      <div className="mt-8">
+        <h3 className="text-lg font-medium mb-4">Available Recurring Orders</h3>
+        {loading ? (
+          <div className="text-center py-4">Loading...</div>
+        ) : availableRecurringOrders.length > 0 ? (
+          <div className="space-y-4">
+            {availableRecurringOrders.map((order) => (
+              <div
+                key={order.id}
+                className="flex items-center justify-between p-4 border rounded-lg"
+              >
+                <div>
+                  <div className="font-medium">{getCustomerName(order.customer_id)}</div>
+                  <div className="text-sm text-gray-500">
+                    {order.frequency} - {order.preferred_day}
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const newStop: DeliveryStop = {
+                      stop_number: 1,
+                      client_id: order.customer_id,
+                      customer_name: order.customer?.name || 'Unknown Customer',
+                      customer_address: order.customer?.address || '',
+                      customer_phone: order.customer?.phone || '',
+                      customer: order.customer,
+                      driver_id: "",
+                      driver_name: "",
+                      items: order.items || "",
+                      notes: `Recurring order (${order.frequency})`,
+                      status: "PENDING",
+                      is_recurring: true,
+                      recurring_order_id: order.id,
+                      master_schedule_id: ""
+                    };
+                    onAddStops([newStop]);
+                  }}
+                >
+                  Add to Schedule
+                </Button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-4 text-gray-500">
+            No recurring orders available for this date
+          </div>
         )}
       </div>
-      
-      {selectedRecurringOrder && (
-        <div className="border rounded-lg p-4">
-          <h3 className="text-lg font-medium mb-4">Edit Recurring Order</h3>
-          <div>
-            <Label htmlFor="customer">Customer</Label>
-            <Input id="customer" value={getCustomerName(selectedRecurringOrder?.client_id)} disabled />
-          </div>
-          <div className="mt-2">
-            <Label htmlFor="items">Items</Label>
-            <Textarea
-              id="items"
-              value={items}
-              onChange={(e) => setItems(e.target.value)}
-              placeholder="Enter items"
-            />
-          </div>
-          <div className="mt-2">
-            <Label htmlFor="frequency">Frequency</Label>
-            <Select 
-              value={frequency} 
-              onValueChange={handleFrequencyChange}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select frequency" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="weekly">Weekly</SelectItem>
-                <SelectItem value="bi-weekly">Bi-Weekly</SelectItem>
-                <SelectItem value="monthly">Monthly</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {frequency === 'weekly' && (
-            <div className="mt-2">
-              <Label htmlFor="preferredDay">Preferred Day</Label>
-              <Select 
-                value={preferredDay} 
-                onValueChange={handlePreferredDayChange}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select preferred day" />
-                </SelectTrigger>
-                <SelectContent>
-                  {preferredDays.map((day) => (
-                    <SelectItem key={day.value} value={day.value}>
-                      {day.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-          <div className="mt-2">
-            <Label>Date Range</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={'outline'}
-                  className={cn(
-                    'w-[240px] justify-start text-left font-normal',
-                    !date && 'text-muted-foreground'
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {date?.from ? (
-                    date.to ? (
-                      `${format(date.from, 'MMM dd, yyyy')} - ${format(
-                        date.to,
-                        'MMM dd, yyyy'
-                      )}`
-                    ) : (
-                      format(date.from, 'MMM dd, yyyy')
-                    )
-                  ) : (
-                    <span>Pick a date</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="center">
-                <Calendar
-                  mode="range"
-                  defaultMonth={date?.from}
-                  selected={date}
-                  onSelect={setDate}
-                  numberOfMonths={2}
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-          <div className="flex justify-end space-x-2 mt-4">
-            <Button variant="ghost" onClick={onCancel}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave}>Save</Button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
