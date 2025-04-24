@@ -20,13 +20,14 @@ export type PreferredDay = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'fr
  */
 export interface RecurringOrder {
   id: string;
-  client_id: string;
+  client_id?: string;
+  customer_id: string;  // Added to match code usage in RecurringOrderScheduler
   customer?: Customer;
   items: string;
   frequency: RecurringFrequency;
   preferred_day?: PreferredDay;
-  start_date: string | Date;
-  end_date: string | Date;
+  start_date?: string | Date;
+  end_date?: string | Date;
   is_active?: boolean;
   created_at?: string;
   updated_at?: string;

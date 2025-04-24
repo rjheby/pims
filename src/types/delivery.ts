@@ -13,6 +13,7 @@ export interface ItemData {
   unit: string;
   product: string;
   price: number;
+  name?: string; // Adding name property needed by components
 }
 
 /**
@@ -92,4 +93,3 @@ export interface StopFilters {
   };
   is_recurring?: boolean;
 }
-

@@ -4,11 +4,11 @@
  */
 
 // Export all types from each module
-export type { DeliveryStatus, DELIVERY_STATUS_OPTIONS, getStatusBadgeVariant } from './status';
-export type { Customer } from './customer';
-export type { Driver } from './driver';
-export type { BaseStop, DeliveryStop, StopFormData, StopFilters, ItemData } from './delivery';
-export type { 
+export { DeliveryStatus, DELIVERY_STATUS_OPTIONS, getStatusBadgeVariant } from './status';
+export { Customer } from './customer';
+export { Driver } from './driver';
+export { BaseStop, DeliveryStop, StopFormData, StopFilters, ItemData } from './delivery';
+export { 
   RecurringOrder, 
   RecurrenceData, 
   RecurringFrequency, 
@@ -16,4 +16,3 @@ export type {
   FREQUENCY_OPTIONS,
   PREFERRED_DAY_OPTIONS
 } from './recurring';
-

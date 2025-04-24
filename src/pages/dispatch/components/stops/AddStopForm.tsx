@@ -52,7 +52,8 @@ const AddStopForm: React.FC<AddStopFormProps> = ({ customers, drivers, onStopCha
     recurrence_frequency: "weekly",
     preferred_day: "monday",
     next_occurrence_date: null,
-    recurrence_end_date: null
+    recurrence_end_date: null,
+    stop_number: 1
   });
 
   const selectedCustomer = customers.find(c => c.id === currentStop.customer);
@@ -88,7 +89,6 @@ const AddStopForm: React.FC<AddStopFormProps> = ({ customers, drivers, onStopCha
           description: "Customer created successfully"
         });
         
-        // Select the newly created customer
         onStopChange({ ...currentStop, customer: data[0].id });
         setShowNewCustomerForm(false);
       }
@@ -366,4 +366,4 @@ const AddStopForm: React.FC<AddStopFormProps> = ({ customers, drivers, onStopCha
   );
 };
 
-export default AddStopForm; 
+export default AddStopForm;
