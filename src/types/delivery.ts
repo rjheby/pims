@@ -8,10 +8,17 @@ import type { Driver } from './driver';
 import type { DeliveryStatus } from './status';
 import type { RecurringFrequency, PreferredDay } from './recurring';
 
+export interface ItemData {
+  quantity: number;
+  unit: string;
+  product: string;
+  price: number;
+}
+
 /**
  * Base stop type with common properties
  */
-export type BaseStop = {
+export interface BaseStop {
   id?: string;
   stop_number: number;
   client_id: string;
@@ -19,8 +26,11 @@ export type BaseStop = {
   driver_id?: string;
   driver?: Driver;
   driver_name?: string;
+  customer_name?: string;
+  customer_address?: string;
+  customer_phone?: string;
   items: string;
-  itemsData?: Record<string, unknown>;
+  itemsData?: ItemData[];
   notes?: string;
   status?: DeliveryStatus;
   arrival_time?: string;
@@ -28,36 +38,50 @@ export type BaseStop = {
   created_at?: string;
   updated_at?: string;
   master_schedule_id?: string;
+  price?: number;
   
-  // New recurring fields
+  // Recurring fields
   is_recurring?: boolean;
   recurrence_frequency?: RecurringFrequency;
   preferred_day?: PreferredDay;
   next_occurrence_date?: string | Date;
   recurrence_end_date?: string | Date;
   recurring_order_id?: string;
-};
+}
 
 /**
- * Delivery stop type - now just an alias for BaseStop since we've consolidated the fields
- * Alias maintained for clarity in service and component signatures
+ * Delivery stop type with all required fields
  */
-export type DeliveryStop = BaseStop;
+export interface DeliveryStop extends BaseStop {
+  stop_number: number;
+  customer_name: string;
+  driver_name?: string;
+  status: DeliveryStatus;
+  price?: number;
+}
 
 /**
  * Stop form data for creating/editing stops
  */
-export type StopFormData = Omit<BaseStop, 'id' | 'created_at' | 'updated_at'> & {
+export interface StopFormData {
   customer: string;  // Changed from client_id for form usage
   driver: string;    // Changed from driver_id for form usage
+  notes: string;
   is_recurring: boolean;
-  stop_number: number; // Ensure stop_number is required
-};
+  recurrence_frequency: RecurringFrequency;
+  preferred_day: PreferredDay;
+  next_occurrence_date: Date | null;
+  recurrence_end_date: Date | null;
+  recurring_order_id?: string;
+  stop_number: number;
+  client_id?: string;
+  items?: string;
+}
 
 /**
  * Stop search filters
  */
-export type StopFilters = {
+export interface StopFilters {
   search?: string;
   status?: DeliveryStatus;
   driver_id?: string;
@@ -67,4 +91,5 @@ export type StopFilters = {
     end: string;
   };
   is_recurring?: boolean;
-}; 
+}
+
