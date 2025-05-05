@@ -48,6 +48,13 @@ export interface DeliveryStop {
   customer?: Customer;
   customers?: Customer;
   recurring?: RecurrenceData;
+  scheduling_status?: string;
+  time_window?: {
+    start: string;
+    end: string;
+  };
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface StopFormData {
@@ -66,6 +73,7 @@ export interface StopFormData {
   status?: string;
   is_recurring?: boolean;
   recurring_id?: string;
+  scheduling_status?: string;
 }
 
 // Status options for delivery stops
@@ -91,6 +99,30 @@ export const getStatusBadgeVariant = (status: string): "default" | "outline" | "
     case "failed":
       return "destructive";
     case "pending":
+    default:
+      return "outline";
+  }
+};
+
+export type RecurringFrequency = "weekly" | "biweekly" | "monthly" | "custom";
+
+// Schedule status options
+export const SCHEDULING_STATUS_OPTIONS = [
+  "scheduled",
+  "unscheduled",
+  "recurring_pending"
+];
+
+export type SchedulingStatus = typeof SCHEDULING_STATUS_OPTIONS[number];
+
+// Helper function to get badge variant based on scheduling status
+export const getSchedulingStatusBadgeVariant = (status: string): "default" | "outline" | "secondary" | "destructive" | "success" => {
+  switch (status) {
+    case "scheduled":
+      return "success";
+    case "recurring_pending":
+      return "secondary";
+    case "unscheduled":
     default:
       return "outline";
   }

@@ -12,6 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { RecurringOrderScheduler } from './RecurringOrderScheduler';
 import { parsePreferredTimeToWindow, formatTimeWindow } from '../utils/timeWindowUtils';
+import { DeliveryStop } from './stops/types';
+import { UnscheduledOrders } from './UnscheduledOrders';
 
 export function DispatchScheduleContent() {
   const navigate = useNavigate();
@@ -19,11 +21,13 @@ export function DispatchScheduleContent() {
   const [loading, setLoading] = useState(true);
   const [scheduleDate, setScheduleDate] = useState<Date>(new Date());
   const [scheduleNumber, setScheduleNumber] = useState<string>("");
-  const [stops, setStops] = useState<any[]>([]);
+  const [stops, setStops] = useState<DeliveryStop[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [drivers, setDrivers] = useState<any[]>([]);
   const [showRecurringTab, setShowRecurringTab] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [masterScheduleId, setMasterScheduleId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("schedule");
 
   // Create schedule number for new schedules - SCH-YYYYMMDD-XX format
   useEffect(() => {
@@ -95,6 +99,40 @@ export function DispatchScheduleContent() {
         
         setDrivers(driversData || []);
         console.log(`DispatchScheduleContent: Loaded ${driversData?.length || 0} drivers`);
+
+        // Check if there's an existing schedule for this date
+        const formattedDate = format(scheduleDate, "yyyy-MM-dd");
+        const { data: existingSchedules, error: schedulesError } = await supabase
+          .from('dispatch_schedules')
+          .select('id, schedule_number')
+          .eq('schedule_date', formattedDate)
+          .maybeSingle();
+
+        if (schedulesError) throw schedulesError;
+
+        if (existingSchedules) {
+          setScheduleNumber(existingSchedules.schedule_number);
+          setMasterScheduleId(existingSchedules.id);
+          
+          // Fetch stops for this schedule
+          const { data: scheduleStops, error: stopsError } = await supabase
+            .from('delivery_stops')
+            .select(`
+              *,
+              customer:customer_id (id, name, address, phone, email),
+              driver:driver_id (id, name)
+            `)
+            .eq('master_schedule_id', existingSchedules.id)
+            .order('stop_number', { ascending: true });
+            
+          if (stopsError) throw stopsError;
+          
+          setStops(scheduleStops || []);
+        } else {
+          setStops([]);
+          setMasterScheduleId(null);
+        }
+
       } catch (error: any) {
         console.error("Error fetching data:", error);
         toast({
@@ -108,7 +146,7 @@ export function DispatchScheduleContent() {
     };
     
     fetchData();
-  }, [toast]);
+  }, [toast, scheduleDate]);
   
   const constructAddress = (customer: any) => {
     const parts = [
@@ -136,70 +174,79 @@ export function DispatchScheduleContent() {
     try {
       console.log(`DispatchScheduleContent: Saving schedule with ${stops.length} stops`);
       
-      // Create the master schedule record
-      const { data: masterData, error: masterError } = await supabase
-        .from('dispatch_schedules')
-        .insert({
-          schedule_number: scheduleNumber,
-          schedule_date: scheduleDate.toISOString().split('T')[0],
-          status: 'draft'
-        })
-        .select();
-        
-      if (masterError) throw masterError;
-      
-      const masterScheduleId = masterData[0].id;
-      console.log(`DispatchScheduleContent: Created master schedule with ID ${masterScheduleId}`);
-      
-      // Create all delivery stops with the master schedule ID
-      const stopsWithMasterId = stops.map((stop, index) => ({
-        ...stop,
-        master_schedule_id: masterScheduleId,
-        stop_number: index + 1,
-        status: 'pending',
-        created_at: new Date().toISOString()
-      }));
-      
-      const { error: stopsError } = await supabase
-        .from('delivery_stops')
-        .insert(stopsWithMasterId);
-        
-      if (stopsError) throw stopsError;
-      
-      console.log(`DispatchScheduleContent: Added ${stopsWithMasterId.length} stops to the schedule`);
-      
-      // For recurring orders, also create entries in delivery_schedules
-      const recurringStops = stops.filter(stop => stop.is_recurring);
-      if (recurringStops.length > 0) {
-        console.log(`DispatchScheduleContent: Processing ${recurringStops.length} recurring stops`);
-        
-        const deliverySchedulesData = recurringStops.map(stop => ({
-          customer_id: stop.customer_id,
-          master_schedule_id: masterScheduleId,
-          delivery_date: scheduleDate.toISOString().split('T')[0],
-          schedule_type: 'recurring',
-          driver_id: stop.driver_id || null,
-          status: 'draft',
-          notes: stop.notes || '',
-          items: stop.items || ''
-        }));
-        
-        const { error: scheduleError } = await supabase
-          .from('delivery_schedules')
-          .insert(deliverySchedulesData);
+      let scheduleId = masterScheduleId;
+
+      // Create the master schedule record if it doesn't exist
+      if (!scheduleId) {
+        const { data: masterData, error: masterError } = await supabase
+          .from('dispatch_schedules')
+          .insert({
+            schedule_number: scheduleNumber,
+            schedule_date: scheduleDate.toISOString().split('T')[0],
+            status: 'draft'
+          })
+          .select();
           
-        if (scheduleError) {
-          console.error("Warning: Failed to create delivery schedule entries:", scheduleError);
+        if (masterError) throw masterError;
+        
+        scheduleId = masterData[0].id;
+        setMasterScheduleId(scheduleId);
+        console.log(`DispatchScheduleContent: Created master schedule with ID ${scheduleId}`);
+      } else {
+        // Update existing schedule
+        const { error: updateError } = await supabase
+          .from('dispatch_schedules')
+          .update({
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', scheduleId);
+          
+        if (updateError) throw updateError;
+      }
+      
+      // Update or create all delivery stops with the master schedule ID
+      for (const [index, stop] of stops.entries()) {
+        const stopData = {
+          ...stop,
+          master_schedule_id: scheduleId,
+          stop_number: index + 1,
+          scheduling_status: 'scheduled',
+          updated_at: new Date().toISOString()
+        };
+
+        if (stop.id) {
+          // Update existing stop
+          const { error: stopError } = await supabase
+            .from('delivery_stops')
+            .update(stopData)
+            .eq('id', stop.id);
+            
+          if (stopError) throw stopError;
+        } else {
+          // Create new stop
+          const { error: stopError } = await supabase
+            .from('delivery_stops')
+            .insert({
+              ...stopData,
+              created_at: new Date().toISOString(),
+              status: 'pending'
+            });
+            
+          if (stopError) throw stopError;
         }
       }
+      
+      console.log(`DispatchScheduleContent: Saved ${stops.length} stops to the schedule`);
       
       toast({
         title: "Success",
         description: "Schedule saved successfully",
       });
       
-      // Navigate to the edit form for the new schedule
-      navigate(`/dispatch-form/${masterScheduleId}`);
+      // Navigate to the edit form for the schedule
+      if (scheduleId) {
+        navigate(`/dispatch-form/${scheduleId}`);
+      }
     } catch (error: any) {
       console.error("Error saving schedule:", error);
       toast({
@@ -223,13 +270,24 @@ export function DispatchScheduleContent() {
   };
 
   // Handle adding recurring order stops
-  const handleAddRecurringStops = (newStops: any[]) => {
+  const handleAddRecurringStops = (newStops: DeliveryStop[]) => {
     if (newStops.length === 0) return;
     
     console.log(`DispatchScheduleContent: Adding ${newStops.length} recurring stops`);
     
     // Add the new stops to the existing stops
-    setStops([...stops, ...newStops]);
+    setStops(prevStops => {
+      const updatedStops = [...prevStops];
+      // Assign stop numbers sequentially
+      for (let i = 0; i < newStops.length; i++) {
+        updatedStops.push({
+          ...newStops[i],
+          stop_number: prevStops.length + i + 1,
+          scheduling_status: 'scheduled'
+        });
+      }
+      return updatedStops;
+    });
     
     toast({
       title: "Success",
@@ -237,48 +295,118 @@ export function DispatchScheduleContent() {
     });
   };
 
+  // Handle adding unscheduled stops to the schedule
+  const handleAddUnscheduledStops = (newStops: DeliveryStop[]) => {
+    if (newStops.length === 0) return;
+    
+    console.log(`DispatchScheduleContent: Adding ${newStops.length} unscheduled stops`);
+    
+    // Add the new stops to the existing stops
+    setStops(prevStops => {
+      const updatedStops = [...prevStops];
+      // Assign stop numbers sequentially
+      for (let i = 0; i < newStops.length; i++) {
+        updatedStops.push({
+          ...newStops[i],
+          stop_number: prevStops.length + i + 1,
+          scheduling_status: 'scheduled'
+        });
+      }
+      return updatedStops;
+    });
+  };
+
   // Get list of customer IDs already in the schedule
   const existingCustomerIds = stops.map(stop => stop.customer_id);
-  
-  // Count recurring stops
-  const recurringStopsCount = stops.filter(stop => stop.is_recurring).length;
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container mx-auto py-6 px-4 max-w-7xl">
       <Card className="shadow-sm">
         <CardHeader>
-          <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
-            <div>
-              <CardTitle className="text-2xl">Create Dispatch Schedule</CardTitle>
-              <CardDescription>
-                Schedule #{scheduleNumber} • {format(scheduleDate, "EEEE, MMMM d, yyyy")}
-              </CardDescription>
-              {recurringStopsCount > 0 && (
-                <Badge className="mt-2 bg-primary/10 text-primary">
-                  {recurringStopsCount} Recurring Orders
-                </Badge>
-              )}
+          <div className="flex justify-between items-center">
+            <CardTitle>Create Dispatch Schedule</CardTitle>
+            <div className="flex items-center gap-2">
+              <div className="text-sm text-muted-foreground">
+                Schedule: <span className="font-medium">{scheduleNumber}</span>
+              </div>
+              <Badge variant="outline">Draft</Badge>
             </div>
-            <div className="flex flex-wrap gap-2 items-center">
-              <div className="flex items-center gap-2">
-                <label htmlFor="scheduleDate" className="text-sm font-medium">Schedule Date:</label>
+          </div>
+          <CardDescription>
+            Manage delivery stops for a specific date.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label htmlFor="scheduleDate" className="text-sm font-medium">
+                  Schedule Date
+                </label>
                 <input
                   id="scheduleDate"
                   type="date"
+                  className="w-full p-2 border rounded-md"
                   value={format(scheduleDate, "yyyy-MM-dd")}
                   onChange={handleDateChange}
-                  className="border rounded-md px-3 py-2 text-sm"
                 />
               </div>
-              <Button onClick={handleSaveSchedule} disabled={isSaving || stops.length === 0} className="ml-2 bg-[#2A4131] hover:bg-[#2A4131]/90">
+            </div>
+            
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mt-6">
+              <TabsList className="mb-4">
+                <TabsTrigger value="schedule">Schedule</TabsTrigger>
+                <TabsTrigger value="unscheduled">Unscheduled Orders</TabsTrigger>
+                <TabsTrigger 
+                  value="recurring" 
+                  onClick={() => setShowRecurringTab(true)}
+                >
+                  Recurring Orders
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="schedule" className="mt-0">
+                <StopsTable 
+                  stops={stops} 
+                  onStopsChange={setStops}
+                  useMobileLayout={false}
+                  customers={customers}
+                  drivers={drivers}
+                />
+              </TabsContent>
+              
+              <TabsContent value="unscheduled" className="mt-0">
+                <UnscheduledOrders 
+                  onAddToSchedule={handleAddUnscheduledStops}
+                  currentScheduleId={masterScheduleId || undefined}
+                  scheduleDate={format(scheduleDate, "yyyy-MM-dd")}
+                />
+              </TabsContent>
+              
+              <TabsContent value="recurring" className="mt-0">
+                {showRecurringTab && scheduleDate && (
+                  <RecurringOrderScheduler
+                    scheduleDate={scheduleDate}
+                    onAddStops={handleAddRecurringStops}
+                    existingCustomerIds={existingCustomerIds}
+                    customers={customers}
+                  />
+                )}
+              </TabsContent>
+            </Tabs>
+
+            <div className="flex justify-end space-x-4 mt-6">
+              <Button
+                variant="outline"
+                onClick={() => navigate('/dispatch-schedule')}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSaveSchedule}
+                disabled={isSaving || loading}
+                className="bg-[#2A4131] hover:bg-[#2A4131]/90"
+              >
                 {isSaving ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -293,67 +421,6 @@ export function DispatchScheduleContent() {
               </Button>
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="recurring" className="w-full">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium">Delivery Stops</h3>
-              <div className="flex items-center gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setShowRecurringTab(true)}
-                  className="flex items-center gap-2"
-                >
-                  <CalendarDays className="h-4 w-4" />
-                  Manage Recurring Orders
-                </Button>
-                <TabsList>
-                  <TabsTrigger value="stops" className="flex items-center gap-1">
-                    <Truck className="h-4 w-4" />
-                    <span className="hidden md:inline">Delivery</span> Stops ({stops.length})
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="recurring" 
-                    onClick={() => setShowRecurringTab(true)}
-                    className="flex items-center gap-1"
-                  >
-                    <Clock className="h-4 w-4" />
-                    Recurring
-                  </TabsTrigger>
-                </TabsList>
-              </div>
-            </div>
-            
-            <TabsContent value="stops" className="mt-0">
-              <StopsTable 
-                stops={stops} 
-                onStopsChange={setStops}
-                useMobileLayout={false} 
-                readOnly={false}
-                masterScheduleId=""
-                customers={customers}
-                drivers={drivers}
-              />
-              
-              {stops.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p className="mb-4">No stops have been added to this schedule yet.</p>
-                  <p>Add stops by selecting the "Recurring" tab to view and add recurring orders.</p>
-                </div>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="recurring" className="mt-0">
-              {showRecurringTab && (
-                <RecurringOrderScheduler
-                  scheduleDate={scheduleDate}
-                  onAddStops={handleAddRecurringStops}
-                  existingCustomerIds={existingCustomerIds}
-                />
-              )}
-            </TabsContent>
-          </Tabs>
         </CardContent>
       </Card>
     </div>

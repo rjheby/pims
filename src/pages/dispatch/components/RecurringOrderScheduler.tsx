@@ -1,449 +1,450 @@
-
-import { useState, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
+import React, { useState, useEffect } from 'react';
+import { format, parse, isValid, isBefore, isAfter } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, CheckCircle, Clock, AlertCircle, CalendarDays, RefreshCw } from "lucide-react";
-import { format } from "date-fns";
-import { useRecurringOrdersScheduling } from '../hooks/useRecurringOrdersScheduling';
-import { parsePreferredTimeToWindow, formatTimeWindow } from '../utils/timeWindowUtils';
-import { useToast } from "@/hooks/use-toast";
-import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { 
+  AlertCircle, Calendar, CheckCircle, Clock, Loader2, RefreshCw,
+  Search, User, X, Plus, ArrowRight, CalendarDays
+} from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { forceSyncForDate } from '../utils/recurringOrderUtils';
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { DeliveryStop, Customer } from './stops/types';
 
 interface RecurringOrderSchedulerProps {
   scheduleDate: Date;
-  onAddStops: (stops: any[]) => void;
+  onAddStops: (stops: DeliveryStop[]) => void;
   existingCustomerIds?: string[];
+  selectedRecurringOrder?: string | null;
+  onSave?: () => void;
+  onCancel?: () => void;
+  customers?: Customer[];
 }
 
-export function RecurringOrderScheduler({ 
-  scheduleDate, 
+export const RecurringOrderScheduler: React.FC<RecurringOrderSchedulerProps> = ({
+  scheduleDate,
   onAddStops,
-  existingCustomerIds = []
-}: RecurringOrderSchedulerProps) {
-  const [loading, setLoading] = useState(false);
-  const [syncing, setSyncing] = useState(false);
-  const [activeTab, setActiveTab] = useState<string>("today");
-  const [connectionError, setConnectionError] = useState<string | null>(null);
+  existingCustomerIds = [],
+  selectedRecurringOrder = null,
+  onSave,
+  onCancel,
+  customers = []
+}) => {
+  const [recurringOrders, setRecurringOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
+  const [syncingOrders, setSyncingOrders] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  
   const { toast } = useToast();
   
-  // Initialize with the current schedule date and a month from now
-  const endDate = new Date(scheduleDate);
-  endDate.setDate(endDate.getDate() + 7); // Look at the next week
+  const dayOfWeek = format(scheduleDate, 'EEEE').toLowerCase();
+  const formattedDate = format(scheduleDate, 'yyyy-MM-dd');
   
-  const { 
-    recurringOrders,
-    scheduledOccurrences,
-    loading: recurringLoading, 
-    error,
-    fetchRecurringOrders,
-    generateOccurrences,
-    checkForScheduleConflicts
-  } = useRecurringOrdersScheduling(scheduleDate, endDate);
-
-  // Get occurrences for the selected date range
   useEffect(() => {
-    console.log(`RecurringOrderScheduler: scheduleDate=${scheduleDate.toISOString()}, endDate=${endDate.toISOString()}`);
-    console.log(`RecurringOrderScheduler: existingCustomerIds=${JSON.stringify(existingCustomerIds)}`);
-    
-    // Initial load of recurring orders
-    fetchRecurringOrders()
-      .then(orders => {
-        console.log(`RecurringOrderScheduler: Fetched ${orders.length} recurring orders`);
-        if (orders.length > 0) {
-          console.log("Generating occurrences with these orders:", orders);
-          generateOccurrences(orders, scheduleDate, endDate);
-        }
-      })
-      .catch(err => {
-        console.error("Error fetching recurring orders:", err);
-      });
-  }, [scheduleDate, endDate, fetchRecurringOrders, generateOccurrences]);
-
-  // Filter occurrences that occur on the schedule date
-  const currentDateOccurrences = scheduledOccurrences.filter(occurrence => {
-    const occurrenceDate = new Date(occurrence.date);
-    const scheduleDateObj = new Date(scheduleDate);
-    
-    // Check if the dates match (ignore time)
-    const isSameDate = 
-      occurrenceDate.getFullYear() === scheduleDateObj.getFullYear() && 
-      occurrenceDate.getMonth() === scheduleDateObj.getMonth() && 
-      occurrenceDate.getDate() === scheduleDateObj.getDate();
-      
-    console.log(`Comparing dates: ${occurrenceDate.toDateString()} and ${scheduleDateObj.toDateString()} - match: ${isSameDate}`);
-    
-    return isSameDate;
-  });
-
-  console.log(`RecurringOrderScheduler: Found ${currentDateOccurrences.length} occurrences on ${scheduleDate.toDateString()}`);
-
-  // Filter out customers already in the schedule
-  const availableOccurrences = currentDateOccurrences.filter(occurrence => {
-    const isAvailable = !existingCustomerIds.includes(occurrence.recurringOrder.customer_id);
-    if (!isAvailable) {
-      console.log(`Customer ${occurrence.recurringOrder.customer_id} already exists in schedule`);
-    }
-    return isAvailable;
-  });
-
-  console.log(`RecurringOrderScheduler: ${availableOccurrences.length} available occurrences after filtering out existing customers`);
-
-  // Get occurrences for the next 7 days for the planning tab
-  const getPlanningOccurrences = () => {
-    const planEndDate = new Date(scheduleDate);
-    planEndDate.setDate(planEndDate.getDate() + 7);
-    
-    return scheduledOccurrences.filter(occurrence => {
-      const occurrenceDate = new Date(occurrence.date);
-      return occurrenceDate >= scheduleDate && occurrenceDate <= planEndDate;
-    }).sort((a, b) => a.date.getTime() - b.date.getTime()); // Sort by date
-  };
-
-  const planningOccurrences = getPlanningOccurrences();
-
-  const handleAddAllToSchedule = () => {
-    if (availableOccurrences.length === 0) {
-      toast({
-        title: "No recurring orders",
-        description: "There are no available recurring orders for this date",
-        variant: "default"
-      });
-      return;
-    }
-
-    setLoading(true);
-    
+    fetchRecurringOrders();
+  }, [scheduleDate, selectedRecurringOrder]);
+  
+  const fetchRecurringOrders = async () => {
     try {
-      // Convert occurrences to stop format
-      const newStops = availableOccurrences.map((occurrence, index) => {
-        const order = occurrence.recurringOrder;
-        const customer = order.customer;
+      setLoading(true);
+      setError(null);
+      
+      // If a specific recurring order ID is provided, fetch just that one
+      if (selectedRecurringOrder) {
+        const { data, error } = await supabase
+          .from('recurring_orders')
+          .select(`
+            *,
+            customer:customer_id (
+              id, name, address, phone, email, type, 
+              street_address, city, state, zip_code
+            )
+          `)
+          .eq('id', selectedRecurringOrder)
+          .single();
+          
+        if (error) throw error;
         
-        if (!customer) {
-          console.warn(`No customer data for recurring order ${order.id}`);
-          return null;
+        setRecurringOrders(data ? [data] : []);
+        // Auto-select this order
+        if (data) {
+          setSelectedOrders([data.id]);
         }
+      } else {
+        // Otherwise, fetch all orders that match this day of week
+        const { data, error } = await supabase
+          .from('recurring_orders')
+          .select(`
+            *,
+            customer:customer_id (
+              id, name, address, phone, email, type, 
+              street_address, city, state, zip_code
+            )
+          `)
+          .eq('preferred_day', dayOfWeek)
+          .eq('active_status', true)
+          .order('created_at', { ascending: false });
+          
+        if (error) throw error;
         
-        const timeWindow = parsePreferredTimeToWindow(order.preferred_time);
-        const formattedTimeWindow = formatTimeWindow(timeWindow);
+        console.log(`Found ${data?.length || 0} recurring orders for ${dayOfWeek}`);
         
-        console.log(`Creating stop for customer ${customer.name} (${customer.id})`);
+        // Filter based on frequency rules - e.g., biweekly orders only happen every other week
+        const filteredOrders = (data || []).filter(order => {
+          if (!order.frequency || order.frequency.toLowerCase() === 'weekly') {
+            return true; // Weekly orders always apply
+          }
+          
+          if (order.frequency.toLowerCase() === 'biweekly') {
+            // For biweekly, use creation date to determine if this is the right week
+            const creationDate = new Date(order.created_at);
+            const weeksDiff = Math.floor(
+              (scheduleDate.getTime() - creationDate.getTime()) / 
+              (7 * 24 * 60 * 60 * 1000)
+            );
+            return weeksDiff % 2 === 0;
+          }
+          
+          if (order.frequency.toLowerCase() === 'monthly') {
+            // For monthly, check if this is the first occurrence of this day in the month
+            const currentMonth = scheduleDate.getMonth();
+            const firstOfMonth = new Date(scheduleDate.getFullYear(), currentMonth, 1);
+            let firstOccurrenceDate = firstOfMonth;
+            
+            // Find first occurrence of this day in the month
+            while (
+              firstOccurrenceDate.getMonth() === currentMonth && 
+              format(firstOccurrenceDate, 'EEEE').toLowerCase() !== dayOfWeek
+            ) {
+              firstOccurrenceDate.setDate(firstOccurrenceDate.getDate() + 1);
+            }
+            
+            // Check if current date is the first occurrence
+            return (
+              scheduleDate.getDate() === firstOccurrenceDate.getDate() &&
+              scheduleDate.getMonth() === firstOccurrenceDate.getMonth()
+            );
+          }
+          
+          return true; // Default to including the order
+        });
         
-        return {
-          stop_number: existingCustomerIds.length + index + 1,
-          customer_id: customer.id,
-          customer_name: customer.name,
-          customer_address: customer.address || '',
-          customer_phone: customer.phone || '',
-          items: '', // No default items
-          notes: `Recurring ${order.frequency} order - ${formattedTimeWindow}`,
-          price: 0,
-          is_recurring: true,
-          recurring_id: order.id,
-          status: 'pending'
-        };
-      }).filter(Boolean) as any[];
-      
-      console.log(`RecurringOrderScheduler: Adding ${newStops.length} stops to schedule`);
-      onAddStops(newStops);
-      
-      toast({
-        title: "Success",
-        description: `Added ${newStops.length} recurring orders to schedule`,
-      });
+        console.log(`Filtered to ${filteredOrders.length} orders based on frequency rules`);
+        setRecurringOrders(filteredOrders);
+      }
     } catch (error: any) {
-      console.error("Error adding recurring orders:", error);
-      setConnectionError(error.message);
-      toast({
-        title: "Error",
-        description: "Failed to add recurring orders: " + error.message,
-        variant: "destructive"
-      });
+      console.error('Error fetching recurring orders:', error);
+      setError(error.message);
     } finally {
       setLoading(false);
     }
   };
-
-  const handleForceSyncForDate = async () => {
-    if (!scheduleDate) {
+  
+  const handleSelectOrder = (orderId: string) => {
+    setSelectedOrders(prev => {
+      if (prev.includes(orderId)) {
+        return prev.filter(id => id !== orderId);
+      } else {
+        return [...prev, orderId];
+      }
+    });
+  };
+  
+  const handleAddSelectedOrders = () => {
+    if (selectedOrders.length === 0) {
       toast({
-        title: "Error",
-        description: "No schedule date selected",
-        variant: "destructive"
+        title: "No Orders Selected",
+        description: "Please select at least one recurring order to add.",
+        variant: "default"
       });
       return;
     }
     
-    setSyncing(true);
-    
-    try {
-      console.log(`Force syncing recurring orders for date: ${scheduleDate.toISOString()}`);
-      
-      const result = await forceSyncForDate(scheduleDate);
-      
-      if (result.success) {
-        toast({
-          title: "Sync Complete",
-          description: `Successfully synchronized recurring orders. ${result.stopsCreated} stops created.`,
-        });
+    // Convert selected recurring orders to delivery stops
+    const stopsToAdd: DeliveryStop[] = selectedOrders
+      .map(orderId => {
+        const recurringOrder = recurringOrders.find(order => order.id === orderId);
+        if (!recurringOrder || !recurringOrder.customer) return null;
         
-        // Refresh the page to show newly created stops if any were created
-        if (result.stopsCreated > 0) {
-          // Give the database a moment to update
-          setTimeout(() => {
-            window.location.reload();
-          }, 1500);
-        } else {
-          // Just refresh recurring orders and occurrences
-          await fetchRecurringOrders().then(orders => {
-            if (orders.length > 0) {
-              generateOccurrences(orders, scheduleDate, endDate);
-            }
-          });
-        }
-      } else {
-        toast({
-          title: "Sync Failed",
-          description: result.error || "Failed to synchronize recurring orders",
-          variant: "destructive"
-        });
+        const stop: DeliveryStop = {
+          stop_number: 0, // Will be assigned by the parent component
+          customer_id: recurringOrder.customer.id,
+          customer_name: recurringOrder.customer.name,
+          customer_address: recurringOrder.customer.address || constructAddress(recurringOrder.customer),
+          customer_phone: recurringOrder.customer.phone || '',
+          driver_id: null,
+          items: recurringOrder.items || '',
+          notes: `Recurring ${recurringOrder.frequency} order`,
+          is_recurring: true,
+          recurring_id: recurringOrder.id,
+          master_schedule_id: '',
+          scheduling_status: 'scheduled'
+        };
+        
+        return stop;
+      })
+      .filter(Boolean) as DeliveryStop[];
+    
+    // Call the callback to add these stops
+    if (stopsToAdd.length > 0) {
+      onAddStops(stopsToAdd);
+      
+      // If in modal mode, call onSave
+      if (onSave) {
+        onSave();
       }
+      
+      // Clear selection unless in single-selection mode
+      if (!selectedRecurringOrder) {
+        setSelectedOrders([]);
+      }
+    }
+  };
+  
+  const handleSyncRecurringOrders = async () => {
+    try {
+      setSyncingOrders(true);
+      
+      // Call the forceSyncForDate function in the recurringOrderUtils.ts via RPC
+      const { data, error } = await supabase.rpc('sync_recurring_orders_for_date', {
+        date_str: formattedDate
+      });
+      
+      if (error) throw error;
+      
+      console.log('Sync result:', data);
+      
+      toast({
+        title: "Sync Complete",
+        description: `Added ${data.stops_created || 0} recurring stops to schedule.`,
+        variant: "default"
+      });
+      
+      // Refresh the list after syncing
+      fetchRecurringOrders();
+      
     } catch (error: any) {
-      console.error("Error syncing recurring orders:", error);
+      console.error('Error syncing recurring orders:', error);
       toast({
         title: "Error",
-        description: "Failed to sync recurring orders: " + error.message,
+        description: `Failed to sync recurring orders: ${error.message}`,
         variant: "destructive"
       });
     } finally {
-      setSyncing(false);
+      setSyncingOrders(false);
     }
   };
-
-  const handleRetry = () => {
-    setConnectionError(null);
-    fetchRecurringOrders();
-  };
-
-  const renderOccurrenceItem = (occurrence: any) => {
-    const timeWindow = parsePreferredTimeToWindow(occurrence.recurringOrder.preferred_time);
-    const formattedTimeWindow = formatTimeWindow(timeWindow);
+  
+  const constructAddress = (customer: any) => {
+    const parts = [
+      customer.street_address,
+      customer.city,
+      customer.state,
+      customer.zip_code
+    ].filter(Boolean);
     
-    return (
-      <div key={`${occurrence.recurringOrder.id}-${occurrence.date.toISOString()}`} 
-           className="flex justify-between items-center p-3 bg-muted/40 rounded-md border border-gray-100 hover:border-primary/20 transition-colors">
-        <div>
-          <p className="font-medium">{occurrence.recurringOrder.customer?.name}</p>
-          <div className="text-sm text-muted-foreground space-y-1">
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="capitalize bg-primary/10 text-primary">
-                {occurrence.recurringOrder.frequency}
-              </Badge>
-              {occurrence.recurringOrder.preferred_time && (
-                <Badge variant="secondary" className="font-normal">
-                  {formattedTimeWindow}
-                </Badge>
-              )}
-            </div>
-            {activeTab === "planning" && (
-              <p className="text-xs flex items-center gap-1 mt-1">
-                <CalendarDays className="h-3 w-3" />
-                {format(occurrence.date, "EEE, MMM d")}
-              </p>
-            )}
-          </div>
-        </div>
-        {activeTab === "today" ? (
-          <CheckCircle className="h-4 w-4 text-primary/70" />
-        ) : (
-          <Clock className="h-4 w-4 text-muted-foreground" />
-        )}
-      </div>
-    );
+    return parts.length > 0 ? parts.join(', ') : '';
   };
-
-  const renderSkeletonItems = () => {
-    return Array(3).fill(0).map((_, i) => (
-      <div key={i} className="p-3 bg-muted/40 rounded-md">
-        <Skeleton className="h-5 w-40 mb-2" />
-        <div className="flex gap-2">
-          <Skeleton className="h-4 w-16" />
-          <Skeleton className="h-4 w-24" />
-        </div>
-      </div>
-    ));
+  
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value.toLowerCase());
   };
+  
+  // Filter orders based on search term
+  const filteredOrders = recurringOrders.filter(order => {
+    if (!searchTerm) return true;
+    
+    const searchFields = [
+      order.customer?.name,
+      order.customer?.address,
+      order.customer?.phone,
+      order.customer?.email,
+      order.frequency,
+      order.preferred_day,
+      order.items
+    ].filter(Boolean).map(field => field.toLowerCase());
+    
+    return searchFields.some(field => field.includes(searchTerm));
+  });
+  
+  // Further filter to remove orders that already have a stop for this customer
+  const availableOrders = filteredOrders.filter(order => {
+    // If existingCustomerIds is provided and not empty, filter out customers already in the schedule
+    if (existingCustomerIds && existingCustomerIds.length > 0) {
+      return !existingCustomerIds.includes(order.customer?.id);
+    }
+    return true;
+  });
 
   return (
-    <Card className="mt-4">
-      <CardHeader className="pb-3">
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Recurring Orders for {format(scheduleDate, "EEEE, MMMM d, yyyy")}
+    <Card className="w-full">
+      <CardHeader className="pb-2">
+        <div className="flex flex-col sm:flex-row justify-between gap-2">
+          <CardTitle className="text-lg">
+            Recurring Orders - {format(scheduleDate, 'EEEE, MMMM d, yyyy')}
           </CardTitle>
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="flex items-center gap-1"
-              onClick={handleForceSyncForDate}
-              disabled={syncing}
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchRecurringOrders}
+              disabled={loading}
             >
-              <RefreshCw className={`h-3 w-3 ${syncing ? 'animate-spin' : ''}`} />
-              {syncing ? 'Syncing...' : 'Force Sync'}
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
             </Button>
-            <Badge variant="outline" className={activeTab === "today" 
-              ? "ml-2 bg-primary/10 text-primary" 
-              : "ml-2"}>
-              {activeTab === "today" 
-                ? `${availableOccurrences.length} Available` 
-                : `${planningOccurrences.length} Upcoming`}
-            </Badge>
+            
+            {!selectedRecurringOrder && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSyncRecurringOrders}
+                disabled={syncingOrders}
+              >
+                <Clock className="h-4 w-4 mr-2" />
+                {syncingOrders ? 'Syncing...' : 'Sync Orders'}
+              </Button>
+            )}
           </div>
         </div>
       </CardHeader>
+      
       <CardContent>
-        {error || connectionError ? (
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription className="flex items-center justify-between">
-              <span>{error || connectionError}</span>
-              <Button variant="outline" size="sm" onClick={handleRetry}>
-                <RefreshCw className="h-3 w-3 mr-1" />
-                Retry
+        {!selectedRecurringOrder && (
+          <div className="mb-4 relative">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search recurring orders..."
+              className="pl-8"
+              value={searchTerm}
+              onChange={handleSearchChange}
+            />
+            {searchTerm && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute right-1 top-1 h-6 w-6 p-0"
+                onClick={() => setSearchTerm('')}
+              >
+                <X className="h-4 w-4" />
               </Button>
-            </AlertDescription>
+            )}
+          </div>
+        )}
+        
+        {loading ? (
+          <div className="flex justify-center items-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : error ? (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
-        ) : null}
-        
-        <Tabs defaultValue="today" onValueChange={setActiveTab} className="w-full">
-          <TabsList className="mb-4">
-            <TabsTrigger value="today">Today</TabsTrigger>
-            <TabsTrigger value="planning">Next 7 Days</TabsTrigger>
-          </TabsList>
-        
-          <TabsContent value="today">
-            {recurringLoading ? (
-              <div className="space-y-2">
-                {renderSkeletonItems()}
-              </div>
-            ) : error ? (
-              <div className="text-center py-4 text-destructive">
-                <AlertCircle className="h-5 w-5 mx-auto mb-2" />
-                <p className="text-sm">{error}</p>
-              </div>
-            ) : availableOccurrences.length === 0 ? (
-              <div className="text-center py-6 text-muted-foreground">
-                <p>No recurring orders available for this date.</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  {availableOccurrences.map(renderOccurrenceItem)}
-                </div>
-                
-                <div className="pt-2">
-                  <Button 
-                    onClick={handleAddAllToSchedule}
-                    disabled={loading || availableOccurrences.length === 0}
-                    className="w-full bg-[#2A4131] hover:bg-[#2A4131]/90"
+        ) : availableOrders.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <CalendarDays className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+            <p className="mb-2">
+              {searchTerm 
+                ? "No matching recurring orders found" 
+                : filteredOrders.length !== availableOrders.length
+                  ? "All matching customers are already in the schedule"
+                  : `No recurring orders found for ${format(scheduleDate, 'EEEE')}`
+              }
+            </p>
+            <p className="text-sm text-muted-foreground/70">
+              {searchTerm 
+                ? "Try adjusting your search" 
+                : "Create recurring orders to have them automatically appear here"
+              }
+            </p>
+          </div>
+        ) : (
+          <>
+            <ScrollArea className="h-[400px] pr-4">
+              <div className="space-y-3">
+                {availableOrders.map(order => (
+                  <div
+                    key={order.id}
+                    className={`border rounded-md p-3 hover:bg-gray-50 transition-colors cursor-pointer ${
+                      selectedOrders.includes(order.id) ? 'border-primary bg-primary/5' : 'border-gray-200'
+                    }`}
+                    onClick={() => handleSelectOrder(order.id)}
                   >
-                    {loading ? (
-                      <>
-                        <Clock className="mr-2 h-4 w-4 animate-spin" />
-                        Adding...
-                      </>
-                    ) : (
-                      "Add All to Schedule"
-                    )}
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="font-medium">
+                        {order.customer?.name || 'No Customer'}
+                      </div>
+                      <Badge>{order.frequency}</Badge>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                      <div className="flex items-center text-muted-foreground">
+                        <User className="h-3.5 w-3.5 mr-1" />
+                        <span>{order.customer?.type || 'Customer'}</span>
+                      </div>
+                      
+                      <div className="flex items-center text-muted-foreground">
+                        <Calendar className="h-3.5 w-3.5 mr-1" />
+                        <span>{order.preferred_day}</span>
+                      </div>
+                      
+                      {order.preferred_time && (
+                        <div className="flex items-center text-muted-foreground">
+                          <Clock className="h-3.5 w-3.5 mr-1" />
+                          <span>{order.preferred_time}</span>
+                        </div>
+                      )}
+                      
+                      {order.customer?.address && (
+                        <div className="flex items-center text-muted-foreground col-span-2 truncate">
+                          <span className="truncate">{order.customer.address}</span>
+                        </div>
+                      )}
+                      
+                      {order.items && (
+                        <div className="flex items-center text-muted-foreground col-span-2 truncate">
+                          <span className="truncate">Items: {order.items}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+            
+            <div className="mt-4 flex justify-between">
+              <div className="text-sm text-muted-foreground">
+                {selectedOrders.length > 0 
+                  ? `${selectedOrders.length} order${selectedOrders.length > 1 ? 's' : ''} selected` 
+                  : `${availableOrders.length} order${availableOrders.length > 1 ? 's' : ''} available`}
+              </div>
+              
+              <div className="flex gap-2">
+                {onCancel && (
+                  <Button variant="outline" onClick={onCancel}>
+                    Cancel
                   </Button>
-                </div>
-              </div>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="planning">
-            {recurringLoading ? (
-              <div className="space-y-2">
-                {renderSkeletonItems()}
-              </div>
-            ) : error ? (
-              <div className="text-center py-4 text-destructive">
-                <AlertCircle className="h-5 w-5 mx-auto mb-2" />
-                <p className="text-sm">{error}</p>
-              </div>
-            ) : planningOccurrences.length === 0 ? (
-              <div className="text-center py-6 text-muted-foreground">
-                <p>No upcoming recurring orders for the next 7 days.</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  {planningOccurrences.map(renderOccurrenceItem)}
-                </div>
+                )}
                 
-                <div className="pt-2 text-center text-sm text-muted-foreground">
-                  <p>This view shows upcoming recurring orders for planning purposes.</p>
-                </div>
+                <Button 
+                  onClick={handleAddSelectedOrders}
+                  disabled={selectedOrders.length === 0}
+                  className="bg-[#2A4131] hover:bg-[#2A4131]/90"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Selected Orders
+                </Button>
               </div>
-            )}
-          </TabsContent>
-        </Tabs>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );
-}
-
-function renderOccurrenceItem(occurrence: any) {
-  const timeWindow = parsePreferredTimeToWindow(occurrence.recurringOrder.preferred_time);
-  const formattedTimeWindow = formatTimeWindow(timeWindow);
-  
-  return (
-    <div key={`${occurrence.recurringOrder.id}-${occurrence.date.toISOString()}`} 
-         className="flex justify-between items-center p-3 bg-muted/40 rounded-md border border-gray-100 hover:border-primary/20 transition-colors">
-      <div>
-        <p className="font-medium">{occurrence.recurringOrder.customer?.name}</p>
-        <div className="text-sm text-muted-foreground space-y-1">
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="capitalize bg-primary/10 text-primary">
-              {occurrence.recurringOrder.frequency}
-            </Badge>
-            {occurrence.recurringOrder.preferred_time && (
-              <Badge variant="secondary" className="font-normal">
-                {formattedTimeWindow}
-              </Badge>
-            )}
-          </div>
-          {occurrence.activeTab === "planning" && (
-            <p className="text-xs flex items-center gap-1 mt-1">
-              <CalendarDays className="h-3 w-3" />
-              {format(occurrence.date, "EEE, MMM d")}
-            </p>
-          )}
-        </div>
-      </div>
-      {occurrence.activeTab === "today" ? (
-        <CheckCircle className="h-4 w-4 text-primary/70" />
-      ) : (
-        <Clock className="h-4 w-4 text-muted-foreground" />
-      )}
-    </div>
-  );
-}
-
-function renderSkeletonItems() {
-  return Array(3).fill(0).map((_, i) => (
-    <div key={i} className="p-3 bg-muted/40 rounded-md">
-      <Skeleton className="h-5 w-40 mb-2" />
-      <div className="flex gap-2">
-        <Skeleton className="h-4 w-16" />
-        <Skeleton className="h-4 w-24" />
-      </div>
-    </div>
-  ));
-}
+};
