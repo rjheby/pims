@@ -37,7 +37,9 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
     isLoadingOptions
   } = useWholesaleOrder();
 
+  // Load options from Supabase when component mounts
   useEffect(() => {
+    console.log('OrderTable mounted, loading options from Supabase');
     loadOptions();
   }, [loadOptions]);
 
@@ -91,6 +93,7 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
   };
 
   const addNewEmptyRow = () => {
+    console.log('Adding new empty row');
     const newItem = generateEmptyOrderItem();
     handleAddItem(newItem);
   };
@@ -123,7 +126,7 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
   if (isLoadingOptions) {
     return (
       <div className="text-center py-10 border rounded-md bg-gray-50">
-        <p className="text-gray-500 mb-4">Loading options...</p>
+        <p className="text-gray-500 mb-4">Loading options from database...</p>
       </div>
     );
   }

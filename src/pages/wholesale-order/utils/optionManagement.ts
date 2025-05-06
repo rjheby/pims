@@ -47,15 +47,6 @@ export const addOption = async (
     // Add the new option
     updatedOptions[field] = [...updatedOptions[field], newOption];
     
-    // If adding a value that should be in wood_products table, add it there too
-    if (field === 'species' || field === 'length' || field === 'bundleType' || field === 'thickness') {
-      // For bundleType, we need to map to bundle_type column in the database
-      const columnName = field === 'bundleType' ? 'bundle_type' : field;
-      
-      // We don't need to add to wood_products here as that would create an incomplete product.
-      // These values will be used when creating complete products through the product form.
-    }
-    
     // Update the options in the wholesale_order_options table
     const { error } = await supabase
       .from('wholesale_order_options')

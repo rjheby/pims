@@ -1,7 +1,10 @@
+
 import { useCallback } from 'react';
 import { useWholesaleOrder } from '../../context/WholesaleOrderContext';
 import { OrderItem, DropdownOptions } from '../../types';
+import { handleOptionOperation } from '../../utils/optionManagement';
 import { KeyboardEvent } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 export const useOrderActions = () => {
   const {
@@ -17,7 +20,10 @@ export const useOrderActions = () => {
     setEditingRowId
   } = useWholesaleOrder();
 
+  const { toast } = useToast();
+
   const handleUpdateItemValue = useCallback((id: number, field: string, value: any) => {
+    console.log(`Updating item ${id}, field: ${field}, value:`, value);
     const updatedItems = items.map(item =>
       item.id === id ? (field === 'all' ? value : { ...item, [field]: value }) : item
     );
@@ -93,56 +99,64 @@ export const useOrderActions = () => {
     setNewOption(value);
   }, [setNewOption]);
 
-  const handleKeyPressOnNewOption = useCallback((e: KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyPressOnNewOption = useCallback(async (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && newOption.trim() && editingField) {
       e.preventDefault();
-      const updatedOptions = [...(options[editingField] || [])];
-      if (!updatedOptions.includes(newOption)) {
-        updatedOptions.push(newOption);
-        setOptions({
-          ...options,
-          [editingField]: updatedOptions
-        });
-      }
       
-      if (editingRowId !== null) {
-        const updatedItems = items.map(item =>
-          item.id === editingRowId ? { ...item, [editingField]: newOption } : item
-        );
-        setItems(updatedItems);
-      }
+      // Use the optionManagement utility to add the new option
+      const updatedOptions = await handleOptionOperation(
+        'add',
+        editingField,
+        newOption,
+        options
+      );
       
-      setNewOption('');
-      setEditingField(null);
-      setEditingRowId(null);
+      if (updatedOptions) {
+        setOptions(updatedOptions);
+        
+        if (editingRowId !== null) {
+          const updatedItems = items.map(item =>
+            item.id === editingRowId ? { ...item, [editingField]: newOption } : item
+          );
+          setItems(updatedItems);
+        }
+        
+        setNewOption('');
+        setEditingField(null);
+        setEditingRowId(null);
+      }
     }
   }, [newOption, editingField, editingRowId, items, options, setOptions, setItems, setNewOption, setEditingField, setEditingRowId]);
 
-  const handleUpdateOptions = useCallback((option: string) => {
+  const handleUpdateOptions = useCallback(async (option: string) => {
     if (option.trim() && editingField) {
-      const updatedOptions = [...(options[editingField] || [])];
-      if (!updatedOptions.includes(option)) {
-        updatedOptions.push(option);
-        setOptions({
-          ...options,
-          [editingField]: updatedOptions
-        });
-      }
+      // Use the optionManagement utility to add the new option
+      const updatedOptions = await handleOptionOperation(
+        'add',
+        editingField,
+        option,
+        options
+      );
       
-      if (editingRowId !== null) {
-        const updatedItems = items.map(item =>
-          item.id === editingRowId ? { ...item, [editingField]: option } : item
-        );
-        setItems(updatedItems);
+      if (updatedOptions) {
+        setOptions(updatedOptions);
+        
+        if (editingRowId !== null) {
+          const updatedItems = items.map(item =>
+            item.id === editingRowId ? { ...item, [editingField]: option } : item
+          );
+          setItems(updatedItems);
+        }
+        
+        setNewOption('');
+        setEditingField(null);
+        setEditingRowId(null);
       }
-      
-      setNewOption('');
-      setEditingField(null);
-      setEditingRowId(null);
     }
   }, [editingField, editingRowId, items, options, setOptions, setItems, setNewOption, setEditingField, setEditingRowId]);
 
   const handleStartEditing = useCallback((id: number, field: keyof DropdownOptions) => {
+    console.log(`Start editing field ${field} for item ${id}`);
     setEditingField(field);
     setEditingRowId(id);
     setNewOption('');

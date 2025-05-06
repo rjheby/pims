@@ -4,6 +4,7 @@ import { OrderItem, DropdownOptions, emptyOptions } from "../types";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { checkIsAdmin } from "../utils/permissions";
+import { supabase } from "@/integrations/supabase/client";
 
 // Create a client
 const queryClient = new QueryClient();
@@ -77,29 +78,57 @@ export function WholesaleOrderProvider({ children, initialItems = [] }: PropsWit
     queryFn: () => checkIsAdmin(),
   });
 
-  // Load dropdown options
+  // Load dropdown options from Supabase
   const loadOptions = useCallback(async () => {
     setIsLoadingOptions(true);
+    
     try {
-      // Simulate fetching options from API or database
-      const species = ["Pine", "Spruce", "Fir", "Cedar", "Maple"];
-      const length = ["8'", "10'", "12'", "16'", "20'"];
-      const bundleType = ["2x4", "2x6", "2x8", "2x10", "2x12", "4x4", "6x6"];
-      const thickness = ["KD", "Green", "Treated"];
-      const packaging = ["Pallets", "Bunks", "Banded", "Loose"];
+      console.log('Loading options from Supabase...');
+      const { data, error } = await supabase
+        .from('wholesale_order_options')
+        .select('*')
+        .single();
 
-      setOptions({
-        species,
-        length,
-        bundleType,
-        thickness,
-        packaging,
-      });
-    } catch (error) {
+      if (error) {
+        console.error('Error fetching options from Supabase:', error);
+        throw error;
+      }
+
+      if (data) {
+        console.log('Options fetched successfully:', data);
+        setOptions({
+          species: Array.isArray(data.species) ? data.species : [],
+          length: Array.isArray(data.length) ? data.length : [],
+          bundleType: Array.isArray(data.bundleType) ? data.bundleType : [],
+          thickness: Array.isArray(data.thickness) ? data.thickness : [],
+          packaging: Array.isArray(data.packaging) ? data.packaging : []
+        });
+      } else {
+        console.warn('No options found in database, using fallback');
+        // Fallback options if no data found
+        setOptions({
+          species: ["Pine", "Spruce", "Fir", "Cedar", "Maple"],
+          length: ["8'", "10'", "12'", "16'", "20'"],
+          bundleType: ["2x4", "2x6", "2x8", "2x10", "2x12", "4x4", "6x6"],
+          thickness: ["KD", "Green", "Treated"],
+          packaging: ["Pallets", "Bunks", "Banded", "Loose"]
+        });
+      }
+    } catch (error: any) {
+      console.error('Error loading options from Supabase:', error);
       toast({
         title: "Error",
-        description: "Failed to load options",
+        description: "Failed to load dropdown options: " + error.message,
         variant: "destructive",
+      });
+      
+      // Fallback to default options
+      setOptions({
+        species: ["Pine", "Spruce", "Fir", "Cedar", "Maple"],
+        length: ["8'", "10'", "12'", "16'", "20'"],
+        bundleType: ["2x4", "2x6", "2x8", "2x10", "2x12", "4x4", "6x6"],
+        thickness: ["KD", "Green", "Treated"],
+        packaging: ["Pallets", "Bunks", "Banded", "Loose"]
       });
     } finally {
       setIsLoadingOptions(false);

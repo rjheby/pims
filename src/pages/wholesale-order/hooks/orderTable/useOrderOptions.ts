@@ -22,15 +22,18 @@ export function useOrderOptions() {
   const loadOptions = useCallback(async () => {
     setIsLoadingOptions(true);
     try {
+      console.log('Fetching wholesale_order_options from Supabase...');
       const { data, error } = await supabase
         .from('wholesale_order_options')
         .select('*')
         .single();
 
       if (error) {
+        console.error('Error fetching options:', error);
         throw error;
       }
 
+      console.log('Options data received:', data);
       if (data) {
         setOptions({
           species: data.species || [],
@@ -44,10 +47,10 @@ export function useOrderOptions() {
       console.error('Error loading options:', error);
       toast({
         title: 'Error',
-        description: 'Failed to load options',
+        description: 'Failed to load dropdown options from database',
         variant: 'destructive'
       });
-      // Fallback to default options
+      // Fallback to default options only if there's an error
       setOptions({
         species: ['Mixed Hardwood', 'Cherry', 'Oak', 'Hickory', 'Ash'],
         length: ['12"', '16"'],
