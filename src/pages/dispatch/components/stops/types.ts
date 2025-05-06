@@ -55,6 +55,7 @@ export interface DeliveryStop {
   };
   created_at?: string;
   updated_at?: string;
+  master_schedule_id?: string;
 }
 
 export interface StopFormData {
