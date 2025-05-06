@@ -32,7 +32,7 @@ export const useOrderActions = () => {
       length: '',
       bundleType: '',
       thickness: '',
-      packaging: '',
+      packaging: 'Pallets',
       pallets: 1,
       unitCost: 0
     };
@@ -55,6 +55,7 @@ export const useOrderActions = () => {
     };
     
     setItems([...items, newItem]);
+    console.log('Added new item:', newItem);
   }, [items, setItems]);
 
   const handleRemoveItem = useCallback((id: number) => {

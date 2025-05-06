@@ -95,6 +95,11 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
     handleAddItem(newItem);
   };
 
+  const openProductSelector = () => {
+    console.log('Opening product selector dialog');
+    setProductSelectorOpen(true);
+  };
+
   const headers = [
     { key: 'name', label: 'Name', sortable: true, className: 'w-[15%] text-center px-4' },
     ...optionFields.map(field => ({
@@ -136,7 +141,7 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
             Add Empty Row
           </Button>
           <Button 
-            onClick={() => setProductSelectorOpen(true)}
+            onClick={openProductSelector}
             className="bg-[#2A4131] hover:bg-[#2A4131]/90"
           >
             <Plus className="mr-2 h-4 w-4" />
@@ -161,7 +166,7 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
           </Button>
           
           <Button 
-            onClick={() => setProductSelectorOpen(true)}
+            onClick={openProductSelector}
             className="bg-[#2A4131] hover:bg-[#2A4131]/90"
             disabled={readOnly}
           >
