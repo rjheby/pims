@@ -11,6 +11,7 @@ import { OrderItem, DropdownOptions, generateEmptyOrderItem } from "./types";
 import { useToast } from "@/hooks/use-toast";
 import { ProductSelectorDialog } from "./components/ProductSelectorDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { supabase } from "@/integrations/supabase/client";
 
 interface OrderTableProps {
   readOnly?: boolean;
@@ -41,6 +42,31 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
   useEffect(() => {
     console.log('OrderTable mounted, loading options from Supabase');
     loadOptions();
+    
+    // Also fetch wood products for display data
+    const fetchWoodProducts = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('wood_products')
+          .select('*')
+          .limit(50);
+        
+        if (error) {
+          console.error('Error fetching wood products:', error);
+          return;
+        }
+        
+        if (data && data.length > 0) {
+          console.log(`Loaded ${data.length} wood products for reference`);
+        } else {
+          console.log('No wood products found in database');
+        }
+      } catch (err) {
+        console.error('Error in wood products fetch:', err);
+      }
+    };
+    
+    fetchWoodProducts();
   }, [loadOptions]);
 
   const {
@@ -126,7 +152,10 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
   if (isLoadingOptions) {
     return (
       <div className="text-center py-10 border rounded-md bg-gray-50">
-        <p className="text-gray-500 mb-4">Loading options from database...</p>
+        <div className="flex flex-col items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2A4131]"></div>
+          <p className="mt-4 text-gray-500">Loading options from database...</p>
+        </div>
       </div>
     );
   }
@@ -174,7 +203,7 @@ export function OrderTable({ readOnly = false, onItemsChange }: OrderTableProps)
             disabled={readOnly}
           >
             <Plus className="mr-2 h-4 w-4" />
-            Add New Product
+            Add From Product Catalog
           </Button>
         </div>
       )}

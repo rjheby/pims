@@ -47,11 +47,33 @@ export const addOption = async (
     // Add the new option
     updatedOptions[field] = [...updatedOptions[field], newOption];
     
-    // Update the options in the wholesale_order_options table
-    const { error } = await supabase
+    // First check if a record exists
+    const { data, error: checkError } = await supabase
       .from('wholesale_order_options')
-      .update({ [field]: updatedOptions[field] })
-      .eq('id', 1);
+      .select('id')
+      .limit(1);
+      
+    if (checkError) {
+      console.error('Error checking for existing options record:', checkError);
+      return { success: false, error: checkError.message };
+    }
+    
+    let dbOperation;
+    
+    if (data && data.length > 0) {
+      // Update existing record
+      dbOperation = supabase
+        .from('wholesale_order_options')
+        .update({ [field]: updatedOptions[field] })
+        .eq('id', data[0].id);
+    } else {
+      // Insert new record
+      dbOperation = supabase
+        .from('wholesale_order_options')
+        .insert([{ [field]: updatedOptions[field] }]);
+    }
+
+    const { error } = await dbOperation;
 
     if (error) {
       console.error('Error saving option to database:', error);
@@ -59,6 +81,14 @@ export const addOption = async (
         success: false, 
         error: error.message 
       };
+    }
+    
+    // Also update wood_products if the option is relevant
+    if (field === 'species' || field === 'length' || field === 'thickness') {
+      // No update needed for new options
+    } else if (field === 'bundleType') {
+      // Map to bundle_type in wood_products if needed
+      // This is just in case we want to add this feature later
     }
 
     console.log(`Successfully added option "${newOption}" to field "${field}"`);
@@ -127,26 +157,66 @@ export const updateOption = async (
     updatedOptions[field][optionIndex] = newOption;
     
     // Update existing products in wood_products with this attribute if it's a core field
-    if (field === 'species' || field === 'length' || field === 'bundleType' || field === 'thickness') {
+    if (field === 'species' || field === 'length' || field === 'thickness') {
+      try {
+        const { error: productUpdateError } = await supabase
+          .from('wood_products')
+          .update({ [field]: newOption })
+          .eq(field, oldOption);
+        
+        if (productUpdateError) {
+          console.error('Error updating products in database:', productUpdateError);
+        } else {
+          console.log(`Updated ${field} from "${oldOption}" to "${newOption}" in wood_products`);
+        }
+      } catch (err) {
+        console.error('Error updating products:', err);
+      }
+    } else if (field === 'bundleType') {
       // For bundleType, we need to map to bundle_type column in the database
-      const columnName = field === 'bundleType' ? 'bundle_type' : field;
-      
-      // Update products in wood_products table that use this option
-      const { error: productUpdateError } = await supabase
-        .from('wood_products')
-        .update({ [columnName]: newOption })
-        .eq(columnName, oldOption);
-      
-      if (productUpdateError) {
-        console.error('Error updating products in database:', productUpdateError);
+      try {
+        const { error: productUpdateError } = await supabase
+          .from('wood_products')
+          .update({ bundle_type: newOption })
+          .eq('bundle_type', oldOption);
+        
+        if (productUpdateError) {
+          console.error('Error updating bundle_type in products:', productUpdateError);
+        } else {
+          console.log(`Updated bundle_type from "${oldOption}" to "${newOption}" in wood_products`);
+        }
+      } catch (err) {
+        console.error('Error updating bundle_type in products:', err);
       }
     }
     
-    // Update the options in wholesale_order_options table
-    const { error } = await supabase
+    // First check if a record exists
+    const { data, error: checkError } = await supabase
       .from('wholesale_order_options')
-      .update({ [field]: updatedOptions[field] })
-      .eq('id', 1);
+      .select('id')
+      .limit(1);
+      
+    if (checkError) {
+      console.error('Error checking for existing options record:', checkError);
+      return { success: false, error: checkError.message };
+    }
+    
+    let dbOperation;
+    
+    if (data && data.length > 0) {
+      // Update existing record
+      dbOperation = supabase
+        .from('wholesale_order_options')
+        .update({ [field]: updatedOptions[field] })
+        .eq('id', data[0].id);
+    } else {
+      // Insert new record
+      dbOperation = supabase
+        .from('wholesale_order_options')
+        .insert([{ [field]: updatedOptions[field] }]);
+    }
+
+    const { error } = await dbOperation;
 
     if (error) {
       console.error('Error updating option in database:', error);
@@ -203,4 +273,38 @@ export const handleOptionOperation = async (
     toast.error("An unexpected error occurred");
     return null;
   }
+};
+
+// Fetch all wood products to use for option population
+export const fetchWoodProducts = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('wood_products')
+      .select('species, length, bundle_type, thickness')
+      .limit(100);
+      
+    if (error) {
+      console.error('Error fetching wood products:', error);
+      return null;
+    }
+    
+    return data;
+  } catch (err) {
+    console.error('Error in fetchWoodProducts:', err);
+    return null;
+  }
+};
+
+// Extract unique options from wood products
+export const extractOptionsFromProducts = (products: any[] | null): Partial<DropdownOptions> => {
+  if (!products || products.length === 0) {
+    return {};
+  }
+  
+  return {
+    species: [...new Set(products.map(p => p.species).filter(Boolean))],
+    length: [...new Set(products.map(p => p.length).filter(Boolean))],
+    bundleType: [...new Set(products.map(p => p.bundle_type).filter(Boolean))],
+    thickness: [...new Set(products.map(p => p.thickness).filter(Boolean))]
+  };
 };

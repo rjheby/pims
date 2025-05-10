@@ -5,6 +5,7 @@ import { OrderItem, DropdownOptions } from '../../types';
 import { handleOptionOperation } from '../../utils/optionManagement';
 import { KeyboardEvent } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useOrderActions = () => {
   const {
@@ -46,8 +47,27 @@ export const useOrderActions = () => {
     setItems([...items, newItem]);
   }, [items, setItems]);
 
-  const handleAddItem2 = useCallback((item?: Partial<OrderItem>) => {
+  const handleAddItem2 = useCallback(async (item?: Partial<OrderItem>) => {
     const newId = items.length > 0 ? Math.max(...items.map(item => item.id)) + 1 : 1;
+    
+    // If we have a productId but no unit cost, try to fetch it from the database
+    if (item?.productId && (!item.unitCost || item.unitCost === 0)) {
+      try {
+        const { data, error } = await supabase
+          .from('wood_products')
+          .select('unit_cost')
+          .eq('id', item.productId)
+          .single();
+          
+        if (!error && data) {
+          item.unitCost = data.unit_cost;
+          console.log(`Retrieved unit cost ${data.unit_cost} for product ${item.productId}`);
+        }
+      } catch (err) {
+        console.error('Error fetching product unit cost:', err);
+      }
+    }
+    
     const newItem: OrderItem = {
       id: newId,
       species: item?.species || '',
@@ -93,6 +113,42 @@ export const useOrderActions = () => {
       item.id === id ? { ...item, [field]: value } : item
     );
     setItems(updatedItems);
+    
+    // Additionally, if it's a species, length, bundleType, or thickness field
+    // try to find a matching wood_product to get accurate unit cost
+    if (field === 'species' || field === 'length' || field === 'bundleType' || field === 'thickness') {
+      const changedItem = updatedItems.find(item => item.id === id);
+      if (changedItem && changedItem.species && changedItem.length && changedItem.bundleType && changedItem.thickness) {
+        // Only lookup price if all required fields are filled
+        console.log('Looking up matching product for pricing...');
+        
+        // Use setTimeout to avoid blocking the UI
+        setTimeout(async () => {
+          try {
+            const { data, error } = await supabase
+              .from('wood_products')
+              .select('id, unit_cost')
+              .eq('species', changedItem.species)
+              .eq('length', changedItem.length)
+              .eq('bundle_type', changedItem.bundleType)
+              .eq('thickness', changedItem.thickness)
+              .single();
+              
+            if (!error && data) {
+              console.log(`Found matching product with unit cost: ${data.unit_cost}`);
+              
+              // Update the item with the found unit cost and product ID
+              const updatedItemsWithCost = items.map(item =>
+                item.id === id ? { ...item, unitCost: data.unit_cost, productId: data.id } : item
+              );
+              setItems(updatedItemsWithCost);
+            }
+          } catch (err) {
+            console.log('No exact matching product found for pricing');
+          }
+        }, 100);
+      }
+    }
   }, [items, setItems]);
 
   const handleNewOptionChange = useCallback((value: string) => {

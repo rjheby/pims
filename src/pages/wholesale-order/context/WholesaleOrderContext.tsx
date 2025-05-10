@@ -84,18 +84,20 @@ export function WholesaleOrderProvider({ children, initialItems = [] }: PropsWit
     
     try {
       console.log('Loading options from Supabase...');
+      
+      // First attempt to get options from wholesale_order_options table
       const { data, error } = await supabase
         .from('wholesale_order_options')
         .select('*')
         .single();
 
-      if (error) {
+      if (error && error.code !== 'PGRST116') {
         console.error('Error fetching options from Supabase:', error);
         throw error;
       }
 
       if (data) {
-        console.log('Options fetched successfully:', data);
+        console.log('Options fetched successfully from wholesale_order_options:', data);
         setOptions({
           species: Array.isArray(data.species) ? data.species : [],
           length: Array.isArray(data.length) ? data.length : [],
@@ -103,17 +105,65 @@ export function WholesaleOrderProvider({ children, initialItems = [] }: PropsWit
           thickness: Array.isArray(data.thickness) ? data.thickness : [],
           packaging: Array.isArray(data.packaging) ? data.packaging : []
         });
-      } else {
-        console.warn('No options found in database, using fallback');
-        // Fallback options if no data found
-        setOptions({
-          species: ["Pine", "Spruce", "Fir", "Cedar", "Maple"],
-          length: ["8'", "10'", "12'", "16'", "20'"],
-          bundleType: ["2x4", "2x6", "2x8", "2x10", "2x12", "4x4", "6x6"],
-          thickness: ["KD", "Green", "Treated"],
-          packaging: ["Pallets", "Bunks", "Banded", "Loose"]
-        });
+        return;
       }
+      
+      console.log('No options found in wholesale_order_options, extracting from wood_products...');
+      
+      // If no options in wholesale_order_options, extract from wood_products
+      const { data: productsData, error: productsError } = await supabase
+        .from('wood_products')
+        .select('species, length, bundle_type, thickness')
+        .limit(100);
+        
+      if (productsError) {
+        console.error('Error fetching products:', productsError);
+        throw productsError;
+      }
+      
+      if (productsData && productsData.length > 0) {
+        // Extract unique values
+        const uniqueSpecies = [...new Set(productsData.map(p => p.species).filter(Boolean))];
+        const uniqueLength = [...new Set(productsData.map(p => p.length).filter(Boolean))];
+        const uniqueBundleType = [...new Set(productsData.map(p => p.bundle_type).filter(Boolean))];
+        const uniqueThickness = [...new Set(productsData.map(p => p.thickness).filter(Boolean))];
+        
+        const extractedOptions = {
+          species: uniqueSpecies,
+          length: uniqueLength,
+          bundleType: uniqueBundleType,
+          thickness: uniqueThickness,
+          packaging: ["Pallets", "Boxes", "Bundles"]
+        };
+        
+        console.log('Extracted options from products:', extractedOptions);
+        setOptions(extractedOptions);
+        
+        // Try to save these options for future use
+        try {
+          const { error: insertError } = await supabase
+            .from('wholesale_order_options')
+            .insert([extractedOptions]);
+            
+          if (insertError) {
+            console.error('Error saving extracted options:', insertError);
+          }
+        } catch (err) {
+          console.error('Failed to save extracted options:', err);
+        }
+        
+        return;
+      }
+      
+      // Fallback options if no data found in any table
+      console.warn('No options found in database, using fallback');
+      setOptions({
+        species: ["Pine", "Spruce", "Fir", "Cedar", "Maple"],
+        length: ["8'", "10'", "12'", "16'", "20'"],
+        bundleType: ["2x4", "2x6", "2x8", "2x10", "2x12", "4x4", "6x6"],
+        thickness: ["KD", "Green", "Treated"],
+        packaging: ["Pallets", "Bunks", "Banded", "Loose"]
+      });
     } catch (error: any) {
       console.error('Error loading options from Supabase:', error);
       toast({
@@ -122,7 +172,7 @@ export function WholesaleOrderProvider({ children, initialItems = [] }: PropsWit
         variant: "destructive",
       });
       
-      // Fallback to default options
+      // Fallback to default options only as last resort
       setOptions({
         species: ["Pine", "Spruce", "Fir", "Cedar", "Maple"],
         length: ["8'", "10'", "12'", "16'", "20'"],
@@ -140,11 +190,46 @@ export function WholesaleOrderProvider({ children, initialItems = [] }: PropsWit
   };
 
   const generateOrderNumber = async (date: string): Promise<string> => {
-    const shortDate = date.slice(2, 4) + date.slice(5, 7) + date.slice(8, 10);
-    const random = Math.floor(Math.random() * 1000);
-    const orderNumber = `${shortDate}-${random.toString().padStart(3, '0')}`;
-    setOrderNumber(orderNumber);
-    return orderNumber;
+    // First check if there are existing orders from the same date to ensure unique numbering
+    try {
+      const shortDate = date.slice(2, 4) + date.slice(5, 7) + date.slice(8, 10);
+      
+      // Get current orders with this date pattern
+      const { data: existingOrders } = await supabase
+        .from('wholesale_orders')
+        .select('order_number')
+        .ilike('order_number', `${shortDate}-%`);
+      
+      let nextNumber = 1;
+      
+      if (existingOrders && existingOrders.length > 0) {
+        // Extract all numbers after the dash
+        const existingNumbers = existingOrders
+          .map(order => {
+            const match = order.order_number.match(new RegExp(`${shortDate}-([0-9]+)`));
+            return match ? parseInt(match[1]) : 0;
+          })
+          .filter(num => !isNaN(num));
+        
+        // Find max and add 1
+        if (existingNumbers.length > 0) {
+          nextNumber = Math.max(...existingNumbers) + 1;
+        }
+      }
+      
+      // Format with leading zeros to 3 digits
+      const orderNumber = `${shortDate}-${nextNumber.toString().padStart(3, '0')}`;
+      setOrderNumber(orderNumber);
+      return orderNumber;
+    } catch (error) {
+      console.error('Error generating order number:', error);
+      // Fallback to random number if DB query fails
+      const random = Math.floor(Math.random() * 1000);
+      const shortDate = date.slice(2, 4) + date.slice(5, 7) + date.slice(8, 10);
+      const orderNumber = `${shortDate}-${random.toString().padStart(3, '0')}`;
+      setOrderNumber(orderNumber);
+      return orderNumber;
+    }
   };
 
   const contextValue = {
