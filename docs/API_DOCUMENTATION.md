@@ -1,5 +1,6 @@
-
 # API Documentation
+
+> **Note**: This document describes Supabase client functions, not REST API endpoints. All functions are called directly from the React frontend using the Supabase JavaScript client.
 
 This document describes the APIs available in our system, including both internal service APIs and external integration points.
 

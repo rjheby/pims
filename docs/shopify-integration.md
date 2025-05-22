@@ -1,3 +1,7 @@
+⚠️ **IMPORTANT**: The webhook examples in this document show Next.js API routes for illustration purposes only. The actual implementation requires Supabase Edge Functions or an external webhook service, since this project uses React Router (not Next.js).
+
+---
+
   // Fetch recent Shopify orders
   const fetchShopifyOrders = async (limit = 50) => {
     setLoadingOrders(true);
@@ -1041,4 +1045,292 @@ export const ShopifyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   
   // Fetch recent Shopify orders
   const fetchShopifyOrders = async (limit = 50) => {
-    set
+    setLoadingOrders(true);
+    try {
+      // Use Shopify GraphQL API to fetch recent orders
+      const ordersResponse = await shopifyClient.get({
+        path: 'orders',
+        query: {
+          limit: limit.toString(),
+          status: 'any',
+          fields: 'id,name,email,created_at,processed_at,customer,shipping_address,line_items,note,tags,total_price,financial_status,fulfillment_status'
+        }
+      });
+      
+      if (!ordersResponse.body?.orders) throw new Error('No orders returned from Shopify');
+      
+      // Get delivery date metafields for these orders
+      const orderIds = ordersResponse.body.orders.map((order: any) => order.id);
+      const metafieldsResponse = await fetchOrderMetafields(orderIds);
+      
+      // Merge metafield data with orders
+      const enrichedOrders = enrichOrdersWithMetafields(
+        ordersResponse.body.orders,
+        metafieldsResponse
+      );
+      
+      setShopifyOrders(enrichedOrders);
+      setLastSyncTime(new Date().toISOString());
+    } catch (error) {
+      console.error('Error fetching Shopify orders:', error);
+      setSyncStatus('error');
+    } finally {
+      setLoadingOrders(false);
+    }
+  };
+  
+  // Save order from Shopify to internal system
+  const saveShopifyOrder = async (shopifyOrder: ShopifyOrder): Promise<boolean> => {
+    try {
+      // Check if order already exists in our system
+      const { data: existingOrder } = await supabase
+        .from('client_orders')
+        .select('id')
+        .eq('shopify_order_id', shopifyOrder.id)
+        .single();
+      
+      if (existingOrder) {
+        console.log(`Order ${shopifyOrder.name} already exists in our system`);
+        return true; // Already processed
+      }
+      
+      // Find or create customer
+      const customerId = await findOrCreateCustomer(shopifyOrder.customer, shopifyOrder.shipping_address);
+      
+      if (!customerId) {
+        throw new Error('Failed to find or create customer');
+      }
+      
+      // Convert Shopify line items to our internal format
+      const itemsString = convertLineItemsToInternalFormat(shopifyOrder.line_items);
+      
+      // Create internal order
+      const { data, error } = await supabase
+        .from('client_orders')
+        .insert([{
+          order_number: shopifyOrder.name,
+          order_date: shopifyOrder.processed_at || shopifyOrder.created_at,
+          customer_id: customerId,
+          items: itemsString,
+          total_price: parseFloat(shopifyOrder.total_price),
+          status: 'PENDING',
+          notes: shopifyOrder.note || '',
+          delivery_date: shopifyOrder.delivery_date,
+          delivery_window: shopifyOrder.delivery_window,
+          source: 'SHOPIFY',
+          shopify_order_id: shopifyOrder.id
+        }]);
+      
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error(`Error saving Shopify order ${shopifyOrder.name}:`, error);
+      return false;
+    }
+  };
+  
+  // Convert Shopify line items to internal format
+  const convertLineItemsToInternalFormat = (lineItems: ShopifyOrder['line_items']): string => {
+    const convertedItems = lineItems.map(item => {
+      // Find product mapping for this Shopify product
+      const mapping = productMappings.find(m => 
+        m.shopifyProductId === item.product_id && 
+        m.shopifyVariantId === item.variant_id
+      );
+      
+      if (mapping) {
+        // Use internal product name from mapping
+        const internalProduct = getInternalProductById(mapping.internalProductId, mapping.internalProductType);
+        if (internalProduct) {
+          const quantity = item.quantity * (mapping.conversionRatio || 1);
+          return `${quantity}x ${internalProduct.name}`;
+        }
+      }
+      
+      // Fallback to Shopify product title if no mapping found
+      return `${item.quantity}x ${item.title}`;
+    });
+    
+    return convertedItems.join(', ');
+  };
+  
+  // Find or create customer from Shopify data
+  const findOrCreateCustomer = async (
+    shopifyCustomer: ShopifyOrder['customer'],
+    shippingAddress: ShopifyOrder['shipping_address']
+  ): Promise<string | null> => {
+    try {
+      // Check if customer exists by email
+      const { data: existingCustomer } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('email', shopifyCustomer.email)
+        .single();
+      
+      if (existingCustomer) {
+        return existingCustomer.id;
+      }
+      
+      // Create new customer
+      const { data: newCustomer, error } = await supabase
+        .from('customers')
+        .insert([{
+          first_name: shopifyCustomer.first_name,
+          last_name: shopifyCustomer.last_name,
+          email: shopifyCustomer.email,
+          phone: shopifyCustomer.phone,
+          address: shippingAddress.address1,
+          address2: shippingAddress.address2,
+          city: shippingAddress.city,
+          state: shippingAddress.province,
+          zip: shippingAddress.zip,
+          lat: shippingAddress.latitude,
+          lng: shippingAddress.longitude,
+          customer_type: 'RETAIL',
+          source: 'SHOPIFY'
+        }])
+        .select('id')
+        .single();
+      
+      if (error) throw error;
+      return newCustomer?.id || null;
+    } catch (error) {
+      console.error('Error finding or creating customer:', error);
+      return null;
+    }
+  };
+  
+  // Update order fulfillment in Shopify
+  const updateShopifyFulfillment = async (
+    orderId: string,
+    shopifyOrderId: string,
+    status: 'fulfilled' | 'partial' | 'cancelled'
+  ): Promise<boolean> => {
+    try {
+      // Get the line items for this order from Shopify
+      const orderResponse = await shopifyClient.get({
+        path: `orders/${shopifyOrderId}`,
+        query: { fields: 'line_items' }
+      });
+      
+      if (!orderResponse.body?.order) {
+        throw new Error('Order not found in Shopify');
+      }
+      
+      const lineItems = orderResponse.body.order.line_items;
+      const lineItemIds = lineItems.map((item: any) => item.id);
+      
+      // Create fulfillment
+      if (status === 'fulfilled' || status === 'partial') {
+        const fulfillmentData = {
+          line_items: lineItemIds.map((id: string) => ({ id })),
+          notify_customer: true,
+          status: status === 'partial' ? 'partial' : 'success',
+          tracking_info: {
+            company: 'Woodbourne Delivery',
+            number: `DEL-${orderId}`,
+            url: `https://your-system-url.com/tracking/${orderId}`
+          }
+        };
+        
+        await shopifyClient.post({
+          path: `orders/${shopifyOrderId}/fulfillments`,
+          data: { fulfillment: fulfillmentData }
+        });
+      } 
+      // Cancel order
+      else if (status === 'cancelled') {
+        await shopifyClient.post({
+          path: `orders/${shopifyOrderId}/cancel`,
+          data: { email: true }
+        });
+      }
+      
+      return true;
+    } catch (error) {
+      console.error(`Error updating Shopify fulfillment for order ${shopifyOrderId}:`, error);
+      return false;
+    }
+  };
+  
+  // Helper function to get internal product by ID
+  const getInternalProductById = (
+    productId: string, 
+    type: 'wholesale' | 'retail'
+  ): { id: string, name: string } | null => {
+    const { woodProducts, firewoodProducts } = useInventory();
+    
+    if (type === 'wholesale') {
+      const product = woodProducts.find(p => p.id === productId);
+      return product ? { id: product.id, name: product.full_description } : null;
+    } else {
+      const product = firewoodProducts.find(p => p.id === productId);
+      return product ? { id: product.id, name: product.item_name } : null;
+    }
+  };
+  
+  // Synchronize all pending Shopify orders
+  const syncAllPendingOrders = async (): Promise<{ 
+    success: number, 
+    failed: number 
+  }> => {
+    setSyncStatus('syncing');
+    let successCount = 0;
+    let failedCount = 0;
+    
+    try {
+      // Fetch recent unprocessed orders from Shopify
+      await fetchShopifyOrders(50);
+      
+      // Filter for orders that are paid but not fulfilled
+      const pendingOrders = shopifyOrders.filter(order => 
+        order.financial_status === 'paid' && 
+        (!order.fulfillment_status || order.fulfillment_status === 'partial')
+      );
+      
+      // Process each order
+      for (const order of pendingOrders) {
+        const success = await saveShopifyOrder(order);
+        if (success) {
+          successCount++;
+        } else {
+          failedCount++;
+        }
+      }
+      
+      setLastSyncTime(new Date().toISOString());
+      setSyncStatus('idle');
+    } catch (error) {
+      console.error('Error syncing pending orders:', error);
+      setSyncStatus('error');
+    }
+    
+    return { success: successCount, failed: failedCount };
+  };
+  
+  // Initialize by loading product mappings
+  useEffect(() => {
+    fetchProductMappings();
+  }, []);
+  
+  // Value object for context provider
+  const value = {
+    productMappings,
+    shopifyOrders,
+    syncStatus,
+    lastSyncTime,
+    loadingMappings,
+    loadingOrders,
+    fetchProductMappings,
+    fetchShopifyOrders,
+    saveShopifyOrder,
+    updateShopifyFulfillment,
+    syncAllPendingOrders
+  };
+  
+  return (
+    <ShopifyContext.Provider value={value}>
+      {children}
+    </ShopifyContext.Provider>
+  );
+};

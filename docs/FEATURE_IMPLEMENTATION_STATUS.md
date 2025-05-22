@@ -1,4 +1,3 @@
-
 # Feature Implementation Status
 
 This document tracks the implementation status of all planned features in our scheduling system. It serves as a reference for project management and planning.
@@ -223,6 +222,15 @@ This document tracks the implementation status of all planned features in our sc
 | generateSchedulePDF | Advanced Stage | 65% | PDF generation implemented with basic formatting |
 | optimizeStopSequence | Early Stage | 15% | Research conducted, basic functions defined |
 | calculateEstimatedTimes | Early Stage | 10% | Basic time window handling, distance-based calculation missing |
+
+## Architecture Clarifications
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| React Router | Complete | 100% - Using React Router DOM with BrowserRouter |
+| Next.js API Routes | Not Used | 0% - Project uses React SPA architecture, not Next.js |
+| Supabase Client | Complete | 100% - All backend operations through Supabase client |
+| Server-side APIs | Not Used | 0% - No custom API layer, direct Supabase client usage |
 
 ## Database Relationships
 

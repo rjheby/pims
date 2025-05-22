@@ -19,6 +19,7 @@ The system is built using the following technologies:
 - **Supabase**: PostgreSQL database with built-in authentication and real-time capabilities
 - **Supabase Auth**: Handles user authentication and authorization
 - **Supabase Storage**: Manages file uploads (for delivery photos, etc.)
+- **No server-side API**: All backend functionality handled through Supabase client
 
 ### Integrations
 - **Shopify API**: Connects with your e-commerce platform
