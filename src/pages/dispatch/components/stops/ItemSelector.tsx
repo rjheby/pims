@@ -39,13 +39,17 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
   const [selectedProductType, setSelectedProductType] = useState('');
   const [selectedSize, setSelectedSize] = useState('');
   
-  // Fetch inventory data once
-  const inventoryItems = useMemo(() => getInventoryWithProductDetails(), [getInventoryWithProductDetails]);
+  // Fetch inventory data once - memoized to prevent unnecessary re-calculations
+  const inventoryItems = useMemo(() => {
+    const items = getInventoryWithProductDetails();
+    console.log("Available inventory items:", items.length);
+    return items;
+  }, [getInventoryWithProductDetails]);
   
-  // Add this near the top of the component, after other state declarations
+  // Track initialization to prevent multiple parsing of initial items
   const initializedRef = useRef(false);
   
-  // Replace the problematic useEffect with this version
+  // Initialize selected items from initialItems prop ONLY when dialog opens
   useEffect(() => {
     if (open && initialItems && !initializedRef.current) {
       initializedRef.current = true;
@@ -83,9 +87,7 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
     if (!open) {
       initializedRef.current = false;
     }
-  }, [open]); // Remove initialItems from dependency array
-  
-  console.log("Available inventory items:", inventoryItems.length);
+  }, [open, initialItems]); // Removed from dependency array to prevent loops
   
   // Sort inventory items - memoized to avoid recalculation on every render
   const sortedInventoryItems = useMemo(() => {
@@ -222,10 +224,10 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
     return formatted;
   }, [selectedItems]);
   
-  // Add this effect to update textarea value when selectedItems changes
+  // Update textarea value when selectedItems changes
   useEffect(() => {
     setTextareaValue(formatSelectedItemsForOutput());
-  }, [selectedItems]);
+  }, [formatSelectedItemsForOutput]);
   
   const handleSave = () => {
     const formattedItems = formatSelectedItemsForOutput();
