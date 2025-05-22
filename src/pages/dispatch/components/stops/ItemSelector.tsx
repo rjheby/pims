@@ -33,6 +33,7 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectionMode, setSelectionMode] = useState<'search' | 'attributes'>('search');
   const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
+  const [textareaValue, setTextareaValue] = useState('');
   
   // For attribute selection mode
   const [selectedProductType, setSelectedProductType] = useState('');
@@ -219,6 +220,11 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
     ).join(', ');
     console.log("Formatted items for output:", formatted);
     return formatted;
+  }, [selectedItems]);
+  
+  // Add this effect to update textarea value when selectedItems changes
+  useEffect(() => {
+    setTextareaValue(formatSelectedItemsForOutput());
   }, [selectedItems]);
   
   const handleSave = () => {
@@ -458,8 +464,9 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
             <h3 className="font-medium mb-2">Manual Entry</h3>
             <textarea
               className="w-full min-h-[80px] p-2 border rounded"
-              value={formatSelectedItemsForOutput()}
+              value={textareaValue}
               onChange={(e) => {
+                setTextareaValue(e.target.value);
                 try {
                   const itemsArray = e.target.value.split(',').map(item => item.trim());
                   const parsedItems = itemsArray.map(item => {
@@ -479,6 +486,10 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
                 } catch (error) {
                   console.error("Failed to parse items:", error);
                 }
+              }}
+              onBlur={() => {
+                // When user finishes editing, ensure the textarea value matches the formatted items
+                setTextareaValue(formatSelectedItemsForOutput());
               }}
               placeholder="e.g., 30x Split Firewood @$7.50, 10x Kindling @$5.00"
             />
