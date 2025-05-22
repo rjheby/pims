@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter 
 } from "@/components/ui/dialog";
@@ -42,9 +41,13 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
   // Fetch inventory data once
   const inventoryItems = useMemo(() => getInventoryWithProductDetails(), [getInventoryWithProductDetails]);
   
-  // Parse initial items only when they change or dialog opens
+  // Add this near the top of the component, after other state declarations
+  const initializedRef = useRef(false);
+  
+  // Replace the problematic useEffect with this version
   useEffect(() => {
-    if (open && initialItems) {
+    if (open && initialItems && !initializedRef.current) {
+      initializedRef.current = true;
       try {
         const itemsArray = initialItems.split(',').map(item => item.trim());
         console.log("Parsing initial items:", itemsArray);
@@ -71,10 +74,15 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
         console.error("Failed to parse initial items:", error);
         setSelectedItems([]);
       }
-    } else if (open) {
+    } else if (open && !initialItems) {
       setSelectedItems([]);
     }
-  }, [open, initialItems]);
+    
+    // Reset when dialog closes
+    if (!open) {
+      initializedRef.current = false;
+    }
+  }, [open]); // Remove initialItems from dependency array
   
   console.log("Available inventory items:", inventoryItems.length);
   
