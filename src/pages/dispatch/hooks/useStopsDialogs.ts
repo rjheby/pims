@@ -38,6 +38,54 @@ export function useStopsDialogs(
   // Memoize recurrenceData to prevent unnecessary re-renders
   const recurrenceData = useMemo(() => recurrenceDataState, [recurrenceDataState]);
 
+  const saveRecurringOrder = useCallback(async () => {
+    if (!editForm.customer_id || !recurrenceData.isRecurring) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("recurring_orders")
+        .insert({
+          customer_id: editForm.customer_id,
+          frequency: recurrenceData.frequency,
+          preferred_day: recurrenceData.preferredDay,
+          preferred_time: "morning" // Default to morning
+        })
+        .select();
+      
+      if (error) throw error;
+      
+      console.log("Created recurring order:", data);
+      
+      // Update the stop with the recurring_id
+      if (data && data[0].id) {
+        const updatedStops = stops.map(stop => {
+          if (stop.customer_id === editForm.customer_id) {
+            return {
+              ...stop,
+              recurring_id: data[0].id,
+              is_recurring: true
+            };
+          }
+          return stop;
+        });
+        
+        onStopsChange(updatedStops);
+        
+        toast({
+          title: "Success",
+          description: "Recurring order saved and linked to this stop",
+        });
+      }
+    } catch (error: any) {
+      console.error("Error saving recurring order:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save recurring order: " + error.message,
+        variant: "destructive"
+      });
+    }
+  }, [editForm.customer_id, recurrenceData.isRecurring, recurrenceData.frequency, recurrenceData.preferredDay, stops, onStopsChange, toast]);
+
   const handleAddStop = useCallback(() => {
     console.log("Adding new stop");
     setIsAddingNewStop(true);
@@ -68,7 +116,7 @@ export function useStopsDialogs(
     });
     
     setCustomerDialogOpen(true);
-  }, [stops, setCustomerDialogOpen]);
+  }, [stops]);
 
   const handleEditStart = useCallback((index: number) => {
     console.log("Editing stop at index:", index);
@@ -128,55 +176,7 @@ export function useStopsDialogs(
     
     setEditingIndex(null);
     setIsAddingNewStop(false);
-  }, [stops, editForm, editingIndex, isAddingNewStop, onStopsChange, recurrenceData]);
-
-  const saveRecurringOrder = async () => {
-    if (!editForm.customer_id || !recurrenceData.isRecurring) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from("recurring_orders")
-        .insert({
-          customer_id: editForm.customer_id,
-          frequency: recurrenceData.frequency,
-          preferred_day: recurrenceData.preferredDay,
-          preferred_time: "morning" // Default to morning
-        })
-        .select();
-      
-      if (error) throw error;
-      
-      console.log("Created recurring order:", data);
-      
-      // Update the stop with the recurring_id
-      if (data && data[0].id) {
-        const updatedStops = stops.map(stop => {
-          if (stop.customer_id === editForm.customer_id) {
-            return {
-              ...stop,
-              recurring_id: data[0].id,
-              is_recurring: true
-            };
-          }
-          return stop;
-        });
-        
-        onStopsChange(updatedStops);
-        
-        toast({
-          title: "Success",
-          description: "Recurring order saved and linked to this stop",
-        });
-      }
-    } catch (error: any) {
-      console.error("Error saving recurring order:", error);
-      toast({
-        title: "Error",
-        description: "Failed to save recurring order: " + error.message,
-        variant: "destructive"
-      });
-    }
-  };
+  }, [stops, editForm, editingIndex, isAddingNewStop, onStopsChange, recurrenceData, saveRecurringOrder]);
 
   const handleEditCancel = useCallback(() => {
     console.log("Canceling edit");
@@ -202,6 +202,7 @@ export function useStopsDialogs(
     setItemsDialogOpen(true);
   }, []);
 
+  // FIXED: Added missing dependencies to prevent infinite re-renders
   const handleItemsSelect = useCallback((items: string, itemsData?: any[], recurrenceDataUpdate?: RecurrenceData) => {
     console.log("Selected items:", items);
     
@@ -222,7 +223,7 @@ export function useStopsDialogs(
     }));
     
     setItemsDialogOpen(false);
-  }, []);
+  }, []); // FIXED: Empty dependency array since this function doesn't depend on external values
 
   const openCustomerDialog = useCallback((index?: number) => {
     if (index !== undefined) {
