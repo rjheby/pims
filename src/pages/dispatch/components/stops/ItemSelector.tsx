@@ -467,8 +467,10 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
               value={textareaValue}
               onChange={(e) => {
                 setTextareaValue(e.target.value);
+              }}
+              onBlur={() => {
                 try {
-                  const itemsArray = e.target.value.split(',').map(item => item.trim());
+                  const itemsArray = textareaValue.split(',').map(item => item.trim());
                   const parsedItems = itemsArray.map(item => {
                     const quantityMatch = item.match(/(\d+)x\s+(.+?)(?:\s+@\$(\d+\.\d+))?$/);
                     if (quantityMatch) {
@@ -483,13 +485,13 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
                   }).filter(Boolean) as {id: string; name: string; quantity: number; price?: number}[];
                   
                   setSelectedItems(parsedItems);
+                  // Format the textarea value after parsing
+                  setTextareaValue(formatSelectedItemsForOutput());
                 } catch (error) {
                   console.error("Failed to parse items:", error);
+                  // If parsing fails, revert to the last valid state
+                  setTextareaValue(formatSelectedItemsForOutput());
                 }
-              }}
-              onBlur={() => {
-                // When user finishes editing, ensure the textarea value matches the formatted items
-                setTextareaValue(formatSelectedItemsForOutput());
               }}
               placeholder="e.g., 30x Split Firewood @$7.50, 10x Kindling @$5.00"
             />
