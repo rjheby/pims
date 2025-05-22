@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Customer, DeliveryStop, Driver, StopFormData, RecurrenceData } from "../components/stops/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -28,11 +28,15 @@ export function useStopsDialogs(
     recurring_id: ""
   });
   
-  const [recurrenceData, setRecurrenceData] = useState<RecurrenceData>({
+  // Create a stable recurrenceData object using useMemo
+  const [recurrenceDataState, setRecurrenceDataState] = useState<RecurrenceData>({
     isRecurring: false,
     frequency: "weekly",
     preferredDay: "monday"
   });
+
+  // Memoize recurrenceData to prevent unnecessary re-renders
+  const recurrenceData = useMemo(() => recurrenceDataState, [recurrenceDataState]);
 
   const handleAddStop = useCallback(() => {
     console.log("Adding new stop");
@@ -57,7 +61,7 @@ export function useStopsDialogs(
       recurring_id: ""
     });
     
-    setRecurrenceData({
+    setRecurrenceDataState({
       isRecurring: false,
       frequency: "weekly",
       preferredDay: "monday"
@@ -203,7 +207,7 @@ export function useStopsDialogs(
     
     // If recurrence data was updated through the ItemSelector, update it here
     if (recurrenceDataUpdate) {
-      setRecurrenceData(recurrenceDataUpdate);
+      setRecurrenceDataState(recurrenceDataUpdate);
     }
     
     // Simple price calculation (can be enhanced)
@@ -235,7 +239,7 @@ export function useStopsDialogs(
   }, [handleEditStart, editingIndex]);
 
   const handleRecurrenceChange = useCallback((data: RecurrenceData) => {
-    setRecurrenceData(data);
+    setRecurrenceDataState(data);
   }, []);
 
   return {
