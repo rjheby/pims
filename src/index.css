@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -85,12 +84,43 @@
 }
 
 @layer base {
+  /* Better box sizing for all elements */
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
   * {
     @apply border-border;
   }
 
   body {
     @apply bg-background text-foreground;
+    overflow-x: hidden; /* Prevent horizontal scrolling */
+    min-height: 100vh;
+    margin: 0;
+  }
+
+  /* Ensure root element is responsive */
+  html {
+    font-size: 16px;
+  }
+
+  @media (max-width: 768px) {
+    html {
+      font-size: 14px;
+    }
+  }
+
+  /* Make images responsive by default */
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Make tables responsive */
+  table {
+    width: 100%;
+    table-layout: auto;
   }
 }
 
@@ -107,5 +137,203 @@
   /* Updated safe-area-bottom utility for devices with notches and fixed navigation */
   .safe-area-bottom {
     padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 80px);
+  }
+
+  /* RESPONSIVE UTILITIES */
+  
+  /* Prevent horizontal overflow */
+  .prevent-overflow {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+  
+  /* Responsive containers */
+  .responsive-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+  
+  @media (min-width: 640px) {
+    .responsive-container {
+      padding: 0 1.5rem;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .responsive-container {
+      padding: 0 2rem;
+    }
+  }
+  
+  /* Fix dialog/modal responsiveness */
+  .responsive-dialog {
+    width: 95vw;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+  
+  @media (min-width: 640px) {
+    .responsive-dialog {
+      width: auto;
+    }
+  }
+  
+  /* Responsive content wrapper */
+  .responsive-content {
+    width: 100%;
+    min-height: 100vh;
+    padding: 1rem;
+  }
+  
+  @media (min-width: 640px) {
+    .responsive-content {
+      padding: 1.5rem;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .responsive-content {
+      padding: 2rem;
+    }
+  }
+  
+  /* Responsive grid utilities */
+  .responsive-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  @media (min-width: 768px) {
+    .responsive-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .responsive-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  /* Responsive text utilities */
+  .responsive-text-sm {
+    font-size: 0.75rem;
+  }
+  
+  @media (min-width: 640px) {
+    .responsive-text-sm {
+      font-size: 0.875rem;
+    }
+  }
+
+  .responsive-text-base {
+    font-size: 0.875rem;
+  }
+  
+  @media (min-width: 640px) {
+    .responsive-text-base {
+      font-size: 1rem;
+    }
+  }
+
+  .responsive-text-lg {
+    font-size: 1rem;
+  }
+  
+  @media (min-width: 640px) {
+    .responsive-text-lg {
+      font-size: 1.125rem;
+    }
+  }
+
+  /* Mobile-first button utilities */
+  .responsive-button {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    width: 100%;
+  }
+  
+  @media (min-width: 640px) {
+    .responsive-button {
+      width: auto;
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+    }
+  }
+
+  /* Responsive spacing utilities */
+  .responsive-space-y > * + * {
+    margin-top: 1rem;
+  }
+  
+  @media (min-width: 640px) {
+    .responsive-space-y > * + * {
+      margin-top: 1.5rem;
+    }
+  }
+
+  /* Mobile sidebar/drawer utilities */
+  .mobile-drawer {
+    position: fixed;
+    top: 0;
+    left: -100%;
+    width: 80%;
+    max-width: 300px;
+    height: 100vh;
+    transition: left 0.3s ease-in-out;
+    z-index: 50;
+  }
+
+  .mobile-drawer.open {
+    left: 0;
+  }
+
+  @media (min-width: 768px) {
+    .mobile-drawer {
+      position: relative;
+      left: 0;
+      width: auto;
+      max-width: none;
+      height: auto;
+    }
+  }
+
+  /* Responsive table utilities */
+  .responsive-table {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .responsive-table table {
+    min-width: 600px;
+  }
+
+  @media (min-width: 768px) {
+    .responsive-table table {
+      min-width: 100%;
+    }
+  }
+
+  /* Card responsive utilities */
+  .responsive-card {
+    padding: 1rem;
+    margin: 0.5rem;
+  }
+
+  @media (min-width: 640px) {
+    .responsive-card {
+      padding: 1.5rem;
+      margin: 1rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .responsive-card {
+      padding: 2rem;
+    }
   }
 }
