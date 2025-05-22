@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from "react";
 import { Customer, DeliveryStop, Driver, StopFormData, RecurrenceData } from "../components/stops/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -219,8 +218,7 @@ export function useStopsDialogs(
     }));
     
     setItemsDialogOpen(false);
-    handleEditSave();
-  }, [handleEditSave]);
+  }, []);
 
   const openCustomerDialog = useCallback((index?: number) => {
     if (index !== undefined) {
