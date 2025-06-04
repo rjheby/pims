@@ -14,3 +14,13 @@ export const handleSupabaseError = (error: any): string => {
   }
   return 'An unexpected error occurred';
 };
+
+// Simple function to provide data with fallback
+export const fetchWithFallback = async (table: string, queryFn: () => any) => {
+  try {
+    return await queryFn();
+  } catch (error) {
+    console.error(`Error fetching from ${table}:`, error);
+    return { data: [], error };
+  }
+};

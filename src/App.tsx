@@ -14,6 +14,7 @@ import AppLayout from './components/layouts/AppLayout';
 import Dashboard from './pages/Dashboard';
 import Customers from './pages/Customers';
 import Drivers from './pages/Drivers';
+import DispatchScheduleView from './pages/DispatchScheduleView';
 import NotFound from './pages/NotFound';
 
 function App() {
@@ -31,6 +32,7 @@ function App() {
                 {/* Core Management Pages */}
                 <Route path="/customers" element={<AppLayout><Customers /></AppLayout>} />
                 <Route path="/drivers" element={<AppLayout><Drivers /></AppLayout>} />
+                <Route path="/dispatch-schedule" element={<AppLayout><DispatchScheduleView /></AppLayout>} />
                 
                 {/* 404 Route */}
                 <Route path="*" element={<NotFound />} />

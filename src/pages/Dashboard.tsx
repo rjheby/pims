@@ -107,6 +107,11 @@ const Dashboard = () => {
             <p className="text-xs text-muted-foreground">
               Total schedules created
             </p>
+            <Link to="/dispatch-schedule">
+              <Button variant="outline" size="sm" className="mt-3">
+                View Schedules
+              </Button>
+            </Link>
           </CardContent>
         </Card>
       </div>
@@ -136,6 +141,9 @@ const Dashboard = () => {
               </Link>
               <Link to="/drivers">
                 <Button variant="outline">Add Drivers</Button>
+              </Link>
+              <Link to="/dispatch-schedule">
+                <Button variant="outline">View Schedules</Button>
               </Link>
             </div>
           </div>
