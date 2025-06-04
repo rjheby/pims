@@ -1,24 +1,59 @@
 
-import { InvoicesDueCard } from "@/components/dashboard/InvoicesDueCard";
-import { RetailInventoryCard } from "@/components/dashboard/RetailInventoryCard";
-import { PalletsAvailableCard } from "@/components/dashboard/PalletsAvailableCard";
-// import { ProcessingRecordsCard } from "@/components/dashboard/ProcessingRecordsCard";
+import React from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-export default function Dashboard() {
+const Dashboard = () => {
   return (
-    <div className="p-4 md:p-8 space-y-8">
-      <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <InvoicesDueCard />
-        <RetailInventoryCard />
-        <PalletsAvailableCard />
+    <div className="responsive-container space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
       </div>
       
-      {/* Commented out ProcessingRecordsCard for now
-      <div className="mt-8">
-        <ProcessingRecordsCard />
+      <div className="responsive-grid">
+        <Card>
+          <CardHeader>
+            <CardTitle>Welcome</CardTitle>
+            <CardDescription>
+              Your application is ready to be built with real data
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Connected to Supabase project with dispatch management schema
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Stats</CardTitle>
+            <CardDescription>
+              Overview of your system
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Ready to display real metrics from your database
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Activity</CardTitle>
+            <CardDescription>
+              Latest updates and changes
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Activity feed will show here
+            </p>
+          </CardContent>
+        </Card>
       </div>
-      */}
     </div>
   );
-}
+};
+
+export default Dashboard;
