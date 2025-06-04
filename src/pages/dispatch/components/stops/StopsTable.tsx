@@ -1,10 +1,9 @@
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { MapPinPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { supabase, handleSupabaseError } from "@/integrations/supabase/client";
 
 interface StopsTableProps {
   stops?: any[];
@@ -22,7 +21,6 @@ const StopsTable = ({
   masterScheduleId
 }: StopsTableProps) => {
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
 
   const handleAddStop = () => {
     toast({

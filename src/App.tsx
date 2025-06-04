@@ -12,6 +12,8 @@ import AppLayout from './components/layouts/AppLayout';
 
 // Pages
 import Dashboard from './pages/Dashboard';
+import Customers from './pages/Customers';
+import Drivers from './pages/Drivers';
 import NotFound from './pages/NotFound';
 
 function App() {
@@ -25,6 +27,10 @@ function App() {
                 {/* Dashboard */}
                 <Route path="/" element={<AppLayout><Dashboard /></AppLayout>} />
                 <Route path="/dashboard" element={<AppLayout><Dashboard /></AppLayout>} />
+                
+                {/* Core Management Pages */}
+                <Route path="/customers" element={<AppLayout><Customers /></AppLayout>} />
+                <Route path="/drivers" element={<AppLayout><Drivers /></AppLayout>} />
                 
                 {/* 404 Route */}
                 <Route path="*" element={<NotFound />} />
